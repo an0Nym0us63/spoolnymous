@@ -99,7 +99,7 @@ def processMessage(data):
    # Prepare AMS spending estimation
   if "print" in data:    
     update_dict(PRINTER_STATE, data)
-    print(str(data))
+    #print(str(data))
     if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
       PENDING_PRINT_METADATA = getMetaDataFrom3mf(data["print"]["url"],data["print"]["subtask_name"])
 
