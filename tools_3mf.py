@@ -71,6 +71,7 @@ def download3mfFromFTP(filename, destFile):
   remote_path = "/cache/" + filename
   local_path = destFile.name  # 🔹 Download into the current directory
   encoded_remote_path = urllib.parse.quote(remote_path)
+  print("[DEBUG] File to download is  : " + remote_path)
   with open(local_path, "wb") as f:
     c = pycurl.Curl()
     url = f"ftps://{ftp_host}{encoded_remote_path}"
