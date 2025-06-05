@@ -63,15 +63,17 @@ def download3mfFromCloud(url, destFile):
   response.raise_for_status()
   destFile.write(response.content)
 
-def download3mfFromFTP(filename, destFile):
+def download3mfFromFTP(filename, taskname, destFile):
   print("Downloading 3MF file from FTP...")
   ftp_host = PRINTER_IP
   ftp_user = "bblp"
   ftp_pass = PRINTER_CODE
   remote_path = "/cache/" + filename
+  remote_path_from_task = "/cache/" + taskname+".gcode.3mf"
   local_path = destFile.name  # 🔹 Download into the current directory
   encoded_remote_path = urllib.parse.quote(remote_path)
-  print("[DEBUG] File to download is  : " + remote_path)
+  encoded_remote_path_from_task = urllib.parse.quote(remote_path_from_task)
+  print("[DEBUG] File to download is  : " + encoded_remote_path_from_task)
   with open(local_path, "wb") as f:
     c = pycurl.Curl()
     url = f"ftps://{ftp_host}{encoded_remote_path}"
@@ -105,7 +107,7 @@ def download3mfFromLocalFilesystem(path, destFile):
   with open(path, "rb") as src_file:
     destFile.write(src_file.read())
 
-def getMetaDataFrom3mf(url):
+def getMetaDataFrom3mf(url,taskname):
   """
   Download a 3MF file from a URL, unzip it, and parse filament usage.
 
@@ -127,7 +129,7 @@ def getMetaDataFrom3mf(url):
       elif url.startswith("local:"):
         download3mfFromLocalFilesystem(url.replace("local:", ""), temp_file)
       else:
-        download3mfFromFTP(url.replace("ftp://", ""), temp_file)
+        download3mfFromFTP(url.replace("ftp://", ""), taskname, temp_file)
       
       temp_file.close()
 

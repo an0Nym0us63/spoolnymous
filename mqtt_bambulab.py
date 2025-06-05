@@ -101,7 +101,7 @@ def processMessage(data):
     update_dict(PRINTER_STATE, data)
     print(str(data))
     if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
-      PENDING_PRINT_METADATA = getMetaDataFrom3mf(data["print"]["url"])
+      PENDING_PRINT_METADATA = getMetaDataFrom3mf(data["print"]["url"],data["print"]["subtask_name"])
 
       print_id = insert_print(PRINTER_STATE["print"]["subtask_name"], "cloud", PENDING_PRINT_METADATA["image"])
 
