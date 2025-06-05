@@ -95,11 +95,11 @@ def map_filament(tray_tar):
   
 def processMessage(data):
   global LAST_AMS_CONFIG, PRINTER_STATE, PRINTER_STATE_LAST, PENDING_PRINT_METADATA
-
+    
    # Prepare AMS spending estimation
   if "print" in data:    
     update_dict(PRINTER_STATE, data)
-    
+    print(str(data))
     if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
       PENDING_PRINT_METADATA = getMetaDataFrom3mf(data["print"]["url"])
 
