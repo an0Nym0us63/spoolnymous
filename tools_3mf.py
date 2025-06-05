@@ -96,11 +96,16 @@ def download3mfFromFTP(filename, taskname, destFile):
     print("[DEBUG] Starting file download into ./test.3mf...")
 
     try:
+        time.sleep(5) 
         c.perform()
         print("[DEBUG] File successfully downloaded into ./test.3mf!")
     except pycurl.error as e:
-        print(f"[ERROR] cURL error: {e}")
-
+        print(f"[DEBUG] cURL {e} retrying in 10 seconds")
+        try:
+            time.sleep(10) 
+            c.perform()
+        except pycurl.error as e:
+            print(f"[ERROR] cURL error: {e}")
     c.close()
 
 def download3mfFromLocalFilesystem(path, destFile):
