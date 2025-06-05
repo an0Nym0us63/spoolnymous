@@ -76,7 +76,7 @@ def download3mfFromFTP(filename, taskname, destFile):
   print("[DEBUG] File to download is  : " + encoded_remote_path_from_task)
   with open(local_path, "wb") as f:
     c = pycurl.Curl()
-    url = f"ftps://{ftp_host}{encoded_remote_path}"
+    url = f"ftps://{ftp_host}{encoded_remote_path_from_task}"
 
     # 🔹 Setup explicit FTPS connection (like FileZilla)
     c.setopt(c.URL, url)
