@@ -250,7 +250,7 @@ def on_message(client, userdata, msg):
                 tag = json.loads(spool["extra"]["tag"])
               if spool.get("filament", {}).get("extra",{}).get("filament_id"):
                 filament_id = json.loads(spool["filament"]["extra"]["filament_id"])
-              print(str(tray))
+              print(tray)
               if tag != tray["tray_uuid"] and filament_id != tray["filament_id"]:
                 continue
               
