@@ -293,7 +293,7 @@ def on_message(client, userdata, msg):
               if tag != tray["tray_uuid"] and filament_id != tray["tray_info_idx"]:
                 continue
               
-              if tray_uuid != "00000000000000000000000000000000" and spool.get("extra", {}).get("tag"):
+              if tray_uuid == tag:
                 foundspool= spool
                 break
               else:
