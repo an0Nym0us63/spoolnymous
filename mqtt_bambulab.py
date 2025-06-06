@@ -284,8 +284,6 @@ def on_message(client, userdata, msg):
             for spool in fetchSpools(True):
 
               tray_uuid = tray["tray_uuid"]
-              if spool.get("filament", {}).get("extra",{}).get("filament_id"):
-                print(json.loads(spool["filament"]["extra"]["filament_id"]))
               if not spool.get("extra", {}).get("tag") and not spool.get("filament", {}).get("extra",{}).get("filament_id"):
                 continue
               if spool.get("extra", {}).get("tag"):
@@ -295,19 +293,20 @@ def on_message(client, userdata, msg):
               if tag != tray["tray_uuid"] and filament_id != tray["tray_info_idx"]:
                 continue
               
-              if tray_uuid != "00000000000000000000000000000000":
+              if tray_uuid != "00000000000000000000000000000000" and spool.get("extra", {}).get("tag"):
                 foundspool= spool
                 break
               else:
-                color_dist = color_distance(spool["filament"]["color_hex"],tray['tray_color'])
-                spool['color_dist']=color_dist
-                print(json.loads(spool["filament"]["extra"]["filament_id"]) + ' ' +spool["filament"]["color_hex"] + ' : ' + str(color_dist)) 
-                if foundspool == None:
-                    if color_dist<25:
-                        foundspool= spool
-                else:
-                    if color_dist<foundspool['color_dist']:
-                        foundspool= spool
+                if spool.get("filament", {}).get("extra",{}).get("filament_id"):
+                    color_dist = color_distance(spool["filament"]["color_hex"],tray['tray_color'])
+                    spool['color_dist']=color_dist
+                    print(json.loads(spool["filament"]["extra"]["filament_id"]) + ' ' +spool["filament"]["color_hex"] + ' : ' + str(color_dist)) 
+                    if foundspool == None:
+                        if color_dist<25:
+                            foundspool= spool
+                    else:
+                        if color_dist<foundspool['color_dist']:
+                            foundspool= spool
 
               # TODO: filament remaining - Doesn't work for AMS Lite
               # requests.patch(f"http://{SPOOLMAN_IP}:7912/api/v1/spool/{spool['id']}", json={
