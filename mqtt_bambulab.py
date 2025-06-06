@@ -193,7 +193,19 @@ def publish(client, msg):
 
   print(f"Failed to send message to topic device/{PRINTER_ID}/request")
   return False
+  
+def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
+    """Convertit une couleur hexadécimale en RGB, en ignorant la transparence si présente."""
+    hex_color = hex_color.lstrip('#')
+    hex_color = hex_color[:6]  # Ignore alpha si présent
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
+def color_distance(hex1: str, hex2: str) -> float:
+    """Calcule la distance euclidienne entre deux couleurs RGB."""
+    r1, g1, b1 = hex_to_rgb(hex1)
+    r2, g2, b2 = hex_to_rgb(hex2)
+    return ((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2) ** 0.5
+    
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970
 def on_message(client, userdata, msg):
   global LAST_AMS_CONFIG, PRINTER_STATE, PRINTER_STATE_LAST, PENDING_PRINT_METADATA, PRINTER_MODEL
@@ -223,32 +235,42 @@ def on_message(client, userdata, msg):
             print(
                 f"    - [{num2letter(ams['id'])}{tray['id']}] {tray['tray_sub_brands']} {tray['tray_color']} ({str(tray['remain']).zfill(3)}%) [[ {tray['tray_uuid']} ]]")
 
-            found = False
+            foundspool = False
             tray_uuid = "00000000000000000000000000000000"
 
             for spool in fetchSpools(True):
 
               tray_uuid = tray["tray_uuid"]
 
-              if not spool.get("extra", {}).get("tag"):
+              if not spool.get("extra", {}).get("tag") and not spool.get("filament", {}).get("extra",{}).get("filament_id"):
                 continue
               tag = json.loads(spool["extra"]["tag"])
-              if tag != tray["tray_uuid"]:
+              filament_id = json.loads(spool["filament"]["extra"]["filament_id"])
+              if tag != tray["tray_uuid"] and filament_id != tray["filament_id"]:
                 continue
-
-              found = True
-
-              setActiveTray(spool['id'], spool["extra"], ams['id'], tray["id"])
+              
+              if tray_uuid != "00000000000000000000000000000000":
+                foundspool= spool
+                break
+              else:
+                color_dist = color_distance(spool["filament"]["color_hex"],tray['tray_color'])
+                spool['color_dist']=color_dist
+                if count(found)==0:
+                    foundspool= spool
+                else:
+                    if color_dist<found['color_dist']:
+                        foundspool= spool
 
               # TODO: filament remaining - Doesn't work for AMS Lite
               # requests.patch(f"http://{SPOOLMAN_IP}:7912/api/v1/spool/{spool['id']}", json={
               #  "remaining_weight": tray["remain"] / 100 * tray["tray_weight"]
               # })
 
-            if not found and tray_uuid == "00000000000000000000000000000000":
-              print("      - No Spool or non Bambulab Spool!")
-            elif not found:
-              print("      - Not found. Update spool tag!")
+            if not found:
+              print("      - Not found. Update spool tag or filament_id and color!")
+            else:
+                print("Found spool " + str(spool))
+                setActiveTray(found['id'], spool["extra"], ams['id'], tray["id"])
               
   except Exception as e:
     traceback.print_exc()
