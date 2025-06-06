@@ -11,6 +11,7 @@ from spoolman_service import spendFilaments, setActiveTray, fetchSpools
 from tools_3mf import getMetaDataFrom3mf
 import time
 import copy
+import match
 from collections.abc import Mapping
 from logger import append_to_rotating_file
 from print_history import  insert_print, insert_filament_usage, update_filament_spool
@@ -195,16 +196,56 @@ def publish(client, msg):
   return False
   
 def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
-    """Convertit une couleur hexadécimale en RGB, en ignorant la transparence si présente."""
-    hex_color = hex_color.lstrip('#')
-    hex_color = hex_color[:6]  # Ignore alpha si présent
+    """Convertit une couleur hexadécimale en RGB, ignore l'alpha si présent."""
+    hex_color = hex_color.lstrip('#')[:6]
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
+def rgb_to_lab(r: int, g: int, b: int) -> tuple[float, float, float]:
+    """Convertit RGB (0-255) en CIELAB."""
+    # Convert to [0, 1]
+    r /= 255
+    g /= 255
+    b /= 255
+
+    # sRGB gamma correction
+    def gamma_correct(c):
+        return ((c + 0.055) / 1.055) ** 2.4 if c > 0.04045 else c / 12.92
+
+    r = gamma_correct(r)
+    g = gamma_correct(g)
+    b = gamma_correct(b)
+
+    # RGB to XYZ
+    x = r * 0.4124 + g * 0.3576 + b * 0.1805
+    y = r * 0.2126 + g * 0.7152 + b * 0.0722
+    z = r * 0.0193 + g * 0.1192 + b * 0.9505
+
+    # Normalize for D65
+    x /= 0.95047
+    y /= 1.00000
+    z /= 1.08883
+
+    # XYZ to Lab
+    def f(t):
+        return t ** (1/3) if t > 0.008856 else (7.787 * t) + (16 / 116)
+
+    fx = f(x)
+    fy = f(y)
+    fz = f(z)
+
+    l = 116 * fy - 16
+    a = 500 * (fx - fy)
+    b = 200 * (fy - fz)
+
+    return (l, a, b)
+
 def color_distance(hex1: str, hex2: str) -> float:
-    """Calcule la distance euclidienne entre deux couleurs RGB."""
-    r1, g1, b1 = hex_to_rgb(hex1)
-    r2, g2, b2 = hex_to_rgb(hex2)
-    return ((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2) ** 0.5
+    """Calcule la distance DeltaE (CIELAB) entre deux couleurs hexadécimales."""
+    rgb1 = hex_to_rgb(hex1)
+    rgb2 = hex_to_rgb(hex2)
+    lab1 = rgb_to_lab(*rgb1)
+    lab2 = rgb_to_lab(*rgb2)
+    return math.sqrt(sum((a - b) ** 2 for a, b in zip(lab1, lab2)))
     
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970
 def on_message(client, userdata, msg):
@@ -262,7 +303,7 @@ def on_message(client, userdata, msg):
                 spool['color_dist']=color_dist
                 print(json.loads(spool["filament"]["extra"]["filament_id"]) + ' ' +spool["filament"]["color_hex"] + ' : ' + str(color_dist)) 
                 if foundspool == None:
-                    if color_dist<50:
+                    if color_dist<25:
                         foundspool= spool
                 else:
                     if color_dist<foundspool['color_dist']:
