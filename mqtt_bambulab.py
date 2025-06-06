@@ -233,7 +233,7 @@ def on_message(client, userdata, msg):
         for tray in ams["tray"]:
           if "tray_sub_brands" in tray:
             print(
-                f"    - [{num2letter(ams['id'])}{tray['id']}] {tray['tray_sub_brands']} {tray['tray_color']} ({str(tray['remain']).zfill(3)}%) [[ {tray['tray_uuid']} ]]")
+                f"    - [{num2letter(ams['id'])}{tray['id']}] {tray['tray_sub_brands']} {tray['tray_color']} ({str(tray['remain']).zfill(3)}%) [[ {tray['tray_uuid']} ]] [[ {tray['tray_info_idx']} ]]")
 
             foundspool = False
             tray_uuid = "00000000000000000000000000000000"
