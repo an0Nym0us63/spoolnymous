@@ -235,7 +235,7 @@ def on_message(client, userdata, msg):
             print(
                 f"    - [{num2letter(ams['id'])}{tray['id']}] {tray['tray_sub_brands']} {tray['tray_color']} ({str(tray['remain']).zfill(3)}%) [[{tray['tray_uuid']}]] [[{tray['tray_info_idx']}]]")
 
-            foundspool = False
+            foundspool = None
             tray_uuid = "00000000000000000000000000000000"
             tag='n/a'
             filament_id='n/a'
@@ -260,7 +260,7 @@ def on_message(client, userdata, msg):
               else:
                 color_dist = color_distance(spool["filament"]["color_hex"],tray['tray_color'])
                 spool['color_dist']=color_dist
-                if not foundspool and color_dist<50:
+                if foundspool != None and color_dist<50:
                     foundspool= spool
                 else:
                     if color_dist<foundspool['color_dist']:
@@ -271,7 +271,7 @@ def on_message(client, userdata, msg):
               #  "remaining_weight": tray["remain"] / 100 * tray["tray_weight"]
               # })
 
-            if not foundspool:
+            if foundspool != None:
               print("      - Not found. Update spool tag or filament_id and color!")
             else:
                 print("Found spool " + str(foundspool))
