@@ -270,11 +270,11 @@ def on_message(client, userdata, msg):
               #  "remaining_weight": tray["remain"] / 100 * tray["tray_weight"]
               # })
 
-            if not found:
+            if not foundspool:
               print("      - Not found. Update spool tag or filament_id and color!")
             else:
-                print("Found spool " + str(spool))
-                setActiveTray(found['id'], spool["extra"], ams['id'], tray["id"])
+                print("Found spool " + str(foundspool))
+                setActiveTray(foundspool['id'], foundspool["extra"], ams['id'], tray["id"])
               
   except Exception as e:
     traceback.print_exc()
