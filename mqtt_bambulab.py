@@ -233,7 +233,7 @@ def on_message(client, userdata, msg):
         for tray in ams["tray"]:
           if "tray_sub_brands" in tray:
             print(
-                f"    - [{num2letter(ams['id'])}{tray['id']}] {tray['tray_sub_brands']} {tray['tray_color']} ({str(tray['remain']).zfill(3)}%) [[ {tray['tray_uuid']} ]] [[ {tray['tray_info_idx']} ]]")
+                f"    - [{num2letter(ams['id'])}{tray['id']}] {tray['tray_sub_brands']} {tray['tray_color']} ({str(tray['remain']).zfill(3)}%) [[{tray['tray_uuid']}]] [[{tray['tray_info_idx']}]]")
 
             foundspool = False
             tray_uuid = "00000000000000000000000000000000"
@@ -243,7 +243,8 @@ def on_message(client, userdata, msg):
             for spool in fetchSpools(True):
 
               tray_uuid = tray["tray_uuid"]
-
+              if spool.get("filament", {}).get("extra",{}).get("filament_id"):
+                print(json.loads(spool["filament"]["extra"]["filament_id"]))
               if not spool.get("extra", {}).get("tag") and not spool.get("filament", {}).get("extra",{}).get("filament_id"):
                 continue
               if spool.get("extra", {}).get("tag"):
