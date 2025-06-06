@@ -260,6 +260,7 @@ def on_message(client, userdata, msg):
               else:
                 color_dist = color_distance(spool["filament"]["color_hex"],tray['tray_color'])
                 spool['color_dist']=color_dist
+                print(json.loads(spool["filament"]["extra"]["filament_id"]) + ' ' +spool["filament"]["color_hex"] + ' : ' + str(color_dist)) 
                 if foundspool == None:
                     if color_dist<50:
                         foundspool= spool
