@@ -272,7 +272,7 @@ def on_message(client, userdata, msg):
               #  "remaining_weight": tray["remain"] / 100 * tray["tray_weight"]
               # })
 
-            if foundspool != None:
+            if foundspool == None:
               print("      - Not found. Update spool tag or filament_id and color!")
             else:
                 print("Found spool " + str(foundspool))
