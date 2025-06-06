@@ -237,6 +237,8 @@ def on_message(client, userdata, msg):
 
             foundspool = False
             tray_uuid = "00000000000000000000000000000000"
+            tag='n/a'
+            filament_id='n/a'
 
             for spool in fetchSpools(True):
 
@@ -244,8 +246,10 @@ def on_message(client, userdata, msg):
 
               if not spool.get("extra", {}).get("tag") and not spool.get("filament", {}).get("extra",{}).get("filament_id"):
                 continue
-              tag = json.loads(spool["extra"]["tag"])
-              filament_id = json.loads(spool["filament"]["extra"]["filament_id"])
+              if spool.get("extra", {}).get("tag"):
+                tag = json.loads(spool["extra"]["tag"])
+              if spool.get("filament", {}).get("extra",{}).get("filament_id"):
+                filament_id = json.loads(spool["filament"]["extra"]["filament_id"])
               if tag != tray["tray_uuid"] and filament_id != tray["filament_id"]:
                 continue
               
