@@ -260,10 +260,10 @@ def on_message(client, userdata, msg):
               else:
                 color_dist = color_distance(spool["filament"]["color_hex"],tray['tray_color'])
                 spool['color_dist']=color_dist
-                if count(found)==0:
+                if count(foundspool)== 0 and color_dist<50:
                     foundspool= spool
                 else:
-                    if color_dist<found['color_dist']:
+                    if color_dist<foundspool['color_dist']:
                         foundspool= spool
 
               # TODO: filament remaining - Doesn't work for AMS Lite
