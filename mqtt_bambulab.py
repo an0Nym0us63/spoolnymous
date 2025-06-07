@@ -99,6 +99,7 @@ def processMessage(data):
     
    # Prepare AMS spending estimation
   if "print" in data:    
+    print('PRINT--'+str(data))
     update_dict(PRINTER_STATE, data)
     #print(str(data))
     if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
