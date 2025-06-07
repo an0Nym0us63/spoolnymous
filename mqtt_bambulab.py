@@ -280,10 +280,8 @@ def on_message(client, userdata, msg):
             tray_uuid = "00000000000000000000000000000000"
             tag='n/a'
             filament_id='n/a'
-
+            tray_uuid = tray["tray_uuid"]
             for spool in fetchSpools(True):
-
-              tray_uuid = tray["tray_uuid"]
               if not spool.get("extra", {}).get("tag") and not spool.get("filament", {}).get("extra",{}).get("filament_id"):
                 continue
               if spool.get("extra", {}).get("tag"):
@@ -292,15 +290,17 @@ def on_message(client, userdata, msg):
                 filament_id = json.loads(spool["filament"]["extra"]["filament_id"])
               if tag != tray["tray_uuid"] and filament_id != tray["tray_info_idx"]:
                 continue
-              
+              print(tag)
+              print(filament_id)
               if tray_uuid == tag:
+                print('Found spool with tag')
                 foundspool= spool
                 break
               else:
                 if spool.get("filament", {}).get("extra",{}).get("filament_id"):
                     color_dist = color_distance(spool["filament"]["color_hex"],tray['tray_color'])
                     spool['color_dist']=color_dist
-                    print(json.loads(spool["filament"]["extra"]["filament_id"]) + ' ' +spool["filament"]["color_hex"] + ' : ' + str(color_dist)) 
+                    print(filament_id + ' ' +spool["filament"]["color_hex"] + ' : ' + str(color_dist)) 
                     if foundspool == None:
                         if color_dist<25:
                             foundspool= spool
