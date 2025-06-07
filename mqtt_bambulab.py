@@ -290,8 +290,6 @@ def on_message(client, userdata, msg):
                 filament_id = json.loads(spool["filament"]["extra"]["filament_id"])
               if tag != tray["tray_uuid"] and filament_id != tray["tray_info_idx"]:
                 continue
-              print(tag)
-              print(filament_id)
               if tray_uuid == tag:
                 print('Found spool with tag')
                 foundspool= spool
