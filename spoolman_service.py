@@ -110,7 +110,7 @@ def spendFilaments(printdata):
     if ams_mapping[0] != EXTERNAL_SPOOL_ID:
         try:
             ams_mapping_idx = filament_id_to_amstray.get(filamentId - 1)
-            tray_id = ams_mapping.index(ams_mapping_idx)   # get tray_id from ams_mapping for filament
+            tray_id = ams_mapping[ams_mapping_idx]   # get tray_id from ams_mapping for filament
             ams_id = getAMSFromTray(tray_id)        # caclulate ams_id from tray_id
             tray_id = tray_id - ams_id * 4          # correct tray_id for ams
         except Exception as e:
