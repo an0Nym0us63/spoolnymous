@@ -103,6 +103,7 @@ def spendFilaments(printdata):
   ams_id = EXTERNAL_SPOOL_AMS_ID
   
   ams_usage = []
+  print(printdata)
   for filamentId, filament in printdata["filaments"].items():
     if ams_mapping[0] != EXTERNAL_SPOOL_ID:
       tray_id = ams_mapping[filamentId - 1]   # get tray_id from ams_mapping for filament
@@ -123,6 +124,7 @@ def spendFilaments(printdata):
 
       # iterate over all ams_trays and set spool in print history, at the same time sum the usage for the tray and consume it from the spool
       used_grams = 0
+      print(ams_usage)
       for ams_tray in ams_usage:
         if active_tray == ams_tray["trayUid"]:
           used_grams += ams_tray["usedGrams"]
