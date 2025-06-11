@@ -157,10 +157,10 @@ def setActiveTray(spool_id, spool_extra, ams_id, tray_id):
     print("Skipping set active tray")
 
 # Fetch spools from spoolman
-def fetchSpools(cached=False):
+def fetchSpools(cached=False,archived=False):
   global SPOOLS
   if not cached or not SPOOLS:
-    SPOOLS = fetchSpoolList()
+    SPOOLS = fetchSpoolList(archived)
     
     for spool in SPOOLS:
       initial_weight = 0

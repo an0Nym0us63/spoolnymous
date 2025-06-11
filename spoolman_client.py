@@ -20,11 +20,14 @@ def getSpoolById(spool_id):
   return response.json()
 
 
-def fetchSpoolList():
+def fetchSpoolList(archived=False):
+  archi='?allow_archived=0'
+  if archived:
+    archi='?allow_archived=1'
   if SPOOL_SORTING:
-    response = requests.get(f"{SPOOLMAN_API_URL}/spool?sort={SPOOL_SORTING}")
+    response = requests.get(f"{SPOOLMAN_API_URL}/spool{archi}&sort={SPOOL_SORTING}")
   else:
-    response = requests.get(f"{SPOOLMAN_API_URL}/spool")
+    response = requests.get(f"{SPOOLMAN_API_URL}/spool{archi}")
     
   print(response.status_code)
   print(response.text)

@@ -293,7 +293,7 @@ def print_history():
 
   prints = get_prints_with_filament()
 
-  spool_list = fetchSpools()
+  spool_list = fetchSpools(False,True)
 
   for print in prints:
     print["filament_usage"] = json.loads(print["filament_info"])
