@@ -41,15 +41,15 @@ def parse_date(item):
 
 def get_filament_order(file):
     filament_order = {} 
-    switch_count = 0 
+    new_color_count = 0 
 
     for line in file:
         match_filament = re.match(r"^M620 S(\d+)[^;\r\n]*$", line.decode("utf-8").strip())
         if match_filament:
             filament = int(match_filament.group(1))
             if filament not in filament_order and int(filament) != 255:
-                filament_order[int(filament)] = switch_count
-            switch_count += 1
+                filament_order[int(filament)] = new_color_count
+                new_color_count += 1
 
     if len(filament_order) == 0:
        filament_order = {1:0}
