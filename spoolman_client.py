@@ -15,7 +15,7 @@ def patchExtraTags(spool_id, old_extras, new_extras):
 def patchLocation(spool_id, ams_id='', tray_id=''):
   location = ''
   if LOCATION_MAPPING != '' :
-    d = dict(item.split(":", 1) for item in s.split(";"))
+    d = dict(item.split(":", 1) for item in LOCATION_MAPPING.split(";"))
     if str(ams_id) in d:
         if ams_id ==100:
             location = d[str(ams_id)]
