@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 from print_history import update_filament_spool
 import json
 
-from spoolman_client import consumeSpool, patchExtraTags, fetchSpoolList, fetchSettings
+from spoolman_client import consumeSpool, patchExtraTags, fetchSpoolList, fetchSettings, patchLocation
 
 SPOOLS = {}
 SPOOLMAN_SETTINGS = {}
@@ -149,11 +149,13 @@ def setActiveTray(spool_id, spool_extra, ams_id, tray_id):
     patchExtraTags(spool_id, spool_extra, {
       "active_tray": json.dumps(trayUid(ams_id, tray_id)),
     })
-
+    patchLocation(spool_id,ams_id,tray_id)
+    
     # Remove active tray from inactive spools
     for old_spool in fetchSpools(cached=True):
       if spool_id != old_spool["id"] and old_spool.get("extra") and old_spool["extra"].get("active_tray") and json.loads(old_spool["extra"]["active_tray"]) == trayUid(ams_id, tray_id):
         patchExtraTags(old_spool["id"], old_spool["extra"], {"active_tray": json.dumps("")})
+        patchLocation(spool_id,100)
   else:
     print("Skipping set active tray")
 

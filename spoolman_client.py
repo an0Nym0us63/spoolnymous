@@ -1,5 +1,5 @@
 import requests
-from config import SPOOLMAN_API_URL, SPOOL_SORTING
+from config import SPOOLMAN_API_URL, SPOOL_SORTING, LOCATION_MAPPING
 import json
 
 def patchExtraTags(spool_id, old_extras, new_extras):
@@ -8,6 +8,22 @@ def patchExtraTags(spool_id, old_extras, new_extras):
 
   resp = requests.patch(f"{SPOOLMAN_API_URL}/spool/{spool_id}", json={
     "extra": old_extras
+  })
+  print(resp.text)
+  print(resp.status_code)
+  
+def patchLocation(spool_id, ams_id='', tray_id=''):
+  location = ''
+  if LOCATION_MAPPING != '' :
+    d = dict(item.split(":", 1) for item in s.split(";"))
+    if str(ams_id) in d:
+        if ams_id ==100:
+            location = d[str(ams_id)]
+        else:
+            location = d[str(ams_id)] + ' '+ str(tray_id)
+
+  resp = requests.patch(f"{SPOOLMAN_API_URL}/spool/{spool_id}", json={
+    "location": location
   })
   print(resp.text)
   print(resp.status_code)
