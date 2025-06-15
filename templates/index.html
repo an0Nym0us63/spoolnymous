@@ -31,7 +31,7 @@
   {% if ams.location %}
     {{ ams.location }}
   {% else %}
-    AMS{% if ams_data|length > 1 %} {{ loop.index }}{% endif %}
+	AMS{% if ams_data|length > 1 %} {{ ams.id|int +1 }} {% endif %}
   {% endif %}
 </h5>
         {% if ams.temp != "0.0" %}

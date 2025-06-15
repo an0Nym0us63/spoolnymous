@@ -14,13 +14,14 @@ def patchExtraTags(spool_id, old_extras, new_extras):
   
 def patchLocation(spool_id, ams_id='', tray_id=''):
   location = ''
+  ams_name='AMS_'+str(ams_id)
   if LOCATION_MAPPING != '' :
     d = dict(item.split(":", 1) for item in LOCATION_MAPPING.split(";"))
-    if str(ams_id) in d:
+    if ams_name in d:
         if ams_id ==100:
-            location = d[str(ams_id)]
+            location = d[ams_name]
         else:
-            location = d[str(ams_id)] + ' '+ str(tray_id)
+            location = d[ams_name] + ' '+ str(tray_id)
 
   resp = requests.patch(f"{SPOOLMAN_API_URL}/spool/{spool_id}", json={
     "location": location

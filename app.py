@@ -222,8 +222,9 @@ def home():
       location = ''
       if LOCATION_MAPPING != '' :
         d = dict(item.split(":", 1) for item in LOCATION_MAPPING.split(";"))
-        if str(ams["id"]) in d:
-            location = d[str(ams["id"])]
+        ams_name='AMS_'+str(ams["id"])
+        if ams_name in d:
+            location = d[ams_name]
       ams['location']=location
 
     return render_template('index.html', success_message=success_message, ams_data=ams_data, vt_tray_data=vt_tray_data, issue=issue)
