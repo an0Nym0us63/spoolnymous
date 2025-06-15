@@ -4,7 +4,7 @@ import uuid
 
 from flask import Flask, request, render_template, redirect, url_for
 
-from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME
+from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,LOCATION_MAPPING
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
@@ -219,6 +219,15 @@ def home():
       for tray in ams["tray"]:
         augmentTrayDataWithSpoolMan(spool_list, tray, trayUid(ams["id"], tray["id"]))
         issue |= tray["issue"]
+      location = ''
+      if LOCATION_MAPPING != '' :
+        d = dict(item.split(":", 1) for item in LOCATION_MAPPING.split(";"))
+        if str(ams["id"]) in d:
+            if ams["id"] ==100:
+                location = d[str(ams_id)]
+            else:
+                location = d[str(ams_id)] + ' '+ str(tray_id)
+      ams['location']=location
 
     return render_template('index.html', success_message=success_message, ams_data=ams_data, vt_tray_data=vt_tray_data, issue=issue)
   except Exception as e:

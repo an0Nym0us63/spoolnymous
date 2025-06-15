@@ -27,7 +27,13 @@
   <div class="col-lg-6 mb-4 text-center">
     <div class="card shadow-sm">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">AMS{% if ams_data|length > 1 %} {{ ams.id|int +1 }} {% endif %}</h5>
+        <h5 class="mb-0">
+  {% if ams.location %}
+    {{ ams.location }}
+  {% else %}
+    AMS{% if ams_data|length > 1 %} {{ loop.index }}{% endif %}
+  {% endif %}
+</h5>
         {% if ams.temp != "0.0" %}
         <span class="text-muted small">Humidity: {{ ams.humidity_raw }}%, Temp: {{ ams.temp }}°C</span>
         {% endif %}
