@@ -105,12 +105,13 @@ def spendFilaments(printdata):
   ams_usage = []
   print(printdata)
   filamentOrder = printdata["filamentOrder"]
-  filament_id_to_amstray = {fid: tray for tray, fid in filamentOrder.items()}
+  #filament_id_to_amstray = {fid: tray for tray, fid in filamentOrder.items()}
+  cleaned_mapping = [x for x in ams_mapping if x != -1]
   for filamentId, filament in printdata["filaments"].items():
     if ams_mapping[0] != EXTERNAL_SPOOL_ID:
         try:
-            ams_mapping_idx = filament_id_to_amstray.get(filamentId - 1)
-            tray_id = ams_mapping[ams_mapping_idx]   # get tray_id from ams_mapping for filament
+            ams_mapping_idx = filamentId - 1
+            tray_id = cleaned_mapping[ams_mapping_idx]   # get tray_id from ams_mapping for filament
             ams_id = getAMSFromTray(tray_id)        # caclulate ams_id from tray_id
             tray_id = tray_id - ams_id * 4          # correct tray_id for ams
         except Exception as e:
