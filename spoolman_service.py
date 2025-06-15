@@ -149,7 +149,7 @@ def setActiveTray(spool_id, spool_extra, ams_id, tray_id):
     patchExtraTags(spool_id, spool_extra, {
       "active_tray": json.dumps(trayUid(ams_id, tray_id)),
     })
-    patchLocation(spool_id,ams_id,tray_id)
+    patchLocation(spool_id,ams_id,tray_id+1)
     
     # Remove active tray from inactive spools
     for old_spool in fetchSpools(cached=True):
