@@ -96,7 +96,7 @@ def download3mfFromFTP(filename, taskname, destFile):
     print("[DEBUG] Starting file download into ./test.3mf...")
 
     try:
-        time.sleep(5) 
+        time.sleep(30) 
         c.perform()
         print("[DEBUG] File successfully downloaded into ./test.3mf!")
     except pycurl.error as e:
