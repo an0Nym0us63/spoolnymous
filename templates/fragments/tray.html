@@ -63,18 +63,21 @@
             <div class="fw-bold">{{ tray_data.last_used }}</div>
           </div>
           <!-- Remaining -->
+            {% if AUTO_SPEND and tray_data.matched %}
           <div class="mt-2 d-flex flex-column flex-sm-row">
             <div class="me-sm-1">Remaining:</div>
-            {% if AUTO_SPEND and tray_data.matched %}
               <div class="fw-bold">{{ tray_data.remaining_weight|round }}g</div>
-            {% if tray_data.remain != -1 %}
-				<div class="me-sm-1">Ams estimate:</div>
-				<div class="fw-bold">{{ tray_data.remain }}%</div>
-			{% endif %}
-              
-            {% endif %}
+				
           </div>
-        </div>
+           {% endif %}
+		     {% if tray_data.remain != -1 %}
+          <div class="mt-2 d-flex flex-column flex-sm-row">
+            <div class="me-sm-1">Ams estimate:</div>
+				<div class="fw-bold">{{ tray_data.remain }}%</div>
+				
+          </div>
+           {% endif %}
+		</div>
       {% endif %}
     </div>
   </div>
