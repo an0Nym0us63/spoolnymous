@@ -67,8 +67,10 @@
             <div class="me-sm-1">Remaining:</div>
             {% if AUTO_SPEND and tray_data.matched %}
               <div class="fw-bold">{{ tray_data.remaining_weight|round }}g</div>
-            {% else %}
-              <div class="fw-bold">{{ tray_data.remain }}%</div>
+            {% if tray_data.remain != -1 %}
+				<div class="fw-bold">{{ tray_data.remain }}%</div>
+			{% endif %}
+              
             {% endif %}
           </div>
         </div>
