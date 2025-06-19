@@ -69,6 +69,7 @@ def download3mfFromFTP(filename, taskname, destFile):
   ftp_user = "bblp"
   ftp_pass = PRINTER_CODE
   remote_path = "/cache/" + filename
+  taskname = taskname.replace('/','2f')
   remote_path_from_task = "/cache/" + taskname+".gcode.3mf"
   local_path = destFile.name  # 🔹 Download into the current directory
   encoded_remote_path = urllib.parse.quote(remote_path)
