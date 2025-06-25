@@ -227,7 +227,7 @@ def home():
             location = d[ams_name]
       ams['location']=location
       if AMS_ORDER != '':
-        mapping = dict(int(k): int(v) for k, v in (item.split(":") for item in AMS_ORDER.split(";")))
+        mapping = {int(k): int(v) for k, v in (item.split(":") for item in AMS_ORDER.split(";"))}
         reordered = [None] * len(ams_data)
         for src_index, dst_index in mapping.items():
             reordered[dst_index] = ams_data[src_index]
