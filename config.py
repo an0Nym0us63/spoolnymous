@@ -12,3 +12,4 @@ SPOOLMAN_API_URL = f"{SPOOLMAN_BASE_URL}/api/v1"
 AUTO_SPEND = os.getenv('AUTO_SPEND', False)
 SPOOL_SORTING = os.getenv('SPOOL_SORTING', "filament.material:asc,filament.vendor.name:asc,filament.name:asc")
 LOCATION_MAPPING = os.getenv('LOCATION_MAPPING','')
+AMS_ORDER = os.getenv('AMS_ORDER','')
