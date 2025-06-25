@@ -55,6 +55,15 @@ def get_filament_order(file):
        filament_order = {1:0}
 
     return filament_order
+    
+def encode_custom_hex(filename, chars="/:"):
+    encoded = ''
+    for c in filename:
+        if c in chars:
+            encoded += f"{ord(c):02x}"
+        else:
+            encoded += c
+    return encoded
 
 def download3mfFromCloud(url, destFile):
   print("Downloading 3MF file from cloud...")
@@ -64,12 +73,13 @@ def download3mfFromCloud(url, destFile):
   destFile.write(response.content)
 
 def download3mfFromFTP(filename, taskname, destFile):
+  dictChar = {'/':'2f',':':'3a'}
   print("Downloading 3MF file from FTP...")
   ftp_host = PRINTER_IP
   ftp_user = "bblp"
   ftp_pass = PRINTER_CODE
   remote_path = "/cache/" + filename
-  taskname = taskname.replace('/','2f')
+  taskname = encode_custom_hex(taskname)
   remote_path_from_task = "/cache/" + taskname+".gcode.3mf"
   local_path = destFile.name  # 🔹 Download into the current directory
   encoded_remote_path = urllib.parse.quote(remote_path)
