@@ -38,6 +38,14 @@
                           <div>{{ print['file_name'] }}</div>
                         </div>
                       </div>
+					  
+					  <div class="col-4 mb-3">
+                        <div class="label-print-value">
+                          <span class="label-print-inline fw-bold">Duration: </span>
+                          <div class="label-print-stacked fw-bold">Duration</div>
+                          <div>{{ '%.2f' | format(print['duration']) }}h</div>
+                        </div>
+                      </div>
                 
                       <!-- Block 4 -->
                       {% if print['total_cost'] > 0 %}
