@@ -25,6 +25,12 @@ def create_database() -> None:
                 image_file TEXT
             )
         ''')
+        try:
+            cursor.execute('''
+                ALTER TABLE prints ADD COLUMN duration REAL
+            ''')
+        except:
+            print("Column already exists")
         
         # Create table for filament usage
         cursor.execute('''
@@ -43,7 +49,7 @@ def create_database() -> None:
         conn.commit()
         conn.close()
 
-def insert_print(file_name: str, print_type: str, image_file: str = None, print_date: str = None) -> int:
+def insert_print(file_name: str, print_type: str, image_file: str = None, print_date: str = None, duration: float) -> int:
     """
     Inserts a new print job into the database and returns the print ID.
     If no print_date is provided, the current timestamp is used.
@@ -54,9 +60,9 @@ def insert_print(file_name: str, print_type: str, image_file: str = None, print_
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO prints (print_date, file_name, print_type, image_file)
-        VALUES (?, ?, ?, ?)
-    ''', (print_date, file_name, print_type, image_file))
+        INSERT INTO prints (print_date, file_name, print_type, image_file,duration)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (print_date, file_name, print_type, image_file, duration))
     print_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -100,7 +106,7 @@ def get_prints_with_filament():
     cursor = conn.cursor()
     cursor.execute('''
         SELECT p.id AS id, p.print_date AS print_date, p.file_name AS file_name, 
-               p.print_type AS print_type, p.image_file AS image_file,
+               p.print_type AS print_type, p.image_file AS image_file, p.duration AS duration
                (
                    SELECT json_group_array(json_object(
                        'spool_id', f.spool_id,

@@ -43,9 +43,27 @@
                       {% if print['total_cost'] > 0 %}
                       <div class="col-4 mb-3">
                         <div class="label-print-value">
-                          <span class="label-print-inline fw-bold">Cost: </span>
-                          <div class="label-print-stacked fw-bold">Cost</div>
+                          <span class="label-print-inline fw-bold">Filament Cost: </span>
+                          <div class="label-print-stacked fw-bold">Filament Cost</div>
                           <div>{{ '%.2f' | format(print['total_cost']) }} {{currencysymbol}}</div>
+                        </div>
+                      </div>
+                      {% endif %}
+					  {% if print['electric_cost'] > 0 %}
+                      <div class="col-4 mb-3">
+                        <div class="label-print-value">
+                          <span class="label-print-inline fw-bold">Electric Cost: </span>
+                          <div class="label-print-stacked fw-bold">Electric Cost</div>
+                          <div>{{ '%.2f' | format(print['electric_cost']) }} {{currencysymbol}}</div>
+                        </div>
+                      </div>
+                      {% endif %}
+					  {% if print['full_cost'] > 0 %}
+                      <div class="col-4 mb-3">
+                        <div class="label-print-value">
+                          <span class="label-print-inline fw-bold">Full Cost: </span>
+                          <div class="label-print-stacked fw-bold">Full Cost</div>
+                          <div>{{ '%.2f' | format(print['full_cost']) }} {{currencysymbol}}</div>
                         </div>
                       </div>
                       {% endif %}

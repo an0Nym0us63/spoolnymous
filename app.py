@@ -4,7 +4,7 @@ import uuid
 
 from flask import Flask, request, render_template, redirect, url_for
 
-from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,LOCATION_MAPPING,AMS_ORDER
+from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,LOCATION_MAPPING,AMS_ORDER, COST_BY_HOUR
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
@@ -309,6 +309,8 @@ def print_history():
   spool_list = fetchSpools(False,True)
 
   for print in prints:
+    print["duration"] = print["duration"]/3600
+    print["electric_cost"] = print["duration"]*COST_BY_HOUR
     print["filament_usage"] = json.loads(print["filament_info"])
     print["total_cost"] = 0
 
@@ -320,7 +322,7 @@ def print_history():
             filament["cost"] = filament['grams_used'] * filament['spool']['cost_per_gram']
             print["total_cost"] += filament["cost"]
             break
-  
+    print["full_cost"] = print["total_cost"]+print["electric_cost"]
   return render_template('print_history.html', prints=prints, currencysymbol=spoolman_settings["currency_symbol"])
 
 @app.route("/print_select_spool")
