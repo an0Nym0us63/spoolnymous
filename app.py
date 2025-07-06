@@ -309,6 +309,8 @@ def print_history():
   spool_list = fetchSpools(False,True)
 
   for print in prints:
+    if (print["duration"] == None) :
+        print["duration"] =0
     print["duration"] = print["duration"]/3600
     print["electric_cost"] = print["duration"]*COST_BY_HOUR
     print["filament_usage"] = json.loads(print["filament_info"])
