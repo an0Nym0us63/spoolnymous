@@ -49,7 +49,7 @@ def create_database() -> None:
         conn.commit()
         conn.close()
 
-def insert_print(file_name: str, print_type: str, image_file: str = None, print_date: str = None, duration: float) -> int:
+def insert_print(file_name: str, print_type: str, image_file: str = None, print_date: str = None, duration: float = 0) -> int:
     """
     Inserts a new print job into the database and returns the print ID.
     If no print_date is provided, the current timestamp is used.
