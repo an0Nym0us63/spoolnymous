@@ -208,12 +208,13 @@ def getMetaDataFrom3mf(url,taskname):
             for meta in root.findall(".//plate/metadata"):
               if meta.attrib.get("key") == "index":
                   metadata["plateID"] = meta.attrib.get("value", "")
+              if meta.attrib.get("key") == "prediction":
+                  metadata["duration"] = meta.attrib.get("value", "")
 
             usage = {}
             filaments= {}
             filamentId = 1
             for plate in root.findall(".//plate"):
-              metadata["duration"]= plate.attrib.get("prediction")
               for filament in plate.findall(".//filament"):
                 used_g = filament.attrib.get("used_g")
                 #filamentId = int(filament.attrib.get("id"))
