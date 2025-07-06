@@ -106,7 +106,7 @@ def get_prints_with_filament():
     cursor = conn.cursor()
     cursor.execute('''
         SELECT p.id AS id, p.print_date AS print_date, p.file_name AS file_name, 
-               p.print_type AS print_type, p.image_file AS image_file, p.duration AS duration
+               p.print_type AS print_type, p.image_file AS image_file, p.duration AS duration,
                (
                    SELECT json_group_array(json_object(
                        'spool_id', f.spool_id,
