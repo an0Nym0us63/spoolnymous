@@ -7,7 +7,7 @@ import urllib.parse
 import os
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from config import PRINTER_ID, PRINTER_CODE, PRINTER_IP
 from urllib.parse import urlparse, unquote
 
@@ -73,6 +73,12 @@ def download3mfFromCloud(url, destFile):
   destFile.write(response.content)
 
 def download3mfFromFTP(filename, taskname, destFile):
+  CHECK_INTERVAL = 10       # secondes
+  TIMEOUT = 180             # secondes
+  MAX_AGE = 180             # secondes (fichier doit être modifié il y a moins de 3 min)
+  start_time = time.time()
+  found_and_fresh = False
+
   dictChar = {'/':'2f',':':'3a'}
   print("Downloading 3MF file from FTP...")
   ftp_host = PRINTER_IP
@@ -86,13 +92,14 @@ def download3mfFromFTP(filename, taskname, destFile):
   encoded_remote_path_from_task = urllib.parse.quote(remote_path_from_task)
   print("[DEBUG] File to download is  : " + encoded_remote_path_from_task)
   with open(local_path, "wb") as f:
-    c = pycurl.Curl()
     url = f"ftps://{ftp_host}{encoded_remote_path_from_task}"
-
+    print(f"[DEBUG] Waiting for fresh file to appear on server: {url}")
+    while time.time() - start_time < TIMEOUT:
+    c = pycurl.Curl()
     # 🔹 Setup explicit FTPS connection (like FileZilla)
     c.setopt(c.URL, url)
     c.setopt(c.USERPWD, f"{ftp_user}:{ftp_pass}")
-    c.setopt(c.WRITEDATA, f)
+    c.setopt(c.NOBODY, True)# juste HEAD, ne télécharge pas
     
     # 🔹 Enable SSL/TLS
     c.setopt(c.SSL_VERIFYPEER, 0)  # Disable SSL verification
@@ -107,17 +114,47 @@ def download3mfFromFTP(filename, taskname, destFile):
     print("[DEBUG] Starting file download into ./test.3mf...")
 
     try:
-        time.sleep(30) 
         c.perform()
-        print("[DEBUG] File successfully downloaded into ./test.3mf!")
+        filetime = c.getinfo(c.INFO_FILETIME)
+        if filetime == -1:
+            print(f"[DEBUG] File exists but no modification time. Retrying in {CHECK_INTERVAL}s.")
+        else:
+            mtime = datetime.fromtimestamp(filetime, tz=timezone.utc)
+            now = datetime.now(timezone.utc)
+            age = (now - mtime).total_seconds()
+            print(f"[DEBUG] File modification time: {mtime.isoformat()} (age: {int(age)}s)")
+            if age <= MAX_AGE:
+                found_and_fresh = True
+                break
+            else:
+                print(f"[DEBUG] File is too old (>{int(age)}s). Retrying in {CHECK_INTERVAL}s.")
     except pycurl.error as e:
-        print(f"[DEBUG] cURL {e} retrying in 10 seconds")
+        print(f"[DEBUG] File not found yet ({e}). Retrying in {CHECK_INTERVAL}s.")
+    finally:
+        c.close()
+    time.sleep(CHECK_INTERVAL)
+  if not found_and_fresh:
+    print("[ERROR] Timed out: no fresh file found on server.")
+  else:
+    print("[DEBUG] Fresh file found, starting download…")
+
+    with open(local_path, "wb") as f:
+        c = pycurl.Curl()
+        c.setopt(c.URL, url)
+        c.setopt(c.USERPWD, f"{ftp_user}:{ftp_pass}")
+        c.setopt(c.WRITEDATA, f)
+        c.setopt(c.SSL_VERIFYPEER, 0)
+        c.setopt(c.SSL_VERIFYHOST, 0)
+        c.setopt(c.FTP_SSL, c.FTPSSL_ALL)
+        c.setopt(c.FTPSSLAUTH, c.FTPAUTH_TLS)
+
         try:
-            time.sleep(10) 
             c.perform()
+            print(f"[DEBUG] File successfully downloaded into {local_path}!")
         except pycurl.error as e:
-            print(f"[ERROR] cURL error: {e}")
-    c.close()
+            print(f"[ERROR] cURL error during download: {e}")
+        finally:
+            c.close()
 
 def download3mfFromLocalFilesystem(path, destFile):
   with open(path, "rb") as src_file:
