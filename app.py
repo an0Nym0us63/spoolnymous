@@ -312,7 +312,7 @@ def print_history():
     if (print["duration"] == None) :
         print["duration"] =0
     print["duration"] = print["duration"]/3600
-    print["electric_cost"] = print["duration"]*COST_BY_HOUR
+    print["electric_cost"] = print["duration"]*float(COST_BY_HOUR)
     print["filament_usage"] = json.loads(print["filament_info"])
     print["total_cost"] = 0
 
