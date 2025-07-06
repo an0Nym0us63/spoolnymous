@@ -91,10 +91,9 @@ def download3mfFromFTP(filename, taskname, destFile):
   encoded_remote_path = urllib.parse.quote(remote_path)
   encoded_remote_path_from_task = urllib.parse.quote(remote_path_from_task)
   print("[DEBUG] File to download is  : " + encoded_remote_path_from_task)
-  with open(local_path, "wb") as f:
-    url = f"ftps://{ftp_host}{encoded_remote_path_from_task}"
-    print(f"[DEBUG] Waiting for fresh file to appear on server: {url}")
-    while time.time() - start_time < TIMEOUT:
+  url = f"ftps://{ftp_host}{encoded_remote_path_from_task}"
+  print(f"[DEBUG] Waiting for fresh file to appear on server: {url}")
+  while time.time() - start_time < TIMEOUT:
     c = pycurl.Curl()
     # 🔹 Setup explicit FTPS connection (like FileZilla)
     c.setopt(c.URL, url)
@@ -110,9 +109,9 @@ def download3mfFromFTP(filename, taskname, destFile):
     
     # 🔹 Enable proper TLS authentication
     c.setopt(c.FTPSSLAUTH, c.FTPAUTH_TLS)
-
+    
     print("[DEBUG] Starting file download into ./test.3mf...")
-
+    
     try:
         c.perform()
         filetime = c.getinfo(c.INFO_FILETIME)
