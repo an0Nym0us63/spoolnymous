@@ -22,15 +22,10 @@ def create_database() -> None:
                 print_date TEXT NOT NULL,
                 file_name TEXT NOT NULL,
                 print_type TEXT NOT NULL,
-                image_file TEXT
+                image_file TEXT,
+                duration REAL
             )
         ''')
-        try:
-            cursor.execute('''
-                ALTER TABLE prints ADD COLUMN duration REAL
-            ''')
-        except:
-            print("Column already exists")
         
         # Create table for filament usage
         cursor.execute('''
@@ -45,6 +40,19 @@ def create_database() -> None:
                 FOREIGN KEY (print_id) REFERENCES prints (id) ON DELETE CASCADE
             )
         ''')
+        
+        conn.commit()
+        conn.close()
+    else:
+        conn = sqlite3.connect(db_config["db_path"])
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                ALTER TABLE prints ADD COLUMN duration REAL
+            ''')
+        except:
+            print("Column already exists")
         
         conn.commit()
         conn.close()
