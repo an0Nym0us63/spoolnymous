@@ -42,22 +42,9 @@
     <div class="col-md-3">
       <label for="color">Filament Color</label>
       <select name="color" multiple class="form-select select2">
-        {% set color_names_fr = {
-          'Black': 'Noir',
-          'White': 'Blanc',
-          'Red': 'Rouge',
-          'Green': 'Vert',
-          'Blue': 'Bleu',
-          'Yellow': 'Jaune',
-          'Orange': 'Orange',
-          'Purple': 'Violet',
-          'Pink': 'Rose',
-          'Brown': 'Marron',
-          'Grey': 'Gris'
-        } %}
         {% for family in distinct_values.colors %}
           <option value="{{ family }}" {% if family in filters.color %}selected{% endif %}>
-            {{ color_names_fr[family] }}
+            {{ family }}
           </option>
         {% endfor %}
       </select>
