@@ -313,7 +313,9 @@ def print_history():
         "print_type": request.args.getlist("print_type"),
     }
 
-    total_count, prints = get_prints_with_filament(offset=offset, limit=per_page, filters=filters)
+    search = request.args.get("search", "").strip()
+
+    total_count, prints = get_prints_with_filament(offset=offset, limit=per_page, filters=filters, search=search)
 
     spool_list = fetchSpools(False, True)
 
@@ -339,7 +341,6 @@ def print_history():
 
     distinct_values = get_distinct_values()
 
-    global args
     args = request.args.to_dict(flat=False)
     args.pop('page', None)
 
@@ -351,7 +352,8 @@ def print_history():
         total_pages=total_pages,
         filters=filters,
         distinct_values=distinct_values,
-        args=args
+        args=args,
+        search=search
     )
 
 @app.route("/print_select_spool")
