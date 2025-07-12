@@ -5,6 +5,19 @@ from datetime import datetime
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
+COLOR_FAMILIES = {
+    'Black': (0, 0, 0),
+    'White': (255, 255, 255),
+    'Red': (255, 0, 0),
+    'Green': (0, 128, 0),
+    'Blue': (0, 0, 255),
+    'Yellow': (255, 255, 0),
+    'Orange': (255, 165, 0),
+    'Purple': (128, 0, 128),
+    'Pink': (255, 192, 203),
+    'Brown': (139, 69, 19),
+    'Grey': (128, 128, 128)
+}
 
 def create_database() -> None:
     if not os.path.exists(db_config["db_path"]):
@@ -89,6 +102,34 @@ def update_filament_spool(print_id: int, filament_id: int, spool_id: int) -> Non
     conn.close()
 
 
+def hex_to_rgb(hex_color):
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+def closest_family(hex_color):
+    rgb = hex_to_rgb(hex_color)
+    closest = min(
+        COLOR_FAMILIES.items(),
+        key=lambda item: sum((c1 - c2)**2 for c1, c2 in zip(rgb, item[1]))
+    )
+    return closest[0]
+
+def get_distinct_values():
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT filament_type FROM filament_usage")
+    filament_types = sorted([row[0] for row in cursor.fetchall()])
+    cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
+    raw_colors = [row[0] for row in cursor.fetchall()]
+    families = set()
+    for hex_color in raw_colors:
+        families.add(closest_family(hex_color))
+    conn.close()
+    return {
+        "filament_types": filament_types,
+        "colors": sorted(families)
+    }
+
 def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     filters = filters or {}
     where_clauses = []
@@ -99,6 +140,23 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
         where_clauses.append(f"f.filament_type IN ({placeholders})")
         params.extend(filters["filament_type"])
 
+    if filters.get("color"):
+        color_families = filters["color"]
+        family_clauses = []
+        conn = sqlite3.connect(db_config["db_path"])
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
+        all_colors = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        for fam in color_families:
+            hexes = [c for c in all_colors if closest_family(c) == fam]
+            if hexes:
+                placeholders = ",".join("?" for _ in hexes)
+                family_clauses.append(f"f.color IN ({placeholders})")
+                params.extend(hexes)
+        if family_clauses:
+            where_clauses.append("(" + " OR ".join(family_clauses) + ")")
+
     if search:
         where_clauses.append("p.file_name LIKE ?")
         params.append(f"%{search}%")
@@ -108,7 +166,6 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     conn = sqlite3.connect(db_config["db_path"])
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-
     cursor.execute(f'''
         SELECT COUNT(DISTINCT p.id)
         FROM prints p
