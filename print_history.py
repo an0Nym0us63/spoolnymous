@@ -89,7 +89,7 @@ def update_filament_spool(print_id: int, filament_id: int, spool_id: int) -> Non
     conn.close()
 
 
-def get_prints_with_filament(offset=0, limit=10, filters=None):
+def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     filters = filters or {}
     where_clauses = []
     params = []
@@ -103,6 +103,10 @@ def get_prints_with_filament(offset=0, limit=10, filters=None):
         placeholders = ",".join("?" for _ in filters["print_type"])
         where_clauses.append(f"p.print_type IN ({placeholders})")
         params.extend(filters["print_type"])
+
+    if search:
+        where_clauses.append("p.file_name LIKE ?")
+        params.append(f"%{search}%")
 
     where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
