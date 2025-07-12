@@ -44,6 +44,7 @@
   border-radius: 4px;
   padding: 0 6px;
   gap: 4px;
+  cursor: pointer;
 }
 
 /* Supprimer la croix */
@@ -109,6 +110,20 @@ $(document).ready(function () {
   $('select[name="filament_type"]').select2({
     width: '100%'
   });
+});
+
+// Supprime la valeur quand on clique sur le tag
+$(document).on('click', '.select2-selection__choice', function () {
+  const $select = $(this).closest('.select2-container').prev('select');
+  const text = $(this).text().trim();
+  const selected = $select.val() || [];
+
+  const updated = selected.filter(v => {
+    const optText = $select.find(`option[value="${v}"]`).text().trim();
+    return optText !== text;
+  });
+
+  $select.val(updated).trigger('change');
 });
 
 const colorMap = {
