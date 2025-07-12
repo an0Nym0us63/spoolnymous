@@ -21,37 +21,35 @@
   background-color: #343a40;
 }
 
-/* Sélection multiple thème sombre + tags compacts + croix corrigée */
+/* Tags multi-ligne => scroll horizontal + alignement propre */
 .select2-container--default .select2-selection--multiple {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  white-space: nowrap;
+  gap: 4px;
   background-color: #212529;
   color: #fff;
   border: 1px solid #444;
+  min-height: calc(1.5em + .75rem + 2px);
 }
 
+/* Style tags + croix bien placée */
 .select2-container--default .select2-selection--multiple .select2-selection__choice {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 4px;
   background-color: #343a40;
   color: #fff;
   border: 1px solid #555;
-  padding: 2px 4px 2px 2px;
+  padding: 2px 6px;
   border-radius: 4px;
-  max-width: 120px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
-  flex-shrink: 0;
-  font-size: 14px;
   color: #ccc;
-  margin-right: 2px;
+  margin-right: 4px;
+  font-size: 14px;
   cursor: pointer;
-  order: 0;
-  align-self: center;
 }
 
 .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
