@@ -21,7 +21,7 @@
   background-color: #343a40;
 }
 
-/* Sélection multiple thème sombre + amélioré */
+/* Sélection multiple thème sombre + tags compacts */
 .select2-container--default .select2-selection--multiple {
   background-color: #212529;
   color: #fff;
@@ -29,47 +29,31 @@
 }
 
 .select2-container--default .select2-selection--multiple .select2-selection__choice {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
   background-color: #343a40;
   color: #fff;
   border: 1px solid #555;
-  padding: 2px 6px;
+  padding: 2px 6px 2px 4px;
   border-radius: 4px;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+  order: 2;
+  margin-left: auto;
   color: #ccc;
-  margin-right: 4px;
+  cursor: pointer;
 }
 
 .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
   color: #fff;
 }
 </style>
-
-<script>
-    function adjustPrintImages() {
-        document.querySelectorAll('.print-grid').forEach(grid => {
-            const printInfo = grid.querySelector('.printinfo');
-            const printImageContainer = grid.querySelector('.print-image');
-            const image = printImageContainer.querySelector('img');
-
-            if (printInfo && printImageContainer) {
-                const height = printInfo.clientHeight;
-                printImageContainer.style.height = height + "px";
-                if (image) {
-                    image.style.height = "100%";
-                    image.style.width = "auto";
-                    image.style.objectFit = "contain";
-                }
-            }
-        });
-    }
-    window.addEventListener("load", adjustPrintImages);
-    window.addEventListener("resize", adjustPrintImages);
-</script>
 
 <h1 class="mb-4 text-center">Print History</h1>
 
@@ -166,11 +150,11 @@ function formatColor(state) {
     <span style="display:flex;align-items:center;">
       <span style="
         display:inline-block;
-        width:14px;
-        height:14px;
+        width:12px;
+        height:12px;
         background:${hex};
         border:1px solid #ccc;
-        margin-right:8px;
+        margin-right:6px;
         border-radius:3px;
       "></span>
       ${fr}
