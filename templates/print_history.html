@@ -78,8 +78,6 @@
   });
 });
 
-function formatColor (state) {
-  if (!state.id) return state.text;
   const colorMap = {
     'Black': '#000000',
     'White': '#FFFFFF',
@@ -106,10 +104,15 @@ function formatColor (state) {
   'Brown': 'Marron',
   'Grey': 'Gris'
 };
- const $state = $(`
+
+function formatColor(state) {
+  if (!state.id) return state.text;
+  const hex = colorMap[state.text] || '#000000';
+  const fr = colorNamesFR[state.text] || state.text;
+  const $state = $(`
     <span>
-      <span style="display:inline-block;width:15px;height:15px;background:${colorMap[state.text]};margin-right:5px;border:1px solid #ccc;"></span>
-      ${colorNamesFR[state.text] || state.text}
+      <span style="display:inline-block;width:15px;height:15px;background:${hex};margin-right:5px;border:1px solid #ccc;"></span>
+      ${fr}
     </span>`);
   return $state;
 }
