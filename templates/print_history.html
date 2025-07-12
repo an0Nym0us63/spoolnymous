@@ -21,7 +21,7 @@
   background-color: #343a40;
 }
 
-/* Sélection multiple thème sombre + tags compacts */
+/* Sélection multiple thème sombre + tags compacts + croix corrigée */
 .select2-container--default .select2-selection--multiple {
   background-color: #212529;
   color: #fff;
@@ -29,13 +29,14 @@
 }
 
 .select2-container--default .select2-selection--multiple .select2-selection__choice {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 4px;
   background-color: #343a40;
   color: #fff;
   border: 1px solid #555;
-  padding: 2px 6px 2px 4px;
+  padding: 2px 4px 2px 2px;
   border-radius: 4px;
   max-width: 120px;
   white-space: nowrap;
@@ -44,10 +45,13 @@
 }
 
 .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
-  order: 2;
-  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 14px;
   color: #ccc;
+  margin-right: 2px;
   cursor: pointer;
+  order: 0;
+  align-self: center;
 }
 
 .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
