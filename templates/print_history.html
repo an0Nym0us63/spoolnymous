@@ -21,6 +21,7 @@
   background-color: #343a40;
 }
 
+/* Sélection multiple thème sombre + amélioré */
 .select2-container--default .select2-selection--multiple {
   background-color: #212529;
   color: #fff;
@@ -28,9 +29,23 @@
 }
 
 .select2-container--default .select2-selection--multiple .select2-selection__choice {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   background-color: #343a40;
   color: #fff;
   border: 1px solid #555;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+  color: #ccc;
+  margin-right: 4px;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+  color: #fff;
 }
 </style>
 
