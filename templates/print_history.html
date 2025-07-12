@@ -21,7 +21,7 @@
   background-color: #343a40;
 }
 
-/* Tags multi-ligne => scroll horizontal + alignement propre */
+/* Tags alignés et scrollables */
 .select2-container--default .select2-selection--multiple {
   display: flex;
   flex-wrap: nowrap;
@@ -34,26 +34,11 @@
   min-height: calc(1.5em + .75rem + 2px);
 }
 
-/* Style tags + croix bien placée */
 .select2-container--default .select2-selection--multiple .select2-selection__choice {
-  display: inline-flex;
-  align-items: center;
   background-color: #343a40;
   color: #fff;
   border: 1px solid #555;
-  padding: 2px 6px;
   border-radius: 4px;
-}
-
-.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
-  color: #ccc;
-  margin-right: 4px;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
-  color: #fff;
 }
 </style>
 
@@ -146,17 +131,18 @@ const colorNamesFR = {
 
 function formatColor(state) {
   if (!state.id) return state.text;
+
   const hex = colorMap[state.id] || '#000000';
   const fr = colorNamesFR[state.id] || state.text;
+
   return $(`
-    <span style="display:flex;align-items:center;">
+    <span style="display:flex;align-items:center;gap:4px;">
       <span style="
         display:inline-block;
         width:12px;
         height:12px;
         background:${hex};
         border:1px solid #ccc;
-        margin-right:6px;
         border-radius:3px;
       "></span>
       ${fr}
