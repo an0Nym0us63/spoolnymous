@@ -38,14 +38,6 @@
         {% endfor %}
       </select>
     </div>
-    <div class="col-md-3">
-      <label for="print_type">Print Type</label>
-      <select name="print_type" multiple class="form-select select2">
-        {% for pt in distinct_values.print_types %}
-          <option value="{{ pt }}" {% if pt in filters.print_type %}selected{% endif %}>{{ pt }}</option>
-        {% endfor %}
-      </select>
-    </div>
     <div class="col-md-4">
       <label for="search">File Name Contains</label>
       <input type="text" name="search" class="form-control" value="{{ search }}">

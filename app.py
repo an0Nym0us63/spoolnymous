@@ -309,8 +309,7 @@ def print_history():
     offset = (page - 1) * per_page
 
     filters = {
-        "filament_type": request.args.getlist("filament_type"),
-        "print_type": request.args.getlist("print_type"),
+        "filament_type": request.args.getlist("filament_type")
     }
 
     search = request.args.get("search", "").strip()

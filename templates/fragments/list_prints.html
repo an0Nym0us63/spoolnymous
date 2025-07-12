@@ -1,96 +1,62 @@
 <div class="print-history">
     {% for print in prints %}
     <div class="card mb-3" id="print_{{ print.id }}">
-        <!-- Print Header -->
         <div class="card-header d-flex justify-content-between align-items-center">
             <strong>Print ID:</strong> {{ print.id }}
         </div>
 
-        <!-- Print Body -->
         <div class="card-body print-grid">
             <div class="printinfo">
-                <!-- Print Information -->
                 <div class="card-body">
                     <div class="row">
                         <div class="col-8 mb-3">
-                            <div class="label-print-value">
-                                <span class="label-print-inline fw-bold">Date: </span>
-                                <div>{{ print.print_date }}</div>
-                            </div>
+                            <span class="fw-bold">Date:</span> {{ print.print_date }}
                         </div>
-
                         <div class="col-4 mb-3">
-                            <div class="label-print-value">
-                                <span class="label-print-inline fw-bold">Type: </span>
-                                <div>{{ print.print_type }}</div>
-                            </div>
+                            <span class="fw-bold">Type:</span> {{ print.print_type }}
                         </div>
-
                         <div class="col-8 mb-3">
-                            <div class="label-print-value">
-                                <span class="label-print-inline fw-bold">File: </span>
-                                <div>
-                                    {{ print.file_name }}
-                                    <button type="button" class="btn btn-sm btn-outline-primary ms-2" data-bs-toggle="modal" data-bs-target="#editModal_{{ print.id }}">
-                                        ✏️
-                                    </button>
-                                </div>
-                            </div>
+                            <span class="fw-bold">File:</span>
+                            {{ print.file_name }}
+                            <button type="button" class="btn btn-sm btn-outline-primary ms-2" data-bs-toggle="modal" data-bs-target="#editModal_{{ print.id }}">
+                                ✏️
+                            </button>
                         </div>
-
                         <div class="col-4 mb-3">
-                            <div class="label-print-value">
-                                <span class="label-print-inline fw-bold">Duration: </span>
-                                <div>{{ '%.2f' | format(print.duration) }}h</div>
-                            </div>
+                            <span class="fw-bold">Duration:</span> {{ '%.2f' | format(print.duration) }}h
                         </div>
-
-                        {% if print.total_cost > 0 %}
-                        <div class="col-4 mb-3">
-                            <div class="label-print-value">
-                                <span class="label-print-inline fw-bold">Filament Cost: </span>
-                                <div>{{ '%.2f' | format(print.total_cost) }} {{ currencysymbol }}</div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% if print.electric_cost > 0 %}
-                        <div class="col-4 mb-3">
-                            <div class="label-print-value">
-                                <span class="label-print-inline fw-bold">Electric Cost: </span>
-                                <div>{{ '%.2f' | format(print.electric_cost) }} {{ currencysymbol }}</div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% if print.full_cost > 0 %}
-                        <div class="col-4 mb-3">
-                            <div class="label-print-value">
-                                <span class="label-print-inline fw-bold">Full Cost: </span>
-                                <div>{{ '%.2f' | format(print.full_cost) }} {{ currencysymbol }}</div>
-                            </div>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
 
-                <!-- Filament Usage -->
                 <div class="card">
                     <div class="card-body filament-container">
                         {% for filament in print.filament_usage %}
                         <div class="card mb-2">
                             <div class="card-body">
                                 {% if filament.spool %}
-                                    <div class="filament-info">
-                                        <div class="spool-details">
-                                            <h6>#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</h6>
+                                    <div class="filament-info d-flex align-items-center gap-2">
+                                        <div class="spool-icon">
+                                            {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
+                                                <div class="spool-icon {% if filament.spool.filament.multi_color_direction == 'coaxial' %}horizontal{% else %}vertical{% endif %}">
+                                                    {% for color in filament.spool.filament.multi_color_hexes %}
+                                                        <div style="background-color:#{{ color }}; width:20px; height:20px;" title="#{{ color }}"></div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% else %}
+                                                <span class="badge d-inline-block"
+                                                    style="background-color: #{{ filament.spool.filament.color_hex }}; width: 20px; height: 20px;">
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</h6>
                                             <small>{{ filament.spool.filament.name }} - {{ filament.grams_used }}g - {{ '%.2f' | format(filament.cost|float) }} {{ currencysymbol }}</small>
                                         </div>
                                     </div>
                                 {% else %}
                                     <div class="filament-info">
-                                        <div class="spool-details">
-                                            <h6>No spool assigned - {{ filament.filament_type }}</h6>
-                                            <small>{{ filament.grams_used }}g</small>
-                                        </div>
+                                        <h6>No spool assigned - {{ filament.filament_type }}</h6>
+                                        <small>{{ filament.grams_used }}g</small>
                                     </div>
                                 {% endif %}
                             </div>
@@ -100,7 +66,6 @@
                 </div>
             </div>
 
-            <!-- Print Image -->
             <div class="card print-image">
                 <div class="card-body d-flex justify-content-center align-items-center">
                     {% if print.image_file %}

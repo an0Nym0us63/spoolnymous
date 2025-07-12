@@ -99,11 +99,6 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
         where_clauses.append(f"f.filament_type IN ({placeholders})")
         params.extend(filters["filament_type"])
 
-    if filters.get("print_type"):
-        placeholders = ",".join("?" for _ in filters["print_type"])
-        where_clauses.append(f"p.print_type IN ({placeholders})")
-        params.extend(filters["print_type"])
-
     if search:
         where_clauses.append("p.file_name LIKE ?")
         params.append(f"%{search}%")
@@ -150,12 +145,9 @@ def get_distinct_values():
     cursor = conn.cursor()
     cursor.execute("SELECT DISTINCT filament_type FROM filament_usage")
     filament_types = sorted([row[0] for row in cursor.fetchall()])
-    cursor.execute("SELECT DISTINCT print_type FROM prints")
-    print_types = sorted([row[0] for row in cursor.fetchall()])
     conn.close()
     return {
-        "filament_types": filament_types,
-        "print_types": print_types,
+        "filament_types": filament_types
     }
 
 
