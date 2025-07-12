@@ -200,11 +200,21 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
 def get_distinct_values():
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
-    cursor.execute("SELECT DISTINCT filament_type FROM filament_usage")
-    filament_types = sorted([row[0] for row in cursor.fetchall()])
+
+    # couleurs distinctes dans la table
+    cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
+    raw_colors = [row[0] for row in cursor.fetchall()]
     conn.close()
+
+    # normaliser et mapper à la famille
+    families = set()
+    for hex_color in raw_colors:
+        if hex_color:
+            hex_clean = hex_color[:7]  # garde seulement #RRGGBB
+            families.add(closest_family(hex_clean))
+
     return {
-        "filament_types": filament_types
+        "colors": sorted(families)
     }
 
 
