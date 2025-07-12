@@ -112,15 +112,15 @@ $(document).ready(function () {
   });
 });
 
-// Supprime la valeur quand on clique sur le tag
+// Supprimer la valeur quand on clique sur le tag
 $(document).on('click', '.select2-selection__choice', function () {
   const $select = $(this).closest('.select2-container').prev('select');
-  const text = $(this).text().trim();
-  const selected = $select.val() || [];
+  const valueText = $(this).attr('title').trim(); // titre exact du tag
 
+  const selected = $select.val() || [];
   const updated = selected.filter(v => {
     const optText = $select.find(`option[value="${v}"]`).text().trim();
-    return optText !== text;
+    return optText !== valueText;
   });
 
   $select.val(updated).trigger('change');
