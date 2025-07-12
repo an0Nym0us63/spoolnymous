@@ -11,7 +11,7 @@ from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values
 
 init_mqtt()
 
@@ -287,45 +287,53 @@ def health():
 
 @app.route("/print_history")
 def print_history():
-  spoolman_settings = getSettings()
+    spoolman_settings = getSettings()
 
-  ams_slot = request.args.get("ams_slot")
-  print_id = request.args.get("print_id")
-  spool_id = request.args.get("spool_id")
-  old_spool_id = request.args.get("old_spool_id")
+    page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 10))
+    offset = (page - 1) * per_page
 
-  if all([ams_slot, print_id, spool_id]):
-    filament = get_filament_for_slot(print_id, ams_slot)
-    update_filament_spool(print_id, ams_slot, spool_id)
+    # récupère les filtres sélectionnés depuis query params
+    filters = {
+        "filament_type": request.args.getlist("filament_type"),
+        "print_type": request.args.getlist("print_type"),
+    }
 
-    if(filament["spool_id"] != int(spool_id) and (not old_spool_id or (old_spool_id and filament["spool_id"] == int(old_spool_id)))):
-      if old_spool_id:
-        consumeSpool(old_spool_id, filament["grams_used"] * -1)
-        
-      consumeSpool(spool_id, filament["grams_used"])
+    total_count, prints = get_prints_with_filament(offset=offset, limit=per_page, filters=filters)
 
-  prints = get_prints_with_filament()
+    spool_list = fetchSpools(False, True)
 
-  spool_list = fetchSpools(False,True)
+    for print_ in prints:
+        if print_["duration"] is None:
+            print_["duration"] = 0
+        print_["duration"] /= 3600
+        print_["electric_cost"] = print_["duration"] * float(COST_BY_HOUR)
+        print_["filament_usage"] = json.loads(print_["filament_info"])
+        print_["total_cost"] = 0
 
-  for print in prints:
-    if (print["duration"] == None) :
-        print["duration"] =0
-    print["duration"] = print["duration"]/3600
-    print["electric_cost"] = print["duration"]*float(COST_BY_HOUR)
-    print["filament_usage"] = json.loads(print["filament_info"])
-    print["total_cost"] = 0
+        for filament in print_["filament_usage"]:
+            if filament["spool_id"]:
+                for spool in spool_list:
+                    if spool['id'] == filament["spool_id"]:
+                        filament["spool"] = spool
+                        filament["cost"] = filament['grams_used'] * filament['spool']['cost_per_gram']
+                        print_["total_cost"] += filament["cost"]
+                        break
+        print_["full_cost"] = print_["total_cost"] + print_["electric_cost"]
 
-    for filament in print["filament_usage"]:
-      if filament["spool_id"]:
-        for spool in spool_list:
-          if spool['id'] == filament["spool_id"]:
-            filament["spool"] =  spool
-            filament["cost"] = filament['grams_used'] * filament['spool']['cost_per_gram']
-            print["total_cost"] += filament["cost"]
-            break
-    print["full_cost"] = print["total_cost"]+print["electric_cost"]
-  return render_template('print_history.html', prints=prints, currencysymbol=spoolman_settings["currency_symbol"])
+    total_pages = (total_count + per_page - 1) // per_page
+
+    distinct_values = get_distinct_values()
+
+    return render_template(
+        'print_history.html',
+        prints=prints,
+        currencysymbol=spoolman_settings["currency_symbol"],
+        page=page,
+        total_pages=total_pages,
+        filters=filters,
+        distinct_values=distinct_values,
+    )
 
 @app.route("/print_select_spool")
 def print_select_spool():

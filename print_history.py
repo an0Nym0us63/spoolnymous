@@ -160,6 +160,19 @@ def get_filament_for_slot(print_id: int, ams_slot: int):
     conn.close()
     return results
 
+def get_distinct_values():
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT filament_type FROM filament_usage")
+    filament_types = sorted([row[0] for row in cursor.fetchall()])
+    cursor.execute("SELECT DISTINCT print_type FROM prints")
+    print_types = sorted([row[0] for row in cursor.fetchall()])
+    conn.close()
+    return {
+        "filament_types": filament_types,
+        "print_types": print_types,
+    }
+
 # Example for creating the database if it does not exist
 create_database()
 

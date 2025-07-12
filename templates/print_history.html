@@ -1,34 +1,53 @@
 {% extends 'base.html' %}
 
-
 {% block content %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<form method="get" class="mb-3">
+  <div class="row">
+    <div class="col">
+      <label for="filament_type">Filament Type</label>
+      <select name="filament_type" multiple class="form-select select2">
+        {% for ft in distinct_values.filament_types %}
+          <option value="{{ ft }}" {% if ft in filters.filament_type %}selected{% endif %}>{{ ft }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col">
+      <label for="print_type">Print Type</label>
+      <select name="print_type" multiple class="form-select select2">
+        {% for pt in distinct_values.print_types %}
+          <option value="{{ pt }}" {% if pt in filters.print_type %}selected{% endif %}>{{ pt }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col d-flex align-items-end">
+      <button type="submit" class="btn btn-primary">Apply Filters</button>
+    </div>
+  </div>
+</form>
+
 <script>
-    function adjustPrintImages() {
-        document.querySelectorAll('.print-grid').forEach(grid => {
-            const printInfo = grid.querySelector('.printinfo');
-            const printImageContainer = grid.querySelector('.print-image');
-            const image = printImageContainer.querySelector('img');
-
-            if (printInfo && printImageContainer) {
-                const height = printInfo.clientHeight;
-
-                printImageContainer.style.height = height + "px";
-
-                if (image) {
-                    image.style.height = "100%";
-                    image.style.width = "auto";
-                    image.style.objectFit = "contain"; //ensure the image fits within the container
-                }
-            }
-        });
-    }
-    adjustPrintImages(); 
-    // Adjust images on load and resize
-    window.addEventListener("load", adjustPrintImages);
-    window.addEventListener("resize", adjustPrintImages);
+  $(document).ready(function() {
+    $('.select2').select2({ width: '100%' });
+  });
 </script>
 
 <!-- Page Title -->
 <h1 class="mb-4 text-center">Print history</h1>
 {% with action_assign=True %}{% include 'fragments/list_prints.html' %}{% endwith %}
+
+<div class="pagination justify-content-center mt-4">
+  {% if page > 1 %}
+    <a href="{{ url_for('print_history', page=page-1, **request.args) }}" class="btn btn-primary">&laquo; Previous</a>
+  {% endif %}
+  <span class="mx-3">Page {{ page }} / {{ total_pages }}</span>
+  {% if page < total_pages %}
+    <a href="{{ url_for('print_history', page=page+1, **request.args) }}" class="btn btn-primary">Next &raquo;</a>
+  {% endif %}
+</div>
+
 {% endblock %}
