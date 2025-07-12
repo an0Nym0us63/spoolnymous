@@ -114,12 +114,7 @@ function formatColor(state) {
   if (!state.id) return state.text;
   const hex = colorMap[state.id] || '#000000';
   const fr = colorNamesFR[state.id] || state.text;
-  const $state = $(`
-    <span>
-      <span style="display:inline-block;width:15px;height:15px;background:${hex};margin-right:5px;border:1px solid #ccc;"></span>
-      ${fr}
-    </span>`);
-  return $state;
+  return $('<span><span style="display:inline-block;width:15px;height:15px;background:' + hex + ';margin-right:5px;border:1px solid #ccc;"></span> ' + fr + '</span>');
 }
 </script>
 {% endblock %}
