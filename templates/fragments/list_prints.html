@@ -26,11 +26,15 @@
                       </div>
 
                       <div class="col-8 mb-3">
-                        <div class="label-print-value">
-                          <span class="label-print-inline fw-bold">File: </span>
-                          <div>{{ print['file_name'] }}</div>
-                        </div>
-                      </div>
+  <div class="label-print-value">
+    <span class="label-print-inline fw-bold">File: </span>
+    <form action="{{ url_for('edit_print_name') }}" method="post" class="d-flex gap-2">
+      <input type="hidden" name="print_id" value="{{ print.id }}">
+      <input type="text" name="file_name" class="form-control form-control-sm" value="{{ print.file_name }}">
+      <button type="submit" class="btn btn-sm btn-success">Save</button>
+    </form>
+  </div>
+</div>
 
                       <div class="col-4 mb-3">
                         <div class="label-print-value">

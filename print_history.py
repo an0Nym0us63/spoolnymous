@@ -171,5 +171,16 @@ def get_filament_for_slot(print_id: int, ams_slot: int):
     conn.close()
     return result
 
+def update_print_filename(print_id: int, new_filename: str):
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE prints
+        SET file_name = ?
+        WHERE id = ?
+    ''', (new_filename, print_id))
+    conn.commit()
+    conn.close()
+
 
 create_database()

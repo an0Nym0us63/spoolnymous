@@ -11,7 +11,7 @@ from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename
 
 init_mqtt()
 
@@ -372,3 +372,15 @@ def print_select_spool():
   except Exception as e:
     traceback.print_exc()
     return render_template('error.html', exception=str(e))
+
+@app.route("/edit_print_name", methods=["POST"])
+def edit_print_name():
+    print_id = request.form.get("print_id")
+    new_filename = request.form.get("file_name", "").strip()
+
+    if not print_id or not new_filename:
+        return "Invalid data", 400
+
+    update_print_filename(int(print_id), new_filename)
+
+    return redirect(url_for("print_history"))
