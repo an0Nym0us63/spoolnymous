@@ -343,6 +343,7 @@ def print_history():
         filters=filters,
         distinct_values=distinct_values,
         args=args,
+        url_with_args=url_with_args
     )
 
 @app.route("/print_select_spool")
