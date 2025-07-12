@@ -324,7 +324,8 @@ def print_history():
     total_pages = (total_count + per_page - 1) // per_page
 
     distinct_values = get_distinct_values()
-
+    args = request.args.to_dict(flat=False)
+    args.pop('page', None)
     return render_template(
         'print_history.html',
         prints=prints,
@@ -333,6 +334,7 @@ def print_history():
         total_pages=total_pages,
         filters=filters,
         distinct_values=distinct_values,
+        args=args,
     )
 
 @app.route("/print_select_spool")
