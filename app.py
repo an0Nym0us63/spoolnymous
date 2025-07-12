@@ -20,10 +20,12 @@ app = Flask(__name__)
 @app.context_processor
 def fronted_utilities():
   return dict(SPOOLMAN_BASE_URL=SPOOLMAN_BASE_URL, AUTO_SPEND=AUTO_SPEND, color_is_dark=color_is_dark, BASE_URL=BASE_URL, EXTERNAL_SPOOL_AMS_ID=EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID=EXTERNAL_SPOOL_ID, PRINTER_MODEL=getPrinterModel(), PRINTER_NAME=PRINTER_NAME)
+
 def utility_processor():
     def url_with_args(**kwargs):
-        query = args.copy()
-        query.update(kwargs)
+        query = request.args.to_dict(flat=False)
+        query.pop('page', None)
+        query.update({k: [str(v)] if not isinstance(v, list) else v for k, v in kwargs.items()})
         return url_for('print_history', **query)
     return dict(url_with_args=url_with_args)
 
@@ -342,8 +344,7 @@ def print_history():
         total_pages=total_pages,
         filters=filters,
         distinct_values=distinct_values,
-        args=args,
-        url_with_args=url_with_args
+        args=args
     )
 
 @app.route("/print_select_spool")
