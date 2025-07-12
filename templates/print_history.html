@@ -42,11 +42,11 @@
 
 <div class="pagination justify-content-center mt-4">
   {% if page > 1 %}
-    <a href="{{ url_for('print_history', **args, page=page-1) }}" class="btn btn-primary">&laquo; Previous</a>
+    <a href="{{ url_with_args(page=page-1) }}" class="btn btn-primary">&laquo; Previous</a>
   {% endif %}
   <span class="mx-3">Page {{ page }} / {{ total_pages }}</span>
   {% if page < total_pages %}
-    <a href="{{ url_for('print_history', **args, page=page+1) }}" class="btn btn-primary">Next &raquo;</a>
+    <a href="{{ url_with_args(page=page+1) }}" class="btn btn-primary">Next &raquo;</a>
   {% endif %}
 </div>
 

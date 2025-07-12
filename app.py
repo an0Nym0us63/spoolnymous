@@ -20,6 +20,12 @@ app = Flask(__name__)
 @app.context_processor
 def fronted_utilities():
   return dict(SPOOLMAN_BASE_URL=SPOOLMAN_BASE_URL, AUTO_SPEND=AUTO_SPEND, color_is_dark=color_is_dark, BASE_URL=BASE_URL, EXTERNAL_SPOOL_AMS_ID=EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID=EXTERNAL_SPOOL_ID, PRINTER_MODEL=getPrinterModel(), PRINTER_NAME=PRINTER_NAME)
+def utility_processor():
+    def url_with_args(**kwargs):
+        query = args.copy()
+        query.update(kwargs)
+        return url_for('print_history', **query)
+    return dict(url_with_args=url_with_args)
 
 @app.route("/issue")
 def issue():
@@ -293,7 +299,6 @@ def print_history():
     per_page = int(request.args.get("per_page", 10))
     offset = (page - 1) * per_page
 
-    # récupère les filtres sélectionnés depuis query params
     filters = {
         "filament_type": request.args.getlist("filament_type"),
         "print_type": request.args.getlist("print_type"),
@@ -324,8 +329,11 @@ def print_history():
     total_pages = (total_count + per_page - 1) // per_page
 
     distinct_values = get_distinct_values()
+
+    global args
     args = request.args.to_dict(flat=False)
     args.pop('page', None)
+
     return render_template(
         'print_history.html',
         prints=prints,
