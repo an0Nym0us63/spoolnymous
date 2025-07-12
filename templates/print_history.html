@@ -38,20 +38,36 @@
         {% endfor %}
       </select>
     </div>
-	<div class="col-md-3">
-  <label for="color">Filament Color</label>
-  <select name="color" multiple class="form-select select2">
-    {% for family in distinct_values.colors %}
-      <option value="{{ family }}" {% if family in filters.color %}selected{% endif %}>
-        {{ family }}
-      </option>
-    {% endfor %}
-  </select>
-</div>
+
+    <div class="col-md-3">
+      <label for="color">Filament Color</label>
+      <select name="color" multiple class="form-select select2">
+        {% set color_names_fr = {
+          'Black': 'Noir',
+          'White': 'Blanc',
+          'Red': 'Rouge',
+          'Green': 'Vert',
+          'Blue': 'Bleu',
+          'Yellow': 'Jaune',
+          'Orange': 'Orange',
+          'Purple': 'Violet',
+          'Pink': 'Rose',
+          'Brown': 'Marron',
+          'Grey': 'Gris'
+        } %}
+        {% for family in distinct_values.colors %}
+          <option value="{{ family }}" {% if family in filters.color %}selected{% endif %}>
+            {{ color_names_fr[family] }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
     <div class="col-md-4">
       <label for="search">File Name Contains</label>
       <input type="text" name="search" class="form-control" value="{{ search }}">
     </div>
+
     <div class="col-md-2 d-flex align-items-end">
       <button type="submit" class="btn btn-primary w-100">Apply</button>
     </div>
@@ -70,7 +86,8 @@
   {% endif %}
 </div>
 
-<script>$(document).ready(function () {
+<script>
+$(document).ready(function () {
   $('.select2').select2({
     width: '100%',
     templateResult: formatColor,
@@ -78,20 +95,21 @@
   });
 });
 
-  const colorMap = {
-    'Black': '#000000',
-    'White': '#FFFFFF',
-    'Red': '#FF0000',
-    'Green': '#008000',
-    'Blue': '#0000FF',
-    'Yellow': '#FFFF00',
-    'Orange': '#FFA500',
-    'Purple': '#800080',
-    'Pink': '#FFC0CB',
-    'Brown': '#8B4513',
-    'Grey': '#808080'
-  };
-	const colorNamesFR = {
+const colorMap = {
+  'Black': '#000000',
+  'White': '#FFFFFF',
+  'Red': '#FF0000',
+  'Green': '#008000',
+  'Blue': '#0000FF',
+  'Yellow': '#FFFF00',
+  'Orange': '#FFA500',
+  'Purple': '#800080',
+  'Pink': '#FFC0CB',
+  'Brown': '#8B4513',
+  'Grey': '#808080'
+};
+
+const colorNamesFR = {
   'Black': 'Noir',
   'White': 'Blanc',
   'Red': 'Rouge',
@@ -107,8 +125,8 @@
 
 function formatColor(state) {
   if (!state.id) return state.text;
-  const hex = colorMap[state.text] || '#000000';
-  const fr = colorNamesFR[state.text] || state.text;
+  const hex = colorMap[state.id] || '#000000';
+  const fr = colorNamesFR[state.id] || state.text;
   const $state = $(`
     <span>
       <span style="display:inline-block;width:15px;height:15px;background:${hex};margin-right:5px;border:1px solid #ccc;"></span>
