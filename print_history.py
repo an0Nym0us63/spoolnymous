@@ -201,7 +201,11 @@ def get_distinct_values():
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
 
-    # couleurs distinctes dans la table
+    # récupérer les types de filament distincts
+    cursor.execute("SELECT DISTINCT filament_type FROM filament_usage WHERE filament_type IS NOT NULL")
+    filament_types = sorted([row[0] for row in cursor.fetchall()])
+
+    # récupérer les couleurs distinctes
     cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
     raw_colors = [row[0] for row in cursor.fetchall()]
     conn.close()
@@ -214,6 +218,7 @@ def get_distinct_values():
             families.add(closest_family(hex_clean))
 
     return {
+        "filament_types": filament_types,
         "colors": sorted(families)
     }
 
