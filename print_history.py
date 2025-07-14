@@ -140,7 +140,7 @@ def get_distinct_values():
         "colors": sorted(families)
     }
 
-def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
+def get_prints_with_filament(offset=0, limit=10, filters=None, search=None,  tag_search=None):
     filters = filters or {}
     where_clauses = []
     params = []
@@ -170,6 +170,14 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     if search:
         where_clauses.append("p.file_name LIKE ?")
         params.append(f"%{search}%")
+    if tag_search:
+        where_clauses.append("""
+            EXISTS (
+                SELECT 1 FROM print_tags pt
+                WHERE pt.print_id = p.id AND LOWER(pt.tag) LIKE ?
+            )
+        """)
+    params.append(f"%{tag_search.lower()}%")
 
     where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
