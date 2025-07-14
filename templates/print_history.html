@@ -72,19 +72,19 @@ function askRestockRatioPerFilament(printId, isDelete) {
     .then(resp => resp.json())
     .then(filaments => {
         const formHtml = filaments.map(f => `
-            <div style=\"display:flex;align-items:center;margin-bottom:5px;gap:5px\">
-                <div style=\"width:15px;height:15px;background:${f.color};border:1px solid #ccc\"></div>
-                <span style=\"flex:1\">${f.name}</span>
-                <input type=\"number\" min=\"0\" max=\"100\" value=\"100\" id=\"ratio_${f.spool_id}\" style=\"width:60px\"> %
+            <div style="display:flex;align-items:center;margin-bottom:5px;gap:5px">
+                <div style="width:15px;height:15px;background:${f.color};border:1px solid #ccc"></div>
+                <span style="flex:1">${f.name}</span>
+                <input type="number" min="0" max="100" value="100" id="ratio_${f.spool_id}" style="width:60px"> %
             </div>
-        `).join(\"\");
+        `).join("");
 
         Swal.fire({
-            title: isDelete ? \"Supprimer + Réajuster\" : \"Réajuster uniquement\",
+            title: isDelete ? "Supprimer + Réajuster" : "Réajuster uniquement",
             html: formHtml,
             showCancelButton: true,
-            confirmButtonText: \"Valider\",
-            cancelButtonText: \"Annuler\",
+            confirmButtonText: "Valider",
+            cancelButtonText: "Annuler",
             preConfirm: () => {
                 const ratios = {};
                 filaments.forEach(f => {
@@ -100,20 +100,20 @@ function askRestockRatioPerFilament(printId, isDelete) {
                     : `/history/reajust/${printId}`;
 
                 fetch(url, {
-                    method: \"POST\",
-                    headers: { \"Content-Type\": \"application/json\" },
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ restock: true, ratios: result.value })
                 })
                 .then(resp => resp.json())
                 .then(data => {
-                    if (data.status && data.status.toLowerCase() === \"ok\") {
+                    if (data.status && data.status.toLowerCase() === "ok") {
                         if (isDelete) {
                             const elt = document.getElementById(`print_${printId}`);
                             if (elt) elt.remove();
                         }
                         Swal.fire({
-                            icon: \"success\",
-                            title: \"Opération réussie\",
+                            icon: "success",
+                            title: "Opération réussie",
                             text: isDelete
                                 ? `Le print #${printId} a été supprimé et les filaments réajustés.`
                                 : `Les filaments du print #${printId} ont été réajustés.`,
@@ -121,7 +121,7 @@ function askRestockRatioPerFilament(printId, isDelete) {
                             showConfirmButton: false
                         });
                     } else {
-                        Swal.fire(\"Erreur\", data.error || \"Impossible d'effectuer l'opération\", \"error\");
+                        Swal.fire("Erreur", data.error || "Impossible d'effectuer l'opération", "error");
                     }
                 });
             }
