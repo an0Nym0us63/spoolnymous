@@ -60,10 +60,17 @@ function detectThemeClass() {
 }
 
 $(document).ready(function () {
-    $('.select2').select2({
-        width: '100%',
-        dropdownCssClass: detectThemeClass(),
-        containerCssClass: detectThemeClass()
+    const themeClass = detectThemeClass();
+
+    $('.select2').each(function () {
+        $(this).select2({
+            width: '100%',
+            dropdownCssClass: themeClass,
+            containerCssClass: themeClass
+        });
+
+        // Appliquer la classe thème aussi sur le parent .select2-container
+        $(this).next('.select2-container').addClass(themeClass);
     });
 });
 
