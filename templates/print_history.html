@@ -7,25 +7,40 @@
   <div class="row g-2">
     <div class="col-md-6">
       <label for="filament_type" class="form-label">Filament Type</label>
-      <input type="text" name="filament_type" id="filament_type" class="form-control" value="{{ filament_type or '' }}">
+      <select name="filament_type" id="filament_type" class="form-select">
+        <option value="">-- Tous --</option>
+        {% for type in distinct_values["filament_type"] %}
+          <option value="{{ type }}" {% if type in filters["filament_type"] %}selected{% endif %}>{{ type }}</option>
+        {% endfor %}
+      </select>
     </div>
+
     <div class="col-md-6">
-      <label for="filament_color" class="form-label">Filament Color</label>
-      <input type="text" name="filament_color" id="filament_color" class="form-control" value="{{ filament_color or '' }}">
+      <label for="color" class="form-label">Filament Color</label>
+      <select name="color" id="color" class="form-select">
+        <option value="">-- Toutes --</option>
+        {% for color in distinct_values["color"] %}
+          <option value="{{ color }}" {% if color in filters["color"] %}selected{% endif %}>{{ color }}</option>
+        {% endfor %}
+      </select>
     </div>
+
     <div class="col-md-6">
       <label for="file_name" class="form-label">File Name Contains</label>
-      <input type="text" name="file_name" id="file_name" class="form-control" value="{{ file_name or '' }}">
+      <input type="text" name="file_name" id="file_name" class="form-control" value="{{ search or '' }}">
     </div>
+
     <div class="col-md-6">
       <label for="tag_search" class="form-label">Tags</label>
       <input type="text" name="tag_search" id="tag_search" class="form-control" value="{{ tag_search or '' }}">
     </div>
+
     <div class="col-12 text-end mt-2">
       <button type="submit" class="btn btn-primary">Apply</button>
     </div>
   </div>
 </form>
+
 
 {% include 'fragments/list_prints.html' %}
 
