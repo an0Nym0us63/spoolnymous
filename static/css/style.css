@@ -174,3 +174,25 @@
       display: none;
     }
   }
+
+.select2-container--bootstrap-5.select2-dark .select2-selection {
+  background-color: #212529;
+  color: #fff;
+  border-color: #495057;
+}
+
+.select2-container--bootstrap-5.select2-dark .select2-results__option--highlighted {
+  background-color: #343a40;
+  color: #fff;
+}
+
+.select2-container--bootstrap-5.select2-light .select2-selection {
+  background-color: #fff;
+  color: #212529;
+  border-color: #ced4da;
+}
+
+.select2-container--bootstrap-5.select2-light .select2-results__option--highlighted {
+  background-color: #e9ecef;
+  color: #212529;
+}

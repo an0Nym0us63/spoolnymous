@@ -56,8 +56,18 @@
 
 <script>
 $(document).ready(function () {
-  $('.select2').select2({ width: '100%' });
+  $('.select2').select2({
+    width: '100%',
+    dropdownCssClass: detectThemeClass(),
+    theme: "bootstrap-5"
+  });
 });
+
+function detectThemeClass() {
+  const html = document.querySelector("html");
+  const theme = html.getAttribute("data-bs-theme") || "light";
+  return theme === "dark" ? "select2-dark" : "select2-light";
+}
 
 function confirmReajust(printId) {
     askRestockRatioPerFilament(printId, false);
