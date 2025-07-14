@@ -13,6 +13,28 @@ $(document).ready(function () {
     $('.select2').each(function () {
         $(this).select2({ width: '100%' }).on('select2:open', applyThemeToDropdown);
     });
+	 $('.add-tag-btn').on('click', function () {
+    const btn = $(this);
+    const printId = btn.data('print-id');
+    const input = btn.siblings('.add-tag-input');
+    const tag = input.val().trim();
+
+    if (!tag) return;
+
+    $.post(`/history/${printId}/tags/add`, { tag })
+      .done(() => location.reload())
+      .fail(() => alert('Erreur lors de l’ajout du tag.'));
+  });
+
+  $('.remove-tag').on('click', function () {
+    const btn = $(this);
+    const printId = btn.data('print-id');
+    const tag = btn.data('tag');
+
+    $.post(`/history/${printId}/tags/remove`, { tag })
+      .done(() => location.reload())
+      .fail(() => alert('Erreur lors de la suppression du tag.'));
+  });
 });
 
 function confirmReajust(printId) {

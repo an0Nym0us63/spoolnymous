@@ -119,20 +119,28 @@
                     {% endif %}
                 </div>
             </div>
-        </div>
-		<div class="tags mt-2">
-      {% for tag in print.tags %}
-        <span class="badge bg-primary me-1">
-          {{ tag }}
-          <a href="#" class="text-light ms-1" onclick="removeTag({{ print.id }}, '{{ tag }}')">&times;</a>
-        </span>
-      {% endfor %}
-      <input type="text"
-             class="form-control form-control-sm d-inline-block"
-             style="width:auto;display:inline"
-             placeholder="Ajouter tag"
-             onkeypress="if(event.key==='Enter'){addTag({{ print.id }}, this.value); this.value='';}">
-    </div>
+       <div class="mt-2">
+  <strong>Tags :</strong>
+  {% if print.tags %}
+    {% for tag in print.tags %}
+      <span class="badge bg-primary">
+        {{ tag }}
+        <button class="btn-close btn-close-white btn-sm ms-1 remove-tag"
+                data-print-id="{{ print.id }}"
+                data-tag="{{ tag }}"></button>
+      </span>
+    {% endfor %}
+  {% else %}
+    <span class="text-muted">Aucun</span>
+  {% endif %}
+</div>
+
+<div class="input-group mt-1" style="max-width: 300px;">
+  <input type="text" class="form-control form-control-sm add-tag-input"
+         placeholder="Nouveau tag…">
+  <button class="btn btn-sm btn-success add-tag-btn"
+          data-print-id="{{ print.id }}">✚ Ajouter</button>
+</div>
     </div>
 
     <div class="modal fade" id="editModal_{{ print.id }}" tabindex="-1" aria-labelledby="editModalLabel_{{ print.id }}" aria-hidden="true">
