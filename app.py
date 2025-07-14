@@ -443,12 +443,22 @@ def get_print_filaments(print_id):
         grams_used = usage["grams_used"]
 
         spool = getSpoolById(spool_id) if spool_id else None
-
+        if spool:
+            vendor = spool.get("filament", {}).get("vendor", {}).get("name", "UnknownVendor")
+            material = spool.get("filament", {}).get("material", "UnknownMaterial")
+            name = f"#{spool_id} - {vendor} - {material}"
+        else:
+            name = usage.get("filament_type", "N/A")
+        color = spool.get("filament", {}).get("color_hex")
+        if color:
+            color = f"#{color}"
+        else:
+            color = usage.get("color", "#000000")
         enriched.append({
             "spool_id": spool_id,
             "grams_used": grams_used,
-            "name": (spool.get("filament", {}).get("name") if spool else None) or usage.get("filament_type", "N/A"),
-            "color": (spool.get("filament", {}).get("color_hex") if spool else None) or usage.get("color", "#000000")
+            "name": name,
+            "color": color
         })
 
     return jsonify(enriched)
