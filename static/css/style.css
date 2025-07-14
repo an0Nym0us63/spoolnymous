@@ -206,6 +206,10 @@
     color: #fff !important;
 }
 
+.select2-dark .select2-results__option[aria-disabled="true"] {
+    color: #6c757d !important; /* Gris moyen lisible en sombre */
+}
+
 .select2-light .select2-selection {
     background-color: #fff !important;
     color: #212529 !important;
