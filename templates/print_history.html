@@ -65,12 +65,13 @@ $(document).ready(function () {
     $('.select2').each(function () {
         $(this).select2({
             width: '100%',
+            placeholder: $(this).attr('placeholder') || '',
             dropdownCssClass: themeClass,
             containerCssClass: themeClass
+        }).on('select2:open', function () {
+            // Quand le menu s'ouvre, appliquer la classe thème à la dropdown
+            $('.select2-container--open .select2-dropdown').addClass(themeClass);
         });
-
-        // Appliquer la classe thème aussi sur le parent .select2-container
-        $(this).next('.select2-container').addClass(themeClass);
     });
 });
 
