@@ -175,24 +175,44 @@
     }
   }
 
-.select2-container--bootstrap-5.select2-dark .select2-selection {
-  background-color: #212529;
-  color: #fff;
-  border-color: #495057;
+/* === Ajouts Select2 clair/sombre === */
+
+.select2-dark .select2-selection {
+    background-color: #212529 !important;
+    color: #f8f9fa !important;
+    border-color: #495057 !important;
 }
 
-.select2-container--bootstrap-5.select2-dark .select2-results__option--highlighted {
-  background-color: #343a40;
-  color: #fff;
+.select2-dark .select2-selection__rendered {
+    color: #f8f9fa !important;
 }
 
-.select2-container--bootstrap-5.select2-light .select2-selection {
-  background-color: #fff;
-  color: #212529;
-  border-color: #ced4da;
+.select2-dark .select2-dropdown {
+    background-color: #212529 !important;
+    color: #f8f9fa !important;
 }
 
-.select2-container--bootstrap-5.select2-light .select2-results__option--highlighted {
-  background-color: #e9ecef;
-  color: #212529;
+.select2-dark .select2-results__option--highlighted {
+    background-color: #343a40 !important;
+    color: #fff !important;
+}
+
+.select2-light .select2-selection {
+    background-color: #fff !important;
+    color: #212529 !important;
+    border-color: #ced4da !important;
+}
+
+.select2-light .select2-selection__rendered {
+    color: #212529 !important;
+}
+
+.select2-light .select2-dropdown {
+    background-color: #fff !important;
+    color: #212529 !important;
+}
+
+.select2-light .select2-results__option--highlighted {
+    background-color: #e9ecef !important;
+    color: #212529 !important;
 }

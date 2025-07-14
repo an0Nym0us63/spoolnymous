@@ -18,9 +18,7 @@
       <label for="color">Filament Color</label>
       <select name="color" multiple class="form-select select2">
         {% for family in distinct_values.colors %}
-          <option value="{{ family }}" {% if family in filters.color %}selected{% endif %}>
-            {{ family }}
-          </option>
+          <option value="{{ family }}" {% if family in filters.color %}selected{% endif %}>{{ family }}</option>
         {% endfor %}
       </select>
     </div>
@@ -47,6 +45,7 @@
     <a href="{{ url_with_args(page=page+1) }}" class="btn btn-primary">Next &raquo;</a>
   {% endif %}
 </div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -55,21 +54,20 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-$(document).ready(function () {
-  $('.select2').select2({
-  width: '100%',
-  theme: "bootstrap-5",
-  dropdownCssClass: detectThemeClass(),
-  containerCssClass: detectThemeClass()
-});
-});
-
 function detectThemeClass() {
-  const html = document.querySelector("html");
-  const theme = html.getAttribute("data-bs-theme") || "light";
-  return theme === "dark" ? "select2-dark" : "select2-light";
+    const theme = document.documentElement.getAttribute("data-bs-theme") || "light";
+    return theme === "dark" ? "select2-dark" : "select2-light";
 }
 
+$(document).ready(function () {
+    $('.select2').select2({
+        width: '100%',
+        dropdownCssClass: detectThemeClass(),
+        containerCssClass: detectThemeClass()
+    });
+});
+
+// Actions SweetAlert2
 function confirmReajust(printId) {
     askRestockRatioPerFilament(printId, false);
 }
