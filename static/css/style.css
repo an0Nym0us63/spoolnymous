@@ -210,6 +210,10 @@
     color: #6c757d !important; /* Gris moyen lisible en sombre */
 }
 
+.select2-dark .select2-results__option--disabled {
+    color: #6c757d !important; /* gris lisible */
+}
+
 .select2-light .select2-selection {
     background-color: #fff !important;
     color: #212529 !important;
@@ -228,4 +232,8 @@
 .select2-light .select2-results__option--highlighted {
     background-color: #e9ecef !important;
     color: #212529 !important;
+}
+
+.select2-light .select2-results__option--disabled {
+    color: #6c757d !important;
 }
