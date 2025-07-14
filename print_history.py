@@ -251,7 +251,7 @@ def get_filament_for_print(print_id: int):
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT spool_id, grams_used
+        SELECT spool_id, grams_used, filament_type, color
         FROM filament_usage
         WHERE print_id = ?
     ''', (print_id,))
