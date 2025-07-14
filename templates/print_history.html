@@ -4,6 +4,7 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
 /* Thème sombre pour Select2 */
@@ -115,7 +116,7 @@ $(document).ready(function () {
 // Supprimer la valeur quand on clique sur le tag
 $(document).on('click', '.select2-selection__choice', function () {
   const $select = $(this).closest('.select2-container').prev('select');
-  const valueText = $(this).attr('title').trim(); // titre exact du tag
+  const valueText = $(this).attr('title').trim();
 
   const selected = $select.val() || [];
   const updated = selected.filter(v => {
@@ -172,6 +173,42 @@ function formatColor(state) {
       "></span>
       <span>${fr}</span>
     </span>`);
+}
+
+// Ajout SweetAlert2 pour suppression
+function confirmDelete(printId) {
+    Swal.fire({
+        title: "Supprimer ce print ?",
+        text: "Voulez-vous également réajuster les consommations de filament ?",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Oui, réajuster",
+        cancelButtonText: "Non, juste supprimer",
+        showDenyButton: true,
+        denyButtonText: "Annuler"
+    }).then((result) => {
+        if (result.isConfirmed) {
+            sendDelete(printId, true);
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+            sendDelete(printId, false);
+        }
+    });
+}
+
+function sendDelete(printId, restock) {
+    fetch(`/history/delete/${printId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restock })
+    })
+    .then(resp => resp.json())
+    .then(data => {
+        if (data.status === "ok") {
+            location.reload();
+        } else {
+            Swal.fire("Erreur", data.error, "error");
+        }
+    });
 }
 </script>
 {% endblock %}

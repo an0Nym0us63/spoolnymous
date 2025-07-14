@@ -3,6 +3,9 @@
     <div class="card mb-3" id="print_{{ print.id }}">
         <div class="card-header d-flex justify-content-between align-items-center">
             <strong>Print ID:</strong> {{ print.id }}
+            <button class="btn btn-danger btn-sm" onclick="confirmDelete({{ print.id }})">
+                Supprimer
+            </button>
         </div>
 
         <div class="card-body print-grid">

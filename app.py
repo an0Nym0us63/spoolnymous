@@ -384,3 +384,20 @@ def edit_print_name():
     update_print_filename(int(print_id), new_filename)
 
     return redirect(url_for("print_history"))
+
+@app.route("/history/delete/<int:print_id>", methods=["POST"])
+def delete_print_history(print_id):
+    data = request.get_json()
+    restock = data.get("restock", False)
+
+    print_job = get_print_by_id(print_id)
+    if not print_job:
+        return jsonify({"error": "Print job not found"}), 404
+
+    if restock and print_job.status != "success":
+        for usage in print_job.usages:  # adapte selon ton modèle réel
+            consume_spool(usage.spool_id, -usage.grams_used)
+
+    delete_print(print_id)
+
+    return jsonify({"status": "ok"})
