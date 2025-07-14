@@ -2,14 +2,12 @@
 {% for print in prints %}
   <div class="card mb-3" id="print_{{ print.id }}">
     <div class="card-header d-flex justify-content-between align-items-center">
-      <div>
-        <strong>{{ print.file_name }}</strong> ({{ print.print_date }})
-      </div>
+      <strong>Print ID:</strong> {{ print.id }}
       <div class="dropdown">
-        <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="menuPrint{{ print.id }}" data-bs-toggle="dropdown" aria-expanded="false">
           Actions
         </button>
-        <ul class="dropdown-menu">
+        <ul class="dropdown-menu" aria-labelledby="menuPrint{{ print.id }}">
           <li>
             <a class="dropdown-item text-primary" href="#" onclick="confirmReajust({{ print.id }})">
               Réajuster
@@ -25,27 +23,81 @@
     </div>
 
     <div class="card-body print-grid">
-      <div>
-        <p><strong>Durée :</strong> {{ print.duration }} minutes</p>
-        <p><strong>Filament :</strong></p>
-        {% for filament in print.filaments %}
-          <div>
-            <span class="badge me-1" style="background-color: #{{ filament.color }};">&nbsp;</span>
-            #{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}
-            ({{ filament.grams_used }}g)
+      <div class="printinfo">
+        <div class="card-body">
+          <div class="row">
+            <div class="col-8 mb-3"><span class="fw-bold">Date:</span> {{ print.print_date }}</div>
+            <div class="col-4 mb-3"><span class="fw-bold">Type:</span> {{ print.print_type }}</div>
+            <div class="col-8 mb-3">
+              <span class="fw-bold">File:</span> {{ print.file_name }}
+              <button type="button" class="btn btn-sm btn-outline-primary ms-2" data-bs-toggle="modal" data-bs-target="#editModal_{{ print.id }}">✏️</button>
+            </div>
+            <div class="col-4 mb-3"><span class="fw-bold">Duration:</span> {{ '%.2f' | format(print.duration) }}h</div>
+            {% if print['total_cost'] > 0 %}
+              <div class="col-4 mb-3"><span class="fw-bold">Filament Cost:</span> {{ '%.2f' | format(print['total_cost']) }} {{ currencysymbol }}</div>
+            {% endif %}
+            {% if print['electric_cost'] > 0 %}
+              <div class="col-4 mb-3"><span class="fw-bold">Electric Cost:</span> {{ '%.2f' | format(print['electric_cost']) }} {{ currencysymbol }}</div>
+            {% endif %}
+            {% if print['full_cost'] > 0 %}
+              <div class="col-4 mb-3"><span class="fw-bold">Full Cost:</span> {{ '%.2f' | format(print['full_cost']) }} {{ currencysymbol }}</div>
+            {% endif %}
           </div>
-        {% endfor %}
+        </div>
+
+        <div class="card">
+          <div class="card-body filament-container">
+            {% for filament in print.filament_usage %}
+              <div class="card mb-2">
+                <div class="card-body">
+                  {% if filament.spool %}
+                    <div class="filament-info d-flex align-items-center gap-2">
+                      <div class="spool-icon">
+                        {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
+                          <div class="spool-icon {% if filament.spool.filament.multi_color_direction == 'coaxial' %}horizontal{% else %}vertical{% endif %}">
+                            {% for color in filament.spool.filament.multi_color_hexes %}
+                              <div style="background-color:#{{ color }}; width:20px; height:20px;" title="#{{ color }}"></div>
+                            {% endfor %}
+                          </div>
+                        {% else %}
+                          <span class="badge d-inline-block" style="background-color: #{{ filament.spool.filament.color_hex }}; width: 20px; height: 20px;"></span>
+                        {% endif %}
+                      </div>
+                      <div>
+                        <h6 class="mb-0">#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</h6>
+                        <small>{{ filament.spool.filament.name }} - {{ filament.grams_used }}g - {{ '%.2f' | format(filament.cost|float) }} {{ currencysymbol }}</small>
+                      </div>
+                    </div>
+                  {% else %}
+                    <div class="filament-info">
+                      <h6>No spool assigned - {{ filament.filament_type }}</h6>
+                      <small>{{ filament.grams_used }}g</small>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card print-image">
+        <div class="card-body d-flex justify-content-center align-items-center">
+          {% if print.image_file %}
+            <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}" alt="Print Image" class="img-fluid">
+          {% else %}
+            <span class="text-muted">No Image</span>
+          {% endif %}
+        </div>
       </div>
 
       <div class="mt-2">
         <strong>Tags :</strong>
         {% if print.tags %}
           {% for tag in print.tags %}
-            <span class="badge bg-primary me-1">
+            <span class="badge bg-primary">
               {{ tag }}
-              <button class="btn-close btn-close-white btn-sm ms-1 remove-tag"
-                      data-print-id="{{ print.id }}"
-                      data-tag="{{ tag }}"></button>
+              <button class="btn-close btn-close-white btn-sm ms-1 remove-tag" data-print-id="{{ print.id }}" data-tag="{{ tag }}"></button>
             </span>
           {% endfor %}
         {% else %}
@@ -54,30 +106,35 @@
       </div>
 
       <div class="input-group mt-1" style="max-width: 300px;">
-        <input type="text" class="form-control form-control-sm add-tag-input"
-               placeholder="Ajouter un tag…">
-        <button class="btn btn-sm btn-success add-tag-btn"
-                data-print-id="{{ print.id }}">✚ Ajouter</button>
+        <input type="text" class="form-control form-control-sm add-tag-input" placeholder="Nouveau tag…">
+        <button class="btn btn-sm btn-success add-tag-btn" data-print-id="{{ print.id }}">✚ Ajouter</button>
       </div>
     </div>
-  </div>
 
-  <div class="modal fade" id="editModal_{{ print.id }}" tabindex="-1" aria-labelledby="editModalLabel_{{ print.id }}" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="editModalLabel_{{ print.id }}">Éditer le nom du print</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <input type="text" class="form-control" id="editNameInput_{{ print.id }}" value="{{ print.file_name }}">
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-          <button type="button" class="btn btn-primary" onclick="savePrintName({{ print.id }})">Enregistrer</button>
+    <div class="modal fade" id="editModal_{{ print.id }}" tabindex="-1" aria-labelledby="editModalLabel_{{ print.id }}" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form method="post" action="{{ url_for('edit_print_name') }}">
+            <div class="modal-header">
+              <h5 class="modal-title" id="editModalLabel_{{ print.id }}">Edit File Name (Print #{{ print.id }})</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" name="print_id" value="{{ print.id }}">
+              <div class="mb-3">
+                <label for="file_name_{{ print.id }}" class="form-label">New File Name</label>
+                <input type="text" class="form-control" name="file_name" id="file_name_{{ print.id }}" value="{{ print.file_name }}">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
+
   </div>
 {% endfor %}
 </div>
