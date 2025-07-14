@@ -98,21 +98,19 @@
 /* Layout für die Print-Grid-Struktur */
 .print-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr; /* Zwei Spalten: Info und Bild */
-    grid-template-rows: auto; /* Dynamische Höhe basierend auf dem Inhalt */
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: auto;
     grid-template-areas: 
-        "info image"; /* Layout: Info links, Bild rechts */
+        "info image";
     gap: 10px;
-    align-items: start; /* Elemente oben ausrichten */
+    align-items: start;
 }
 
-/* Bereich für Druckinformationen */
 .printinfo {
     grid-area: info;
     border-radius: 5px;
 }
 
-/* Bereich für das Bild */
 .print-image {
     grid-area: image;
     display: flex;
@@ -120,7 +118,7 @@
     align-items: center;
     padding: 10px;
     border-radius: 5px;
-    height: auto; /* Dynamische Höhe basierend auf dem Container */
+    height: auto;
 }
 
 .print-image div {
@@ -128,14 +126,13 @@
 }
 
 .print-image img {
-    max-width: 100%; /* Verhindert, dass das Bild breiter als der Container wird */
-    max-height: 100%; /* Verhindert, dass das Bild höher als der Container wird */
-    height: auto; /* Beibehaltung des Seitenverhältnisses */
-    width: auto; /* Beibehaltung des Seitenverhältnisses */
-    object-fit: contain; /* Sorgt dafür, dass das Bild innerhalb des Containers bleibt */
+    max-width: 100%;
+    max-height: 100%;
+    height: auto;
+    width: auto;
+    object-fit: contain;
 }
 
-/* Responsive Anpassungen */
 @media (max-width: 768px) {
     .print-grid {
         grid-template-columns: 1fr;
@@ -161,9 +158,9 @@
     .label-print-stacked {
       display: block;
     }
-  }
+}
 
-  @media (min-width: 576px) {
+@media (min-width: 576px) {
     .label-print-value {
       display: ruby;
     }
@@ -173,11 +170,11 @@
     .label-print-stacked {
       display: none;
     }
-  }
-
+}
 
 /* === Ajouts Select2 clair/sombre === */
 
+/* Thème sombre */
 .select2-dark .select2-selection {
     background-color: #212529 !important;
     color: #f8f9fa !important;
@@ -186,6 +183,16 @@
 
 .select2-dark .select2-selection__rendered {
     color: #f8f9fa !important;
+}
+
+.select2-dark .select2-selection__placeholder {
+    color: #adb5bd !important;
+}
+
+.select2-dark .select2-selection__choice {
+    background-color: #343a40 !important;
+    color: #f8f9fa !important;
+    border: none !important;
 }
 
 .select2-dark .select2-dropdown {
@@ -207,6 +214,7 @@
     color: #6c757d !important;
 }
 
+/* Thème clair */
 .select2-light .select2-selection {
     background-color: #fff !important;
     color: #212529 !important;
@@ -215,6 +223,16 @@
 
 .select2-light .select2-selection__rendered {
     color: #212529 !important;
+}
+
+.select2-light .select2-selection__placeholder {
+    color: #6c757d !important;
+}
+
+.select2-light .select2-selection__choice {
+    background-color: #e9ecef !important;
+    color: #212529 !important;
+    border: none !important;
 }
 
 .select2-light .select2-dropdown {
@@ -234,4 +252,3 @@
 .select2-light .select2-results__option--disabled {
     color: #6c757d !important;
 }
-
