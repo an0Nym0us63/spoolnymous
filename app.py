@@ -389,7 +389,7 @@ def edit_print_name():
 def delete_print_history(print_id):
     data = request.get_json()
     restock = data.get("restock", False)
-    ratio = data.get("ratio", 100) / 100.0  # transforme en 0.0–1.0
+    ratios = data.get("ratios", {})  # dict {spool_id: ratio_en_%}
 
     # Récupère la liste des consommations de filament pour ce print
     filament_usages = get_filament_for_print(print_id)
@@ -399,11 +399,35 @@ def delete_print_history(print_id):
             spool_id = usage["spool_id"]
             grams_used = usage["grams_used"]
 
-            if spool_id:  # seulement si un spool est assigné
+            if spool_id:
+                # Si un ratio est fourni pour ce spool_id, sinon 100%
+                ratio_percent = ratios.get(str(spool_id), 100)
+                ratio = max(0, min(100, ratio_percent)) / 100.0
                 adjusted_grams = grams_used * ratio
+
+                # Remet en stock la quantité ajustée
                 consumeSpool(spool_id, -adjusted_grams)
 
-    # Supprime le print
+    # Supprime le print et ses usages
     delete_print(print_id)
 
     return jsonify({"status": "ok"})
+
+@app.route("/history/<int:print_id>/filaments", methods=["GET"])
+def get_print_filaments(print_id):
+    filament_usages = get_filament_for_print(print_id)
+
+    enriched = []
+    for usage in filament_usages:
+        spool_id = usage["spool_id"]
+        grams_used = usage["grams_used"]
+
+        spool = getSpoolById(spool_id) if spool_id else None
+        enriched.append({
+            "spool_id": spool_id,
+            "grams_used": grams_used,
+            "name": spool.get("displayName") if spool else "N/A",
+            "color": spool.get("color") if spool else "#000000"
+        })
+
+    return jsonify(enriched)

@@ -188,32 +188,44 @@ function confirmDelete(printId) {
         denyButtonText: "Annuler"
     }).then((result) => {
         if (result.isConfirmed) {
-            askRestockRatio(printId);
+            askRestockRatioPerFilament(printId);
         } else if (result.dismiss === Swal.DismissReason.cancel) {
             sendDelete(printId, false);
         }
     });
 }
 
-function askRestockRatio(printId) {
-    Swal.fire({
-        title: "Ratio d’ajustement",
-        text: "Quel pourcentage du filament consommé doit être remis en stock ?",
-        input: "number",
-        inputAttributes: {
-            min: "0",
-            max: "100",
-            step: "1"
-        },
-        inputValue: 100,
-        showCancelButton: true,
-        confirmButtonText: "Valider",
-        cancelButtonText: "Annuler"
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const ratio = Math.max(0, Math.min(100, parseInt(result.value, 10) || 100));
-            sendDelete(printId, true, ratio);
-        }
+function askRestockRatioPerFilament(printId) {
+    fetch(`/history/${printId}/filaments`)
+    .then(resp => resp.json())
+    .then(filaments => {
+        const formHtml = filaments.map(f => `
+            <div style="display:flex;align-items:center;margin-bottom:5px;gap:5px">
+                <div style="width:15px;height:15px;background:${f.color};border:1px solid #ccc"></div>
+                <span style="flex:1">${f.name}</span>
+                <input type="number" min="0" max="100" value="100" id="ratio_${f.spool_id}" style="width:60px"> %
+            </div>
+        `).join("");
+
+        Swal.fire({
+            title: "Ajuster par filament",
+            html: formHtml,
+            showCancelButton: true,
+            confirmButtonText: "Valider",
+            cancelButtonText: "Annuler",
+            preConfirm: () => {
+                const ratios = {};
+                filaments.forEach(f => {
+                    const val = parseInt(document.getElementById(`ratio_${f.spool_id}`).value) || 0;
+                    ratios[f.spool_id] = val;
+                });
+                return ratios;
+            }
+        }).then(result => {
+            if (result.isConfirmed) {
+                sendDelete(printId, true, result.value);
+            }
+        });
     });
 }
 
@@ -225,11 +237,24 @@ function sendDelete(printId, restock, ratio = 100) {
     })
     .then(resp => resp.json())
     .then(data => {
-        if (data.status === "ok") {
-            location.reload();
+        if (data.status && data.status.toLowerCase() === "ok") {
+            const elt = document.getElementById(`print_${printId}`);
+            if (elt) elt.remove();
+
+            Swal.fire({
+                icon: "success",
+                title: "Supprimé",
+                text: `Le print #${printId} a été supprimé.`,
+                timer: 1500,
+                showConfirmButton: false
+            });
         } else {
-            Swal.fire("Erreur", data.error, "error");
+            Swal.fire("Erreur", data.error || "Suppression impossible", "error");
         }
+    })
+    .catch(err => {
+        console.error(err);
+        Swal.fire("Erreur", "Une erreur réseau est survenue", "error");
     });
 }
 </script>
