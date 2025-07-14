@@ -23,14 +23,14 @@
       </select>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-3">
       <label for="search">File Name Contains</label>
       <input type="text" name="search" class="form-control" value="{{ search }}">
     </div>
 	
-	<div class="col-md-4">
+	<div class="col-md-3">
       <label for="search">Tags</label>
-      <input type="text" id="tag_search" name="tag_search" class="form-control" placeholder="Ex: pla, red, support…" value="{{ tag_search }}">
+      <input type="text" name="tag_search" class="form-control" value="{{ tag_search or '' }}">
     </div>
 
     <div class="col-md-2 d-flex align-items-end">
