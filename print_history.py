@@ -177,7 +177,7 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None,  tag
                 WHERE pt.print_id = p.id AND LOWER(pt.tag) LIKE ?
             )
         """)
-    params.append(f"%{tag_search.lower()}%")
+        params.append(f"%{tag_search.lower()}%")
 
     where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
