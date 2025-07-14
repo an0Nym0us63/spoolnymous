@@ -321,3 +321,9 @@
     background-color: #212529 !important;
     color: #f8f9fa !important;
 }
+
+[data-bs-theme="dark"] .select2-container--default .select2-selection {
+    background-color: #212529 !important;
+    color: #f8f9fa !important;
+    border-color: #495057 !important;
+}

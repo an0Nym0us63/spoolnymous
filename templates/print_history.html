@@ -7,7 +7,7 @@
   <div class="row gy-2">
     <div class="col-md-3">
       <label for="filament_type">Filament Type</label>
-      <select name="filament_type" multiple class="form-select select2" placeholder="Select Filament Type">
+      <select name="filament_type" multiple class="form-select select2">
         {% for ft in distinct_values.filament_types %}
           <option value="{{ ft }}" {% if ft in filters.filament_type %}selected{% endif %}>{{ ft }}</option>
         {% endfor %}
@@ -16,7 +16,7 @@
 
     <div class="col-md-3">
       <label for="color">Filament Color</label>
-      <select name="color" multiple class="form-select select2" placeholder="Select Filament Color">
+      <select name="color" multiple class="form-select select2">
         {% for family in distinct_values.colors %}
           <option value="{{ family }}" {% if family in filters.color %}selected{% endif %}>{{ family }}</option>
         {% endfor %}
