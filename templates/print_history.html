@@ -62,13 +62,17 @@ $(document).ready(function () {
     const themeClass = detectThemeClass();
 
     $('.select2').each(function () {
-        $(this).select2({
+        const $select = $(this);
+
+        $select.select2({
             width: '100%',
-            placeholder: $(this).attr('placeholder') || '',
+            placeholder: $select.attr('placeholder') || '',
             dropdownCssClass: themeClass,
             containerCssClass: themeClass
-        }).on('select2:open', function () {
-            // Assurer que la dropdown prend aussi le thème
+        });
+
+        // Forcer le thème sur la dropdown lors de l'ouverture
+        $select.on('select2:open', function () {
             $('.select2-dropdown').addClass(themeClass);
         });
     });
