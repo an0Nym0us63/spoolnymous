@@ -59,20 +59,22 @@ function detectThemeClass() {
 }
 
 $(document).ready(function () {
-    const themeClass = detectThemeClass();
+    function applyThemeToDropdown() {
+        const theme = document.documentElement.getAttribute("data-bs-theme") || "light";
+        const classToAdd = theme === "dark" ? "select2-dark" : "select2-light";
+        $('.select2-dropdown').removeClass('select2-dark select2-light').addClass(classToAdd);
+    }
 
     $('.select2').each(function () {
         const $select = $(this);
 
         $select.select2({
             width: '100%',
-            placeholder: $select.attr('placeholder') || '',
-            dropdownCssClass: themeClass,
-            containerCssClass: themeClass
+            placeholder: $select.attr('placeholder') || ''
         });
 
         $select.on('select2:open', function () {
-            $('.select2-dropdown').addClass(themeClass);
+            applyThemeToDropdown();
         });
     });
 });

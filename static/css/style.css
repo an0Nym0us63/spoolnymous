@@ -310,3 +310,14 @@
     color: #212529 !important;
     border: none !important;
 }
+
+.select2-dark {
+    background-color: #212529 !important;
+    color: #f8f9fa !important;
+    border-color: #495057 !important;
+}
+
+.select2-dark .select2-results__option {
+    background-color: #212529 !important;
+    color: #f8f9fa !important;
+}
