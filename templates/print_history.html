@@ -5,11 +5,6 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<style>
-/* styles de thème sombre et select2 (inchangés) */
-…
-</style>
-
 <h1 class="mb-4 text-center">Print History</h1>
 
 <form method="get" class="mb-4">
@@ -45,7 +40,7 @@
   </div>
 </form>
 
-{% with action_assign=True %}{% include 'fragments/list_prints.html' %}{% endwith %}
+{% include 'fragments/list_prints.html' %}
 
 <div class="pagination justify-content-center mt-4">
   {% if page > 1 %}
@@ -58,13 +53,9 @@
 </div>
 
 <script>
-$(document).ready(function () {
-  $('select[name=\"color\"]').select2({
-    width: '100%'
-  });
-  $('select[name=\"filament_type\"]').select2({
-    width: '100%'
-  });
+document.addEventListener('DOMContentLoaded', function () {
+  console.log('Initializing Select2…');
+  $('.select2').select2({ width: '100%' });
 });
 
 // SweetAlert2 actions
@@ -138,4 +129,5 @@ function askRestockRatioPerFilament(printId, isDelete) {
     });
 }
 </script>
+
 {% endblock %}
