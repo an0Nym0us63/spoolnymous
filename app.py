@@ -314,9 +314,11 @@ def print_history():
     }
 
     search = request.args.get("search", "").strip()
-    tag_search = request.args.get("tag_search", "").strip() or None
+    tag_search = request.args.get("tag_search", "").strip()
+    if not tag_search:
+        tag_search = None
 
-    total_count, prints = get_prints_with_filament(offset=offset, limit=per_page, filters=filters, search=search)
+    total_count, prints = get_prints_with_filament(offset=offset, limit=per_page, filters=filters, search=search, tag_search=tag_search)
 
     spool_list = fetchSpools(False, True)
 
