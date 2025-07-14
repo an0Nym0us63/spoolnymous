@@ -175,6 +175,7 @@
     }
   }
 
+
 /* === Ajouts Select2 clair/sombre === */
 
 .select2-dark .select2-selection {
@@ -190,6 +191,11 @@
 .select2-dark .select2-dropdown {
     background-color: #212529 !important;
     color: #f8f9fa !important;
+    border-color: #495057 !important;
+}
+
+.select2-dark .select2-results__option {
+    color: #f8f9fa !important;
 }
 
 .select2-dark .select2-results__option--highlighted {
@@ -197,21 +203,8 @@
     color: #fff !important;
 }
 
-.select2-dark .select2-results__option {
-    color: #f8f9fa !important;
-}
-
-.select2-dark .select2-results__option[aria-selected="true"] {
-    background-color: #495057 !important;
-    color: #fff !important;
-}
-
-.select2-dark .select2-results__option[aria-disabled="true"] {
-    color: #6c757d !important; /* Gris moyen lisible en sombre */
-}
-
 .select2-dark .select2-results__option--disabled {
-    color: #6c757d !important; /* gris lisible */
+    color: #6c757d !important;
 }
 
 .select2-light .select2-selection {
@@ -229,6 +222,10 @@
     color: #212529 !important;
 }
 
+.select2-light .select2-results__option {
+    color: #212529 !important;
+}
+
 .select2-light .select2-results__option--highlighted {
     background-color: #e9ecef !important;
     color: #212529 !important;
@@ -237,3 +234,4 @@
 .select2-light .select2-results__option--disabled {
     color: #6c757d !important;
 }
+
