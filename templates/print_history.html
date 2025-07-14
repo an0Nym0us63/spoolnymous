@@ -188,18 +188,40 @@ function confirmDelete(printId) {
         denyButtonText: "Annuler"
     }).then((result) => {
         if (result.isConfirmed) {
-            sendDelete(printId, true);
+            askRestockRatio(printId);
         } else if (result.dismiss === Swal.DismissReason.cancel) {
             sendDelete(printId, false);
         }
     });
 }
 
-function sendDelete(printId, restock) {
+function askRestockRatio(printId) {
+    Swal.fire({
+        title: "Ratio d’ajustement",
+        text: "Quel pourcentage du filament consommé doit être remis en stock ?",
+        input: "number",
+        inputAttributes: {
+            min: "0",
+            max: "100",
+            step: "1"
+        },
+        inputValue: 100,
+        showCancelButton: true,
+        confirmButtonText: "Valider",
+        cancelButtonText: "Annuler"
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const ratio = Math.max(0, Math.min(100, parseInt(result.value, 10) || 100));
+            sendDelete(printId, true, ratio);
+        }
+    });
+}
+
+function sendDelete(printId, restock, ratio = 100) {
     fetch(`/history/delete/${printId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ restock })
+        body: JSON.stringify({ restock, ratio })
     })
     .then(resp => resp.json())
     .then(data => {

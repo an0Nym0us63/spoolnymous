@@ -246,5 +246,26 @@ def update_print_filename(print_id: int, new_filename: str):
     conn.commit()
     conn.close()
 
+def get_filament_for_print(print_id: int):
+    conn = sqlite3.connect(db_config["db_path"])
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT spool_id, grams_used
+        FROM filament_usage
+        WHERE print_id = ?
+    ''', (print_id,))
+    results = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return results
+
+
+def delete_print(print_id: int):
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM prints WHERE id = ?', (print_id,))
+    conn.commit()
+    conn.close()
+
 
 create_database()

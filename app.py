@@ -11,7 +11,7 @@ from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print
 
 init_mqtt()
 
@@ -389,15 +389,21 @@ def edit_print_name():
 def delete_print_history(print_id):
     data = request.get_json()
     restock = data.get("restock", False)
+    ratio = data.get("ratio", 100) / 100.0  # transforme en 0.0–1.0
 
-    print_job = get_print_by_id(print_id)
-    if not print_job:
-        return jsonify({"error": "Print job not found"}), 404
+    # Récupère la liste des consommations de filament pour ce print
+    filament_usages = get_filament_for_print(print_id)
 
-    if restock and print_job.status != "success":
-        for usage in print_job.usages:  # adapte selon ton modèle réel
-            consume_spool(usage.spool_id, -usage.grams_used)
+    if restock:
+        for usage in filament_usages:
+            spool_id = usage["spool_id"]
+            grams_used = usage["grams_used"]
 
+            if spool_id:  # seulement si un spool est assigné
+                adjusted_grams = grams_used * ratio
+                consumeSpool(spool_id, -adjusted_grams)
+
+    # Supprime le print
     delete_print(print_id)
 
     return jsonify({"status": "ok"})
