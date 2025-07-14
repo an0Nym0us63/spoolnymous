@@ -6,21 +6,19 @@
 <form method="get" class="mb-4">
   <div class="row g-2">
     <div class="col-md-6">
-      <label for="filament_type" class="form-label">Filament Type</label>
-      <select name="filament_type" id="filament_type" class="form-select">
-        <option value="">-- Tous --</option>
-        {% for type in distinct_values["filament_type"] %}
-          <option value="{{ type }}" {% if type in filters["filament_type"] %}selected{% endif %}>{{ type }}</option>
+       <label for="filament_type">Filament Type</label>
+      <select name="filament_type" multiple class="form-select select2">
+        {% for ft in distinct_values.filament_types %}
+          <option value="{{ ft }}" {% if ft in filters.filament_type %}selected{% endif %}>{{ ft }}</option>
         {% endfor %}
       </select>
     </div>
 
     <div class="col-md-6">
-      <label for="color" class="form-label">Filament Color</label>
-      <select name="color" id="color" class="form-select">
-        <option value="">-- Toutes --</option>
-        {% for color in distinct_values["color"] %}
-          <option value="{{ color }}" {% if color in filters["color"] %}selected{% endif %}>{{ color }}</option>
+       <label for="color">Filament Color</label>
+      <select name="color" multiple class="form-select select2">
+        {% for family in distinct_values.colors %}
+          <option value="{{ family }}" {% if family in filters.color %}selected{% endif %}>{{ family }}</option>
         {% endfor %}
       </select>
     </div>
