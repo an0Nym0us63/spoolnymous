@@ -252,3 +252,16 @@
 .select2-light .select2-results__option--disabled {
     color: #6c757d !important;
 }
+.select2-dark .select2-selection,
+.select2-dark .select2-selection--multiple {
+    background-color: #212529 !important;
+    color: #f8f9fa !important;
+    border-color: #495057 !important;
+}
+
+.select2-light .select2-selection,
+.select2-light .select2-selection--multiple {
+    background-color: #fff !important;
+    color: #212529 !important;
+    border-color: #ced4da !important;
+}
