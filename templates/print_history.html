@@ -7,7 +7,7 @@
   <div class="row gy-2">
     <div class="col-md-3">
       <label for="filament_type">Filament Type</label>
-      <select name="filament_type" multiple class="form-select select2">
+      <select name="filament_type" multiple class="form-select select2" placeholder="Select Filament Type">
         {% for ft in distinct_values.filament_types %}
           <option value="{{ ft }}" {% if ft in filters.filament_type %}selected{% endif %}>{{ ft }}</option>
         {% endfor %}
@@ -16,7 +16,7 @@
 
     <div class="col-md-3">
       <label for="color">Filament Color</label>
-      <select name="color" multiple class="form-select select2">
+      <select name="color" multiple class="form-select select2" placeholder="Select Filament Color">
         {% for family in distinct_values.colors %}
           <option value="{{ family }}" {% if family in filters.color %}selected{% endif %}>{{ family }}</option>
         {% endfor %}
@@ -45,7 +45,6 @@
     <a href="{{ url_with_args(page=page+1) }}" class="btn btn-primary">Next &raquo;</a>
   {% endif %}
 </div>
-
 {% endblock %}
 
 {% block scripts %}
@@ -69,8 +68,8 @@ $(document).ready(function () {
             dropdownCssClass: themeClass,
             containerCssClass: themeClass
         }).on('select2:open', function () {
-            // Quand le menu s'ouvre, appliquer la classe thème à la dropdown
-            $('.select2-container--open .select2-dropdown').addClass(themeClass);
+            // Assurer que la dropdown prend aussi le thème
+            $('.select2-dropdown').addClass(themeClass);
         });
     });
 });
