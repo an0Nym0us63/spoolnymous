@@ -1,7 +1,6 @@
 import os
 import sqlite3
 from datetime import datetime
-from app import query_db
 
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
