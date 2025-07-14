@@ -155,7 +155,7 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
                 family_clauses.append(f"f.color IN ({placeholders})")
                 params.extend(hexes)
         if family_clauses:
-            where_clauses.append("(" + " OR ".join(family_clauses) + ")")
+            where_clauses.append("(" + " AND ".join(family_clauses) + ")")
 
     if search:
         where_clauses.append("p.file_name LIKE ?")
