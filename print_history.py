@@ -47,6 +47,15 @@ def create_database() -> None:
                 FOREIGN KEY (print_id) REFERENCES prints (id) ON DELETE CASCADE
             )
         ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS print_tags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                print_id INTEGER NOT NULL,
+                tag TEXT NOT NULL,
+                FOREIGN KEY (print_id) REFERENCES prints(id) ON DELETE CASCADE
+            )
+        ''')
 
         conn.commit()
         conn.close()
@@ -264,6 +273,28 @@ def delete_print(print_id: int):
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
     cursor.execute('DELETE FROM prints WHERE id = ?', (print_id,))
+    conn.commit()
+    conn.close()
+    
+def get_tags_for_print(print_id: int):
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("SELECT tag FROM print_tags WHERE print_id = ?", (print_id,))
+    tags = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return tags
+
+def add_tag_to_print(print_id: int, tag: str):
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO print_tags (print_id, tag) VALUES (?, ?)", (print_id, tag))
+    conn.commit()
+    conn.close()
+
+def remove_tag_from_print(print_id: int, tag: str):
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM print_tags WHERE print_id = ? AND tag = ?", (print_id, tag))
     conn.commit()
     conn.close()
 

@@ -326,6 +326,7 @@ def print_history():
         print_["electric_cost"] = print_["duration"] * float(COST_BY_HOUR)
         print_["filament_usage"] = json.loads(print_["filament_info"])
         print_["total_cost"] = 0
+        print_["tags"] = get_tags_for_print(print_["id"])
 
         for filament in print_["filament_usage"]:
             if filament["spool_id"]:
@@ -463,3 +464,22 @@ def get_print_filaments(print_id):
         })
 
     return jsonify(enriched)
+
+@app.route("/history/<int:print_id>/tags", methods=["GET"])
+def get_tags(print_id):
+    tags = get_tags_for_print(print_id)
+    return jsonify(tags)
+
+@app.route("/history/<int:print_id>/tags/add", methods=["POST"])
+def add_tag(print_id):
+    tag = request.json.get("tag", "").strip()
+    if tag:
+        add_tag_to_print(print_id, tag)
+    return jsonify({"status": "ok"})
+
+@app.route("/history/<int:print_id>/tags/remove", methods=["POST"])
+def remove_tag(print_id):
+    tag = request.json.get("tag", "").strip()
+    if tag:
+        remove_tag_from_print(print_id, tag)
+    return jsonify({"status": "ok"})

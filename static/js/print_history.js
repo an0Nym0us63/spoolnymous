@@ -72,3 +72,20 @@ function askRestockRatioPerFilament(printId, isDelete) {
         });
     });
 }
+
+
+function addTag(printId, tag) {
+    fetch(`/history/${printId}/tags/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tag })
+    }).then(() => location.reload());
+}
+
+function removeTag(printId, tag) {
+    fetch(`/history/${printId}/tags/remove`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tag })
+    }).then(() => location.reload());
+}

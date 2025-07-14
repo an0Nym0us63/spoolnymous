@@ -120,6 +120,19 @@
                 </div>
             </div>
         </div>
+		<div class="tags mt-2">
+      {% for tag in print.tags %}
+        <span class="badge bg-primary me-1">
+          {{ tag }}
+          <a href="#" class="text-light ms-1" onclick="removeTag({{ print.id }}, '{{ tag }}')">&times;</a>
+        </span>
+      {% endfor %}
+      <input type="text"
+             class="form-control form-control-sm d-inline-block"
+             style="width:auto;display:inline"
+             placeholder="Ajouter tag"
+             onkeypress="if(event.key==='Enter'){addTag({{ print.id }}, this.value); this.value='';}">
+    </div>
     </div>
 
     <div class="modal fade" id="editModal_{{ print.id }}" tabindex="-1" aria-labelledby="editModalLabel_{{ print.id }}" aria-hidden="true">
