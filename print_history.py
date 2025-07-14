@@ -47,15 +47,6 @@ def create_database() -> None:
                 FOREIGN KEY (print_id) REFERENCES prints (id) ON DELETE CASCADE
             )
         ''')
-        
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS print_tags (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                print_id INTEGER NOT NULL,
-                tag TEXT NOT NULL,
-                FOREIGN KEY (print_id) REFERENCES prints(id) ON DELETE CASCADE
-            )
-        ''')
 
         conn.commit()
         conn.close()
@@ -67,6 +58,16 @@ def create_database() -> None:
             cursor.execute('ALTER TABLE prints ADD COLUMN duration REAL')
         except:
             pass
+        
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS print_tags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                print_id INTEGER NOT NULL,
+                tag TEXT NOT NULL,
+                FOREIGN KEY (print_id) REFERENCES prints(id) ON DELETE CASCADE
+            )
+        ''')
 
         conn.commit()
         conn.close()
