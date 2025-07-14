@@ -71,7 +71,6 @@ $(document).ready(function () {
             containerCssClass: themeClass
         });
 
-        // Forcer le thème sur la dropdown lors de l'ouverture
         $select.on('select2:open', function () {
             $('.select2-dropdown').addClass(themeClass);
         });
