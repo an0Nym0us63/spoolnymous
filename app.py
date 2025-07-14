@@ -446,7 +446,8 @@ def get_print_filaments(print_id):
         if spool:
             vendor = spool.get("filament", {}).get("vendor", {}).get("name", "UnknownVendor")
             material = spool.get("filament", {}).get("material", "UnknownMaterial")
-            name = f"#{spool_id} - {vendor} - {material}"
+            realName = spool.get("filament", {}).get("name", "UnknownName")
+            name = f"#{spool_id} - {realName} - {vendor} - {material}"
         else:
             name = usage.get("filament_type", "N/A")
         color = spool.get("filament", {}).get("color_hex")
