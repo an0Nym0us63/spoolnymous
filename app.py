@@ -305,7 +305,7 @@ def print_history():
     spoolman_settings = getSettings()
 
     page = int(request.args.get("page", 1))
-    per_page = int(request.args.get("per_page", 25))
+    per_page = int(request.args.get("per_page", 50))
     offset = (page - 1) * per_page
 
     filters = {
@@ -314,11 +314,8 @@ def print_history():
     }
 
     search = request.args.get("search", "").strip()
-    tag_search = request.args.get("tag_search", "").strip()
-    if not tag_search:
-        tag_search = None
 
-    total_count, prints = get_prints_with_filament(offset=offset, limit=per_page, filters=filters, search=search, tag_search=tag_search)
+    total_count, prints = get_prints_with_filament(offset=offset, limit=per_page, filters=filters, search=search)
 
     spool_list = fetchSpools(False, True)
 
