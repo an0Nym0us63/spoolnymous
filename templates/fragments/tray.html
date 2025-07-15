@@ -1,58 +1,63 @@
 <div class="card">
   <!-- Header compact, 2 lignes -->
   <div class="card-header py-1 small"
-       data-bs-toggle="collapse"
-       data-bs-target="#trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}"
-       aria-expanded="false"
-       aria-controls="trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}">
-    <div class="d-flex justify-content-between align-items-center flex-wrap">
+     data-bs-toggle="collapse"
+     data-bs-target="#trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}"
+     aria-expanded="false"
+     aria-controls="trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}">
+  <div class="row w-100">
+    <div class="col-8">
       <div>
-        <div>
-          <strong>
-            {% if ams_id|int != EXTERNAL_SPOOL_AMS_ID %}
-              {{ (tray_data.id|int + 1) }}
-            {% else %}
-              External
-            {% endif %}
-          </strong>
-          {% if tray_data.tray_type %}
-            - {{ tray_data.name }}
+        <strong>
+          {% if ams_id|int != EXTERNAL_SPOOL_AMS_ID %}
+            {{ (tray_data.id|int + 1) }}
           {% else %}
-            - Empty
+            External
           {% endif %}
-        </div>
-        <div class="text-muted" style="font-size: 0.75rem;">
-          {% if tray_data.tray_type %}
-            {{ tray_data.tray_type }}
-            {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
-            - {{ tray_data.vendor }}
-          {% else %}
-            Empty
-          {% endif %}
-        </div>
-      </div>
-      {% if tray_data.tray_type %}
-      <div class="d-flex align-items-center gap-2">
-        {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
-          <div class="spool-icon small">
-            {% for color in tray_data.tray_color %}
-              <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
-            {% endfor %}
-          </div>
+        </strong>
+        {% if tray_data.tray_type %}
+          - {{ tray_data.name }}
         {% else %}
-          <span class="badge d-inline-block p-2"
-                style="background-color: #{{ tray_data.tray_color }};
-                       color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
-            #{{ tray_data.tray_color|upper }}
-          </span>
-        {% endif %}
-        {% if AUTO_SPEND and tray_data.matched %}
-          <span class="small">{{ tray_data.remaining_weight|round }}g</span>
+          - Empty
         {% endif %}
       </div>
+      <div class="text-muted" style="font-size: 0.75rem;">
+        {% if tray_data.tray_type %}
+          {{ tray_data.tray_type }}
+          {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
+          - {{ tray_data.vendor }}
+        {% else %}
+          Empty
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-4 text-end">
+      {% if tray_data.tray_type %}
+        <div>
+          {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
+            <div class="spool-icon small d-inline-block">
+              {% for color in tray_data.tray_color %}
+                <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <span class="badge d-inline-block p-2"
+                  style="background-color: #{{ tray_data.tray_color }};
+                         color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
+              #{{ tray_data.tray_color|upper }}
+            </span>
+          {% endif %}
+        </div>
+        <div class="small mt-1">
+          {% if AUTO_SPEND and tray_data.matched %}
+            {{ tray_data.remaining_weight|round }}g
+          {% endif %}
+        </div>
       {% endif %}
     </div>
   </div>
+</div>
+
 
   <!-- Détails (fermés par défaut) -->
   <div class="collapse" id="trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}">
