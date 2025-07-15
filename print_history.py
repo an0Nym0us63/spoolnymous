@@ -6,18 +6,37 @@ import math
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
 COLOR_FAMILIES = {
+    # Neutres
     'Black': (0, 0, 0),
     'White': (255, 255, 255),
-    'Red': (255, 0, 0),
-    'Green': (0, 128, 0),
-    'Blue': (0, 0, 255),
-    'Yellow': (255, 255, 0),
-    'Orange': (255, 165, 0),
-    'Purple': (128, 0, 128),
-    'Pink': (255, 192, 203),
-    'Brown': (139, 69, 19),
-    'Grey': (128, 128, 128)
+    'Grey': (160, 160, 160),
+
+    # Rouges et dérivés
+    'Red': (220, 20, 60),         # Crimson
+    'Dark Red': (139, 0, 0),      # sombre
+    'Pink': (255, 182, 193),      # pastel
+    'Magenta': (255, 0, 255),     # fuchsia
+    'Brown': (150, 75, 0),        # chocolat
+
+    # Jaunes et dérivés
+    'Yellow': (255, 220, 0),      # chaud
+    'Gold': (212, 175, 55),       # doré
+    'Orange': (255, 140, 0),      # foncé
+
+    # Verts
+    'Green': (80, 200, 120),      # gazon
+    'Dark Green': (0, 100, 0),    # forêt
+    'Lime': (191, 255, 0),        # fluo
+    'Teal': (0, 128, 128),        # turquoise
+
+    # Bleus et violets
+    'Blue': (100, 150, 255),      # clair
+    'Navy': (0, 0, 128),          # foncé
+    'Cyan': (0, 255, 255),        # turquoise clair
+    'Lavender': (230, 230, 250),  # violet pastel
+    'Purple': (148, 0, 211),      # violet profond
 }
+
 
 def create_database() -> None:
     if not os.path.exists(db_config["db_path"]):
