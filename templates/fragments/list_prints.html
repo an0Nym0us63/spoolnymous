@@ -1,4 +1,4 @@
-<div class="print-history">
+<div class="print-history" id="printAccordion">
   {% for print in prints %}
     <div class="card mb-2" id="print_{{ print.id }}">
       <div class="card-header d-flex justify-content-between align-items-center clickable" data-bs-toggle="collapse" data-bs-target="#details_{{ print.id }}" aria-expanded="false" aria-controls="details_{{ print.id }}">
@@ -12,7 +12,7 @@
         {% endif %}
       </div>
 
-      <div id="details_{{ print.id }}" class="collapse">
+      <div id="details_{{ print.id }}" class="collapse" data-bs-parent="#printAccordion">
         <div class="card-body position-relative">
           <!-- Actions flottantes -->
           <div class="dropdown position-absolute end-0 top-0 m-2">
