@@ -35,6 +35,7 @@ COLOR_FAMILIES = {
     'Cyan': (0, 255, 255),        # turquoise clair
     'Lavender': (230, 230, 250),  # violet pastel
     'Purple': (160, 32, 240), 
+    'Dark Purple': (90, 60, 120), # violet foncé
 }
 
 
