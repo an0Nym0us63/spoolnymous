@@ -174,10 +174,11 @@ function enhanceColorSelect() {
 
     // Enhance with Select2 + template
     $colorSelect.select2({
-        width: '100%',
-        templateResult: formatColorOption,
-        templateSelection: formatColorOption
-    });
+    width: '100%',
+    templateResult: formatColorOption,
+    templateSelection: formatColorOption,
+    escapeMarkup: function(m) { return m; }
+});
 }
 
 function formatColorOption(state) {
