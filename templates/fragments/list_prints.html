@@ -20,10 +20,21 @@
       </div>
 
       <div id="details_{{ print.id }}" class="collapse">
-        <div class="card-body">
+        <div class="card-body position-relative">
+          <!-- Actions flottantes -->
+          <div class="dropdown position-absolute end-0 top-0 m-2">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              Actions
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editModal_{{ print.id }}">Renommer</a></li>
+              <li><a class="dropdown-item text-primary" href="#" onclick="confirmReajust({{ print.id }})">Réajuster</a></li>
+              <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete({{ print.id }})">Supprimer</a></li>
+            </ul>
+          </div>
+
           <div class="row mb-2">
             <div class="col-md-6"><strong>Date:</strong> {{ print.print_date }}</div>
-            <div class="col-md-6"><strong>Type:</strong> {{ print.print_type }}</div>
             <div class="col-md-6"><strong>Duration:</strong> {{ '%.2f' | format(print.duration) }}h</div>
             {% if print['total_cost'] > 0 %}
               <div class="col-md-6"><strong>Filament Cost:</strong> {{ '%.2f' | format(print['total_cost']) }} {{ currencysymbol }}</div>
@@ -35,6 +46,14 @@
               <div class="col-md-6"><strong>Full Cost:</strong> {{ '%.2f' | format(print['full_cost']) }} {{ currencysymbol }}</div>
             {% endif %}
           </div>
+
+          <!-- Image en grand -->
+          {% if print.image_file %}
+          <div class="text-center mb-3">
+            <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
+                 alt="Print Image" class="img-fluid rounded" style="max-width:300px;" />
+          </div>
+          {% endif %}
 
           <div class="mb-3">
             <strong>Filaments :</strong>
@@ -83,17 +102,6 @@
           <div class="input-group mt-1" style="max-width: 300px;">
             <input type="text" class="form-control form-control-sm add-tag-input" placeholder="Nouveau tag…">
             <button class="btn btn-sm btn-success add-tag-btn" data-print-id="{{ print.id }}">✚ Ajouter</button>
-          </div>
-
-          <div class="dropdown text-end mt-3">
-            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-              Actions
-            </button>
-            <ul class="dropdown-menu">
-              <li><a class="dropdown-item text-primary" href="#" onclick="confirmReajust({{ print.id }})">Réajuster</a></li>
-              <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete({{ print.id }})">Supprimer</a></li>
-              <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editModal_{{ print.id }}">Renommer</a></li>
-            </ul>
           </div>
         </div>
       </div>
