@@ -151,22 +151,32 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
         params.extend(filters["filament_type"])
 
     if filters.get("color"):
-        # On force les couleurs en minuscule pour cohérence
-        selected_colors = [c.lower() for c in filters["color"]]
-        placeholders = ",".join(["?"] * len(selected_colors))
+        color_families = filters["color"]
+        conn = sqlite3.connect(db_config["db_path"])
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
+        all_colors = [row[0] for row in cursor.fetchall()]
+        conn.close()
     
-        where_clauses.append(f"""
-            p.id IN (
-                SELECT pf.print_id
-                FROM print_filaments pf
-                JOIN filaments f ON pf.filament_id = f.id
-                WHERE LOWER(f.color_family) IN ({placeholders})
-                GROUP BY pf.print_id
-                HAVING COUNT(DISTINCT LOWER(f.color_family)) = ?
-            )
-        """)
-        params.extend(selected_colors)
-        params.append(len(selected_colors))
+        selected_hexes_by_family = []
+        for fam in color_families:
+            hexes = [c for c in all_colors if closest_family(c) == fam]
+            if hexes:
+                selected_hexes_by_family.append(hexes)
+    
+        if selected_hexes_by_family:
+            where_clauses.append(f"""
+                p.id IN (
+                    SELECT fu.print_id
+                    FROM filament_usage fu
+                    WHERE {" OR ".join(["fu.color IN (" + ",".join("?" for _ in hexes) + ")" for hexes in selected_hexes_by_family])}
+                    GROUP BY fu.print_id
+                    HAVING COUNT(DISTINCT fu.color) >= ?
+                )
+            """)
+            for hexes in selected_hexes_by_family:
+                params.extend(hexes)
+            params.append(len(selected_hexes_by_family))
 
     if search:
         where_clauses.append("""
