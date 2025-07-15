@@ -327,3 +327,33 @@
     color: #f8f9fa !important;
     border-color: #495057 !important;
 }
+
+@media (max-width: 576px) {
+  .print-history .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .print-history .card-header .d-flex {
+    flex-wrap: wrap;
+  }
+
+  .print-history img {
+    max-width: 40px;
+    height: auto;
+  }
+
+  .print-history .card-header strong {
+    font-size: 0.9rem;
+  }
+
+  .print-history .btn {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.8rem;
+  }
+
+  .print-history .card {
+    margin-bottom: 0.5rem;
+  }
+}
