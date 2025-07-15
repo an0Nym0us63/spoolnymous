@@ -305,7 +305,7 @@ def print_history():
     spoolman_settings = getSettings()
 
     page = int(request.args.get("page", 1))
-    per_page = int(request.args.get("per_page", 10))
+    per_page = int(request.args.get("per_page", 25))
     offset = (page - 1) * per_page
 
     filters = {
