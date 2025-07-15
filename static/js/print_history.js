@@ -175,12 +175,16 @@ function enhanceColorSelect() {
 
     // Enhance with Select2 + template
     $colorSelect.select2({
-    width: '100%',
-    templateResult: formatColorOption,
-    templateSelection: formatColorOption,
-    escapeMarkup: function(m) { return m; }
-});
+        width: '100%',
+        templateResult: formatColorOption,
+        templateSelection: formatColorOption,
+        escapeMarkup: function(m) { return m; }
+    });
+
+    applyColorTags(); // corrige au load
+    $colorSelect.on('select2:select select2:unselect', () => applyColorTags());
 }
+
 
 function formatColorOption(state) {
     if (!state.id) return state.text;
