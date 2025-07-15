@@ -18,6 +18,7 @@ $(document).ready(function () {
         $(this).select2({ width: '100%' }).on('select2:open', applyThemeToDropdown);
     });
 	 enhanceColorSelect();
+applyColorTags();
 }
 
     initSelect2();
@@ -219,4 +220,24 @@ function getFamilyHex(name) {
         "Dark Purple": "#5A3C78"
     };
     return map[name] || "#CCCCCC";
+}
+
+function applyColorTags() {
+    $('.select2-selection__choice').each(function () {
+        const val = $(this).attr('title'); // valeur réelle (en anglais)
+        const hex = getFamilyHex(val);
+        $(this).css({
+            display: 'flex',
+            'align-items': 'center',
+            'gap': '4px'
+        });
+        $(this).prepend(`<span style="
+            display:inline-block;
+            width:10px;
+            height:10px;
+            background:${hex};
+            border:1px solid #ccc;
+            border-radius:2px;
+        "></span>`);
+    });
 }
