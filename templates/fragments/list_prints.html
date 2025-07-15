@@ -10,10 +10,6 @@
             <span class="text-muted">No Image</span>
           {% endif %}
           <strong>{{ print.file_name or 'Print #' ~ print.id }}</strong>
-          <button type="button" class="btn btn-sm btn-outline-primary ms-2"
-                  data-bs-toggle="modal" data-bs-target="#editModal_{{ print.id }}">
-            ✏️
-          </button>
         </div>
         <button class="btn btn-sm btn-outline-secondary"
                 data-bs-toggle="collapse"
@@ -96,6 +92,7 @@
             <ul class="dropdown-menu">
               <li><a class="dropdown-item text-primary" href="#" onclick="confirmReajust({{ print.id }})">Réajuster</a></li>
               <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete({{ print.id }})">Supprimer</a></li>
+              <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editModal_{{ print.id }}">Renommer</a></li>
             </ul>
           </div>
         </div>
