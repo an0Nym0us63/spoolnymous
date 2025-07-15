@@ -112,17 +112,80 @@ def update_filament_spool(print_id: int, filament_id: int, spool_id: int) -> Non
     conn.close()
 
 
-def hex_to_rgb(hex_color):
-    hex_color = hex_color.lstrip('#')
+ChatGPT a dit :
+✅ Excellent réflexe !
+En effet, tu avais déjà un convertisseur RGB → CIELAB + une distance ΔE simple (Euclidienne dans Lab).
+On peut donc exploiter ce code directement, sans dépendance externe (colormath).
+
+🎯 Comment l’utiliser ?
+Il suffit d’écrire une version closest_family_lab qui :
+
+convertit chaque famille en Lab (une fois)
+
+convertit la couleur cible en Lab
+
+calcule la distance Lab pour chaque famille
+
+retourne la plus proche
+
+🔷 Version prête à l’emploi
+python
+Copier
+Modifier
+import math
+
+# Fonction déjà existante
+def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
+    hex_color = hex_color.lstrip('#')[:6]
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
-def closest_family(hex_color):
-    rgb = hex_to_rgb(hex_color)
-    closest = min(
-        COLOR_FAMILIES.items(),
-        key=lambda item: sum((c1 - c2)**2 for c1, c2 in zip(rgb, item[1]))
-    )
-    return closest[0]
+def rgb_to_lab(r: int, g: int, b: int) -> tuple[float, float, float]:
+    r /= 255
+    g /= 255
+    b /= 255
+
+    def gamma_correct(c):
+        return ((c + 0.055) / 1.055) ** 2.4 if c > 0.04045 else c / 12.92
+
+    r = gamma_correct(r)
+    g = gamma_correct(g)
+    b = gamma_correct(b)
+
+    x = r * 0.4124 + g * 0.3576 + b * 0.1805
+    y = r * 0.2126 + g * 0.7152 + b * 0.0722
+    z = r * 0.0193 + g * 0.1192 + b * 0.9505
+
+    x /= 0.95047
+    y /= 1.00000
+    z /= 1.08883
+
+    def f(t):
+        return t ** (1/3) if t > 0.008856 else (7.787 * t) + (16 / 116)
+
+    fx = f(x)
+    fy = f(y)
+    fz = f(z)
+
+    l = 116 * fy - 16
+    a = 500 * (fx - fy)
+    b = 200 * (fy - fz)
+
+    return (l, a, b)
+
+def color_distance(hex1: str, hex2: str) -> float:
+    rgb1 = hex_to_rgb(hex1)
+    rgb2 = hex_to_rgb(hex2)
+    lab1 = rgb_to_lab(*rgb1)
+    lab2 = rgb_to_lab(*rgb2)
+    return math.sqrt(sum((a - b) ** 2 for a, b in zip(lab1, lab2)))
+
+def closest_family_lab(hex_color: str) -> str:
+    distances = {
+        family: color_distance(hex_color, '#{:02X}{:02X}{:02X}'.format(*rgb))
+        for family, rgb in COLOR_FAMILIES.items()
+    }
+    return min(distances, key=distances.get)
+
 
 def get_distinct_values():
     conn = sqlite3.connect(db_config["db_path"])
