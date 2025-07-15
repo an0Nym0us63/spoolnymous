@@ -227,21 +227,22 @@ function getFamilyHex(name) {
 }
 
 function applyColorTags() {
-    $('.select2-selection__choice').each(function () {
-        const val = $(this).attr('title'); // valeur réelle (en anglais)
-        const hex = getFamilyHex(val);
-        $(this).css({
-            display: 'flex',
+$('.select2-selection__choice').each(function () {
+    const val = $(this).attr('title');
+    const hex = getFamilyHex(val);
+    const label = COLOR_NAME_MAP[val] || val;
+
+    $(this)
+        .css({
+            display: 'inline-flex',
             'align-items': 'center',
-            'gap': '4px'
-        });
-        $(this).prepend(`<span style="
-            display:inline-block;
-            width:10px;
-            height:10px;
-            background:${hex};
-            border:1px solid #ccc;
-            border-radius:2px;
-        "></span>`);
-    });
+            gap: '4px'
+        })
+        .find('.select2-selection__choice__remove')
+        .appendTo($(this).empty()) // vide d'abord puis réajoute le X
+        .after(`
+            <span style="width:10px;height:10px;border-radius:2px;background:${hex};border:1px solid #ccc;margin-right:4px;"></span>${label}
+        `);
+});
+
 }
