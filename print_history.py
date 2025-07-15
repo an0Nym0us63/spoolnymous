@@ -199,7 +199,7 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     
         selected_hexes_by_family = []
         for fam in color_families:
-            hexes = [c for c in all_colors if closest_family(c) == fam]
+            hexes = [c for c in all_colors if closest_family_lab(c) == fam]
             if hexes:
                 selected_hexes_by_family.append(hexes)
     
@@ -264,33 +264,6 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     prints = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return total_count, prints
-
-
-def get_distinct_values():
-    conn = sqlite3.connect(db_config["db_path"])
-    cursor = conn.cursor()
-
-    # récupérer les types de filament distincts
-    cursor.execute("SELECT DISTINCT filament_type FROM filament_usage WHERE filament_type IS NOT NULL")
-    filament_types = sorted([row[0] for row in cursor.fetchall()])
-
-    # récupérer les couleurs distinctes
-    cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
-    raw_colors = [row[0] for row in cursor.fetchall()]
-    conn.close()
-
-    # normaliser et mapper à la famille
-    families = set()
-    for hex_color in raw_colors:
-        if hex_color:
-            hex_clean = hex_color[:7]  # garde seulement #RRGGBB
-            families.add(closest_family(hex_clean))
-
-    return {
-        "filament_types": filament_types,
-        "colors": sorted(families)
-    }
-
 
 def get_filament_for_slot(print_id: int, ams_slot: int):
     conn = sqlite3.connect(db_config["db_path"])
