@@ -1,14 +1,20 @@
 <div class="card">
-  <!-- Header compact et deux lignes -->
-  <div class="card-header py-1"
+  <!-- Header compact, 2 lignes -->
+  <div class="card-header py-1 small"
        data-bs-toggle="collapse"
        data-bs-target="#trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}"
        aria-expanded="false"
        aria-controls="trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}">
-    <div class="d-flex justify-content-between align-items-center flex-wrap small">
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
       <div>
         <div>
-          <strong>#{{ tray_data.id + 1 }}</strong>
+          <strong>
+            {% if ams_id|int != EXTERNAL_SPOOL_AMS_ID %}
+              {{ tray_data.id + 1 }}
+            {% else %}
+              External
+            {% endif %}
+          </strong>
           {% if tray_data.tray_type %}
             - {{ tray_data.name }}
           {% else %}
@@ -25,7 +31,6 @@
           {% endif %}
         </div>
       </div>
-
       {% if tray_data.tray_type %}
       <div class="d-flex align-items-center gap-2">
         {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
@@ -49,7 +54,7 @@
     </div>
   </div>
 
-  <!-- Détails repliés par défaut -->
+  <!-- Détails (fermés par défaut) -->
   <div class="collapse" id="trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}">
     <div class="card-body">
       <div class="small text-muted text-center mb-2">
@@ -120,10 +125,6 @@
       {% if pick_tray %}
         <a class="btn btn-primary"
            href="{{ url_for('tray_load', spool_id=current_spool['id'], tag_id=tag_id, ams=ams_id, tray=tray_id) }}">Assign</a>
-      {% endif %}
-      {% if tray_data.issue %}
-        <a class="btn btn-primary"
-           href="{{ url_for('issue', ams=ams_id, tray=tray_id) }}">Fix</a>
       {% endif %}
       {% if not pick_tray %}
         <a class="btn btn-primary"
