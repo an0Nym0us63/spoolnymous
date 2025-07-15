@@ -151,21 +151,22 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
         params.extend(filters["filament_type"])
 
     if filters.get("color"):
-        color_families = filters["color"]
-        family_clauses = []
-        conn = sqlite3.connect(db_config["db_path"])
-        cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
-        all_colors = [row[0] for row in cursor.fetchall()]
-        conn.close()
-        for fam in color_families:
-            hexes = [c for c in all_colors if closest_family(c) == fam]
-            if hexes:
-                placeholders = ",".join("?" for _ in hexes)
-                family_clauses.append(f"f.color IN ({placeholders})")
-                params.extend(hexes)
-        if family_clauses:
-            where_clauses.append("(" + " AND ".join(family_clauses) + ")")
+        # On force les couleurs en minuscule pour cohérence
+        selected_colors = [c.lower() for c in filters["color"]]
+        placeholders = ",".join(["?"] * len(selected_colors))
+    
+        where_clauses.append(f"""
+            p.id IN (
+                SELECT pf.print_id
+                FROM print_filaments pf
+                JOIN filaments f ON pf.filament_id = f.id
+                WHERE LOWER(f.color_family) IN ({placeholders})
+                GROUP BY pf.print_id
+                HAVING COUNT(DISTINCT LOWER(f.color_family)) = ?
+            )
+        """)
+        params.extend(selected_colors)
+        params.append(len(selected_colors))
 
     if search:
         where_clauses.append("""
