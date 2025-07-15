@@ -148,9 +148,6 @@ const COLOR_NAME_MAP = {
     "Dark Purple": "Violet foncé"
 };
 
-"Dark Purple": "Violet foncé"
-};
-
 function enhanceColorSelect() {
     const $colorSelect = $('select[name="color"]');
 
