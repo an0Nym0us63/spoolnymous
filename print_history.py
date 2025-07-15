@@ -1,7 +1,7 @@
 import os
 import sqlite3
 from datetime import datetime
-
+import math
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
@@ -111,30 +111,6 @@ def update_filament_spool(print_id: int, filament_id: int, spool_id: int) -> Non
     conn.commit()
     conn.close()
 
-
-ChatGPT a dit :
-✅ Excellent réflexe !
-En effet, tu avais déjà un convertisseur RGB → CIELAB + une distance ΔE simple (Euclidienne dans Lab).
-On peut donc exploiter ce code directement, sans dépendance externe (colormath).
-
-🎯 Comment l’utiliser ?
-Il suffit d’écrire une version closest_family_lab qui :
-
-convertit chaque famille en Lab (une fois)
-
-convertit la couleur cible en Lab
-
-calcule la distance Lab pour chaque famille
-
-retourne la plus proche
-
-🔷 Version prête à l’emploi
-python
-Copier
-Modifier
-import math
-
-# Fonction déjà existante
 def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
     hex_color = hex_color.lstrip('#')[:6]
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
