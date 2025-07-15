@@ -10,8 +10,18 @@ $(document).ready(function () {
         $('.select2-dropdown').removeClass('select2-dark select2-light').addClass(classToAdd);
     }
 
-    $('.select2').each(function () {
-        $(this).select2({ width: '100%' }).on('select2:open', applyThemeToDropdown);
+    function initSelect2() {
+        $('.select2').each(function () {
+            if (!$(this).hasClass('select2-hidden-accessible')) {
+                $(this).select2({ width: '100%' }).on('select2:open', applyThemeToDropdown);
+            }
+        });
+    }
+
+    initSelect2();
+
+    $('#filtersCollapse').on('shown.bs.collapse', function () {
+        initSelect2();
     });
 	 $('.add-tag-btn').on('click', function () {
     const btn = $(this);
@@ -35,9 +45,6 @@ $(document).ready(function () {
       .done(() => location.reload())
       .fail(() => alert('Erreur lors de la suppression du tag.'));
   });
-  $('#filtersCollapse').on('shown.bs.collapse', function () {
-    $('.select2').select2({ width: '100%' });
-});
 });
 
 function confirmReajust(printId) {
