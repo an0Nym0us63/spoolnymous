@@ -354,8 +354,7 @@ def print_history():
         filters=filters,
         distinct_values=distinct_values,
         args=args,
-        search=search,
-        tag_search =tag_search 
+        search=search
     )
 
 @app.route("/print_select_spool")
