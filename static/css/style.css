@@ -325,3 +325,15 @@
     background-color: #343a40 !important;
     color: #fff !important;
 }
+
+.select2-selection__choice::before {
+    content: none !important;
+}
+
+.select2-selection__choice {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    max-width: unset;
+    width: auto;
+}
