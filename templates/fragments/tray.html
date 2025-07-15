@@ -10,7 +10,7 @@
         <div>
           <strong>
             {% if ams_id|int != EXTERNAL_SPOOL_AMS_ID %}
-              {{ tray_data.id + 1 }}
+              {{ (tray_data.id|int + 1) }}
             {% else %}
               External
             {% endif %}
