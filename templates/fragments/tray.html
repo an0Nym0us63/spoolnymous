@@ -1,47 +1,53 @@
 <div class="card">
   <!-- Header compact en mobile -->
-  <div class="card-header d-flex justify-content-between align-items-center"
-       data-bs-toggle="collapse" data-bs-target="#trayDetails_{{ tray_data.id }}" aria-expanded="false" aria-controls="trayDetails_{{ tray_data.id }}">
-    <div class="d-flex align-items-center gap-2">
-      {% if tray_data.issue %}
-        <i class="bi bi-exclamation-circle text-danger me-2"></i>
-      {% endif %}
-      {% if not tray_data.tray_type %}
-        Empty
-      {% endif %}
-      {% if ams_id|int != EXTERNAL_SPOOL_AMS_ID %}
-        <strong>{{ (tray_data.id)|int + 1 }}</strong>
-      {% else %}
-        External
-      {% endif %}
-      {% if tray_data.tray_type %}
-        - {{ tray_data.name }}
-      {% endif %}
-    </div>
-    {% if tray_data.tray_type %}
-      <div class="d-flex align-items-center gap-2">
-        {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
-          <div class="spool-icon small">
-            {% for color in tray_data.tray_color %}
-              <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
-            {% endfor %}
-          </div>
+  <div class="card-header py-1"
+     data-bs-toggle="collapse" data-bs-target="#trayDetails_{{ ams_id }}_{{ tray_data.id }}"
+     aria-expanded="false" aria-controls="trayDetails_{{ ams_id }}_{{ tray_data.id }}">
+  <div class="d-flex justify-content-between align-items-center flex-wrap">
+    <div class="small">
+      <div>
+        <strong>#{{ tray_data.id + 1 }}</strong>
+        {% if tray_data.tray_type %}
+          - {{ tray_data.name }}
         {% else %}
-          <span class="badge d-inline-block p-2"
-                style="background-color: #{{ tray_data.tray_color }};
-                       color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
-            #{{ tray_data.tray_color|upper }}
-          </span>
-        {% endif %}
-        {% if AUTO_SPEND and tray_data.matched %}
-          <span>{{ tray_data.remaining_weight|round }}g</span>
+          - Empty
         {% endif %}
       </div>
+      <div class="text-muted" style="font-size: 0.75rem;">
+        {% if tray_data.tray_type %}
+          {{ tray_data.tray_type }}
+          {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
+          - {{ tray_data.vendor }}
+        {% else %}
+          Empty
+        {% endif %}
+      </div>
+    </div>
+    {% if tray_data.tray_type %}
+    <div class="d-flex align-items-center gap-2">
+      {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
+        <div class="spool-icon small">
+          {% for color in tray_data.tray_color %}
+            <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <span class="badge d-inline-block p-2"
+              style="background-color: #{{ tray_data.tray_color }};
+                     color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
+          #{{ tray_data.tray_color|upper }}
+        </span>
+      {% endif %}
+      {% if AUTO_SPEND and tray_data.matched %}
+        <span class="small">{{ tray_data.remaining_weight|round }}g</span>
+      {% endif %}
+    </div>
     {% endif %}
   </div>
+</div>
 
   <!-- Details collapsibles -->
-  <div class="collapse show" id="trayDetails_{{ tray_data.id }}">
+  <div class="collapse" id="trayDetails_{{ ams_id }}_{{ tray_data.id }}">
     <div class="card-body">
       <div class="small text-muted text-center mb-2">
         {% if tray_data.tray_type %}
