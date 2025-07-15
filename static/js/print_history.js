@@ -227,22 +227,25 @@ function getFamilyHex(name) {
 }
 
 function applyColorTags() {
-$('.select2-selection__choice').each(function () {
-    const val = $(this).attr('title');
-    const hex = getFamilyHex(val);
-    const label = COLOR_NAME_MAP[val] || val;
+    $('.select2-selection__choice').each(function () {
+        const val = $(this).attr('title'); // français
+        const enName = Object.keys(COLOR_NAME_MAP).find(k => COLOR_NAME_MAP[k] === val) || val;
+        const hex = getFamilyHex(enName);
+        const label = val;
 
-    $(this)
-        .css({
-            display: 'inline-flex',
-            'align-items': 'center',
-            gap: '4px'
-        })
-        .find('.select2-selection__choice__remove')
-        .appendTo($(this).empty()) // vide d'abord puis réajoute le X
-        .after(`
-            <span style="width:10px;height:10px;border-radius:2px;background:${hex};border:1px solid #ccc;margin-right:4px;"></span>${label}
+        $(this).html(`
+            <span class="select2-selection__choice__remove" role="presentation">×</span>
+            <span style="
+                display: inline-block;
+                width: 12px;
+                height: 12px;
+                margin: 0 4px;
+                background: ${hex};
+                border: 1px solid #ccc;
+                border-radius: 2px;
+                vertical-align: middle;
+            "></span>
+            <span>${label}</span>
         `);
-});
-
+    });
 }
