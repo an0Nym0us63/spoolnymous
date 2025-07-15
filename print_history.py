@@ -172,7 +172,7 @@ def get_distinct_values():
     raw_colors = [row[0] for row in cursor.fetchall()]
     families = set()
     for hex_color in raw_colors:
-        families.add(closest_family(hex_color))
+        families.add(closest_family_lab(hex_color))
     conn.close()
     return {
         "filament_types": filament_types,
