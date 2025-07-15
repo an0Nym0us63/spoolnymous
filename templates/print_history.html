@@ -3,41 +3,51 @@
 {% block content %}
 <h1 class="mb-4 text-center">Print History</h1>
 
-<form method="get" class="mb-4">
-  <div class="row g-2">
-    <div class="col-md-6">
-       <label for="filament_type">Filament Type</label>
-      <select name="filament_type" multiple class="form-select select2">
-        {% for ft in distinct_values.filament_types %}
-          <option value="{{ ft }}" {% if ft in filters.filament_type %}selected{% endif %}>{{ ft }}</option>
-        {% endfor %}
-      </select>
-    </div>
+<!-- BOUTON FILTRES MOBILE -->
+<div class="d-sm-none mb-3 text-end">
+  <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
+    🔍 Filtres
+  </button>
+</div>
 
-    <div class="col-md-6">
-       <label for="color">Filament Color</label>
-      <select name="color" multiple class="form-select select2">
-        {% for family in distinct_values.colors %}
-          <option value="{{ family }}" {% if family in filters.color %}selected{% endif %}>{{ family }}</option>
-        {% endfor %}
-      </select>
-    </div>
+<!-- FORMULAIRE FILTRES -->
+<div id="filtersCollapse" class="collapse d-sm-block mb-4">
+  <form method="get">
+    <div class="row g-2">
+      <div class="col-md-6">
+        <label for="filament_type">Filament Type</label>
+        <select name="filament_type" multiple class="form-select select2">
+          {% for ft in distinct_values.filament_types %}
+            <option value="{{ ft }}" {% if ft in filters.filament_type %}selected{% endif %}>{{ ft }}</option>
+          {% endfor %}
+        </select>
+      </div>
 
-    <div class="col-md-6">
-      <label for="file_name" class="form-label">File Name Contains</label>
-      <input type="text" name="file_name" id="file_name" class="form-control" value="{{ search or '' }}">
-    </div>
+      <div class="col-md-6">
+        <label for="color">Filament Color</label>
+        <select name="color" multiple class="form-select select2">
+          {% for family in distinct_values.colors %}
+            <option value="{{ family }}" {% if family in filters.color %}selected{% endif %}>{{ family }}</option>
+          {% endfor %}
+        </select>
+      </div>
 
-    <div class="col-md-6">
-      <label for="tag_search" class="form-label">Tags</label>
-      <input type="text" name="tag_search" id="tag_search" class="form-control" value="{{ tag_search or '' }}">
-    </div>
+      <div class="col-md-6">
+        <label for="file_name" class="form-label">File Name Contains</label>
+        <input type="text" name="file_name" id="file_name" class="form-control" value="{{ search or '' }}">
+      </div>
 
-    <div class="col-12 text-end mt-2">
-      <button type="submit" class="btn btn-primary">Apply</button>
+      <div class="col-md-6">
+        <label for="tag_search" class="form-label">Tags</label>
+        <input type="text" name="tag_search" id="tag_search" class="form-control" value="{{ tag_search or '' }}">
+      </div>
+
+      <div class="col-12 text-end mt-2">
+        <button type="submit" class="btn btn-primary">Apply</button>
+      </div>
     </div>
-  </div>
-</form>
+  </form>
+</div>
 
 
 {% include 'fragments/list_prints.html' %}
