@@ -160,18 +160,6 @@
     }
 }
 
-@media (min-width: 576px) {
-    .label-print-value {
-      display: ruby;
-    }
-    .label-print-inline {
-      display: inline;
-    }
-    .label-print-stacked {
-      display: none;
-    }
-}
-
 /* === Ajouts Select2 clair/sombre === */
 
 /* Thème sombre */
@@ -252,108 +240,22 @@
 .select2-light .select2-results__option--disabled {
     color: #6c757d !important;
 }
-.select2-dark .select2-selection,
-.select2-dark .select2-selection--multiple {
-    background-color: #212529 !important;
-    color: #f8f9fa !important;
-    border-color: #495057 !important;
-}
 
-.select2-light .select2-selection,
-.select2-light .select2-selection--multiple {
-    background-color: #fff !important;
-    color: #212529 !important;
-    border-color: #ced4da !important;
-}
-
-
-/* Thème sombre */
-.select2-dark .select2-selection--single,
-.select2-dark .select2-selection--multiple {
-    background-color: #212529 !important;
-    color: #f8f9fa !important;
-    border-color: #495057 !important;
-}
-
-.select2-dark .select2-selection__rendered {
-    color: #f8f9fa !important;
-}
-
-.select2-dark .select2-selection__placeholder {
-    color: #adb5bd !important;
-}
-
-.select2-dark .select2-selection__choice {
-    background-color: #343a40 !important;
-    color: #f8f9fa !important;
-    border: none !important;
-}
-
-/* Thème clair */
-.select2-light .select2-selection--single,
-.select2-light .select2-selection--multiple {
-    background-color: #fff !important;
-    color: #212529 !important;
-    border-color: #ced4da !important;
-}
-
-.select2-light .select2-selection__rendered {
-    color: #212529 !important;
-}
-
-.select2-light .select2-selection__placeholder {
-    color: #6c757d !important;
-}
-
-.select2-light .select2-selection__choice {
-    background-color: #e9ecef !important;
-    color: #212529 !important;
-    border: none !important;
-}
-
-.select2-dark {
-    background-color: #212529 !important;
-    color: #f8f9fa !important;
-    border-color: #495057 !important;
-}
-
-.select2-dark .select2-results__option {
-    background-color: #212529 !important;
-    color: #f8f9fa !important;
-}
-
-[data-bs-theme="dark"] .select2-container--default .select2-selection {
-    background-color: #212529 !important;
-    color: #f8f9fa !important;
-    border-color: #495057 !important;
-}
-
+/* Ajouts spécifiques mobile pour compact & polices */
 @media (max-width: 576px) {
   .print-history .card-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
   }
-
-  .print-history .card-header .d-flex {
-    flex-wrap: wrap;
+  .print-history .card-body {
+    font-size: 0.85rem;
   }
-
+  .print-history .btn {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.4rem;
+  }
   .print-history img {
     max-width: 40px;
     height: auto;
-  }
-
-  .print-history .card-header strong {
-    font-size: 0.9rem;
-  }
-
-  .print-history .btn {
-    padding: 0.2rem 0.4rem;
-    font-size: 0.8rem;
-  }
-
-  .print-history .card {
-    margin-bottom: 0.5rem;
   }
 }

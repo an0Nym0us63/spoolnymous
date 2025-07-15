@@ -1,22 +1,15 @@
 <div class="print-history">
   {% for print in prints %}
     <div class="card mb-2" id="print_{{ print.id }}">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center gap-2">
-          {% if print.image_file %}
-            <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
-                 alt="Print Image" style="width:50px; height:auto;" class="rounded" />
-          {% else %}
-            <span class="text-muted">No Image</span>
-          {% endif %}
-          <strong>{{ print.file_name or 'Print #' ~ print.id }}</strong>
-        </div>
-        <button class="btn btn-sm btn-outline-secondary"
-                data-bs-toggle="collapse"
-                data-bs-target="#details_{{ print.id }}"
-                aria-expanded="false" aria-controls="details_{{ print.id }}">
-          🔽
-        </button>
+      <div class="card-header d-flex justify-content-between align-items-center clickable" data-bs-toggle="collapse" data-bs-target="#details_{{ print.id }}" aria-expanded="false" aria-controls="details_{{ print.id }}">
+        <span>{{ print.id }}</span>
+        <strong class="text-center flex-grow-1">{{ print.file_name or 'Print #' ~ print.id }}</strong>
+        {% if print.image_file %}
+          <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
+               alt="Print Image" style="width:40px; height:auto;" class="rounded" />
+        {% else %}
+          <span class="text-muted">No Image</span>
+        {% endif %}
       </div>
 
       <div id="details_{{ print.id }}" class="collapse">
@@ -51,7 +44,7 @@
           {% if print.image_file %}
           <div class="text-center mb-3">
             <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
-                 alt="Print Image" class="img-fluid rounded" style="max-width:300px;" />
+                 alt="Print Image" class="img-fluid rounded" style="max-width:200px;" />
           </div>
           {% endif %}
 
