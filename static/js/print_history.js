@@ -11,12 +11,13 @@ $(document).ready(function () {
     }
 
     function initSelect2() {
-        $('.select2').each(function () {
-            if (!$(this).hasClass('select2-hidden-accessible')) {
-                $(this).select2({ width: '100%' }).on('select2:open', applyThemeToDropdown);
-            }
-        });
-    }
+    $('.select2').each(function () {
+        if ($(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2('destroy');
+        }
+        $(this).select2({ width: '100%' }).on('select2:open', applyThemeToDropdown);
+    });
+}
 
     initSelect2();
 
