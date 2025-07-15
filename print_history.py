@@ -34,7 +34,7 @@ COLOR_FAMILIES = {
     'Navy': (0, 0, 128),          # foncé
     'Cyan': (0, 255, 255),        # turquoise clair
     'Lavender': (230, 230, 250),  # violet pastel
-    'Purple': (148, 0, 211),      # violet profond
+    'Purple': (160, 32, 240), 
 }
 
 
@@ -174,12 +174,13 @@ def color_distance(hex1: str, hex2: str) -> float:
     lab2 = rgb_to_lab(*rgb2)
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(lab1, lab2)))
 
-def closest_family_lab(hex_color: str) -> str:
+def two_closest_families(hex_color: str) -> list[str]:
     distances = {
         family: color_distance(hex_color, '#{:02X}{:02X}{:02X}'.format(*rgb))
         for family, rgb in COLOR_FAMILIES.items()
     }
-    return min(distances, key=distances.get)
+    sorted_families = sorted(distances.items(), key=lambda x: x[1])
+    return [sorted_families[0][0], sorted_families[1][0]]
 
 
 def get_distinct_values():
@@ -191,7 +192,7 @@ def get_distinct_values():
     raw_colors = [row[0] for row in cursor.fetchall()]
     families = set()
     for hex_color in raw_colors:
-        families.add(closest_family_lab(hex_color))
+        families.update(two_closest_families(hex_color))
     conn.close()
     return {
         "filament_types": filament_types,
@@ -218,7 +219,10 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     
         selected_hexes_by_family = []
         for fam in color_families:
-            hexes = [c for c in all_colors if closest_family_lab(c) == fam]
+            hexes = [
+                c for c in all_colors
+                if fam in two_closest_families(c)
+            ]
             if hexes:
                 selected_hexes_by_family.append(hexes)
     
