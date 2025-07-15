@@ -3,15 +3,15 @@
 {% block content %}
 <h1 class="mb-4 text-center">Print History</h1>
 
-<!-- BOUTON FILTRES MOBILE -->
-<div class="d-sm-none mb-3 text-end">
-  <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
+<!-- BOUTON FILTRES -->
+<div class="text-end mb-3">
+  <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
     🔍 Filtres
   </button>
 </div>
 
 <!-- FORMULAIRE FILTRES -->
-<div id="filtersCollapse" class="collapse d-sm-block mb-4">
+<div id="filtersCollapse" class="collapse mb-4">
   <form method="get">
     <div class="row g-2">
       <div class="col-md-6">
@@ -48,6 +48,7 @@
     </div>
   </form>
 </div>
+
 
 
 {% include 'fragments/list_prints.html' %}

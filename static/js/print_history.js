@@ -35,6 +35,9 @@ $(document).ready(function () {
       .done(() => location.reload())
       .fail(() => alert('Erreur lors de la suppression du tag.'));
   });
+  $('#filtersCollapse').on('shown.bs.collapse', function () {
+    $('.select2').select2({ width: '100%' });
+});
 });
 
 function confirmReajust(printId) {
