@@ -1,105 +1,125 @@
 <div class="card">
-  <!-- Tray ID -->
-  <div class="card-header d-flex justify-content-between align-items-center">
-    {% if tray_data.issue %}
-    <i class="bi bi-exclamation-circle text-danger me-2"></i>
-    {% endif %}
-    {% if not tray_data.tray_type %}
-      Empty
-    {% endif %}
-    {% if ams_id|int != EXTERNAL_SPOOL_AMS_ID %}
-      Tray {{ (tray_data.id)|int + 1 }}
-    {% else %}
-      External Spool
-    {% endif %}
-  </div>
-
-  <div class="card-body">
-    <!-- Typ & Hersteller -->
-    <div class="small text-muted text-center mb-2">
-      {% if tray_data.tray_type %}
-        {{ tray_data.tray_type }}
-        {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
-        - {{ tray_data.vendor }}
-      {% else %}
+  <!-- Header compact en mobile -->
+  <div class="card-header d-flex justify-content-between align-items-center"
+       data-bs-toggle="collapse" data-bs-target="#trayDetails_{{ tray_data.id }}" aria-expanded="false" aria-controls="trayDetails_{{ tray_data.id }}">
+    <div class="d-flex align-items-center gap-2">
+      {% if tray_data.issue %}
+        <i class="bi bi-exclamation-circle text-danger me-2"></i>
+      {% endif %}
+      {% if not tray_data.tray_type %}
         Empty
       {% endif %}
-    </div>
-
-    <div class="row align-items-center text-center text-sm-start">
+      {% if ams_id|int != EXTERNAL_SPOOL_AMS_ID %}
+        <strong>{{ (tray_data.id)|int + 1 }}</strong>
+      {% else %}
+        External
+      {% endif %}
       {% if tray_data.tray_type %}
-        <!-- Farbname + Badge -->
-        <div class="col-12 col-xxl-5 d-flex flex-column align-items-center mb-2 mb-sm-0">
-          <!-- Farbname -->
-          <div class="fw-semibold mb-1 text-center">
-            {{ tray_data.name }}
-          </div>
-          {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
-            <!-- Multi-Color Badge -->
-            {% if tray_data.tray_color_orientation == "coaxial" %}
-            <div class="spool-icon horizontal">
-            {% else %}
-            <div class="spool-icon vertical">
-            {% endif %}
-              {% for color in tray_data.tray_color %}
-                <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
-              {% endfor %}
-            </div>
-          {% else %}
-            <!-- Single Color Badge -->
-            <span class="badge d-inline-block p-2"
-                  style="background-color: #{{ tray_data.tray_color }};
-                         color: {% if color_is_dark(tray_data.tray_color) %}#FFFFFF{% else %}#000000{% endif %}">
-              #{{ tray_data.tray_color | upper }}
-            </span>
-          {% endif %}
-        </div>
-
-        <!-- Textinfos -->
-        <div class="col-12 col-xxl-7">
-          <!-- Last used -->
-          <div class="mt-2 d-flex flex-column flex-sm-row">
-            <div class="me-sm-1">Last used:</div>
-            <div class="fw-bold">{{ tray_data.last_used }}</div>
-          </div>
-          <!-- Remaining -->
-            {% if AUTO_SPEND and tray_data.matched %}
-          <div class="mt-2 d-flex flex-column flex-sm-row">
-            <div class="me-sm-1">Remaining:</div>
-              <div class="fw-bold">{{ tray_data.remaining_weight|round }}g</div>
-				
-          </div>
-           {% endif %}
-		     {% if tray_data.remain != -1 %}
-          <div class="mt-2 d-flex flex-column flex-sm-row">
-            <div class="me-sm-1">Estimate:</div>
-				<div class="fw-bold">{{ tray_data.remain }}%</div>
-				
-          </div>
-           {% endif %}
-		</div>
+        - {{ tray_data.name }}
       {% endif %}
     </div>
+    {% if tray_data.tray_type %}
+      <div class="d-flex align-items-center gap-2">
+        {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
+          <div class="spool-icon small">
+            {% for color in tray_data.tray_color %}
+              <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <span class="badge d-inline-block p-2"
+                style="background-color: #{{ tray_data.tray_color }};
+                       color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
+            #{{ tray_data.tray_color|upper }}
+          </span>
+        {% endif %}
+        {% if AUTO_SPEND and tray_data.matched %}
+          <span>{{ tray_data.remaining_weight|round }}g</span>
+        {% endif %}
+      </div>
+    {% endif %}
   </div>
-  <div class="small text-muted text-center mb-2">
-      {% if tray_data.tray_uuid != "00000000000000000000000000000000" %}
-		{{ tray_data.tray_uuid }} -
-		{% endif %}
-		{{ tray_data.tray_info_idx }}
+
+  <!-- Details collapsibles -->
+  <div class="collapse show" id="trayDetails_{{ tray_data.id }}">
+    <div class="card-body">
+      <div class="small text-muted text-center mb-2">
+        {% if tray_data.tray_type %}
+          {{ tray_data.tray_type }}
+          {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
+          - {{ tray_data.vendor }}
+        {% else %}
+          Empty
+        {% endif %}
+      </div>
+
+      <div class="row align-items-center text-center text-sm-start">
+        {% if tray_data.tray_type %}
+          <div class="col-12 col-xxl-5 d-flex flex-column align-items-center mb-2 mb-sm-0">
+            <div class="fw-semibold mb-1 text-center">
+              {{ tray_data.name }}
+            </div>
+            {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
+              {% if tray_data.tray_color_orientation == "coaxial" %}
+                <div class="spool-icon horizontal">
+              {% else %}
+                <div class="spool-icon vertical">
+              {% endif %}
+                {% for color in tray_data.tray_color %}
+                  <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <span class="badge d-inline-block p-2"
+                    style="background-color: #{{ tray_data.tray_color }};
+                           color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
+                #{{ tray_data.tray_color|upper }}
+              </span>
+            {% endif %}
+          </div>
+
+          <div class="col-12 col-xxl-7">
+            <div class="mt-2 d-flex flex-column flex-sm-row">
+              <div class="me-sm-1">Last used:</div>
+              <div class="fw-bold">{{ tray_data.last_used }}</div>
+            </div>
+            {% if AUTO_SPEND and tray_data.matched %}
+              <div class="mt-2 d-flex flex-column flex-sm-row">
+                <div class="me-sm-1">Remaining:</div>
+                <div class="fw-bold">{{ tray_data.remaining_weight|round }}g</div>
+              </div>
+            {% endif %}
+            {% if tray_data.remain != -1 %}
+              <div class="mt-2 d-flex flex-column flex-sm-row">
+                <div class="me-sm-1">Estimate:</div>
+                <div class="fw-bold">{{ tray_data.remain }}%</div>
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
     </div>
 
-  <div class="card-footer">
-    {% if pick_tray %}
-      <a class="btn btn-primary"
-         href="{{ url_for('tray_load', spool_id=current_spool['id'], tag_id=tag_id, ams=ams_id, tray=tray_id) }}">Assign</a>
-    {% endif %}
-    {% if tray_data.issue %}
-      <a class="btn btn-primary"
-         href="{{ url_for('issue', ams=ams_id, tray=tray_id) }}">Fix</a>
-    {% endif %}
-    {% if not pick_tray %}
-      <a class="btn btn-primary"
-         href="{{ url_for('fill', ams=ams_id, tray=tray_id) }}">Fill</a>
-    {% endif %}
+    <div class="small text-muted text-center mb-2">
+      {% if tray_data.tray_uuid != "00000000000000000000000000000000" %}
+        {{ tray_data.tray_uuid }} -
+      {% endif %}
+      {{ tray_data.tray_info_idx }}
+    </div>
+
+    <div class="card-footer">
+      {% if pick_tray %}
+        <a class="btn btn-primary"
+           href="{{ url_for('tray_load', spool_id=current_spool['id'], tag_id=tag_id, ams=ams_id, tray=tray_id) }}">Assign</a>
+      {% endif %}
+      {% if tray_data.issue %}
+        <a class="btn btn-primary"
+           href="{{ url_for('issue', ams=ams_id, tray=tray_id) }}">Fix</a>
+      {% endif %}
+      {% if not pick_tray %}
+        <a class="btn btn-primary"
+           href="{{ url_for('fill', ams=ams_id, tray=tray_id) }}">Fill</a>
+      {% endif %}
+    </div>
   </div>
 </div>
