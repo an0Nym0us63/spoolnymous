@@ -138,7 +138,7 @@ def processMessage(data):
         PENDING_PRINT_METADATA = getMetaDataFrom3mf(PRINTER_STATE["print"]["gcode_file"])
         name=PENDING_PRINT_METADATA["file"]
         if PENDING_PRINT_METADATA["title"] != '':
-        name = PENDING_PRINT_METADATA["title"]
+            name = PENDING_PRINT_METADATA["title"]
         print_id = insert_print(name, PRINTER_STATE["print"]["print_type"], PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],PENDING_PRINT_METADATA["title"])
 
         PENDING_PRINT_METADATA["ams_mapping"] = []
