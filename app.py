@@ -344,7 +344,6 @@ def print_history():
 
     args = request.args.to_dict(flat=False)
     args.pop('page', None)
-    summary = get_prints_summary(filters=filters, search=search)
 
     return render_template(
         'print_history.html',
@@ -355,8 +354,7 @@ def print_history():
         filters=filters,
         distinct_values=distinct_values,
         args=args,
-        search=search,
-        summary=summary
+        search=search
     )
 
 @app.route("/print_select_spool")
