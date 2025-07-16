@@ -119,6 +119,16 @@ def insert_filament_usage(print_id: int, filament_type: str, color: str, grams_u
     conn.commit()
     conn.close()
 
+def update_filament_usage(print_id, spool_id, new_grams_used):
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE filament_usage
+        SET grams_used = ?
+        WHERE print_id = ? AND spool_id = ?
+    """, (new_grams_used, print_id, spool_id))
+    conn.commit()
+    conn.close()
 
 def update_filament_spool(print_id: int, filament_id: int, spool_id: int) -> None:
     conn = sqlite3.connect(db_config["db_path"])
@@ -361,6 +371,29 @@ def remove_tag_from_print(print_id: int, tag: str):
     cursor.execute("DELETE FROM print_tags WHERE print_id = ? AND tag = ?", (print_id, tag))
     conn.commit()
     conn.close()
+
+def get_prints_summary(filters=None, search=""):
+    total_count = 0
+    total_cost = 0.0
+    total_duration = 0.0
+
+    prints, _ = get_prints_with_filament(
+        offset=0,
+        limit=None,  # charger tout
+        filters=filters,
+        search=search
+    )
+
+    for print_ in prints:
+        total_count += 1
+        total_duration += print_["duration"] / 3600
+        total_cost += print_["total_cost"] + print_["electric_cost"]
+
+    return {
+        "count": total_count,
+        "sum_cost": total_cost,
+        "sum_duration": total_duration
+    }
 
 
 create_database()
