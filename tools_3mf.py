@@ -192,6 +192,21 @@ def getMetaDataFrom3mf(url,taskname):
 
       # Unzip the 3MF file
       with zipfile.ZipFile(temp_file_name, 'r') as z:
+        metadata["title"] = ""
+        model_path = "3D/3dmodel.model"
+        if model_path in z.namelist():
+            with z.open(model_path) as model_file:
+                try:
+                    model_tree = ET.parse(model_file)
+                    model_root = model_tree.getroot()
+                    for meta in model_root.findall(".//{*}metadata"):
+                        if meta.attrib.get("name", "").lower() == "title":
+                            metadata["title"] = meta.text.strip()
+                            break
+                except:
+                    pass  # laisser title vide en cas d'erreur
+        else:
+            print(f"Fichier '{model_path}' non trouvé dans l'archive.")
         # Check for the Metadata/slice_info.config file
         slice_info_path = "Metadata/slice_info.config"
         if slice_info_path in z.namelist():
