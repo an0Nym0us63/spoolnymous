@@ -11,7 +11,7 @@ from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,get_prints_summary
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print
 
 init_mqtt()
 
@@ -344,7 +344,6 @@ def print_history():
 
     args = request.args.to_dict(flat=False)
     args.pop('page', None)
-    summary = get_prints_summary(filters=filters, search=search)
 
     return render_template(
         'print_history.html',
@@ -355,8 +354,7 @@ def print_history():
         filters=filters,
         distinct_values=distinct_values,
         args=args,
-        search=search,
-        summary=summary
+        search=search
     )
 
 @app.route("/print_select_spool")
@@ -419,7 +417,7 @@ def delete_print_history(print_id):
 @app.route("/history/reajust/<int:print_id>", methods=["POST"])
 def reajust_print_history(print_id):
     data = request.get_json()
-    ratios = data.get("ratios", {})
+    ratios = data.get("ratios", {})  # dict {spool_id: ratio_en_%}
 
     filament_usages = get_filament_for_print(print_id)
 
@@ -433,10 +431,6 @@ def reajust_print_history(print_id):
             adjusted_grams = grams_used * ratio
 
             consumeSpool(spool_id, -adjusted_grams)
-
-            # 🔷 Met à jour filament_usage
-            new_grams_used = grams_used - adjusted_grams
-            update_filament_usage(print_id, spool_id, new_grams_used)
 
     return jsonify({"status": "ok"})
 
