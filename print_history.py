@@ -120,7 +120,7 @@ def insert_filament_usage(print_id: int, filament_type: str, color: str, grams_u
     conn.close()
 
 def update_filament_usage(print_id, spool_id, new_grams_used):
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE filament_usage
