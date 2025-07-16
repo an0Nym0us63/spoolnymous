@@ -119,6 +119,16 @@ def insert_filament_usage(print_id: int, filament_type: str, color: str, grams_u
     conn.commit()
     conn.close()
 
+def update_filament_usage(print_id, spool_id, new_grams_used):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE filament_usage
+        SET grams_used = ?
+        WHERE print_id = ? AND spool_id = ?
+    """, (new_grams_used, print_id, spool_id))
+    conn.commit()
+    conn.close()
 
 def update_filament_spool(print_id: int, filament_id: int, spool_id: int) -> None:
     conn = sqlite3.connect(db_config["db_path"])

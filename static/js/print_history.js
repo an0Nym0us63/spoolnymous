@@ -66,7 +66,7 @@ function askRestockRatioPerFilament(printId, isDelete) {
             <div style="display:flex;align-items:center;margin-bottom:5px;gap:5px">
                 <div style="width:15px;height:15px;background:${f.color};border:1px solid #ccc"></div>
                 <span style="flex:1">${f.name}</span>
-                <input type="number" min="0" max="100" value="100" id="ratio_${f.spool_id}" style="width:60px"> %
+                <input type="number" min="0" max="100" value="${isDelete ? 100 : 0}" id="ratio_${f.spool_id}" style="width:60px"> %
             </div>
         `).join("");
 

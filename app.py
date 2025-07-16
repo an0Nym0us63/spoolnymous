@@ -417,7 +417,7 @@ def delete_print_history(print_id):
 @app.route("/history/reajust/<int:print_id>", methods=["POST"])
 def reajust_print_history(print_id):
     data = request.get_json()
-    ratios = data.get("ratios", {})  # dict {spool_id: ratio_en_%}
+    ratios = data.get("ratios", {})
 
     filament_usages = get_filament_for_print(print_id)
 
@@ -431,6 +431,10 @@ def reajust_print_history(print_id):
             adjusted_grams = grams_used * ratio
 
             consumeSpool(spool_id, -adjusted_grams)
+
+            # 🔷 Met à jour filament_usage
+            new_grams_used = grams_used - adjusted_grams
+            update_filament_usage(print_id, spool_id, new_grams_used)
 
     return jsonify({"status": "ok"})
 
