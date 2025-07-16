@@ -373,27 +373,26 @@ def remove_tag_from_print(print_id: int, tag: str):
     conn.close()
 
 def get_prints_summary(filters=None, search=""):
-    conn = sqlite3.connect(db_config["db_path"])
-    cursor = conn.cursor()
+    total_count = 0
+    total_cost = 0.0
+    total_duration = 0.0
 
-    query = "SELECT COUNT(*), SUM(full_cost), SUM(duration) FROM prints WHERE 1=1"
-    params = []
+    prints, _ = get_prints_with_filament(
+        offset=0,
+        limit=None,  # charger tout
+        filters=filters,
+        search=search
+    )
 
-    if search:
-        query += " AND (file_name LIKE ?)"
-        params.append(f"%{search}%")
-
-    # appliquer les filtres filament_type, color, etc. si besoin
-    # TODO: build dynamically like get_prints_with_filament
-
-    cursor.execute(query, params)
-    count, sum_cost, sum_duration = cursor.fetchone()
-    conn.close()
+    for print_ in prints:
+        total_count += 1
+        total_duration += print_["duration"] / 3600
+        total_cost += print_["total_cost"] + print_["electric_cost"]
 
     return {
-        "count": count or 0,
-        "sum_cost": sum_cost or 0.0,
-        "sum_duration": (sum_duration or 0) / 3600  # convertir en heures
+        "count": total_count,
+        "sum_cost": total_cost,
+        "sum_duration": total_duration
     }
 
 
