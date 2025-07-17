@@ -11,11 +11,11 @@
 <div class="collapse mb-4" id="filamentFilters">
   <div class="card card-body">
     <form method="get" class="row g-2 align-items-end">
-      <div class="col-md-6">
+      <div class="col-md-4">
         <input type="text" name="search" class="form-control" placeholder="Recherche nom, matériau ou vendor" value="{{ search }}">
       </div>
       <input type="hidden" name="page" value="1">
-      <div class="col-md-3">
+      <div class="col-md-4">
   <select name="color" class="form-select select2">
     <option value="">— Filtrer par famille de couleur —</option>
     {% for fam in all_families %}
@@ -24,7 +24,7 @@
       </option>
     {% endfor %}
   </select>
-      <div class="col-md-3">
+      <div class="col-md-2">
         <select name="sort" class="form-select">
           <option value="default" {% if sort != 'remaining' %}selected{% endif %}>
             Trier par Matériau/Vendor/Nom
@@ -35,7 +35,7 @@
         </select>
       </div>
 </div>
-      <div class="col-md-3 text-end">
+      <div class="col-md-1 text-end">
         <button type="submit" class="btn btn-primary">Appliquer</button>
       </div>
     </form>
