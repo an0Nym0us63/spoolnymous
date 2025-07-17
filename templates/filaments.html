@@ -15,23 +15,26 @@
 </form>
 
 <div class="accordion" id="filamentsAccordion">
-  {% for filament in filaments %}
+  {% for spool in filaments %}
     <div class="accordion-item">
-      <h2 class="accordion-header" id="heading{{ filament.id }}">
+      <h2 class="accordion-header" id="heading{{ spool.id }}">
         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                data-bs-target="#collapse{{ filament.id }}" aria-expanded="false"
-                aria-controls="collapse{{ filament.id }}">
-          {{ filament.display_name }} — {{ filament.color_hex }}
+                data-bs-target="#collapse{{ spool.id }}" aria-expanded="false"
+                aria-controls="collapse{{ spool.id }}">
+          {{ spool.filament.name }} — 
+          <span style="display:inline-block;width:12px;height:12px;background:#{{ spool.filament.color_hex }};border:1px solid #ccc;border-radius:2px;margin-left:4px;"></span>
         </button>
       </h2>
-      <div id="collapse{{ filament.id }}" class="accordion-collapse collapse"
-           aria-labelledby="heading{{ filament.id }}" data-bs-parent="#filamentsAccordion">
+      <div id="collapse{{ spool.id }}" class="accordion-collapse collapse"
+           aria-labelledby="heading{{ spool.id }}" data-bs-parent="#filamentsAccordion">
         <div class="accordion-body">
           <ul>
-            <li><strong>Type :</strong> {{ filament.material }}</li>
-            <li><strong>Stock :</strong> {{ filament.remaining_weight }} g</li>
-            <li><strong>Couleur :</strong> {{ filament.color_hex }}</li>
-            <li><strong>ID :</strong> {{ filament.id }}</li>
+            <li><strong>Fournisseur :</strong> {{ spool.filament.vendor.name }}</li>
+            <li><strong>Matière :</strong> {{ spool.filament.material }}</li>
+            <li><strong>Stock restant :</strong> {{ spool.remaining_weight }} g</li>
+            <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
+            <li><strong>Lot :</strong> {{ spool.lot_nr or "—" }}</li>
+            <li><strong>ID Spool :</strong> {{ spool.id }}</li>
           </ul>
         </div>
       </div>
