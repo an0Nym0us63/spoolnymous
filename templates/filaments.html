@@ -23,7 +23,7 @@
                 aria-controls="collapse{{ spool.id }}">
           <div class="d-flex w-100 align-items-stretch">
 
-            <!-- carré couleur -->
+            <!-- carré couleur avec liseré -->
             <div class="me-3 d-flex align-items-stretch">
               <span
                 style="
@@ -31,6 +31,7 @@
                   min-height: 100%;
                   background-color: #{{ spool.filament.color_hex }};
                   border-radius: 2px;
+                  border: 1px solid #888;
                   display: inline-block;
                 ">
               </span>
@@ -87,8 +88,8 @@
 
 <div class="pagination justify-content-center mt-4">
   {% if page > 1 %}
-    <a href="{{ url_for('filaments', page=1, search=search) }}" class="btn btn-outline-primary btn-sm">&laquo; First</a>
-    <a href="{{ url_for('filaments', page=page-1, search=search) }}" class="btn btn-outline-primary btn-sm">&lsaquo; Prev</a>
+    <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo; First</a>
+    <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo; Prev</a>
   {% endif %}
 
   <span class="mx-2">
@@ -96,8 +97,8 @@
   </span>
 
   {% if page < total_pages %}
-    <a href="{{ url_for('filaments', page=page+1, search=search) }}" class="btn btn-outline-primary btn-sm">Next &rsaquo;</a>
-    <a href="{{ url_for('filaments', page=total_pages, search=search) }}" class="btn btn-outline-primary btn-sm">Last &raquo;</a>
+    <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">Next &rsaquo;</a>
+    <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">Last &raquo;</a>
   {% endif %}
 </div>
 {% endblock %}
