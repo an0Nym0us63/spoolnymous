@@ -23,7 +23,7 @@
                 aria-controls="collapse{{ spool.id }}">
           <div class="d-flex w-100 align-items-stretch">
 
-            <!-- carré couleur avec liseré -->
+            <!-- carré couleur -->
             <div class="me-3 d-flex align-items-stretch">
               <span
                 style="
@@ -57,14 +57,25 @@
       <div id="collapse{{ spool.id }}" class="accordion-collapse collapse"
            aria-labelledby="heading{{ spool.id }}" data-bs-parent="#filamentsAccordion">
         <div class="accordion-body">
-          <ul>
+          <ul class="list-unstyled mb-0">
             <li><strong>Fournisseur :</strong> {{ spool.filament.vendor.name }}</li>
             <li><strong>Matière :</strong> {{ spool.filament.material }}</li>
             <li><strong>Nom :</strong> {{ spool.filament.name }}</li>
+            <li>
+              <strong>Filament ID :</strong>
+              <span class="badge bg-secondary">{{ spool.filament.extra.filament_id or "—" }}</span>
+            </li>
+            {% if spool.extra.tag %}
+            <li>
+              <strong>Tag :</strong>
+              <span class="badge bg-info text-dark">{{ spool.extra.tag }}</span>
+            </li>
+            {% endif %}
+            <li><strong>Première utilisation :</strong> {{ spool.first_used or "—" }}</li>
+            <li><strong>Dernière utilisation :</strong> {{ spool.last_used or "—" }}</li>
+            <li><strong>Prix :</strong> {{ spool.price or "—" }} €</li>
             <li><strong>Stock restant :</strong> {{ spool.remaining_weight|round|int }} g</li>
             <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
-            <li><strong>Lot :</strong> {{ spool.lot_nr or "—" }}</li>
-            <li><strong>ID Spool :</strong> {{ spool.id }}</li>
             <li><strong>Couleur :</strong> 
               <span
                 style="
