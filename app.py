@@ -494,6 +494,7 @@ def filaments():
     page = int(request.args.get("page", 1))
     per_page = 25
     search = request.args.get("search", "").lower()
+    sort = request.args.get("sort", "default")
 
     all_filaments = fetchSpools() or []
 
@@ -527,8 +528,10 @@ def filaments():
             vendor.get("name", "").lower(),
             filament.get("name", "").lower()
         )
-
-    all_filaments = sorted(all_filaments, key=sort_key)
+    if sort == "remaining":
+        all_filaments.sort(key=lambda f: f.get("remaining_weight") or 0)
+    else:
+        all_filaments.sort(key=sort_key)
     total = len(all_filaments)
     total_pages = math.ceil(total / per_page)
     filaments_page = all_filaments[(page-1)*per_page : page*per_page]
@@ -538,5 +541,6 @@ def filaments():
         filaments=filaments_page,
         page=page,
         total_pages=total_pages,
-        search=search
+        search=search,
+        sort=sort,
     )
