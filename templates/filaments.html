@@ -3,77 +3,92 @@
 {% block content %}
 <h1 class="mb-4 text-center">Inventaire des Filaments</h1>
 
-<form method="get" class="mb-4 d-flex gap-2">
-  <input type="text" name="search" class="form-control" placeholder="Recherche nom ou couleur" value="{{ search or '' }}">
-  <button type="submit" class="btn btn-primary">Filtrer</button>
-</form>
-
-{% for spool in spools %}
-<div class="accordion mb-2" id="accordion{{ spool.id }}">
-  <div class="accordion-item">
-    <h2 class="accordion-header" id="heading{{ spool.id }}">
-      <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse"
-        data-bs-target="#collapse{{ spool.id }}" aria-expanded="false"
-        aria-controls="collapse{{ spool.id }}">
-        <div class="d-flex w-100 align-items-stretch">
-
-          <!-- carré couleur -->
-          <div class="me-3 d-flex align-items-stretch">
-            <span
-              style="
-                width: 12px;
-                min-height: 100%;
-                background-color: #{{ spool.filament.color_hex }};
-                border-radius: 2px;
-                border: 1px solid #888;
-                display: inline-block;
-              ">
-            </span>
-          </div>
-
-          <!-- Texte -->
-          <div class="flex-grow-1 text-start">
-            <div><strong>{{ spool.filament.material }}</strong> / {{ spool.filament.name }}</div>
-            <div>{{ spool.filament.vendor.name }}</div>
-          </div>
-
-          <!-- Localisation + Poids -->
-          <div class="d-flex flex-column justify-content-center align-items-end pe-3 text-end">
-            {% if spool.location %}
-            <div class="small text-muted">{{ spool.location }}</div>
-            {% endif %}
-            <strong>{{ spool.remaining_weight|round|int }} g</strong>
-          </div>
-
-        </div>
-      </button>
-    </h2>
-    <div id="collapse{{ spool.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ spool.id }}"
-      data-bs-parent="#accordion{{ spool.id }}">
-      <div class="accordion-body">
-        <ul class="list-unstyled mb-0">
-          <li><strong>Matériau :</strong> {{ spool.filament.material }}</li>
-          <li><strong>Nom :</strong> {{ spool.filament.name }}</li>
-          <li><strong>Fabricant :</strong> {{ spool.filament.vendor.name }}</li>
-          <li><strong>Couleur :</strong>
-            <span style="display:inline-block; width:16px; height:16px; background-color:#{{ spool.filament.color_hex }}; border:1px solid #888;"></span>
-            #{{ spool.filament.color_hex }}
-          </li>
-          <li><strong>Localisation :</strong> {{ spool.location or 'Non spécifiée' }}</li>
-          <li><strong>Poids restant :</strong> {{ spool.remaining_weight|round|int }} g</li>
-          <li><strong>Poids initial :</strong> {{ spool.initial_weight }} g</li>
-          <li><strong>Lot n° :</strong> {{ spool.lot_nr or 'N/A' }}</li>
-        </ul>
-      </div>
+<form method="get" class="mb-4">
+  <div class="row g-2">
+    <div class="col-md-6">
+      <input type="text" name="search" class="form-control" placeholder="Recherche nom ou couleur" value="{{ search }}">
+    </div>
+    <div class="col-md-6 text-end">
+      <button type="submit" class="btn btn-primary">Filtrer</button>
     </div>
   </div>
-</div>
-{% endfor %}
+</form>
 
-<div class="pagination justify-content-center mt-4 align-items-center gap-2 flex-wrap">
+<div class="accordion" id="filamentsAccordion">
+  {% for spool in filaments %}
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="heading{{ spool.id }}">
+        <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse"
+                data-bs-target="#collapse{{ spool.id }}" aria-expanded="false"
+                aria-controls="collapse{{ spool.id }}">
+          <div class="d-flex w-100 align-items-stretch">
+
+            <!-- carré couleur -->
+            <div class="me-3 d-flex align-items-stretch">
+              <span
+                style="
+                  width: 12px;
+                  min-height: 100%;
+                  background-color: #{{ spool.filament.color_hex }};
+                  border-radius: 2px;
+                  display: inline-block;
+                ">
+              </span>
+            </div>
+
+            <!-- Texte -->
+            <div class="flex-grow-1 text-start">
+              <div><strong>{{ spool.filament.material }}</strong> / {{ spool.filament.name }}</div>
+              <div>{{ spool.filament.vendor.name }}</div>
+            </div>
+
+            <!-- Localisation + Poids -->
+            <div class="d-flex flex-column justify-content-center align-items-end ms-2 text-end">
+              {% if spool.location %}
+                <div class="small text-muted">{{ spool.location }}</div>
+              {% endif %}
+              <strong>{{ spool.remaining_weight|round|int }} g</strong>
+            </div>
+          </div>
+        </button>
+      </h2>
+
+      <div id="collapse{{ spool.id }}" class="accordion-collapse collapse"
+           aria-labelledby="heading{{ spool.id }}" data-bs-parent="#filamentsAccordion">
+        <div class="accordion-body">
+          <ul>
+            <li><strong>Fournisseur :</strong> {{ spool.filament.vendor.name }}</li>
+            <li><strong>Matière :</strong> {{ spool.filament.material }}</li>
+            <li><strong>Nom :</strong> {{ spool.filament.name }}</li>
+            <li><strong>Stock restant :</strong> {{ spool.remaining_weight|round|int }} g</li>
+            <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
+            <li><strong>Lot :</strong> {{ spool.lot_nr or "—" }}</li>
+            <li><strong>ID Spool :</strong> {{ spool.id }}</li>
+            <li><strong>Couleur :</strong> 
+              <span
+                style="
+                  display: inline-block;
+                  width: 20px;
+                  height: 20px;
+                  vertical-align: middle;
+                  background-color: #{{ spool.filament.color_hex }};
+                  border-radius: 4px;
+                  border: 1px solid #ccc;
+                ">
+              </span>
+              <span class="ms-2">#{{ spool.filament.color_hex }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="pagination justify-content-center mt-4">
   {% if page > 1 %}
-    <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo; First</a>
-    <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo; Prev</a>
+    <a href="{{ url_for('filaments', page=1, search=search) }}" class="btn btn-outline-primary btn-sm">&laquo; First</a>
+    <a href="{{ url_for('filaments', page=page-1, search=search) }}" class="btn btn-outline-primary btn-sm">&lsaquo; Prev</a>
   {% endif %}
 
   <span class="mx-2">
@@ -81,19 +96,8 @@
   </span>
 
   {% if page < total_pages %}
-    <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">Next &rsaquo;</a>
-    <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">Last &raquo;</a>
+    <a href="{{ url_for('filaments', page=page+1, search=search) }}" class="btn btn-outline-primary btn-sm">Next &rsaquo;</a>
+    <a href="{{ url_for('filaments', page=total_pages, search=search) }}" class="btn btn-outline-primary btn-sm">Last &raquo;</a>
   {% endif %}
 </div>
-
-<form method="get" class="d-flex justify-content-center mt-2 gap-2">
-  {% for key, value in request.args.items() %}
-    {% if key != 'page' %}
-      <input type="hidden" name="{{ key }}" value="{{ value }}">
-    {% endif %}
-  {% endfor %}
-  <label for="goto_page" class="form-label me-2">Aller à la page :</label>
-  <input type="number" min="1" max="{{ total_pages }}" name="page" id="goto_page" class="form-control form-control-sm w-auto" value="{{ page }}">
-  <button type="submit" class="btn btn-primary btn-sm">Go</button>
-</form>
 {% endblock %}
