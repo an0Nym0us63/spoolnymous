@@ -43,7 +43,7 @@
     </div>
   </form>
 </div>
-<div class="pagination justify-content-center mt-4 align-items-center gap-2 flex-wrap mb-4">
+<div class="pagination justify-content-center mt-4 align-items-center gap-2 flex-wrap">
   {% if page > 1 %}
     <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo; First</a>
     <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo; Prev</a>
@@ -59,7 +59,7 @@
   {% endif %}
 </div>
 
-<form method="get" class="d-flex justify-content-center mt-2 gap-2">
+<form method="get" class="d-flex justify-content-center mt-2 gap-2 mb-2">
   {% for key, value in request.args.items() %}
     {% if key != 'page' %}
       <input type="hidden" name="{{ key }}" value="{{ value }}">
