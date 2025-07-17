@@ -3,28 +3,32 @@
 {% block content %}
 <h1 class="mb-4 text-center">Inventaire des Filaments</h1>
 
-<form method="get" class="mb-4">
-  <input type="hidden" name="sort" value="{{ sort }}">
-  <div class="row g-2">
-    <div class="col-md-6">
-      <input type="text" name="search" class="form-control" placeholder="Recherche nom ou couleur" value="{{ search }}">
-    </div>
-    <div class="col-md-6 text-end">
-      <button type="submit" class="btn btn-primary">Filtrer</button>
-    </div>
+<div class="collapse mb-4" id="filamentFilters">
+  <div class="card card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-6">
+        <input type="text" name="search" class="form-control" placeholder="Recherche nom, matériau ou vendor" value="{{ search }}">
+      </div>
+      <input type="hidden" name="page" value="1">
+
+      <div class="col-md-3">
+        <select name="sort" class="form-select">
+          <option value="default" {% if sort != 'remaining' %}selected{% endif %}>
+            Trier par Matériau/Vendor/Nom
+          </option>
+          <option value="remaining" {% if sort == 'remaining' %}selected{% endif %}>
+            Trier par Stock restant
+          </option>
+        </select>
+      </div>
+
+      <div class="col-md-3 text-end">
+        <button type="submit" class="btn btn-primary">Appliquer</button>
+      </div>
+    </form>
   </div>
-</form>
-<div class="text-end mb-3">
-  {% if sort == 'remaining' %}
-    <a href="{{ url_with_args(sort='default', page=1) }}" class="btn btn-outline-secondary btn-sm">
-      Trier par Matériau/Vendor/Nom
-    </a>
-  {% else %}
-    <a href="{{ url_with_args(sort='remaining', page=1) }}" class="btn btn-outline-secondary btn-sm">
-      Trier par Stock restant
-    </a>
-  {% endif %}
 </div>
+
 <div class="pagination justify-content-center mb-4 mt-4">
   {% if page > 1 %}
     <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo; First</a>
