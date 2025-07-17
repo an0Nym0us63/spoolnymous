@@ -522,6 +522,7 @@ def filaments():
         filament = f.get("filament", {})
         vendor = filament.get("vendor", {})
         return (
+            f.get("location", "").lower(),
             filament.get("material", "").lower(),
             vendor.get("name", "").lower(),
             filament.get("name", "").lower()
