@@ -126,40 +126,45 @@
             <li><strong>Stock restant :</strong> {{ spool.remaining_weight|round|int }} g</li>
             <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
             <li><strong>Couleur :</strong> 
-               {% if spool.filament.multi_color_hexes %}
-  {% set colors =
-      spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
-      else spool.filament.multi_color_hexes %}
-  <span
-    style="
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      vertical-align: middle;
-      background: linear-gradient(90deg
-        {% for c in colors %}
-          , #{{ c.strip() }}
-        {% endfor %}
-      );
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    ">
-  </span>
-{% else %}
-  <span
-    style="
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      vertical-align: middle;
-      background-color: #{{ spool.filament.color_hex }};
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    ">
-  </span>
-{% endif %}
-              <span class="ms-2">#{{ spool.filament.color_hex }}</span>
-            </li>
+  {% if spool.filament.multi_color_hexes %}
+    {% set colors =
+        spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
+        else spool.filament.multi_color_hexes %}
+    <span
+      style="
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        vertical-align: middle;
+        background: linear-gradient(90deg
+          {% for c in colors %}
+            , #{{ c.strip() }}
+          {% endfor %}
+        );
+        border-radius: 4px;
+        border: 1px solid #ccc;
+      ">
+    </span>
+    <span class="ms-2">
+      {% for c in colors %}
+        #{{ c.strip() }}{% if not loop.last %} / {% endif %}
+      {% endfor %}
+    </span>
+  {% else %}
+    <span
+      style="
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        vertical-align: middle;
+        background-color: #{{ spool.filament.color_hex }};
+        border-radius: 4px;
+        border: 1px solid #ccc;
+      ">
+    </span>
+    <span class="ms-2">#{{ spool.filament.color_hex }}</span>
+  {% endif %}
+</li>
           </ul>
         </div>
       </div>
