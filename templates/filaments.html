@@ -21,8 +21,28 @@
         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                 data-bs-target="#collapse{{ spool.id }}" aria-expanded="false"
                 aria-controls="collapse{{ spool.id }}">
-          {{ spool.filament.name }} — 
-          <span style="display:inline-block;width:12px;height:12px;background:#{{ spool.filament.color_hex }};border:1px solid #ccc;border-radius:2px;margin-left:4px;"></span>
+          <div class="container-fluid">
+            <div class="row justify-content-between align-items-center">
+              <div class="col text-start">
+                <div><strong>{{ spool.filament.material }}</strong> / {{ spool.filament.vendor.name }}</div>
+                <div>{{ spool.filament.name }}</div>
+              </div>
+              <div class="col-auto text-center">
+                <span class="badge"
+                      style="
+                          background-color: #{{ spool.filament.color_hex }};
+                          color: #fff;
+                          padding: 0.25rem 0.5rem;
+                          border-radius: 4px;
+                      ">
+                  #{{ spool.filament.color_hex }}
+                </span>
+              </div>
+              <div class="col-auto text-end">
+                <strong>{{ spool.remaining_weight }} g</strong>
+              </div>
+            </div>
+          </div>
         </button>
       </h2>
       <div id="collapse{{ spool.id }}" class="accordion-collapse collapse"
