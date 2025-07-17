@@ -178,7 +178,7 @@ def fetchSpools(cached=False,archived=False):
         price = spool["price"]
       elif "price" in spool["filament"] and spool["filament"]["price"] > 0:
         price = spool["filament"]["price"]
-
+      spool["price"]=price
       if initial_weight > 0 and price > 0:
         spool["cost_per_gram"] = price / initial_weight
       else:
