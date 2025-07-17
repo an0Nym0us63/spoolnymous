@@ -26,7 +26,16 @@
           </option>
         </select>
       </div>
-
+      <div class="col-md-3">
+  <select name="family" class="form-select">
+    <option value="">— Filtrer par famille de couleur —</option>
+    {% for fam in all_families %}
+      <option value="{{ fam }}" {% if fam == selected_family %}selected{% endif %}>
+        {{ fam }}
+      </option>
+    {% endfor %}
+  </select>
+</div>
       <div class="col-md-3 text-end">
         <button type="submit" class="btn btn-primary">Appliquer</button>
       </div>

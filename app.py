@@ -14,6 +14,102 @@ from spoolman_client import patchExtraTags, getSpoolById, consumeSpool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
 from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage
 
+COLOR_FAMILIES = {
+    # Neutres
+    'Black': (0, 0, 0),
+    'White': (255, 255, 255),
+    'Grey': (160, 160, 160),
+
+    # Rouges et dérivés
+    'Red': (220, 20, 60),         # Crimson
+    'Dark Red': (139, 0, 0),      # sombre
+    'Pink': (255, 182, 193),      # pastel
+    'Magenta': (255, 0, 255),     # fuchsia
+    'Brown': (150, 75, 0),        # chocolat
+
+    # Jaunes et dérivés
+    'Yellow': (255, 220, 0),      # chaud
+    'Gold': (212, 175, 55),       # doré
+    'Orange': (255, 140, 0),      # foncé
+
+    # Verts
+    'Green': (80, 200, 120),      # gazon
+    'Dark Green': (0, 100, 0),    # forêt
+    'Lime': (191, 255, 0),        # fluo
+    'Teal': (0, 128, 128),        # turquoise
+
+    # Bleus et violets
+    'Blue': (100, 150, 255),      # clair
+    'Navy': (0, 0, 128),          # foncé
+    'Cyan': (0, 255, 255),        # turquoise clair
+    'Lavender': (230, 230, 250),  # violet pastel
+    'Purple': (160, 32, 240),
+    'Dark Purple': (90, 60, 120), # violet foncé
+}
+
+
+def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
+    hex_color = hex_color.lstrip('#')[:6]
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+
+def rgb_to_lab(r: int, g: int, b: int) -> tuple[float, float, float]:
+    r /= 255
+    g /= 255
+    b /= 255
+
+    def gamma_correct(c):
+        return ((c + 0.055) / 1.055) ** 2.4 if c > 0.04045 else c / 12.92
+
+    r = gamma_correct(r)
+    g = gamma_correct(g)
+    b = gamma_correct(b)
+
+    x = r * 0.4124 + g * 0.3576 + b * 0.1805
+    y = r * 0.2126 + g * 0.7152 + b * 0.0722
+    z = r * 0.0193 + g * 0.1192 + b * 0.9505
+
+    x /= 0.95047
+    y /= 1.00000
+    z /= 1.08883
+
+    def f(t):
+        return t ** (1/3) if t > 0.008856 else (7.787 * t) + (16 / 116)
+
+    fx = f(x)
+    fy = f(y)
+    fz = f(z)
+
+    l = 116 * fy - 16
+    a = 500 * (fx - fy)
+    b = 200 * (fy - fz)
+
+    return (l, a, b)
+
+
+def color_distance(hex1: str, hex2: str) -> float:
+    rgb1 = hex_to_rgb(hex1)
+    rgb2 = hex_to_rgb(hex2)
+    lab1 = rgb_to_lab(*rgb1)
+    lab2 = rgb_to_lab(*rgb2)
+    return math.sqrt(sum((a - b) ** 2 for a, b in zip(lab1, lab2)))
+
+
+def two_closest_families(hex_color: str, threshold: float = 60.0) -> list[str]:
+    """
+    Retourne la famille la plus proche et la deuxième si sa distance est < threshold.
+    """
+    distances = {
+        family: color_distance(hex_color, '#{:02X}{:02X}{:02X}'.format(*rgb))
+        for family, rgb in COLOR_FAMILIES.items()
+    }
+    sorted_families = sorted(distances.items(), key=lambda x: x[1])
+
+    result = [sorted_families[0][0]]  # toujours la plus proche
+    if sorted_families[1][1] <= threshold:
+        result.append(sorted_families[1][0])
+    return result
+
 init_mqtt()
 
 app = Flask(__name__)
@@ -532,6 +628,29 @@ def filaments():
         all_filaments.sort(key=lambda f: f.get("remaining_weight") or 0)
     else:
         all_filaments.sort(key=sort_key)
+    all_families_in_page = set()
+
+    for spool in all_filaments:
+        filament = spool.get("filament", {})
+        hexes = []
+        if filament.get("multi_color_hexes"):
+            hexes = filament["multi_color_hexes"].split(",")
+        elif filament.get("color_hex"):
+            hexes = [filament["color_hex"]]
+    
+        families = set()
+        for hx in hexes:
+            fams = two_closest_families(hx, threshold=60)
+            families.update(fams)
+    
+        spool["color_families"] = sorted(families)
+        all_families_in_page.update(families)
+    selected_family = request.args.get("family")
+    if selected_family:
+        all_filaments = [
+            f for f in all_filaments
+            if selected_family in f.get("color_families", [])
+        ]
     total = len(all_filaments)
     total_pages = math.ceil(total / per_page)
     filaments_page = all_filaments[(page-1)*per_page : page*per_page]
@@ -543,4 +662,6 @@ def filaments():
         total_pages=total_pages,
         search=search,
         sort=sort,
+        all_families=sorted(all_families_in_page),
+        selected_family=selected_family
     )
