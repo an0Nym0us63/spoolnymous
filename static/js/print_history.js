@@ -150,7 +150,7 @@ const COLOR_NAME_MAP = {
 };
 
 function enhanceColorSelect() {
-    const $colorSelect = $('select[name="color"], select[name="family"]');
+    const $colorSelect = $('select[name="color"]');
 
     // Collect current options and replace with enhanced sorted ones
     const options = $colorSelect.find('option').map(function () {

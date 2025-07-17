@@ -650,7 +650,7 @@ def filaments():
     
         spool["color_families"] = sorted(families)
         all_families_in_page.update(families)
-    selected_family = request.args.get("family")
+    selected_family = request.args.get("color")
     if selected_family:
         all_filaments = [
             f for f in all_filaments
