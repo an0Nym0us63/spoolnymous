@@ -23,28 +23,34 @@
                 aria-controls="collapse{{ spool.id }}">
           <div class="container-fluid">
             <div class="row justify-content-between align-items-center text-center">
+              
+              <!-- Col gauche -->
               <div class="col text-start">
-                <div><strong>{{ spool.filament.material }}</strong> / {{ spool.filament.vendor.name }}</div>
+                <div><strong>{{ spool.filament.vendor.name }}</strong> / {{ spool.filament.material }}</div>
                 <div>{{ spool.filament.name }}</div>
               </div>
-              <div class="col d-flex justify-content-center">
-                {# calcul contraste : noir si clair sinon blanc #}
+
+              <!-- Col centre -->
+              <div class="col-auto d-flex justify-content-center">
                 {% set hex = spool.filament.color_hex %}
                 {% set r = hex[0:2]|int(16) %}
                 {% set g = hex[2:4]|int(16) %}
                 {% set b = hex[4:6]|int(16) %}
-                {% set luminance = 0.299*r + 0.587*g + 0.114*b %}
-                {% set text_color = '#000' if luminance > 186 else '#fff' %}
-                <span class="badge"
+                {% set luminance = (0.299*r + 0.587*g + 0.114*b) %}
+                {% set text_color = '#000' if luminance > 150 else '#fff' %}
+                <span class="badge d-inline-flex align-items-center justify-content-center"
                       style="
                           background-color: #{{ hex }};
                           color: {{ text_color }};
-                          padding: 0.25rem 0.5rem;
+                          padding: 0.25rem 0.75rem;
                           border-radius: 4px;
+                          min-width: 60px;
                       ">
                   #{{ hex }}
                 </span>
               </div>
+
+              <!-- Col droite -->
               <div class="col-auto text-end">
                 <strong>{{ spool.remaining_weight|round|int }} g</strong>
               </div>
@@ -52,12 +58,14 @@
           </div>
         </button>
       </h2>
+
       <div id="collapse{{ spool.id }}" class="accordion-collapse collapse"
            aria-labelledby="heading{{ spool.id }}" data-bs-parent="#filamentsAccordion">
         <div class="accordion-body">
           <ul>
             <li><strong>Fournisseur :</strong> {{ spool.filament.vendor.name }}</li>
             <li><strong>Matière :</strong> {{ spool.filament.material }}</li>
+            <li><strong>Nom :</strong> {{ spool.filament.name }}</li>
             <li><strong>Stock restant :</strong> {{ spool.remaining_weight|round|int }} g</li>
             <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
             <li><strong>Lot :</strong> {{ spool.lot_nr or "—" }}</li>
