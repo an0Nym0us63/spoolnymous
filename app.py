@@ -10,7 +10,7 @@ from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool
-from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings,fetch_spools
+from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
 from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage
 
 init_mqtt()
@@ -494,7 +494,7 @@ def filaments():
     per_page = 25
     search = request.args.get("search", "").lower()
 
-    all_filaments = fetch_spools() or []
+    all_filaments = fetchSpools() or []
 
     # filtre nom / couleur
     if search:
