@@ -1,7 +1,12 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1 class="mb-4 text-center">Inventaire des Filaments</h1>
+<h1 class="mb-4 text-center">Filaments</h1>
+<div class="text-end mb-3">
+  <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#filamentFilters" aria-expanded="false" aria-controls="filamentFilters">
+    Filtres & Tri
+  </button>
+</div>
 
 <div class="collapse mb-4" id="filamentFilters">
   <div class="card card-body">
