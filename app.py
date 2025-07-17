@@ -517,7 +517,16 @@ def filaments():
 
         all_filaments = [f for f in all_filaments if matches(f)]
 
+    def sort_key(f):
+        filament = f.get("filament", {})
+        vendor = filament.get("vendor", {})
+        return (
+            filament.get("material", "").lower(),
+            vendor.get("name", "").lower(),
+            filament.get("name", "").lower()
+        )
 
+    all_filaments = sorted(all_filaments, key=sort_key)
     total = len(all_filaments)
     total_pages = math.ceil(total / per_page)
     filaments_page = all_filaments[(page-1)*per_page : page*per_page]
