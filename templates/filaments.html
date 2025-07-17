@@ -63,17 +63,35 @@
             <li><strong>Nom :</strong> {{ spool.filament.name }}</li>
             <li>
               <strong>Filament ID :</strong>
-              <span class="badge bg-secondary">{{ spool.filament.extra.filament_id or "—" }}</span>
+              <span class="badge bg-secondary">{{ spool.filament.extra.filament_id|replace('"','') or "—" }}</span>
             </li>
             {% if spool.extra.tag %}
             <li>
               <strong>Tag :</strong>
-              <span class="badge bg-info text-dark">{{ spool.extra.tag }}</span>
+              <span class="badge bg-info text-dark">{{ spool.extra.tag|replace('"','') }}</span>
             </li>
             {% endif %}
-            <li><strong>Première utilisation :</strong> {{ spool.first_used or "—" }}</li>
-            <li><strong>Dernière utilisation :</strong> {{ spool.last_used or "—" }}</li>
-            <li><strong>Prix :</strong> {{ spool.price or "—" }} €</li>
+            <li><strong>Première utilisation :</strong> 
+              {% if spool.first_used %}
+                {{ spool.first_used[:10]|replace('-', '/') }} {{ spool.first_used[11:16] }}
+              {% else %}
+                —
+              {% endif %}
+            </li>
+            <li><strong>Dernière utilisation :</strong> 
+              {% if spool.last_used %}
+                {{ spool.last_used[:10]|replace('-', '/') }} {{ spool.last_used[11:16] }}
+              {% else %}
+                —
+              {% endif %}
+            </li>
+            <li><strong>Prix :</strong> 
+              {% if spool.price is not none %}
+                {{ spool.price }} €
+              {% else %}
+                —
+              {% endif %}
+            </li>
             <li><strong>Stock restant :</strong> {{ spool.remaining_weight|round|int }} g</li>
             <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
             <li><strong>Couleur :</strong> 
