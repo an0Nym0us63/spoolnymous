@@ -43,6 +43,34 @@
     </div>
   </form>
 </div>
+<div class="pagination justify-content-center mt-4 align-items-center gap-2 flex-wrap">
+  {% if page > 1 %}
+    <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo; First</a>
+    <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo; Prev</a>
+  {% endif %}
+
+  <span class="mx-2">
+    Page {{ page }} / {{ total_pages }}
+  </span>
+
+  {% if page < total_pages %}
+    <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">Next &rsaquo;</a>
+    <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">Last &raquo;</a>
+  {% endif %}
+</div>
+
+<form method="get" class="d-flex justify-content-center mt-2 gap-2">
+  {% for key, value in request.args.items() %}
+    {% if key != 'page' %}
+      <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endif %}
+  {% endfor %}
+  <label for="goto_page" class="form-label me-2">Aller à la page :</label>
+  <input type="number" min="1" max="{{ total_pages }}" name="page" id="goto_page" class="form-control form-control-sm w-auto" value="{{ page }}">
+  <button type="submit" class="btn btn-primary btn-sm">Go</button>
+</form>
+{% endblock %}
+
 
 
 
