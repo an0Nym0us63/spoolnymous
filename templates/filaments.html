@@ -22,29 +22,28 @@
                 data-bs-target="#collapse{{ spool.id }}" aria-expanded="false"
                 aria-controls="collapse{{ spool.id }}">
           <div class="container-fluid">
-            <div class="row justify-content-between align-items-center text-center">
+            <div class="row align-items-center w-100">
 
-              <!-- Col gauche -->
+              <!-- Couleur à gauche en hauteur -->
+              <div class="col-auto d-flex align-items-stretch pe-2">
+                <span
+                  style="
+                    width: 12px;
+                    min-height: 100%;
+                    background-color: #{{ spool.filament.color_hex }};
+                    border-radius: 4px;
+                    display: inline-block;
+                  ">
+                </span>
+              </div>
+
+              <!-- Texte à gauche -->
               <div class="col text-start">
                 <div><strong>{{ spool.filament.material }}</strong> / {{ spool.filament.name }}</div>
                 <div>{{ spool.filament.vendor.name }}</div>
               </div>
 
-              <!-- Col centre -->
-              <div class="col-auto d-flex justify-content-center">
-                <span
-                  style="
-                    display: inline-block;
-                    width: 40px;
-                    height: 20px;
-                    background-color: #{{ spool.filament.color_hex }};
-                    border-radius: 4px;
-                    border: 1px solid #ccc;
-                  ">
-                </span>
-              </div>
-
-              <!-- Col droite -->
+              <!-- Poids à droite -->
               <div class="col-auto text-end">
                 <strong>{{ spool.remaining_weight|round|int }} g</strong>
               </div>
