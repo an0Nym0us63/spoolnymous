@@ -501,8 +501,9 @@ def filaments():
     if search:
         all_filaments = [
             f for f in all_filaments
-            if search in f.get("display_name", "").lower()
-            or search in f.get("color_hex", "").lower()
+            if search in f.get("filament", {}).get("name", "").lower()
+            or search in f.get("filament", {}).get("material", "").lower()
+            or search in f.get("filament", {}).get("vendor", {}).get("vendor", "").lower()
         ]
 
     total = len(all_filaments)
