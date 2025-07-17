@@ -633,10 +633,15 @@ def filaments():
     for spool in all_filaments:
         filament = spool.get("filament", {})
         hexes = []
+
         if filament.get("multi_color_hexes"):
-            hexes = filament["multi_color_hexes"].split(",")
+            if isinstance(filament["multi_color_hexes"], str):
+                hexes = filament["multi_color_hexes"].split(",")
+            elif isinstance(filament["multi_color_hexes"], list):
+                hexes = filament["multi_color_hexes"]
         elif filament.get("color_hex"):
             hexes = [filament["color_hex"]]
+
     
         families = set()
         for hx in hexes:
