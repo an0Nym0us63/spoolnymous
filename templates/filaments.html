@@ -18,35 +18,33 @@
   {% for spool in filaments %}
     <div class="accordion-item">
       <h2 class="accordion-header" id="heading{{ spool.id }}">
-        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+        <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse"
                 data-bs-target="#collapse{{ spool.id }}" aria-expanded="false"
                 aria-controls="collapse{{ spool.id }}">
-          <div class="container-fluid">
-            <div class="row align-items-center w-100">
+          <div class="d-flex w-100 align-items-stretch">
 
-              <!-- Couleur à gauche en hauteur -->
-              <div class="col-auto d-flex align-items-stretch pe-2">
-                <span
-                  style="
-                    width: 12px;
-                    min-height: 100%;
-                    background-color: #{{ spool.filament.color_hex }};
-                    border-radius: 4px;
-                    display: inline-block;
-                  ">
-                </span>
-              </div>
+            <!-- carré couleur -->
+            <div class="me-3 d-flex align-items-stretch">
+              <span
+                style="
+                  width: 12px;
+                  min-height: 100%;
+                  background-color: #{{ spool.filament.color_hex }};
+                  border-radius: 2px;
+                  display: inline-block;
+                ">
+              </span>
+            </div>
 
-              <!-- Texte à gauche -->
-              <div class="col text-start">
-                <div><strong>{{ spool.filament.material }}</strong> / {{ spool.filament.name }}</div>
-                <div>{{ spool.filament.vendor.name }}</div>
-              </div>
+            <!-- Texte -->
+            <div class="flex-grow-1 text-start">
+              <div><strong>{{ spool.filament.material }}</strong> / {{ spool.filament.name }}</div>
+              <div>{{ spool.filament.vendor.name }}</div>
+            </div>
 
-              <!-- Poids à droite -->
-              <div class="col-auto text-end">
-                <strong>{{ spool.remaining_weight|round|int }} g</strong>
-              </div>
+            <!-- Poids -->
+            <div class="text-end ms-2">
+              <strong>{{ spool.remaining_weight|round|int }} g</strong>
             </div>
           </div>
         </button>
