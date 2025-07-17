@@ -499,12 +499,24 @@ def filaments():
 
     # filtre nom / couleur
     if search:
-        all_filaments = [
-            f for f in all_filaments
-            if search in f.get("filament", {}).get("name", "").lower()
-            or search in f.get("filament", {}).get("material", "").lower()
-            or search in f.get("filament", {}).get("vendor", {}).get("vendor", "").lower()
-        ]
+        search_terms = search.split()
+
+        def matches(f):
+            filament = f.get("filament", {})
+            vendor = filament.get("vendor", {})
+            fields = [
+                filament.get("name", "").lower(),
+                filament.get("material", "").lower(),
+                vendor.get("name", "").lower(),
+            ]
+            # Chaque terme doit être présent dans au moins un des champs
+            return all(
+                any(term in field for field in fields)
+                for term in search_terms
+            )
+
+        all_filaments = [f for f in all_filaments if matches(f)]
+
 
     total = len(all_filaments)
     total_pages = math.ceil(total / per_page)
