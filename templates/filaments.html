@@ -15,7 +15,15 @@
         <input type="text" name="search" class="form-control" placeholder="Recherche nom, matériau ou vendor" value="{{ search }}">
       </div>
       <input type="hidden" name="page" value="1">
-
+      <div class="col-md-3">
+  <select name="family" class="form-select select2">
+    <option value="">— Filtrer par famille de couleur —</option>
+    {% for fam in all_families %}
+      <option value="{{ fam }}" {% if fam == selected_family %}selected{% endif %}>
+        {{ fam }}
+      </option>
+    {% endfor %}
+  </select>
       <div class="col-md-3">
         <select name="sort" class="form-select">
           <option value="default" {% if sort != 'remaining' %}selected{% endif %}>
@@ -26,15 +34,6 @@
           </option>
         </select>
       </div>
-      <div class="col-md-3">
-  <select name="family" class="form-select">
-    <option value="">— Filtrer par famille de couleur —</option>
-    {% for fam in all_families %}
-      <option value="{{ fam }}" {% if fam == selected_family %}selected{% endif %}>
-        {{ fam }}
-      </option>
-    {% endfor %}
-  </select>
 </div>
       <div class="col-md-3 text-end">
         <button type="submit" class="btn btn-primary">Appliquer</button>
@@ -217,4 +216,10 @@
     <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">Last &raquo;</a>
   {% endif %}
 </div>
+{% endblock %}
+{% block scripts %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ url_for('static', filename='js/print_history.js') }}"></script>
 {% endblock %}
