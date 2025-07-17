@@ -508,6 +508,7 @@ def filaments():
                 filament.get("name", "").lower(),
                 filament.get("material", "").lower(),
                 vendor.get("name", "").lower(),
+                f.get("location", "").lower(),
             ]
             # Chaque terme doit être présent dans au moins un des champs
             return all(
