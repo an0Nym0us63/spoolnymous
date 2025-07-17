@@ -39,8 +39,10 @@
 
             <!-- carré couleur -->
             <div class="me-3 d-flex align-items-stretch">
-              {% if spool.filament.multi_color_hexes %}
-  {% set colors = spool.filament.multi_color_hexes.split(",") %}
+             {% if spool.filament.multi_color_hexes %}
+  {% set colors =
+      spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
+      else spool.filament.multi_color_hexes %}
   <span
     style="
       width: 12px;
@@ -124,8 +126,10 @@
             <li><strong>Stock restant :</strong> {{ spool.remaining_weight|round|int }} g</li>
             <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
             <li><strong>Couleur :</strong> 
-              {% if spool.filament.multi_color_hexes %}
-  {% set colors = spool.filament.multi_color_hexes.split(",") %}
+               {% if spool.filament.multi_color_hexes %}
+  {% set colors =
+      spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
+      else spool.filament.multi_color_hexes %}
   <span
     style="
       display: inline-block;
