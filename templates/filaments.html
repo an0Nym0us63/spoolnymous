@@ -32,21 +32,15 @@
 
               <!-- Col centre -->
               <div class="col-auto d-flex justify-content-center">
-                {% set hex = spool.filament.color_hex %}
-                {% set r = hex[0:2]|int(16) %}
-                {% set g = hex[2:4]|int(16) %}
-                {% set b = hex[4:6]|int(16) %}
-                {% set luminance = (0.2126*r + 0.7152*g + 0.0722*b) %}
-                {% set text_color = '#000' if luminance > 130 else '#fff' %}
-                <span class="badge d-inline-flex align-items-center justify-content-center"
-                      style="
-                          background-color: #{{ hex }};
-                          color: {{ text_color }};
-                          padding: 0.25rem 0.75rem;
-                          border-radius: 4px;
-                          min-width: 60px;
-                      ">
-                  #{{ hex }}
+                <span
+                  style="
+                    display: inline-block;
+                    width: 40px;
+                    height: 20px;
+                    background-color: #{{ spool.filament.color_hex }};
+                    border-radius: 4px;
+                    border: 1px solid #ccc;
+                  ">
                 </span>
               </div>
 
@@ -70,6 +64,20 @@
             <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
             <li><strong>Lot :</strong> {{ spool.lot_nr or "—" }}</li>
             <li><strong>ID Spool :</strong> {{ spool.id }}</li>
+            <li><strong>Couleur :</strong> 
+              <span
+                style="
+                  display: inline-block;
+                  width: 20px;
+                  height: 20px;
+                  vertical-align: middle;
+                  background-color: #{{ spool.filament.color_hex }};
+                  border-radius: 4px;
+                  border: 1px solid #ccc;
+                ">
+              </span>
+              <span class="ms-2">#{{ spool.filament.color_hex }}</span>
+            </li>
           </ul>
         </div>
       </div>
