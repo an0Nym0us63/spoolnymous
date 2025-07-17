@@ -22,24 +22,31 @@
                 data-bs-target="#collapse{{ spool.id }}" aria-expanded="false"
                 aria-controls="collapse{{ spool.id }}">
           <div class="container-fluid">
-            <div class="row justify-content-between align-items-center">
+            <div class="row justify-content-between align-items-center text-center">
               <div class="col text-start">
                 <div><strong>{{ spool.filament.material }}</strong> / {{ spool.filament.vendor.name }}</div>
                 <div>{{ spool.filament.name }}</div>
               </div>
-              <div class="col-auto text-center">
+              <div class="col d-flex justify-content-center">
+                {# calcul contraste : noir si clair sinon blanc #}
+                {% set hex = spool.filament.color_hex %}
+                {% set r = hex[0:2]|int(16) %}
+                {% set g = hex[2:4]|int(16) %}
+                {% set b = hex[4:6]|int(16) %}
+                {% set luminance = 0.299*r + 0.587*g + 0.114*b %}
+                {% set text_color = '#000' if luminance > 186 else '#fff' %}
                 <span class="badge"
                       style="
-                          background-color: #{{ spool.filament.color_hex }};
-                          color: #fff;
+                          background-color: #{{ hex }};
+                          color: {{ text_color }};
                           padding: 0.25rem 0.5rem;
                           border-radius: 4px;
                       ">
-                  #{{ spool.filament.color_hex }}
+                  #{{ hex }}
                 </span>
               </div>
               <div class="col-auto text-end">
-                <strong>{{ spool.remaining_weight }} g</strong>
+                <strong>{{ spool.remaining_weight|round|int }} g</strong>
               </div>
             </div>
           </div>
@@ -51,7 +58,7 @@
           <ul>
             <li><strong>Fournisseur :</strong> {{ spool.filament.vendor.name }}</li>
             <li><strong>Matière :</strong> {{ spool.filament.material }}</li>
-            <li><strong>Stock restant :</strong> {{ spool.remaining_weight }} g</li>
+            <li><strong>Stock restant :</strong> {{ spool.remaining_weight|round|int }} g</li>
             <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
             <li><strong>Lot :</strong> {{ spool.lot_nr or "—" }}</li>
             <li><strong>ID Spool :</strong> {{ spool.id }}</li>
