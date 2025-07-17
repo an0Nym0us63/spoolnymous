@@ -23,11 +23,11 @@
                 aria-controls="collapse{{ spool.id }}">
           <div class="container-fluid">
             <div class="row justify-content-between align-items-center text-center">
-              
+
               <!-- Col gauche -->
               <div class="col text-start">
-                <div><strong>{{ spool.filament.vendor.name }}</strong> / {{ spool.filament.material }}</div>
-                <div>{{ spool.filament.name }}</div>
+                <div><strong>{{ spool.filament.material }}</strong> / {{ spool.filament.name }}</div>
+                <div>{{ spool.filament.vendor.name }}</div>
               </div>
 
               <!-- Col centre -->
@@ -36,8 +36,8 @@
                 {% set r = hex[0:2]|int(16) %}
                 {% set g = hex[2:4]|int(16) %}
                 {% set b = hex[4:6]|int(16) %}
-                {% set luminance = (0.299*r + 0.587*g + 0.114*b) %}
-                {% set text_color = '#000' if luminance > 150 else '#fff' %}
+                {% set luminance = (0.2126*r + 0.7152*g + 0.0722*b) %}
+                {% set text_color = '#000' if luminance > 130 else '#fff' %}
                 <span class="badge d-inline-flex align-items-center justify-content-center"
                       style="
                           background-color: #{{ hex }};
