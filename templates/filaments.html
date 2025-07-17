@@ -39,16 +39,34 @@
 
             <!-- carré couleur -->
             <div class="me-3 d-flex align-items-stretch">
-              <span
-                style="
-                  width: 12px;
-                  min-height: 100%;
-                  background-color: #{{ spool.filament.color_hex }};
-                  border-radius: 2px;
-                  border: 1px solid #888;
-                  display: inline-block;
-                ">
-              </span>
+              {% if spool.filament.multi_color_hexes %}
+  {% set colors = spool.filament.multi_color_hexes.split(",") %}
+  <span
+    style="
+      width: 12px;
+      min-height: 100%;
+      background: linear-gradient(90deg
+        {% for c in colors %}
+          , #{{ c.strip() }}
+        {% endfor %}
+      );
+      border-radius: 2px;
+      border: 1px solid #888;
+      display: inline-block;
+    ">
+  </span>
+{% else %}
+  <span
+    style="
+      width: 12px;
+      min-height: 100%;
+      background-color: #{{ spool.filament.color_hex }};
+      border-radius: 2px;
+      border: 1px solid #888;
+      display: inline-block;
+    ">
+  </span>
+{% endif %}
             </div>
 
             <!-- Texte -->
@@ -106,17 +124,36 @@
             <li><strong>Stock restant :</strong> {{ spool.remaining_weight|round|int }} g</li>
             <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
             <li><strong>Couleur :</strong> 
-              <span
-                style="
-                  display: inline-block;
-                  width: 20px;
-                  height: 20px;
-                  vertical-align: middle;
-                  background-color: #{{ spool.filament.color_hex }};
-                  border-radius: 4px;
-                  border: 1px solid #ccc;
-                ">
-              </span>
+              {% if spool.filament.multi_color_hexes %}
+  {% set colors = spool.filament.multi_color_hexes.split(",") %}
+  <span
+    style="
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      vertical-align: middle;
+      background: linear-gradient(90deg
+        {% for c in colors %}
+          , #{{ c.strip() }}
+        {% endfor %}
+      );
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    ">
+  </span>
+{% else %}
+  <span
+    style="
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      vertical-align: middle;
+      background-color: #{{ spool.filament.color_hex }};
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    ">
+  </span>
+{% endif %}
               <span class="ms-2">#{{ spool.filament.color_hex }}</span>
             </li>
           </ul>
