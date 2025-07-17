@@ -10,7 +10,7 @@ from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool
-from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
+from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings,get_all_filaments
 from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage
 
 init_mqtt()
@@ -487,3 +487,31 @@ def remove_tag(print_id):
     if tag:
         remove_tag_from_print(print_id, tag)
     return jsonify({"status": "ok"})
+    
+@app.route("/filaments")
+def filaments():
+    page = int(request.args.get("page", 1))
+    per_page = 25
+    search = request.args.get("search", "").lower()
+
+    all_filaments = get_all_filaments()
+
+    # filtre sur nom / couleur
+    if search:
+        all_filaments = [
+            f for f in all_filaments
+            if search in f["name"].lower() or search in f.get("color", "").lower()
+        ]
+
+    total = len(all_filaments)
+    total_pages = math.ceil(total / per_page)
+
+    filaments_page = all_filaments[(page-1)*per_page : page*per_page]
+
+    return render_template(
+        "filaments.html",
+        filaments=filaments_page,
+        page=page,
+        total_pages=total_pages,
+        search=search
+    )

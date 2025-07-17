@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 class="mb-4 text-center">Inventaire des Filaments</h1>
+
+<form method="get" class="mb-4">
+  <div class="row g-2">
+    <div class="col-md-6">
+      <input type="text" name="search" class="form-control" placeholder="Recherche nom ou couleur" value="{{ search }}">
+    </div>
+    <div class="col-md-6 text-end">
+      <button type="submit" class="btn btn-primary">Filtrer</button>
+    </div>
+  </div>
+</form>
+
+<div class="accordion" id="filamentsAccordion">
+  {% for filament in filaments %}
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="heading{{ filament.id }}">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                data-bs-target="#collapse{{ filament.id }}" aria-expanded="false"
+                aria-controls="collapse{{ filament.id }}">
+          {{ filament.display_name }} — {{ filament.color_hex }}
+        </button>
+      </h2>
+      <div id="collapse{{ filament.id }}" class="accordion-collapse collapse"
+           aria-labelledby="heading{{ filament.id }}" data-bs-parent="#filamentsAccordion">
+        <div class="accordion-body">
+          <ul>
+            <li><strong>Type :</strong> {{ filament.material }}</li>
+            <li><strong>Stock :</strong> {{ filament.remaining_weight }} g</li>
+            <li><strong>Couleur :</strong> {{ filament.color_hex }}</li>
+            <li><strong>ID :</strong> {{ filament.id }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="pagination justify-content-center mt-4">
+  {% if page > 1 %}
+    <a href="{{ url_for('filaments', page=1, search=search) }}" class="btn btn-outline-primary btn-sm">&laquo; First</a>
+    <a href="{{ url_for('filaments', page=page-1, search=search) }}" class="btn btn-outline-primary btn-sm">&lsaquo; Prev</a>
+  {% endif %}
+
+  <span class="mx-2">
+    Page {{ page }} / {{ total_pages }}
+  </span>
+
+  {% if page < total_pages %}
+    <a href="{{ url_for('filaments', page=page+1, search=search) }}" class="btn btn-outline-primary btn-sm">Next &rsaquo;</a>
+    <a href="{{ url_for('filaments', page=total_pages, search=search) }}" class="btn btn-outline-primary btn-sm">Last &raquo;</a>
+  {% endif %}
+</div>
+{% endblock %}
