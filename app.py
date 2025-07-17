@@ -24,7 +24,7 @@ def frontend_utilities():
         query = request.args.to_dict(flat=False)
         query.pop('page', None)
         query.update({k: [str(v)] if not isinstance(v, list) else v for k, v in kwargs.items()})
-        return url_for('print_history', **query)
+        return url_for(request.endpoint, **query)
     return dict(
         SPOOLMAN_BASE_URL=SPOOLMAN_BASE_URL,
         AUTO_SPEND=AUTO_SPEND,
