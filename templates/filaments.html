@@ -87,13 +87,8 @@
                 —
               {% endif %}
             </li>
-            <li><strong>Prix :</strong> 
-              {% if spool.price is not none %}
-                {{ spool.price }} €
-              {% else %}
-                —
-              {% endif %}
-            </li>
+           <li><strong>Prix :</strong> {{ spool.price|default("—") }} €</li>
+
             <li><strong>Stock restant :</strong> {{ spool.remaining_weight|round|int }} g</li>
             <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
             <li><strong>Couleur :</strong> 
