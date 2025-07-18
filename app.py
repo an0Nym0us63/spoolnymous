@@ -3,7 +3,7 @@ import traceback
 import uuid
 import math
 
-from flask import Flask, request, render_template, redirect, url_for,jsonify,make_response
+from flask import Flask, request, render_template, redirect, url_for,jsonify,g
 
 from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,LOCATION_MAPPING,AMS_ORDER, COST_BY_HOUR
 from filament import generate_filament_brand_code, generate_filament_temperatures
@@ -309,7 +309,9 @@ def setActiveSpool(ams_id, tray_id, spool_data):
 
   print(ams_message)
   publish(getMqttClient(), ams_message)
-
+@app.before_request
+def detect_webview():
+    g.is_webview = request.cookies.get('webview') == '1'
 @app.route("/")
 def home():
   if not isMqttClientConnected():
@@ -346,19 +348,7 @@ def home():
       ams_data=reordered
 
      # Nouveau : si ?webview=1 → on met le cookie
-    resp = make_response(render_template(
-        'index.html',
-        success_message=success_message,
-        ams_data=ams_data,
-        vt_tray_data=vt_tray_data,
-        issue=issue,
-        request=request
-    ))
-
-    if request.args.get("webview") == "1":
-        resp.set_cookie("webview", "1")
-
-    return resp
+    return render_template('index.html', success_message=success_message, ams_data=ams_data, vt_tray_data=vt_tray_data, issue=issue)
   except Exception as e:
     traceback.print_exc()
     return render_template('error.html', exception=str(e))
