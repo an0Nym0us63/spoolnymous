@@ -3,7 +3,7 @@ import traceback
 import uuid
 import math
 
-from flask import Flask, request, render_template, redirect, url_for,jsonify,g, make_response, flash
+from flask import Flask, request, render_template, redirect, url_for,jsonify,g, make_response
 
 from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,LOCATION_MAPPING,AMS_ORDER, COST_BY_HOUR
 from filament import generate_filament_brand_code, generate_filament_temperatures
@@ -704,6 +704,5 @@ def edit_print_items():
         number_of_items = 1
 
     update_print_history_field(print_id, "number_of_items", number_of_items)
-
-    flash(f"Nombre d’éléments mis à jour pour impression #{print_id} : {number_of_items}", "success")
+    
     return redirect(url_for("print_history"))
