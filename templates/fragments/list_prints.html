@@ -2,7 +2,12 @@
   {% for entry in entries %}
     {% if entry.type == "group" %}
       <div class="card mb-2">
-        <div class="card-header d-flex justify-content-between align-items-center clickable" data-bs-toggle="collapse" data-bs-target="#group_{{ entry.id }}" aria-expanded="false" aria-controls="group_{{ entry.id }}">
+        <div class="card-header d-flex justify-content-between align-items-center clickable"
+             data-bs-toggle="collapse"
+             data-bs-target="#group_{{ entry.id }}"
+             data-bs-parent="#printAccordion"
+             aria-expanded="false"
+             aria-controls="group_{{ entry.id }}">
           <strong>{{ entry.name }}</strong>
           <div>
             <span class="me-3">Durée totale : {{ '%.2f'|format(entry.total_duration) }}h</span>
@@ -11,9 +16,9 @@
         </div>
 
         <div id="group_{{ entry.id }}" class="collapse" data-bs-parent="#printAccordion">
-          <div class="card-body">
+          <div class="card-body" id="group_accordion_{{ entry.id }}">
             {% for print in entry.prints %}
-              {% include 'fragments/print_card.html' with context %}
+              {% include 'fragments/print_card.html' %}
             {% endfor %}
           </div>
         </div>
@@ -21,7 +26,7 @@
 
     {% elif entry.type == "single" %}
       {% set print = entry.print %}
-      {% include 'fragments/print_card.html' with context %}
+      {% include 'fragments/print_card.html' %}
     {% endif %}
   {% endfor %}
 </div>

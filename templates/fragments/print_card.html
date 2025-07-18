@@ -1,7 +1,9 @@
 <div class="card mb-2" id="print_{{ print.id }}">
   <div class="card-header d-flex justify-content-between align-items-center clickable"
-       data-bs-toggle="collapse" data-bs-target="#details_{{ print.id }}"
-       aria-expanded="false" aria-controls="details_{{ print.id }}">
+       data-bs-toggle="collapse"
+       data-bs-target="#details_{{ print.id }}"
+       aria-expanded="false"
+       aria-controls="details_{{ print.id }}">
     <span>{{ print.id }}</span>
     <strong class="text-center flex-grow-1">{{ print.file_name or 'Print #' ~ print.id }}</strong>
     {% if print.image_file %}
@@ -12,7 +14,8 @@
     {% endif %}
   </div>
 
-  <div id="details_{{ print.id }}" class="collapse" data-bs-parent="#printAccordion">
+  <div id="details_{{ print.id }}" class="collapse"
+       data-bs-parent="{% if print.group_id %}#group_accordion_{{ print.group_id }}{% else %}#printAccordion{% endif %}">
     <div class="card-body position-relative">
       <!-- Actions flottantes -->
       <div class="dropdown position-absolute end-0 top-0 m-2">
@@ -108,48 +111,6 @@
       <div class="input-group mt-1" style="max-width: 300px;">
         <input type="text" class="form-control form-control-sm add-tag-input" placeholder="Nouveau tag…">
         <button class="btn btn-sm btn-success add-tag-btn" data-print-id="{{ print.id }}">✚ Ajouter</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL POUR AJOUTER À UN GROUPE -->
-<div class="modal fade" id="groupModal_{{ print.id }}" tabindex="-1" aria-labelledby="groupModalLabel_{{ print.id }}" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="groupModalLabel_{{ print.id }}">Ajouter à un groupe (Print #{{ print.id }})</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-
-      <div class="modal-body">
-        <form method="post" action="{{ url_for('create_group') }}">
-          <input type="hidden" name="print_id" value="{{ print.id }}">
-          <div class="mb-3">
-            <label class="form-label">Créer un nouveau groupe</label>
-            <input type="text" name="group_name" class="form-control" placeholder="Nom du nouveau groupe">
-          </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-primary">Créer et assigner</button>
-          </div>
-        </form>
-
-        <hr>
-
-        <form method="post" action="{{ url_for('assign_to_group') }}">
-          <input type="hidden" name="print_id" value="{{ print.id }}">
-          <div class="mb-3">
-            <label class="form-label">Ou choisir un groupe existant</label>
-            <select name="group_id" class="form-select">
-              {% for group in groups_list %}
-              <option value="{{ group.id }}">{{ group.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-secondary">Assigner au groupe</button>
-          </div>
-        </form>
       </div>
     </div>
   </div>
