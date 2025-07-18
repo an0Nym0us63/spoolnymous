@@ -351,7 +351,8 @@ def home():
         success_message=success_message,
         ams_data=ams_data,
         vt_tray_data=vt_tray_data,
-        issue=issue
+        issue=issue,
+        request=request
     ))
 
     if request.args.get("webview") == "1":
