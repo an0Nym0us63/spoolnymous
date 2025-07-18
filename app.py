@@ -114,6 +114,11 @@ init_mqtt()
 
 app = Flask(__name__)
 
+
+@app.before_request
+def detect_webview():
+    g.is_webview = request.cookies.get('webview') == '1'
+
 @app.context_processor
 def frontend_utilities():
     def url_with_args(**kwargs):
@@ -309,9 +314,6 @@ def setActiveSpool(ams_id, tray_id, spool_data):
 
   print(ams_message)
   publish(getMqttClient(), ams_message)
-@app.before_request
-def detect_webview():
-    g.is_webview = request.cookies.get('webview') == '1'
 @app.route("/")
 def home():
   if not isMqttClientConnected():
