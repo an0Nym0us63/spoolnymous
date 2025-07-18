@@ -389,5 +389,17 @@ def remove_tag_from_print(print_id: int, tag: str):
     conn.commit()
     conn.close()
 
+def update_print_history_field(print_id: int, field: str, value) -> None:
+    """
+    Met à jour un champ donné pour une impression de l'historique.
+    """
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    query = f"UPDATE prints SET {field} = ? WHERE id = ?"
+    cursor.execute(query, (value, print_id))
+    conn.commit()
+    conn.close()
+
+
 
 create_database()

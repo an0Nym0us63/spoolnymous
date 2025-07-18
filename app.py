@@ -3,7 +3,7 @@ import traceback
 import uuid
 import math
 
-from flask import Flask, request, render_template, redirect, url_for,jsonify,g, make_response
+from flask import Flask, request, render_template, redirect, url_for,jsonify,g, make_response, flash
 
 from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,LOCATION_MAPPING,AMS_ORDER, COST_BY_HOUR
 from filament import generate_filament_brand_code, generate_filament_temperatures
@@ -12,7 +12,7 @@ from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field
 
 COLOR_FAMILIES = {
     # Neutres
@@ -689,3 +689,21 @@ def filaments():
         all_families=sorted(all_families_in_page),
         selected_family=selected_family
     )
+
+@app.route("/edit_print_items", methods=["POST"])
+def edit_print_items():
+    """
+    Met à jour le nombre d'éléments d'une impression.
+    """
+    print_id = int(request.form["print_id"])
+    try:
+        number_of_items = int(request.form["number_of_items"])
+        if number_of_items < 1:
+            number_of_items = 1
+    except (ValueError, TypeError):
+        number_of_items = 1
+
+    update_print_history_field(print_id, "number_of_items", number_of_items)
+
+    flash(f"Nombre d’éléments mis à jour pour impression #{print_id} : {number_of_items}", "success")
+    return redirect(url_for("print_history"))
