@@ -8,7 +8,7 @@
     <strong class="text-center flex-grow-1">{{ print.file_name or 'Print #' ~ print.id }}</strong>
     {% if print.image_file %}
       <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
-           alt="Print Image" style="width:50px; height:auto;" class="rounded" />
+           alt="Print Image" style="width:75px; height:auto;" class="rounded" />
     {% else %}
       <span class="text-muted">No Image</span>
     {% endif %}
