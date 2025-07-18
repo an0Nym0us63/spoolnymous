@@ -347,8 +347,19 @@ def home():
           reordered[dst_index] = ams_data[src_index]
       ams_data=reordered
 
-     # Nouveau : si ?webview=1 → on met le cookie
-    return render_template('index.html', success_message=success_message, ams_data=ams_data, vt_tray_data=vt_tray_data, issue=issue)
+    # Nouveau : si ?webview=1 → on met le cookie
+    resp = make_response(render_template(
+        'index.html',
+        success_message=success_message,
+        ams_data=ams_data,
+        vt_tray_data=vt_tray_data,
+        issue=issue
+    ))
+
+    if request.args.get("webview") == "1":
+        resp.set_cookie("webview", "1")
+
+    return resp
   except Exception as e:
     traceback.print_exc()
     return render_template('error.html', exception=str(e))
