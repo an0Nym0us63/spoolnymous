@@ -54,7 +54,7 @@
           <li class="nav-item">
             <a href="{{ url_for('print_history') }}" class="nav-link">Print History</a>
           </li>
-         {{% if not request.cookies.get('webview') %}}
+         {% if not request.cookies.get('webview') %}
 <li class="nav-item">
   <a href="{{ SPOOLMAN_BASE_URL }}" target="_blank" class="nav-link">SpoolMan</a>
 </li>
