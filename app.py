@@ -495,6 +495,7 @@ def print_history():
     return render_template(
         'print_history.html',
         entries=entries_list,
+        groups_list=groups_list,
         currencysymbol=spoolman_settings["currency_symbol"],
         page=page,
         total_pages=total_pages,
