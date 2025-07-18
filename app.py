@@ -491,7 +491,7 @@ def print_history():
 
     args = request.args.to_dict(flat=False)
     args.pop('page', None)
-
+    groups_list = get_print_groups()
     return render_template(
         'print_history.html',
         entries=entries_list,
