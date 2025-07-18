@@ -450,6 +450,9 @@ def print_history():
                         print_["total_cost"] += filament["cost"]
                         break
         print_["full_cost"] = print_["total_cost"] + print_["electric_cost"]
+        if "number_of_items" not in print_ or not print_["number_of_items"]:
+            print_["number_of_items"] = 1
+        print_["full_cost_by_item"] = print_["full_cost"] / print_["number_of_items"]
 
     total_pages = (total_count + per_page - 1) // per_page
 

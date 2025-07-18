@@ -21,6 +21,7 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
               <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editModal_{{ print.id }}">Renommer</a></li>
+              <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editItemsModal_{{ print.id }}">Définir le nombre d’éléments</a></li>
               <li><a class="dropdown-item text-primary" href="#" onclick="confirmReajust({{ print.id }})">Réajuster</a></li>
               <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete({{ print.id }})">Supprimer</a></li>
             </ul>
@@ -37,6 +38,10 @@
             {% endif %}
             {% if print['full_cost'] > 0 %}
               <div class="col-md-6"><strong>Full Cost:</strong> {{ '%.2f' | format(print['full_cost']) }} {{ currencysymbol }}</div>
+            {% endif %}
+            {% if print['number_of_items'] > 1 %}
+              <div class="col-md-6"><strong>Nombre d’éléments :</strong> {{ print['number_of_items'] }}</div>
+              <div class="col-md-6"><strong>Coût par élément :</strong> {{ '%.2f' | format(print['full_cost_by_item']) }} {{ currencysymbol }}</div>
             {% endif %}
           </div>
 
@@ -118,6 +123,31 @@
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL DE NOMBRE D'ÉLÉMENTS -->
+      <div class="modal fade" id="editItemsModal_{{ print.id }}" tabindex="-1" aria-labelledby="editItemsModalLabel_{{ print.id }}" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <form method="post" action="{{ url_for('edit_print_items') }}">
+              <div class="modal-header">
+                <h5 class="modal-title" id="editItemsModalLabel_{{ print.id }}">Définir le nombre d’éléments (Print #{{ print.id }})</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <input type="hidden" name="print_id" value="{{ print.id }}">
+                <div class="mb-3">
+                  <label for="number_of_items_{{ print.id }}" class="form-label">Nombre d’éléments</label>
+                  <input type="number" min="1" class="form-control" name="number_of_items" id="number_of_items_{{ print.id }}" value="{{ print.number_of_items or 1 }}">
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
               </div>
             </form>
           </div>

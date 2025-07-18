@@ -51,7 +51,8 @@ def create_database() -> None:
                 file_name TEXT NOT NULL,
                 print_type TEXT NOT NULL,
                 image_file TEXT,
-                duration REAL
+                duration REAL,
+                number_of_items INTEGER DEFAULT 1
             )
         ''')
 
@@ -68,18 +69,28 @@ def create_database() -> None:
             )
         ''')
 
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS print_tags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                print_id INTEGER NOT NULL,
+                tag TEXT NOT NULL,
+                FOREIGN KEY (print_id) REFERENCES prints(id) ON DELETE CASCADE
+            )
+        ''')
+
         conn.commit()
         conn.close()
     else:
         conn = sqlite3.connect(db_config["db_path"])
         cursor = conn.cursor()
 
-        try:
-            cursor.execute('ALTER TABLE prints ADD COLUMN duration REAL')
-        except:
-            pass
-        
-        
+        cursor.execute("PRAGMA table_info(prints)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if "number_of_items" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN number_of_items INTEGER DEFAULT 1")
+        if "duration" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN duration REAL")
+
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS print_tags (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -285,17 +296,23 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     total_count = cursor.fetchone()[0]
 
     cursor.execute(f'''
-        SELECT DISTINCT p.id AS id, p.print_date AS print_date, p.file_name AS file_name, 
-               p.print_type AS print_type, p.image_file AS image_file, p.duration AS duration,
-               (
-                   SELECT json_group_array(json_object(
-                       'spool_id', f2.spool_id,
-                       'filament_type', f2.filament_type,
-                       'color', f2.color,
-                       'grams_used', f2.grams_used,
-                       'ams_slot', f2.ams_slot
-                   )) FROM filament_usage f2 WHERE f2.print_id = p.id
-               ) AS filament_info
+        SELECT DISTINCT 
+            p.id AS id, 
+            p.print_date AS print_date, 
+            p.file_name AS file_name, 
+            p.print_type AS print_type, 
+            p.image_file AS image_file, 
+            p.duration AS duration,
+            p.number_of_items AS number_of_items,
+            (
+                SELECT json_group_array(json_object(
+                    'spool_id', f2.spool_id,
+                    'filament_type', f2.filament_type,
+                    'color', f2.color,
+                    'grams_used', f2.grams_used,
+                    'ams_slot', f2.ams_slot
+                )) FROM filament_usage f2 WHERE f2.print_id = p.id
+            ) AS filament_info
         FROM prints p
         LEFT JOIN filament_usage f ON f.print_id = p.id
         {where_sql}
