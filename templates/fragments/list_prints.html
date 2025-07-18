@@ -65,12 +65,12 @@
                     </div>
                     <div>
                       <strong>#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</strong><br>
-                      <small>{{ filament.spool.filament.name }} - {{ filament.grams_used }}g - {{ '%.2f' | format(filament.cost|float) }} {{ currencysymbol }}</small>
+                      <small>{{ filament.spool.filament.name }} - {{ "%.2f"|format(filament.grams_used) }}g - {{ '%.2f' | format(filament.cost|float) }} {{ currencysymbol }}</small>
                     </div>
                   {% else %}
                     <div>
                       <strong>No spool assigned - {{ filament.filament_type }}</strong><br>
-                      <small>{{ filament.grams_used }}g</small>
+                      <small>{{ "%.2f"|format(filament.grams_used) }}g</small>
                     </div>
                   {% endif %}
                 </div>
