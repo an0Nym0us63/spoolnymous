@@ -12,7 +12,8 @@ from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups
+
 
 COLOR_FAMILIES = {
     # Neutres
@@ -432,6 +433,8 @@ def print_history():
 
     spool_list = fetchSpools(False, True)
 
+    entries = {}  # clé = group_id ou print_id
+
     for print_ in prints:
         if print_["duration"] is None:
             print_["duration"] = 0
@@ -449,10 +452,38 @@ def print_history():
                         filament["cost"] = filament['grams_used'] * filament['spool']['cost_per_gram']
                         print_["total_cost"] += filament["cost"]
                         break
+
         print_["full_cost"] = print_["total_cost"] + print_["electric_cost"]
-        if "number_of_items" not in print_ or not print_["number_of_items"]:
+
+        if not print_.get("number_of_items"):
             print_["number_of_items"] = 1
         print_["full_cost_by_item"] = print_["full_cost"] / print_["number_of_items"]
+
+        if print_["group_id"]:
+            gid = print_["group_id"]
+            if gid not in entries:
+                entries[gid] = {
+                    "type": "group",
+                    "id": gid,
+                    "name": print_["group_name"],
+                    "prints": [],
+                    "total_duration": 0,
+                    "total_cost": 0,
+                    "max_id": 0,
+                }
+            entries[gid]["prints"].append(print_)
+            entries[gid]["total_duration"] += print_["duration"]
+            entries[gid]["total_cost"] += print_["full_cost"]
+            entries[gid]["max_id"] = max(entries[gid]["max_id"], print_["id"])
+        else:
+            entries[print_["id"]] = {
+                "type": "single",
+                "print": print_,
+                "max_id": print_["id"]
+            }
+
+    # On trie tous les entries par max_id (ordre décroissant)
+    entries_list = sorted(entries.values(), key=lambda e: e["max_id"], reverse=True)
 
     total_pages = (total_count + per_page - 1) // per_page
 
@@ -463,7 +494,7 @@ def print_history():
 
     return render_template(
         'print_history.html',
-        prints=prints,
+        entries=entries_list,
         currencysymbol=spoolman_settings["currency_symbol"],
         page=page,
         total_pages=total_pages,
@@ -705,4 +736,43 @@ def edit_print_items():
 
     update_print_history_field(print_id, "number_of_items", number_of_items)
     
+    return redirect(url_for("print_history"))
+
+@app.route("/create_group", methods=["POST"])
+def create_group():
+    """
+    Crée un groupe et y ajoute le print.
+    """
+    print_id = int(request.form["print_id"])
+    group_name = request.form["group_name"].strip()
+
+    if not group_name:
+        # on pourrait ajouter une vérification ou une redirection avec message d'erreur
+        return redirect(url_for("print_history"))
+
+    group_id = create_print_group(group_name)
+    update_print_history_field(print_id, "group_id", group_id)
+
+    return redirect(url_for("print_history"))
+
+@app.route("/assign_to_group", methods=["POST"])
+def assign_to_group():
+    """
+    Assigne un print à un groupe existant.
+    """
+    print_id = int(request.form["print_id"])
+    group_id = int(request.form["group_id"])
+
+    update_print_history_field(print_id, "group_id", group_id)
+
+    return redirect(url_for("print_history"))
+
+@app.route("/remove_from_group", methods=["POST"])
+def remove_from_group():
+    """
+    Retire un print de son groupe.
+    """
+    print_id = int(request.form["print_id"])
+    update_print_history_field(print_id, "group_id", None)
+
     return redirect(url_for("print_history"))

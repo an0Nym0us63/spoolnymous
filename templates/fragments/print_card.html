@@ -1,0 +1,114 @@
+<div class="card mb-2" id="print_{{ print.id }}">
+  <div class="card-header d-flex justify-content-between align-items-center clickable"
+       data-bs-toggle="collapse" data-bs-target="#details_{{ print.id }}"
+       aria-expanded="false" aria-controls="details_{{ print.id }}">
+    <span>{{ print.id }}</span>
+    <strong class="text-center flex-grow-1">{{ print.file_name or 'Print #' ~ print.id }}</strong>
+    {% if print.image_file %}
+      <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
+           alt="Print Image" style="width:40px; height:auto;" class="rounded" />
+    {% else %}
+      <span class="text-muted">No Image</span>
+    {% endif %}
+  </div>
+
+  <div id="details_{{ print.id }}" class="collapse" data-bs-parent="#printAccordion">
+    <div class="card-body position-relative">
+      <!-- Actions flottantes -->
+      <div class="dropdown position-absolute end-0 top-0 m-2">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          Actions
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editModal_{{ print.id }}">Renommer</a></li>
+          <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editItemsModal_{{ print.id }}">Définir le nombre d’éléments</a></li>
+          <li><a class="dropdown-item text-primary" href="#" onclick="confirmReajust({{ print.id }})">Réajuster</a></li>
+          <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete({{ print.id }})">Supprimer</a></li>
+          {% if print.group_id %}
+          <li>
+            <form method="post" action="{{ url_for('remove_from_group') }}" style="display:inline;">
+              <input type="hidden" name="print_id" value="{{ print.id }}">
+              <button type="submit" class="dropdown-item text-danger">❌ Retirer du groupe</button>
+            </form>
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+
+      <div class="row mb-2">
+        <div class="col-md-6"><strong>Date:</strong> {{ print.print_date }}</div>
+        <div class="col-md-6"><strong>Duration:</strong> {{ '%.2f' | format(print.duration) }}h</div>
+        {% if print['total_cost'] > 0 %}
+          <div class="col-md-6"><strong>Filament Cost:</strong> {{ '%.2f' | format(print['total_cost']) }} {{ currencysymbol }}</div>
+        {% endif %}
+        {% if print['electric_cost'] > 0 %}
+          <div class="col-md-6"><strong>Electric Cost:</strong> {{ '%.2f' | format(print['electric_cost']) }} {{ currencysymbol }}</div>
+        {% endif %}
+        {% if print['full_cost'] > 0 %}
+          <div class="col-md-6"><strong>Full Cost:</strong> {{ '%.2f' | format(print['full_cost']) }} {{ currencysymbol }}</div>
+        {% endif %}
+        {% if print['number_of_items'] > 1 %}
+          <div class="col-md-6"><strong>Nombre d’éléments :</strong> {{ print['number_of_items'] }}</div>
+          <div class="col-md-6"><strong>Coût par élément :</strong> {{ '%.2f' | format(print['full_cost_by_item']) }} {{ currencysymbol }}</div>
+        {% endif %}
+      </div>
+
+      <!-- Image en grand -->
+      {% if print.image_file %}
+      <div class="text-center mb-3">
+        <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
+             alt="Print Image" class="img-fluid rounded" style="max-width:200px;" />
+      </div>
+      {% endif %}
+
+      <div class="mb-3">
+        <strong>Filaments :</strong>
+        {% for filament in print.filament_usage %}
+          <div class="card my-1">
+            <div class="card-body py-2 d-flex align-items-center gap-2">
+              {% if filament.spool %}
+                <div class="spool-icon small">
+                  {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
+                    {% for color in filament.spool.filament.multi_color_hexes %}
+                      <div style="background-color:#{{ color }};" title="#{{ color }}"></div>
+                    {% endfor %}
+                  {% else %}
+                    <div style="background-color:#{{ filament.spool.filament.color_hex }};"></div>
+                  {% endif %}
+                </div>
+                <div>
+                  <strong>#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</strong><br>
+                  <small>{{ filament.spool.filament.name }} - {{ "%.2f"|format(filament.grams_used) }}g - {{ '%.2f' | format(filament.cost|float) }} {{ currencysymbol }}</small>
+                </div>
+              {% else %}
+                <div>
+                  <strong>No spool assigned - {{ filament.filament_type }}</strong><br>
+                  <small>{{ "%.2f"|format(filament.grams_used) }}g</small>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="mb-2">
+        <strong>Tags :</strong>
+        {% if print.tags %}
+          {% for tag in print.tags %}
+            <span class="badge bg-primary">
+              {{ tag }}
+              <button class="btn-close btn-close-white btn-sm ms-1 remove-tag" data-print-id="{{ print.id }}" data-tag="{{ tag }}"></button>
+            </span>
+          {% endfor %}
+        {% else %}
+          <span class="text-muted">Aucun</span>
+        {% endif %}
+      </div>
+
+      <div class="input-group mt-1" style="max-width: 300px;">
+        <input type="text" class="form-control form-control-sm add-tag-input" placeholder="Nouveau tag…">
+        <button class="btn btn-sm btn-success add-tag-btn" data-print-id="{{ print.id }}">✚ Ajouter</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -44,6 +44,7 @@ def create_database() -> None:
         conn = sqlite3.connect(db_config["db_path"])
         cursor = conn.cursor()
 
+        # Table prints avec group_id dès la création
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS prints (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,7 +53,9 @@ def create_database() -> None:
                 print_type TEXT NOT NULL,
                 image_file TEXT,
                 duration REAL,
-                number_of_items INTEGER DEFAULT 1
+                number_of_items INTEGER DEFAULT 1,
+                group_id INTEGER,
+                FOREIGN KEY (group_id) REFERENCES print_groups(id)
             )
         ''')
 
@@ -78,8 +81,16 @@ def create_database() -> None:
             )
         ''')
 
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS print_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL
+            )
+        ''')
+
         conn.commit()
         conn.close()
+
     else:
         conn = sqlite3.connect(db_config["db_path"])
         cursor = conn.cursor()
@@ -90,6 +101,8 @@ def create_database() -> None:
             cursor.execute("ALTER TABLE prints ADD COLUMN number_of_items INTEGER DEFAULT 1")
         if "duration" not in columns:
             cursor.execute("ALTER TABLE prints ADD COLUMN duration REAL")
+        if "group_id" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN group_id INTEGER REFERENCES print_groups(id)")
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS print_tags (
@@ -97,6 +110,13 @@ def create_database() -> None:
                 print_id INTEGER NOT NULL,
                 tag TEXT NOT NULL,
                 FOREIGN KEY (print_id) REFERENCES prints(id) ON DELETE CASCADE
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS print_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL
             )
         ''')
 
@@ -245,7 +265,7 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
         cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
         all_colors = [row[0] for row in cursor.fetchall()]
         conn.close()
-    
+
         selected_hexes_by_family = []
         for fam in color_families:
             hexes = [
@@ -254,7 +274,7 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
             ]
             if hexes:
                 selected_hexes_by_family.append(hexes)
-    
+
         if selected_hexes_by_family:
             where_clauses.append(f"""
                 p.id IN (
@@ -296,29 +316,26 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     total_count = cursor.fetchone()[0]
 
     cursor.execute(f'''
-        SELECT DISTINCT 
-            p.id AS id, 
-            p.print_date AS print_date, 
-            p.file_name AS file_name, 
-            p.print_type AS print_type, 
-            p.image_file AS image_file, 
-            p.duration AS duration,
-            p.number_of_items AS number_of_items,
-            (
-                SELECT json_group_array(json_object(
-                    'spool_id', f2.spool_id,
-                    'filament_type', f2.filament_type,
-                    'color', f2.color,
-                    'grams_used', f2.grams_used,
-                    'ams_slot', f2.ams_slot
-                )) FROM filament_usage f2 WHERE f2.print_id = p.id
-            ) AS filament_info
+        SELECT DISTINCT p.id AS id, p.print_date, p.file_name,
+               p.print_type, p.image_file, p.duration, p.number_of_items,
+               pg.id AS group_id, pg.name AS group_name,
+               (
+                   SELECT json_group_array(json_object(
+                       'spool_id', f2.spool_id,
+                       'filament_type', f2.filament_type,
+                       'color', f2.color,
+                       'grams_used', f2.grams_used,
+                       'ams_slot', f2.ams_slot
+                   )) FROM filament_usage f2 WHERE f2.print_id = p.id
+               ) AS filament_info
         FROM prints p
         LEFT JOIN filament_usage f ON f.print_id = p.id
+        LEFT JOIN print_groups pg ON pg.id = p.group_id
         {where_sql}
         ORDER BY p.print_date DESC
         LIMIT ? OFFSET ?
     ''', params + [limit, offset])
+
     prints = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return total_count, prints
@@ -399,6 +416,30 @@ def update_print_history_field(print_id: int, field: str, value) -> None:
     cursor.execute(query, (value, print_id))
     conn.commit()
     conn.close()
+
+def create_print_group(name: str) -> int:
+    """
+    Crée un groupe d'impressions et retourne son ID.
+    """
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO print_groups (name) VALUES (?)", (name,))
+    group_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return group_id
+
+def get_print_groups() -> list[dict]:
+    """
+    Retourne la liste des groupes existants.
+    """
+    conn = sqlite3.connect(db_config["db_path"])
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name FROM print_groups ORDER BY name ASC")
+    groups = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return groups
 
 
 
