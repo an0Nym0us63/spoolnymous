@@ -49,7 +49,7 @@
 </div>
         </div>
 
-        <div id="group_{{ entry.id }}" class="collapse {% if focus_id == entry.id|int %}show{% endif %}" data-bs-parent="#printAccordion">
+        <div id="group_{{ entry.id }}" class="collapse {% if focus_group_id == entry.id|int %}show{% endif %}" data-bs-parent="#printAccordion">
           <div class="card-body small">
             <div class="row row-cols-2 row-cols-md-5 g-2 mb-2 text-center">
               <div>⏱ {{ entry.total_duration|hm_format }}</div>

@@ -563,14 +563,18 @@ def print_history():
     groups_list = get_print_groups()
     pagination_pages = compute_pagination_pages(page, total_pages)
     # Gestion focus après action
-    next_focus_id = request.args.get("focus_id", type=int)
+    focus_group_id = None
     if next_focus_id:
-        # retrouve la position dans la liste
+        # retrouve la position dans la liste et le groupe
         idx_in_list = None
         for idx, entry in enumerate(entries_list):
             entry_id = entry["print"]["id"] if entry["type"] == "single" else entry["id"]
             if entry_id == next_focus_id:
                 idx_in_list = idx
+                if entry["type"] == "group":
+                    focus_group_id = entry["id"]
+                elif entry["type"] == "single" and entry["print"].get("group_id"):
+                    focus_group_id = entry["print"]["group_id"]
                 break
     
         if idx_in_list is not None:
@@ -589,7 +593,8 @@ def print_history():
         args=args,
         search=search,
         pagination_pages=pagination_pages,
-        focus_id=next_focus_id,  # 👈 AJOUT
+        focus_id=next_focus_id,
+        focus_group_id=focus_group_id
     )
 
 @app.route("/print_select_spool")
