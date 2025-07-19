@@ -17,7 +17,7 @@
     <div class="text-end">
       {% if print.image_file %}
         <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
-             alt="Print Image" style="width:30px; height:auto;" class="rounded">
+             alt="Print Image" style="width:50px; height:auto;" class="rounded shadow-sm">
       {% else %}
         <span class="text-muted">—</span>
       {% endif %}
@@ -42,7 +42,7 @@
       </div>
 
       <div class="row mb-2 text-center">
-        <div class="col-3"><i class="bi bi-clock"></i> {{ '%.2f'|format(print.duration) }}h</div>
+        <div class="col-3"><i class="bi bi-clock"></i> {{ print.duration|hm_format }}</div>
         <div class="col-3"><i class="bi bi-currency-dollar"></i> {{ '%.2f'|format(print.total_cost) }} {{ currencysymbol }}</div>
         <div class="col-3"><i class="bi bi-lightning"></i> {{ '%.2f'|format(print.electric_cost) }} {{ currencysymbol }}</div>
         <div class="col-3"><i class="bi bi-cash-stack"></i> {{ '%.2f'|format(print.full_cost) }} {{ currencysymbol }}</div>

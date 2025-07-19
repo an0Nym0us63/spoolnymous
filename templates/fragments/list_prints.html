@@ -21,7 +21,7 @@
           <div class="text-end">
             {% if entry.thumbnail %}
               <img src="{{ url_for('static', filename='prints/' ~ entry.thumbnail) }}"
-                   alt="Group Image" style="width:30px; height:auto;" class="rounded">
+                   alt="Group Image" style="width:50px; height:auto;" class="rounded shadow-sm">
             {% else %}
               <span class="text-muted">—</span>
             {% endif %}
@@ -31,7 +31,7 @@
         <div id="group_{{ entry.id }}" class="collapse" data-bs-parent="#printAccordion">
           <div class="card-body small">
             <div class="row mb-2 text-center">
-              <div class="col-2"><i class="bi bi-clock"></i> {{ '%.2f'|format(entry.total_duration) }}h</div>
+              <div class="col-2"><i class="bi bi-clock"></i> {{ entry.total_duration|hm_format }}</div>
               <div class="col-2"><i class="bi bi-box"></i> {{ entry.prints|length }}</div>
               <div class="col-2"><i class="bi bi-currency-dollar"></i> {{ '%.2f'|format(entry.total_filament_cost) }} {{ currencysymbol }}</div>
               <div class="col-2"><i class="bi bi-lightning"></i> {{ '%.2f'|format(entry.total_electric_cost) }} {{ currencysymbol }}</div>

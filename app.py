@@ -126,6 +126,12 @@ def datetimeformat(value, locale='fr'):
     dt = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
     return dt.strftime("%d/%m/%Y %H:%M")
     
+@app.template_filter('hm_format')
+def hm_format(hours: float):
+    h = int(hours)
+    m = int(round((hours - h) * 60))
+    return f"{h}h {m:02d}min"
+    
 @app.context_processor
 def frontend_utilities():
     def url_with_args(**kwargs):
