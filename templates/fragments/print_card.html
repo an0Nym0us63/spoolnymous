@@ -4,22 +4,21 @@
        data-bs-target="#details_{{ print.id }}"
        aria-expanded="false"
        aria-controls="details_{{ print.id }}">
-
     <div class="d-flex flex-column text-start small">
-      <span>🖨️</span>
-      <span class="badge bg-dark bg-opacity-75 text-light small">#{{ print.id }}</span>
+      <span><i class="bi bi-printer"></i></span>
+      <span class="text-muted">#{{ print.id }}</span>
     </div>
 
-<div class="flex-grow-1 d-flex flex-column align-items-center">
-  <div class="fw-semibold text-primary text-center small">
-    {{ print.file_name or 'Print #' ~ print.id }}
-  </div>
-  <div>
-    <span class="badge bg-secondary bg-opacity-25 text-muted small">
-      {{ print.print_date | datetimeformat('fr') }}
-    </span>
-  </div>
-</div>
+    <div class="flex-grow-1 d-flex flex-column align-items-center">
+      <div class="fw-semibold text-primary text-center small text-truncate">
+        {{ print.file_name or 'Print #' ~ print.id }}
+      </div>
+      <div>
+        <span class="badge bg-secondary bg-opacity-25 text-muted small">
+          {{ print.print_date | datetimeformat('fr') }}
+        </span>
+      </div>
+    </div>
 
     <div class="text-end">
       {% if print.image_file %}
@@ -41,21 +40,49 @@
           Actions
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editModal_{{ print.id }}">Renommer</a></li>
-          <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editItemsModal_{{ print.id }}">Définir le nombre d’éléments</a></li>
-          <li><a class="dropdown-item text-primary" href="#" onclick="confirmReajust({{ print.id }})">Réajuster</a></li>
-          <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete({{ print.id }})">Supprimer</a></li>
+          <li>
+            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editModal_{{ print.id }}">
+              📝 Renommer
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editItemsModal_{{ print.id }}">
+              🔢 Définir le nombre d’éléments
+            </a>
+          </li>
+          {% if not print.group_id %}
+            <li>
+              <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addToGroupModal_{{ print.id }}">
+                📂 Ajouter à un groupe
+              </a>
+            </li>
+          {% else %}
+            <li>
+              <a class="dropdown-item text-danger" href="{{ url_for('remove_from_group', print_id=print.id) }}">
+                ❌ Retirer du groupe
+              </a>
+            </li>
+          {% endif %}
+          <li>
+            <a class="dropdown-item text-primary" href="#" onclick="confirmReajust({{ print.id }})">
+              🔄 Réajuster
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item text-danger" href="#" onclick="confirmDelete({{ print.id }})">
+              🗑 Supprimer
+            </a>
+          </li>
         </ul>
       </div>
 
       <div class="row row-cols-2 row-cols-md-5 g-2 mb-2 text-center">
         <div>⏱ {{ print.duration|hm_format }}</div>
-        <div>🎯 {{ '%.2f'|format(print.total_cost) }} {{ currencysymbol }}</div>
+        <div>💰 {{ '%.2f'|format(print.total_cost) }} {{ currencysymbol }}</div>
         <div>⚡ {{ '%.2f'|format(print.electric_cost) }} {{ currencysymbol }}</div>
         <div>💵 {{ '%.2f'|format(print.full_cost) }} {{ currencysymbol }}</div>
         {% if print.number_of_items > 1 %}
-          <div>🔢 {{ print.number_of_items }}</div>
-          <div>💲/🖨️ {{ '%.2f'|format(print.full_cost_by_item) }} {{ currencysymbol }}</div>
+          <div>📦 {{ print.number_of_items }}</div>
         {% endif %}
       </div>
 
@@ -166,4 +193,47 @@
       </div>
     </div>
   </div>
+
+ <div class="modal fade" id="groupModal_{{ print.id }}" tabindex="-1" aria-labelledby="groupModalLabel_{{ print.id }}" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="groupModalLabel_{{ print.id }}">Ajouter à un groupe (Print #{{ print.id }})</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+
+      <div class="modal-body">
+        <form method="post" action="{{ url_for('create_group') }}">
+          <input type="hidden" name="print_id" value="{{ print.id }}">
+          <div class="mb-3">
+            <label class="form-label">Créer un nouveau groupe</label>
+            <input type="text" name="group_name" class="form-control" placeholder="Nom du nouveau groupe">
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Créer et assigner</button>
+          </div>
+        </form>
+
+        <hr>
+
+        <form method="post" action="{{ url_for('assign_to_group') }}">
+          <input type="hidden" name="print_id" value="{{ print.id }}">
+          <div class="mb-3">
+            <label class="form-label">Ou choisir un groupe existant</label>
+            <select name="group_id" class="form-select">
+              {% for group in groups_list %}
+              <option value="{{ group.id }}">{{ group.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-secondary">Assigner au groupe</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 </div>
