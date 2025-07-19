@@ -11,17 +11,15 @@
     </div>
 
     <div class="flex-grow-1 d-flex flex-column align-items-center">
-      <div>
-        <span class="badge bg-primary text-light fw-semibold fs-6">
-          {{ print.file_name or 'Print #' ~ print.id }}
-        </span>
-      </div>
-      <div>
-        <span class="badge bg-secondary bg-opacity-25 text-muted small">
-          {{ print.print_date | datetimeformat('fr') }}
-        </span>
-      </div>
-    </div>
+  <div class="fw-semibold fs-6 text-primary text-center">
+    {{ print.file_name or 'Print #' ~ print.id }}
+  </div>
+  <div>
+    <span class="badge bg-secondary bg-opacity-25 text-muted small">
+      {{ print.print_date | datetimeformat('fr') }}
+    </span>
+  </div>
+</div>
 
     <div class="text-end">
       {% if print.image_file %}
