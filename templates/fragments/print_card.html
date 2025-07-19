@@ -62,6 +62,11 @@
               📝 Renommer
             </a>
           </li>
+          <li>
+            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editItemsModal_{{ print.id }}">
+              🔢Nombre d’éléments
+            </a>
+          </li>
           {% if not print.group_id %}
             <li>
   <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#groupModal_{{ print.id }}">
@@ -100,7 +105,7 @@
         <div>⚡ {{ '%.2f'|format(print.electric_cost) }} {{ currencysymbol }}</div>
         <div>💵 {{ '%.2f'|format(print.full_cost) }} {{ currencysymbol }}</div>
         {% if print.number_of_items > 1 %}
-          <div>📦 {{ print.number_of_items }}</div>
+          <div>📦 {{ '%.2f'|format(print.full_cost_by_item) }} {{ currencysymbol }}</div>
         {% endif %}
       </div>
 
