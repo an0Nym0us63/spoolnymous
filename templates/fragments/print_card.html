@@ -48,6 +48,7 @@
         <div>💵 {{ '%.2f'|format(print.full_cost) }} {{ currencysymbol }}</div>
         {% if print.number_of_items > 1 %}
           <div>🔢 {{ print.number_of_items }}</div>
+		  <div>💲/🖨️ {{ '%.2f'|format(print.full_cost_by_item) }} {{ currencysymbol }}</div>
         {% endif %}
       </div>
 

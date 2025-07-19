@@ -10,11 +10,11 @@
              aria-controls="group_{{ entry.id }}">
           <div class="d-flex flex-column text-start small">
             <span>📁</span>
-            <span class="text-muted">#{{ entry.max_id }}</span>
+            <span class="badge bg-light text-dark border">#{{ entry.max_id }}</span>
           </div>
 
           <div class="flex-grow-1 text-center small">
-            <div class="fw-bold">{{ entry.name }}</div>
+            <div><span class="badge bg-primary-subtle text-primary fw-bold">{{ entry.name }}</span></div>
             <div class="text-muted">{{ entry.latest_date | datetimeformat('fr') }}</div>
           </div>
 
