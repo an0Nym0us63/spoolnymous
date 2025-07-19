@@ -26,15 +26,29 @@
 
   <div id="details_{{ print.id }}" class="collapse"
        data-bs-parent="{% if print.group_id %}#group_accordion_{{ print.group_id }}{% else %}#printAccordion{% endif %}">
-    <div class="card-body position-relative">
-      <div class="row mb-2">
-        <div class="col-6"><i class="bi bi-clock"></i> <strong>Durée :</strong> {{ '%.2f'|format(print.duration) }}h</div>
-        <div class="col-6"><i class="bi bi-currency-dollar"></i> <strong>Coût filament :</strong> {{ '%.2f'|format(print.total_cost) }} {{ currencysymbol }}</div>
-        <div class="col-6"><i class="bi bi-lightning"></i> <strong>Coût électricité :</strong> {{ '%.2f'|format(print.electric_cost) }} {{ currencysymbol }}</div>
-        <div class="col-6"><i class="bi bi-cash-stack"></i> <strong>Coût total :</strong> {{ '%.2f'|format(print.full_cost) }} {{ currencysymbol }}</div>
+    <div class="card-body position-relative small">
+
+      <!-- Actions flottantes -->
+      <div class="dropdown position-absolute end-0 top-0 m-2">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          Actions
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editModal_{{ print.id }}">Renommer</a></li>
+          <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editItemsModal_{{ print.id }}">Définir le nombre d’éléments</a></li>
+          <li><a class="dropdown-item text-primary" href="#" onclick="confirmReajust({{ print.id }})">Réajuster</a></li>
+          <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete({{ print.id }})">Supprimer</a></li>
+        </ul>
+      </div>
+
+      <div class="row mb-2 text-center">
+        <div class="col-3"><i class="bi bi-clock"></i> {{ '%.2f'|format(print.duration) }}h</div>
+        <div class="col-3"><i class="bi bi-currency-dollar"></i> {{ '%.2f'|format(print.total_cost) }} {{ currencysymbol }}</div>
+        <div class="col-3"><i class="bi bi-lightning"></i> {{ '%.2f'|format(print.electric_cost) }} {{ currencysymbol }}</div>
+        <div class="col-3"><i class="bi bi-cash-stack"></i> {{ '%.2f'|format(print.full_cost) }} {{ currencysymbol }}</div>
         {% if print.number_of_items > 1 %}
-          <div class="col-6"><i class="bi bi-grid"></i> <strong>Nombre d’éléments :</strong> {{ print.number_of_items }}</div>
-          <div class="col-6"><i class="bi bi-cash-coin"></i> <strong>Coût par élément :</strong> {{ '%.2f'|format(print.full_cost_by_item) }} {{ currencysymbol }}</div>
+          <div class="col-3"><i class="bi bi-grid"></i> {{ print.number_of_items }}</div>
+          <div class="col-3"><i class="bi bi-cash-coin"></i> {{ '%.2f'|format(print.full_cost_by_item) }} {{ currencysymbol }}</div>
         {% endif %}
       </div>
 
@@ -44,6 +58,36 @@
              alt="Print Image" class="img-fluid rounded" style="max-width:200px;" />
       </div>
       {% endif %}
+
+      <div class="mb-3">
+        <strong>Filaments :</strong>
+        {% for filament in print.filament_usage %}
+          <div class="card my-1">
+            <div class="card-body py-2 d-flex align-items-center gap-2">
+              {% if filament.spool %}
+                <div class="spool-icon small">
+                  {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
+                    {% for color in filament.spool.filament.multi_color_hexes %}
+                      <div style="background-color:#{{ color }};" title="#{{ color }}"></div>
+                    {% endfor %}
+                  {% else %}
+                    <div style="background-color:#{{ filament.spool.filament.color_hex }};"></div>
+                  {% endif %}
+                </div>
+                <div>
+                  <strong>#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</strong><br>
+                  <small>{{ filament.spool.filament.name }} - {{ "%.2f"|format(filament.grams_used) }}g - {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}</small>
+                </div>
+              {% else %}
+                <div>
+                  <strong>Non assigné - {{ filament.filament_type }}</strong><br>
+                  <small>{{ "%.2f"|format(filament.grams_used) }}g</small>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
 
       <div class="mb-2">
         <strong>Tags :</strong>
@@ -62,6 +106,56 @@
       <div class="input-group mt-1" style="max-width: 300px;">
         <input type="text" class="form-control form-control-sm add-tag-input" placeholder="Nouveau tag…">
         <button class="btn btn-sm btn-success add-tag-btn" data-print-id="{{ print.id }}">✚ Ajouter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE RENOMMAGE -->
+  <div class="modal fade" id="editModal_{{ print.id }}" tabindex="-1" aria-labelledby="editModalLabel_{{ print.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="post" action="{{ url_for('edit_print_name') }}">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editModalLabel_{{ print.id }}">Renommer (Print #{{ print.id }})</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" name="print_id" value="{{ print.id }}">
+            <div class="mb-3">
+              <label for="file_name_{{ print.id }}" class="form-label">Nouveau nom</label>
+              <input type="text" class="form-control" name="file_name" id="file_name_{{ print.id }}" value="{{ print.file_name }}">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE NOMBRE D'ÉLÉMENTS -->
+  <div class="modal fade" id="editItemsModal_{{ print.id }}" tabindex="-1" aria-labelledby="editItemsModalLabel_{{ print.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="post" action="{{ url_for('edit_print_items') }}">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editItemsModalLabel_{{ print.id }}">Définir le nombre d’éléments (Print #{{ print.id }})</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" name="print_id" value="{{ print.id }}">
+            <div class="mb-3">
+              <label for="number_of_items_{{ print.id }}" class="form-label">Nombre d’éléments</label>
+              <input type="number" min="1" class="form-control" name="number_of_items" id="number_of_items_{{ print.id }}" value="{{ print.number_of_items or 1 }}">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>

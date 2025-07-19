@@ -30,12 +30,11 @@
 
         <div id="group_{{ entry.id }}" class="collapse" data-bs-parent="#printAccordion">
           <div class="card-body small">
-            <div class="row mb-2">
-              <div class="col-6"><i class="bi bi-clock"></i> <strong>Durée totale :</strong> {{ '%.2f'|format(entry.total_duration) }}h</div>
-              <div class="col-6"><i class="bi bi-box"></i> <strong>Nombre de prints :</strong> {{ entry.prints|length }}</div>
-              <div class="col-6"><i class="bi bi-currency-dollar"></i> <strong>Coût filament total :</strong> {{ '%.2f'|format(entry.total_filament_cost) }} {{ currencysymbol }}</div>
-              <div class="col-6"><i class="bi bi-lightning"></i> <strong>Coût électricité total :</strong> {{ '%.2f'|format(entry.total_electric_cost) }} {{ currencysymbol }}</div>
-              <div class="col-6"><i class="bi bi-cash-stack"></i> <strong>Coût total :</strong> {{ '%.2f'|format(entry.total_cost) }} {{ currencysymbol }}</div>
+            <div class="row mb-2 text-center">
+              <div class="col-3"><i class="bi bi-clock"></i> {{ '%.2f'|format(entry.total_duration) }}h</div>
+              <div class="col-3"><i class="bi bi-box"></i> {{ entry.prints|length }}</div>
+              <div class="col-3"><i class="bi bi-currency-dollar"></i> {{ '%.2f'|format(entry.total_filament_cost) }} {{ currencysymbol }}</div>
+              <div class="col-3"><i class="bi bi-lightning"></i> {{ '%.2f'|format(entry.total_electric_cost) }} {{ currencysymbol }}</div>
             </div>
 
             {% set filaments_used = {} %}
@@ -51,12 +50,17 @@
             {% endfor %}
 
             <div class="mb-2">
-              <strong><i class="bi bi-palette"></i> Filaments utilisés :</strong>
-              <ul>
-                {% for key, grams in filaments_used.items() %}
-                  <li>{{ key }} : {{ '%.2f'|format(grams) }}g</li>
-                {% endfor %}
-              </ul>
+              <strong>Filaments utilisés :</strong>
+              {% for key, grams in filaments_used.items() %}
+                <div class="card my-1">
+                  <div class="card-body py-2 d-flex align-items-center gap-2">
+                    <div>
+                      <strong>{{ key }}</strong><br>
+                      <small>{{ '%.2f'|format(grams) }}g</small>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
             </div>
 
             <hr>
