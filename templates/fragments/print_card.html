@@ -4,8 +4,25 @@
        data-bs-target="#details_{{ print.id }}"
        aria-expanded="false"
        aria-controls="details_{{ print.id }}">
-    <div class="d-flex flex-column text-start small">
-      <span>🖨️</span>
+    <div class="d-flex flex-column text-start small position-relative">
+  <span class="position-relative d-inline-block" style="font-size: 1rem; line-height: 1;">
+    <span class="emoji-printer" style="position: relative; display: inline-block;">
+      🖨
+      {% if print.number_of_items > 1 %}
+      <span class="badge bg-primary rounded-pill"
+            style="
+              position: absolute;
+              top: 0;
+              right: -0.4rem;
+              transform: translate(50%, -50%);
+              font-size: 0.6rem;
+              padding: 0.15em 0.4em;
+            ">
+        {{ print.number_of_items }}
+      </span>
+      {% endif %}
+    </span>
+  </span>
       <span class="badge bg-dark bg-opacity-75 text-light small">#{{ print.id }}</span>
     </div>
 
@@ -43,11 +60,6 @@
           <li>
             <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editModal_{{ print.id }}">
               📝 Renommer
-            </a>
-          </li>
-          <li>
-            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editItemsModal_{{ print.id }}">
-              🔢Nombre d’éléments
             </a>
           </li>
           {% if not print.group_id %}
