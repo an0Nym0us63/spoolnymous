@@ -435,7 +435,12 @@ def print_history():
 
     search = request.args.get("search", "").strip()
 
-    total_count, prints = get_prints_with_filament(offset=offset, limit=per_page, filters=filters, search=search)
+    total_count, prints = get_prints_with_filament(
+        offset=offset,
+        limit=per_page,
+        filters=filters,
+        search=search
+    )
 
     spool_list = fetchSpools(False, True)
 
@@ -468,6 +473,7 @@ def print_history():
         if print_["group_id"]:
             gid = print_["group_id"]
             if gid not in entries:
+                # initialise le groupe
                 entries[gid] = {
                     "type": "group",
                     "id": gid,
@@ -476,12 +482,23 @@ def print_history():
                     "total_duration": 0,
                     "total_cost": 0,
                     "max_id": 0,
+                    "latest_date": print_["print_date"],   # premier print du groupe
+                    "thumbnail": print_["image_file"],     # premier print du groupe
                 }
+
+            # ajoute le print au groupe
             entries[gid]["prints"].append(print_)
             entries[gid]["total_duration"] += print_["duration"]
             entries[gid]["total_cost"] += print_["full_cost"]
-            entries[gid]["max_id"] = max(entries[gid]["max_id"], print_["id"])
+
+            # met à jour max_id et métadonnées si nécessaire
+            if print_["id"] > entries[gid]["max_id"]:
+                entries[gid]["max_id"] = print_["id"]
+                entries[gid]["latest_date"] = print_["print_date"]
+                entries[gid]["thumbnail"] = print_["image_file"]
+
         else:
+            # print individuel
             entries[print_["id"]] = {
                 "type": "single",
                 "print": print_,
@@ -498,6 +515,7 @@ def print_history():
     args = request.args.to_dict(flat=False)
     args.pop('page', None)
     groups_list = get_print_groups()
+
     return render_template(
         'print_history.html',
         entries=entries_list,
@@ -510,6 +528,7 @@ def print_history():
         args=args,
         search=search
     )
+
 
 @app.route("/print_select_spool")
 def print_select_spool():
