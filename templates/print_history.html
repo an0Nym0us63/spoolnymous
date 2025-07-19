@@ -2,7 +2,31 @@
 
 {% block content %}
 <h1 class="mb-4 text-center">Print History</h1>
+<nav class="position-fixed bottom-0 start-50 translate-middle-x bg-body rounded shadow p-1 mb-2 d-md-none" style="z-index: 1030;">
+  <ul class="pagination pagination-sm mb-0 justify-content-center">
+    {% if page > 1 %}
+      <li class="page-item">
+        <a class="page-link rounded-pill" href="{{ url_for('print_history', **args, page=page-1) }}" aria-label="Précédent">
+          <span aria-hidden="true">«</span>
+        </a>
+      </li>
+    {% endif %}
 
+    {% for p in range(1, total_pages+1) %}
+      <li class="page-item {% if p == page %}active{% endif %}">
+        <a class="page-link rounded-pill" href="{{ url_for('print_history', **args, page=p) }}">{{ p }}</a>
+      </li>
+    {% endfor %}
+
+    {% if page < total_pages %}
+      <li class="page-item">
+        <a class="page-link rounded-pill" href="{{ url_for('print_history', **args, page=page+1) }}" aria-label="Suivant">
+          <span aria-hidden="true">»</span>
+        </a>
+      </li>
+    {% endif %}
+  </ul>
+</nav>
 <!-- BOUTON FILTRES -->
 <div class="text-end mb-3">
   <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
@@ -43,64 +67,9 @@
     </div>
   </form>
 </div>
-<div class="pagination justify-content-center mt-4 align-items-center gap-2 flex-wrap">
-  {% if page > 1 %}
-    <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo; First</a>
-    <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo; Prev</a>
-  {% endif %}
-
-  <span class="mx-2">
-    Page {{ page }} / {{ total_pages }}
-  </span>
-
-  {% if page < total_pages %}
-    <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">Next &rsaquo;</a>
-    <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">Last &raquo;</a>
-  {% endif %}
-</div>
-
-<form method="get" class="d-flex justify-content-center mt-2 gap-2 mb-2">
-  {% for key, value in request.args.items() %}
-    {% if key != 'page' %}
-      <input type="hidden" name="{{ key }}" value="{{ value }}">
-    {% endif %}
-  {% endfor %}
-  <label for="goto_page" class="form-label me-2">Aller à la page :</label>
-  <input type="number" min="1" max="{{ total_pages }}" name="page" id="goto_page" class="form-control form-control-sm w-auto" value="{{ page }}">
-  <button type="submit" class="btn btn-primary btn-sm">Go</button>
-</form>
-
-
-
 
 {% include 'fragments/list_prints.html' %}
 
-<div class="pagination justify-content-center mt-4 align-items-center gap-2 flex-wrap">
-  {% if page > 1 %}
-    <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo; First</a>
-    <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo; Prev</a>
-  {% endif %}
-
-  <span class="mx-2">
-    Page {{ page }} / {{ total_pages }}
-  </span>
-
-  {% if page < total_pages %}
-    <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">Next &rsaquo;</a>
-    <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">Last &raquo;</a>
-  {% endif %}
-</div>
-
-<form method="get" class="d-flex justify-content-center mt-2 gap-2">
-  {% for key, value in request.args.items() %}
-    {% if key != 'page' %}
-      <input type="hidden" name="{{ key }}" value="{{ value }}">
-    {% endif %}
-  {% endfor %}
-  <label for="goto_page" class="form-label me-2">Aller à la page :</label>
-  <input type="number" min="1" max="{{ total_pages }}" name="page" id="goto_page" class="form-control form-control-sm w-auto" value="{{ page }}">
-  <button type="submit" class="btn btn-primary btn-sm">Go</button>
-</form>
 {% endblock %}
 
 {% block scripts %}
