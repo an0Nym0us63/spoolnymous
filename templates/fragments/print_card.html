@@ -78,6 +78,7 @@
 
       <div class="row row-cols-2 row-cols-md-5 g-2 mb-2 text-center">
         <div>⏱ {{ print.duration|hm_format }}</div>
+		<div>⚖️ {{ '%.1f'|format(print.total_weight) }}g</div>
         <div>💰 {{ '%.2f'|format(print.total_cost) }} {{ currencysymbol }}</div>
         <div>⚡ {{ '%.2f'|format(print.electric_cost) }} {{ currencysymbol }}</div>
         <div>💵 {{ '%.2f'|format(print.full_cost) }} {{ currencysymbol }}</div>

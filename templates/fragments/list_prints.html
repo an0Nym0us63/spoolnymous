@@ -38,6 +38,7 @@
           <div class="card-body small">
             <div class="row row-cols-2 row-cols-md-5 g-2 mb-2 text-center">
               <div>⏱ {{ entry.total_duration|hm_format }}</div>
+			  <div>⚖️ {{ '%.1f'|format(entry.total_weight) }}g</div>
               <div>📦 {{ entry.prints|length }}</div>
               <div>🎯 {{ '%.2f'|format(entry.total_filament_cost) }} {{ currencysymbol }}</div>
               <div>⚡ {{ '%.2f'|format(entry.total_electric_cost) }} {{ currencysymbol }}</div>

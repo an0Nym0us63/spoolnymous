@@ -482,7 +482,7 @@ def print_history():
         print_["filament_usage"] = json.loads(print_["filament_info"])
         print_["total_cost"] = 0
         print_["tags"] = get_tags_for_print(print_["id"])
-
+        print_["total_weight"] = sum(f["grams_used"] for f in print_["filament_usage"])
         for filament in print_["filament_usage"]:
             if filament["spool_id"]:
                 for spool in spool_list:
@@ -517,7 +517,7 @@ def print_history():
             entries[gid]["prints"].append(print_)
             entries[gid]["total_duration"] += print_["duration"]
             entries[gid]["total_cost"] += print_["full_cost"]
-
+            entries[gid]["total_weight"] = entries[gid].get("total_weight", 0) + print_["total_weight"]
             if print_["id"] > entries[gid]["max_id"]:
                 entries[gid]["max_id"] = print_["id"]
                 entries[gid]["latest_date"] = print_["print_date"]
