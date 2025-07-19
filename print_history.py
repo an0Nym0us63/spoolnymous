@@ -290,31 +290,42 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
             params.append(len(selected_hexes_by_family))
 
     if search:
-        where_clauses.append("""
-            (
+        words = [w.strip().lower() for w in search.split() if w.strip()]
+        word_clauses = []
+        for w in words:
+            word_clauses.append("""
                 LOWER(p.file_name) LIKE ?
                 OR EXISTS (
                     SELECT 1 FROM print_tags pt
                     WHERE pt.print_id = p.id AND LOWER(pt.tag) LIKE ?
                 )
-            )
-        """)
-        search_param = f"%{search.lower()}%"
-        params.extend([search_param, search_param])
+                OR EXISTS (
+                    SELECT 1 FROM print_groups pg
+                    WHERE pg.id = p.group_id AND LOWER(pg.name) LIKE ?
+                )
+            """)
+            params.extend([f"%{w}%"] * 3)
+
+        if word_clauses:
+            where_clauses.append(f"( {' OR '.join(word_clauses)} )")
 
     where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
     conn = sqlite3.connect(db_config["db_path"])
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
+
+    # Compter le total
     cursor.execute(f'''
         SELECT COUNT(DISTINCT p.id)
         FROM prints p
         LEFT JOIN filament_usage f ON f.print_id = p.id
+        LEFT JOIN print_groups pg ON pg.id = p.group_id
         {where_sql}
     ''', params)
     total_count = cursor.fetchone()[0]
 
+    # Charger les prints
     cursor.execute(f'''
         SELECT DISTINCT p.id AS id, p.print_date, p.file_name,
                p.print_type, p.image_file, p.duration, p.number_of_items,
@@ -339,6 +350,7 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     prints = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return total_count, prints
+
 
 def get_filament_for_slot(print_id: int, ams_slot: int):
     conn = sqlite3.connect(db_config["db_path"])
