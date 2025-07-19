@@ -249,3 +249,23 @@ function applyColorTags() {
         `);
     });
 }
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  const accordions = document.querySelectorAll(".card-header[data-bs-toggle='collapse']");
+
+  accordions.forEach(header => {
+    header.addEventListener("click", (e) => {
+      const targetSelector = header.getAttribute("data-bs-target");
+      const target = document.querySelector(targetSelector);
+
+      if (!target.classList.contains("show")) {
+        // Si on est en train d’ouvrir un autre bloc…
+        setTimeout(() => {
+          const y = header.getBoundingClientRect().top + window.scrollY - 20;
+          window.scrollTo({ top: y, behavior: "smooth" });
+        }, 350); // durée anim Bootstrap par défaut
+      }
+    });
+  });
+});
