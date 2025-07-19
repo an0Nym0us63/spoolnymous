@@ -133,6 +133,14 @@ def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
 
     return pages
 
+def redirect_back(focus_id=None):
+    args = request.form.to_dict(flat=True)
+    page = args.get("page") or request.args.get("page") or 1
+    kwargs = {"page": page}
+    if focus_id:
+        kwargs["focus_id"] = focus_id
+    return redirect(url_for("print_history", **kwargs))
+
 init_mqtt()
 
 app = Flask(__name__)
@@ -554,6 +562,21 @@ def print_history():
     args.pop('page', None)
     groups_list = get_print_groups()
     pagination_pages = compute_pagination_pages(page, total_pages)
+    # Gestion focus après action
+    next_focus_id = request.args.get("focus_id", type=int)
+    if next_focus_id:
+        # retrouve la position dans la liste
+        idx_in_list = None
+        for idx, entry in enumerate(entries_list):
+            entry_id = entry["print"]["id"] if entry["type"] == "single" else entry["id"]
+            if entry_id == next_focus_id:
+                idx_in_list = idx
+                break
+    
+        if idx_in_list is not None:
+            target_page = (idx_in_list // per_page) + 1
+            if target_page != page:
+                return redirect(url_for("print_history", page=target_page, focus_id=next_focus_id))
     return render_template(
         'print_history.html',
         entries=entries_list,
@@ -584,18 +607,6 @@ def print_select_spool():
   except Exception as e:
     traceback.print_exc()
     return render_template('error.html', exception=str(e))
-
-@app.route("/edit_print_name", methods=["POST"])
-def edit_print_name():
-    print_id = request.form.get("print_id")
-    new_filename = request.form.get("file_name", "").strip()
-
-    if not print_id or not new_filename:
-        return "Invalid data", 400
-
-    update_print_filename(int(print_id), new_filename)
-
-    return redirect(url_for("print_history"))
 
 @app.route("/history/delete/<int:print_id>", methods=["POST"])
 def delete_print_history(print_id):
@@ -785,11 +796,17 @@ def filaments():
         selected_family=selected_family
     )
 
+@app.route("/edit_print_name", methods=["POST"])
+def edit_print_name():
+    print_id = int(request.form["print_id"])
+    new_filename = request.form.get("file_name", "").strip()
+    if new_filename:
+        update_print_filename(print_id, new_filename)
+    return redirect_back(focus_id=print_id)
+
+
 @app.route("/edit_print_items", methods=["POST"])
 def edit_print_items():
-    """
-    Met à jour le nombre d'éléments d'une impression.
-    """
     print_id = int(request.form["print_id"])
     try:
         number_of_items = int(request.form["number_of_items"])
@@ -799,44 +816,32 @@ def edit_print_items():
         number_of_items = 1
 
     update_print_history_field(print_id, "number_of_items", number_of_items)
-    
-    return redirect(url_for("print_history"))
+    return redirect_back(focus_id=print_id)
+
 
 @app.route("/create_group", methods=["POST"])
 def create_group():
-    """
-    Crée un groupe et y ajoute le print.
-    """
     print_id = int(request.form["print_id"])
     group_name = request.form["group_name"].strip()
 
-    if not group_name:
-        # on pourrait ajouter une vérification ou une redirection avec message d'erreur
-        return redirect(url_for("print_history"))
+    if group_name:
+        group_id = create_print_group(group_name)
+        update_print_history_field(print_id, "group_id", group_id)
 
-    group_id = create_print_group(group_name)
-    update_print_history_field(print_id, "group_id", group_id)
+    return redirect_back(focus_id=print_id)
 
-    return redirect(url_for("print_history"))
 
 @app.route("/assign_to_group", methods=["POST"])
 def assign_to_group():
-    """
-    Assigne un print à un groupe existant.
-    """
     print_id = int(request.form["print_id"])
     group_id = int(request.form["group_id"])
 
     update_print_history_field(print_id, "group_id", group_id)
+    return redirect_back(focus_id=print_id)
 
-    return redirect(url_for("print_history"))
 
 @app.route("/remove_from_group", methods=["POST"])
 def remove_from_group():
-    """
-    Retire un print de son groupe.
-    """
     print_id = int(request.form["print_id"])
     update_print_history_field(print_id, "group_id", None)
-
-    return redirect(url_for("print_history"))
+    return redirect_back(focus_id=print_id)
