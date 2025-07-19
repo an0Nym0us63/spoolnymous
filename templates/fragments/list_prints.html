@@ -38,33 +38,31 @@
               <div class="col-2"><i class="bi bi-cash-stack"></i> {{ '%.2f'|format(entry.total_cost) }} {{ currencysymbol }}</div>
             </div>
 
-            {% set filaments_used = {} %}
-            {% for print in entry.prints %}
-              {% for filament in print.filament_usage %}
-                {% set key = filament.filament_type ~ "-" ~ filament.color %}
-                {% if key in filaments_used %}
-                  {% set _ = filaments_used.__setitem__(key, filaments_used[key] + filament.grams_used) %}
-                {% else %}
-                  {% set _ = filaments_used.__setitem__(key, filament.grams_used) %}
-                {% endif %}
-              {% endfor %}
-            {% endfor %}
-
-            <div class="mb-2">
+            <div class="mb-3">
               <strong>Filaments utilisés :</strong>
-              {% for key, grams in filaments_used.items() %}
-                {% set parts = key.split('-') %}
-                {% set filament_type = parts[0] %}
-                {% set color = parts[1] %}
+              {% for filament in entry.filament_usage.values() %}
                 <div class="card my-1">
                   <div class="card-body py-2 d-flex align-items-center gap-2">
-                    <div class="spool-icon small">
-                      <div style="background-color:#{{ color }};" title="#{{ color }}"></div>
-                    </div>
-                    <div>
-                      <strong>{{ filament_type }}</strong><br>
-                      <small>{{ "%.2f"|format(grams) }}g</small>
-                    </div>
+                    {% if filament.spool %}
+                      <div class="spool-icon small">
+                        {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
+                          {% for color in filament.spool.filament.multi_color_hexes %}
+                            <div style="background-color:#{{ color }};" title="#{{ color }}"></div>
+                          {% endfor %}
+                        {% else %}
+                          <div style="background-color:#{{ filament.spool.filament.color_hex }};"></div>
+                        {% endif %}
+                      </div>
+                      <div>
+                        <strong>#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</strong><br>
+                        <small>{{ filament.spool.filament.name }} - {{ "%.2f"|format(filament.grams_used) }}g - {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}</small>
+                      </div>
+                    {% else %}
+                      <div>
+                        <strong>Non assigné - {{ filament.filament_type }}</strong><br>
+                        <small>{{ "%.2f"|format(filament.grams_used) }}g</small>
+                      </div>
+                    {% endif %}
                   </div>
                 </div>
               {% endfor %}
@@ -73,6 +71,7 @@
             <hr>
 
             {% for print in entry.prints %}
+              {% set print = print %}
               {% include 'fragments/print_card.html' %}
             {% endfor %}
           </div>

@@ -460,7 +460,7 @@ def print_history():
                 for spool in spool_list:
                     if spool['id'] == filament["spool_id"]:
                         filament["spool"] = spool
-                        filament["cost"] = filament['grams_used'] * filament['spool']['cost_per_gram']
+                        filament["cost"] = filament['grams_used'] * spool['cost_per_gram']
                         print_["total_cost"] += filament["cost"]
                         break
 
@@ -473,7 +473,6 @@ def print_history():
         if print_["group_id"]:
             gid = print_["group_id"]
             if gid not in entries:
-                # initialise le groupe
                 entries[gid] = {
                     "type": "group",
                     "id": gid,
@@ -482,36 +481,41 @@ def print_history():
                     "total_duration": 0,
                     "total_cost": 0,
                     "max_id": 0,
-                    "latest_date": print_["print_date"],   # premier print du groupe
-                    "thumbnail": print_["image_file"],     # premier print du groupe
+                    "latest_date": print_["print_date"],
+                    "thumbnail": print_["image_file"],
+                    "filament_usage": {}
                 }
 
-            # ajoute le print au groupe
             entries[gid]["prints"].append(print_)
             entries[gid]["total_duration"] += print_["duration"]
             entries[gid]["total_cost"] += print_["full_cost"]
 
-            # met à jour max_id et métadonnées si nécessaire
             if print_["id"] > entries[gid]["max_id"]:
                 entries[gid]["max_id"] = print_["id"]
                 entries[gid]["latest_date"] = print_["print_date"]
                 entries[gid]["thumbnail"] = print_["image_file"]
 
+            # cumul des filaments
+            for filament in print_["filament_usage"]:
+                key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
+                if key not in entries[gid]["filament_usage"]:
+                    entries[gid]["filament_usage"][key] = dict(filament)  # copie
+                else:
+                    entries[gid]["filament_usage"][key]["grams_used"] += filament["grams_used"]
+                    entries[gid]["filament_usage"][key]["cost"] += filament["cost"]
+
         else:
-            # print individuel
             entries[print_["id"]] = {
                 "type": "single",
                 "print": print_,
                 "max_id": print_["id"]
             }
 
-    # On finalise les coûts des groupes (élec + filament)
     for entry in entries.values():
         if entry["type"] == "group":
             entry["total_electric_cost"] = entry["total_duration"] * float(COST_BY_HOUR)
             entry["total_filament_cost"] = entry["total_cost"] - entry["total_electric_cost"]
 
-    # On trie tous les entries par max_id (ordre décroissant)
     entries_list = sorted(entries.values(), key=lambda e: e["max_id"], reverse=True)
 
     total_pages = (total_count + per_page - 1) // per_page
@@ -534,8 +538,6 @@ def print_history():
         args=args,
         search=search
     )
-
-
 
 @app.route("/print_select_spool")
 def print_select_spool():
