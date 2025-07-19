@@ -9,24 +9,31 @@
              aria-expanded="false"
              aria-controls="group_{{ entry.id }}">
           <div class="d-flex flex-column text-start small">
-            <span>📁</span>
-            <span class="badge bg-dark bg-opacity-50 text-light small">#{{ entry.max_id }}</span>
-          </div>
+  <span>📁</span>
+  <span class="badge bg-dark bg-opacity-75 text-light small">#{{ entry.max_id }}</span>
+</div>
 
-          <div class="flex-grow-1 text-center small">
-            <span class="badge bg-primary-subtle text-primary fw-semibold">{{ entry.name }}</span>
-            <span class="badge bg-secondary bg-opacity-25 text-muted small">{{ entry.latest_date | datetimeformat('fr') }}</span>
-          </div>
+<div class="flex-grow-1 d-flex flex-column align-items-center">
+  <div>
+    <span class="badge bg-primary text-light fw-semibold fs-6">
+      {{ entry.name }}
+    </span>
+  </div>
+  <div>
+    <span class="badge bg-secondary bg-opacity-25 text-muted small">
+      {{ entry.latest_date | datetimeformat('fr') }}
+    </span>
+  </div>
+</div>
 
-          <div class="text-end">
-            {% if entry.thumbnail %}
-              <img src="{{ url_for('static', filename='prints/' ~ entry.thumbnail) }}"
-                   alt="Group Image" style="width:50px; height:auto;" class="rounded shadow-sm">
-            {% else %}
-              <span class="text-muted">—</span>
-            {% endif %}
-          </div>
-        </div>
+<div class="text-end">
+  {% if entry.thumbnail %}
+    <img src="{{ url_for('static', filename='prints/' ~ entry.thumbnail) }}"
+         alt="Group Image" style="width:50px; height:auto;" class="rounded shadow-sm">
+  {% else %}
+    <span class="text-muted">—</span>
+  {% endif %}
+</div>
 
         <div id="group_{{ entry.id }}" class="collapse" data-bs-parent="#printAccordion">
           <div class="card-body small">
