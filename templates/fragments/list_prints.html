@@ -8,9 +8,12 @@
              data-bs-parent="#printAccordion"
              aria-expanded="false"
              aria-controls="group_{{ entry.id }}">
-          <div class="d-flex flex-column text-start small">
-  <span>📁</span>
-  <span class="badge bg-dark bg-opacity-75 text-light small">#{{ entry.max_id }}</span>
+          <div class="d-flex flex-column text-start small position-relative">
+  <span style="font-size: 1.5rem;">📁</span>
+  <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
+    {{ entry.prints|length }}
+  </span>
+  <span class="text-muted">#{{ entry.max_id }}</span>
 </div>
 
 <div class="flex-grow-1 d-flex flex-column align-items-center">
