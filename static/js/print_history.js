@@ -254,18 +254,30 @@ function applyColorTags() {
 document.addEventListener("DOMContentLoaded", () => {
   const accordions = document.querySelectorAll(".card-header[data-bs-toggle='collapse']");
 
+  // Gestion du clic classique sur un header
   accordions.forEach(header => {
     header.addEventListener("click", (e) => {
       const targetSelector = header.getAttribute("data-bs-target");
       const target = document.querySelector(targetSelector);
 
       if (!target.classList.contains("show")) {
-        // Si on est en train d’ouvrir un autre bloc…
+        // On attend l'ouverture animée avant de scroller
         setTimeout(() => {
           const y = header.getBoundingClientRect().top + window.scrollY - 20;
           window.scrollTo({ top: y, behavior: "smooth" });
-        }, 350); // durée anim Bootstrap par défaut
+        }, 350);
       }
     });
   });
+
+  // Gestion du focus_id à l'affichage initial
+  const focused = document.querySelector(".collapse.show");
+  if (focused) {
+    // On cherche le header qui l’a déclenché
+    const header = focused.closest(".card").querySelector(".card-header");
+    if (header) {
+      const y = header.getBoundingClientRect().top + window.scrollY - 20;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+  }
 });

@@ -589,6 +589,7 @@ def print_history():
         args=args,
         search=search,
         pagination_pages=pagination_pages,
+        focus_id=next_focus_id,  # 👈 AJOUT
     )
 
 @app.route("/print_select_spool")
