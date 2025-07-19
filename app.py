@@ -563,6 +563,7 @@ def print_history():
     groups_list = get_print_groups()
     pagination_pages = compute_pagination_pages(page, total_pages)
     # Gestion focus après action
+    next_focus_id = request.args.get("focus_id", type=int)
     focus_group_id = None
     if next_focus_id:
         # retrouve la position dans la liste et le groupe
