@@ -9,7 +9,7 @@
              aria-expanded="false"
              aria-controls="group_{{ entry.id }}">
           <div class="d-flex flex-column text-start small">
-            <span><i class="bi bi-folder"></i></span>
+            <span>📁</span>
             <span class="text-muted">#{{ entry.max_id }}</span>
           </div>
 
@@ -31,12 +31,12 @@
         <div id="group_{{ entry.id }}" class="collapse" data-bs-parent="#printAccordion">
           <div class="card-body small">
             <div class="row row-cols-2 row-cols-md-5 g-2 mb-2 text-center">
-  <div><i class="bi bi-clock"></i> {{ entry.total_duration|hm_format }}</div>
-  <div><i class="bi bi-box"></i> {{ entry.prints|length }}</div>
-  <div><i class="bi bi-currency-dollar"></i> {{ '%.2f'|format(entry.total_filament_cost) }} {{ currencysymbol }}</div>
-  <div><i class="bi bi-lightning"></i> {{ '%.2f'|format(entry.total_electric_cost) }} {{ currencysymbol }}</div>
-  <div><i class="bi bi-cash-stack"></i> {{ '%.2f'|format(entry.total_cost) }} {{ currencysymbol }}</div>
-</div>
+              <div>⏱ {{ entry.total_duration|hm_format }}</div>
+              <div>📦 {{ entry.prints|length }}</div>
+              <div>🎯 {{ '%.2f'|format(entry.total_filament_cost) }} {{ currencysymbol }}</div>
+              <div>⚡ {{ '%.2f'|format(entry.total_electric_cost) }} {{ currencysymbol }}</div>
+              <div>💵 {{ '%.2f'|format(entry.total_cost) }} {{ currencysymbol }}</div>
+            </div>
 
             <div class="mb-3">
               <strong>Filaments utilisés :</strong>
