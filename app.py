@@ -557,46 +557,42 @@ def print_history():
     total_pages = (total_count + per_page - 1) // per_page
 
     distinct_values = get_distinct_values()
-
     args = request.args.to_dict(flat=False)
     args.pop('page', None)
     groups_list = get_print_groups()
     pagination_pages = compute_pagination_pages(page, total_pages)
+
     # Gestion focus après action
     next_focus_id = request.args.get("focus_id", type=int)
     focus_group_id = None
+
     if next_focus_id:
-        # retrouve la position dans la liste et le groupe
         idx_in_list = None
         for idx, entry in enumerate(entries_list):
-            entry_id = entry["print"]["id"] if entry["type"] == "single" else entry["id"]
-            if entry_id == next_focus_id:
+            if entry["type"] == "single" and entry["print"]["id"] == next_focus_id:
                 idx_in_list = idx
-                if entry["type"] == "group":
-                    focus_group_id = entry["id"]
-                elif entry["type"] == "single" and entry["print"].get("group_id"):
+                if entry["print"].get("group_id"):
                     focus_group_id = entry["print"]["group_id"]
                 break
-    
+            elif entry["type"] == "group":
+                for p in entry["prints"]:
+                    if p["id"] == next_focus_id:
+                        idx_in_list = idx
+                        focus_group_id = entry["id"]
+                        break
+                if idx_in_list is not None:
+                    break
+
         if idx_in_list is not None:
             target_page = (idx_in_list // per_page) + 1
-        
-            # on récupère le groupe du print pour focus_group_id
-            focus_group_id = None
-            for entry in entries_list:
-                if entry["type"] == "group":
-                    for p in entry["prints"]:
-                        if p["id"] == next_focus_id:
-                            focus_group_id = entry["id"]
-                            break
-        
             if target_page != page:
+                # On garde le focus_group_id déduit même lors du redirect
                 return redirect(url_for(
                     "print_history",
                     page=target_page,
-                    focus_id=next_focus_id,
-                    focus_group_id=focus_group_id
+                    focus_id=next_focus_id
                 ))
+
     return render_template(
         'print_history.html',
         entries=entries_list,
@@ -610,8 +606,9 @@ def print_history():
         search=search,
         pagination_pages=pagination_pages,
         focus_id=next_focus_id,
-        focus_group_id=request.args.get("focus_group_id", type=int)
+        focus_group_id=focus_group_id
     )
+
 
 @app.route("/print_select_spool")
 def print_select_spool():
