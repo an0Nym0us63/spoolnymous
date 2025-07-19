@@ -42,7 +42,7 @@
       </div>
 
       <div class="row row-cols-2 row-cols-md-5 g-2 mb-2 text-center">
-  <div><i class="bi bi-clock"></i> {{ print.duration|hm_format }}</div>
+  <div><i class="bi bi-clock-fill text-primary"></i> {{ print.duration|hm_format }}</div>
   <div><i class="bi bi-currency-dollar"></i> {{ '%.2f'|format(print.total_cost) }} {{ currencysymbol }}</div>
   <div><i class="bi bi-lightning"></i> {{ '%.2f'|format(print.electric_cost) }} {{ currencysymbol }}</div>
   <div><i class="bi bi-cash-stack"></i> {{ '%.2f'|format(print.full_cost) }} {{ currencysymbol }}</div>
