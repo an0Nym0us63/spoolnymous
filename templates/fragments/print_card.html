@@ -5,7 +5,7 @@
        aria-expanded="false"
        aria-controls="details_{{ print.id }}">
     <div class="d-flex flex-column text-start small">
-      <span><i class="bi bi-printer"></i></span>
+      <span>🖨️</span>
       <span class="text-muted">#{{ print.id }}</span>
     </div>
 
@@ -58,10 +58,13 @@
             </li>
           {% else %}
             <li>
-              <a class="dropdown-item text-danger" href="{{ url_for('remove_from_group', print_id=print.id) }}">
-                ❌ Retirer du groupe
-              </a>
-            </li>
+  <form method="post" action="{{ url_for('remove_from_group') }}" class="m-0">
+    <input type="hidden" name="print_id" value="{{ print.id }}">
+    <button type="submit" class="dropdown-item text-danger p-0 ps-2">
+      ❌ Retirer du groupe
+    </button>
+  </form>
+</li>
           {% endif %}
           <li>
             <a class="dropdown-item text-primary" href="#" onclick="confirmReajust({{ print.id }})">
