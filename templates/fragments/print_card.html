@@ -52,15 +52,16 @@
           </li>
           {% if not print.group_id %}
             <li>
-              <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#groupModal_{{ print.id }}">
-                📂 Ajouter à un groupe
-              </a>
-            </li>
-          {% else %}
-            <li>
-  <form method="post" action="{{ url_for('remove_from_group') }}" class="m-0">
+  <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#groupModal_{{ print.id }}">
+    ➕ Ajouter à un groupe
+  </a>
+</li>
+
+{% if print.group_id %}
+<li>
+  <form method="post" action="{{ url_for('remove_from_group') }}" style="display:inline;">
     <input type="hidden" name="print_id" value="{{ print.id }}">
-    <button type="submit" class="dropdown-item text-danger p-0 ps-2">
+    <button type="submit" class="dropdown-item text-danger">
       ❌ Retirer du groupe
     </button>
   </form>
