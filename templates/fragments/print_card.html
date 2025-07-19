@@ -4,39 +4,33 @@
        data-bs-target="#details_{{ print.id }}"
        aria-expanded="false"
        aria-controls="details_{{ print.id }}">
-    <div class="card-header d-flex justify-content-between align-items-center clickable px-2 py-1"
-     data-bs-toggle="collapse"
-     data-bs-target="#details_{{ print.id }}"
-     aria-expanded="false"
-     aria-controls="details_{{ print.id }}">
-  
-  <div class="d-flex flex-column text-start small">
-    <span>🖨️</span>
-    <span class="badge bg-dark bg-opacity-75 text-light small">#{{ print.id }}</span>
-  </div>
 
-  <div class="flex-grow-1 d-flex flex-column align-items-center">
-    <div>
-      <span class="badge bg-primary text-light fw-semibold fs-6">
-        {{ print.file_name or 'Print #' ~ print.id }}
-      </span>
+    <div class="d-flex flex-column text-start small">
+      <span>🖨️</span>
+      <span class="badge bg-dark bg-opacity-75 text-light small">#{{ print.id }}</span>
     </div>
-    <div>
-      <span class="badge bg-secondary bg-opacity-25 text-muted small">
-        {{ print.print_date | datetimeformat('fr') }}
-      </span>
-    </div>
-  </div>
 
-  <div class="text-end">
-    {% if print.image_file %}
-      <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
-           alt="Print Image" style="width:50px; height:auto;" class="rounded shadow-sm">
-    {% else %}
-      <span class="text-muted">—</span>
-    {% endif %}
-  </div>
-</div>
+    <div class="flex-grow-1 d-flex flex-column align-items-center">
+      <div>
+        <span class="badge bg-primary text-light fw-semibold fs-6">
+          {{ print.file_name or 'Print #' ~ print.id }}
+        </span>
+      </div>
+      <div>
+        <span class="badge bg-secondary bg-opacity-25 text-muted small">
+          {{ print.print_date | datetimeformat('fr') }}
+        </span>
+      </div>
+    </div>
+
+    <div class="text-end">
+      {% if print.image_file %}
+        <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
+             alt="Print Image" style="width:50px; height:auto;" class="rounded shadow-sm">
+      {% else %}
+        <span class="text-muted">—</span>
+      {% endif %}
+    </div>
   </div>
 
   <div id="details_{{ print.id }}" class="collapse"
@@ -63,7 +57,7 @@
         <div>💵 {{ '%.2f'|format(print.full_cost) }} {{ currencysymbol }}</div>
         {% if print.number_of_items > 1 %}
           <div>🔢 {{ print.number_of_items }}</div>
-		  <div>💲/🖨️ {{ '%.2f'|format(print.full_cost_by_item) }} {{ currencysymbol }}</div>
+          <div>💲/🖨️ {{ '%.2f'|format(print.full_cost_by_item) }} {{ currencysymbol }}</div>
         {% endif %}
       </div>
 
