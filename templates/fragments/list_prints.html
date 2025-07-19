@@ -9,11 +9,20 @@
              aria-expanded="false"
              aria-controls="group_{{ entry.id }}">
 <div class="d-flex flex-column text-start small position-relative">
-  <span class="position-relative d-inline-block" style="font-size: 1rem;">
-    📁
-    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary"
-          style="font-size: 0.6rem; padding: 0.2em 0.3em;">
-      {{ entry.prints|length }}
+  <span class="position-relative d-inline-block" style="font-size: 1rem; line-height: 1;">
+    <span class="emoji-folder" style="position: relative; display: inline-block;">
+      📁
+      <span class="badge bg-primary rounded-pill"
+            style="
+              position: absolute;
+              top: 0;
+              right: -0.4rem;
+              transform: translate(50%, -50%);
+              font-size: 0.6rem;
+              padding: 0.15em 0.4em;
+            ">
+        {{ entry.prints|length }}
+      </span>
     </span>
   </span>
   <span class="badge bg-dark bg-opacity-75 text-light small">#{{ entry.max_id }}</span>
