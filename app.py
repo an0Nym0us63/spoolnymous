@@ -111,6 +111,28 @@ def two_closest_families(hex_color: str, threshold: float = 60.0) -> list[str]:
         result.append(sorted_families[1][0])
     return result
 
+def compute_pagination_pages(page, total_pages, window=2, max_buttons=7):
+    pages = []
+    if total_pages <= max_buttons:
+        pages = list(range(1, total_pages + 1))
+    else:
+        pages = [1]
+
+        start = max(2, page - window)
+        end = min(total_pages - 1, page + window)
+
+        if start > 2:
+            pages.append('…')
+
+        pages.extend(range(start, end + 1))
+
+        if end < total_pages - 1:
+            pages.append('…')
+
+        pages.append(total_pages)
+
+    return pages
+
 init_mqtt()
 
 app = Flask(__name__)
@@ -531,7 +553,7 @@ def print_history():
     args = request.args.to_dict(flat=False)
     args.pop('page', None)
     groups_list = get_print_groups()
-
+    pagination_pages = compute_pagination_pages(page, total_pages)
     return render_template(
         'print_history.html',
         entries=entries_list,
@@ -542,7 +564,8 @@ def print_history():
         filters=filters,
         distinct_values=distinct_values,
         args=args,
-        search=search
+        search=search,
+        pagination_pages=pagination_pages,
     )
 
 @app.route("/print_select_spool")

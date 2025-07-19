@@ -3,7 +3,6 @@
 {% block content %}
 <h1 class="mb-4 text-center">Print History</h1>
 
-{# reconstruction query string #}
 {% set query = [] %}
 {% for k, vlist in args.items() %}
   {% for v in vlist %}
@@ -19,36 +18,36 @@
   </button>
 </div>
 
-<!-- Bloc pagination caché -->
-<div class="position-fixed bottom-0 end-0 m-3" style="z-index:1029;">
+<!-- Bloc pagination centrée -->
+<div class="position-fixed bottom-0 start-50 translate-middle-x mb-5" style="z-index:1029; max-width: 90%;">
   <div class="collapse" id="paginationCollapse">
     <div class="bg-body rounded shadow p-2">
-      <ul class="pagination pagination-sm mb-0 justify-content-center">
+      <ul class="pagination pagination-sm mb-0 justify-content-center flex-wrap">
         {% if page > 1 %}
           <li class="page-item">
             <a class="page-link rounded-pill"
-               href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page-1 }}"
-               aria-label="Précédent">
-              <span aria-hidden="true">«</span>
+               href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page-1 }}">
+              «
             </a>
           </li>
         {% endif %}
 
-        {% for p in range(1, total_pages+1) %}
-          <li class="page-item {% if p == page %}active{% endif %}">
-            <a class="page-link rounded-pill"
-               href="{{ url_for('print_history') }}?{{ base_query }}&page={{ p }}">
-               {{ p }}
-            </a>
-          </li>
+        {% for p in pagination_pages %}
+          {% if p == '…' %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% else %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+              <a class="page-link rounded-pill"
+                 href="{{ url_for('print_history') }}?{{ base_query }}&page={{ p }}">{{ p }}</a>
+            </li>
+          {% endif %}
         {% endfor %}
 
         {% if page < total_pages %}
           <li class="page-item">
             <a class="page-link rounded-pill"
-               href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page+1 }}"
-               aria-label="Suivant">
-              <span aria-hidden="true">»</span>
+               href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page+1 }}">
+              »
             </a>
           </li>
         {% endif %}
@@ -56,6 +55,7 @@
     </div>
   </div>
 </div>
+
 
 <!-- BOUTON FILTRES -->
 <div class="text-end mb-3">
