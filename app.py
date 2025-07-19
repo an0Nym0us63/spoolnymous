@@ -119,7 +119,13 @@ app = Flask(__name__)
 @app.before_request
 def detect_webview():
     g.is_webview = request.cookies.get('webview') == '1'
-
+    
+@app.template_filter('datetimeformat')
+def datetimeformat(value, locale='fr'):
+    from datetime import datetime
+    dt = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
+    return dt.strftime("%d/%m/%Y %H:%M")
+    
 @app.context_processor
 def frontend_utilities():
     def url_with_args(**kwargs):

@@ -1,17 +1,27 @@
 <div class="card mb-2" id="print_{{ print.id }}">
-  <div class="card-header d-flex justify-content-between align-items-center clickable"
+  <div class="card-header d-flex justify-content-between align-items-center clickable px-2 py-1"
        data-bs-toggle="collapse"
        data-bs-target="#details_{{ print.id }}"
        aria-expanded="false"
        aria-controls="details_{{ print.id }}">
-    <span>{{ print.id }}</span>
-    <strong class="text-center flex-grow-1">{{ print.file_name or 'Print #' ~ print.id }}</strong>
-    {% if print.image_file %}
-      <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
-           alt="Print Image" style="width:75px; height:auto;" class="rounded" />
-    {% else %}
-      <span class="text-muted">No Image</span>
-    {% endif %}
+    <div class="d-flex flex-column text-start small">
+      <span><i class="bi bi-printer"></i></span>
+      <span class="text-muted">#{{ print.id }}</span>
+    </div>
+
+    <div class="flex-grow-1 text-center small">
+      <div class="fw-bold">{{ print.file_name or 'Print #' ~ print.id }}</div>
+      <div class="text-muted">{{ print.print_date | datetimeformat('fr') }}</div>
+    </div>
+
+    <div class="text-end">
+      {% if print.image_file %}
+        <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
+             alt="Print Image" style="width:30px; height:auto;" class="rounded">
+      {% else %}
+        <span class="text-muted">—</span>
+      {% endif %}
+    </div>
   </div>
 
   <div id="details_{{ print.id }}" class="collapse"
@@ -41,15 +51,15 @@
 
       <div class="row mb-2">
         <div class="col-md-6"><strong>Date:</strong> {{ print.print_date }}</div>
-        <div class="col-md-6"><strong>Duration:</strong> {{ '%.2f' | format(print.duration) }}h</div>
+        <div class="col-md-6"><strong>Durée:</strong> {{ '%.2f' | format(print.duration) }}h</div>
         {% if print['total_cost'] > 0 %}
-          <div class="col-md-6"><strong>Filament Cost:</strong> {{ '%.2f' | format(print['total_cost']) }} {{ currencysymbol }}</div>
+          <div class="col-md-6"><strong>Coût filament:</strong> {{ '%.2f' | format(print['total_cost']) }} {{ currencysymbol }}</div>
         {% endif %}
         {% if print['electric_cost'] > 0 %}
-          <div class="col-md-6"><strong>Electric Cost:</strong> {{ '%.2f' | format(print['electric_cost']) }} {{ currencysymbol }}</div>
+          <div class="col-md-6"><strong>Coût électricité:</strong> {{ '%.2f' | format(print['electric_cost']) }} {{ currencysymbol }}</div>
         {% endif %}
         {% if print['full_cost'] > 0 %}
-          <div class="col-md-6"><strong>Full Cost:</strong> {{ '%.2f' | format(print['full_cost']) }} {{ currencysymbol }}</div>
+          <div class="col-md-6"><strong>Coût total:</strong> {{ '%.2f' | format(print['full_cost']) }} {{ currencysymbol }}</div>
         {% endif %}
         {% if print['number_of_items'] > 1 %}
           <div class="col-md-6"><strong>Nombre d’éléments :</strong> {{ print['number_of_items'] }}</div>
@@ -85,7 +95,7 @@
                 </div>
               {% else %}
                 <div>
-                  <strong>No spool assigned - {{ filament.filament_type }}</strong><br>
+                  <strong>Non assigné - {{ filament.filament_type }}</strong><br>
                   <small>{{ "%.2f"|format(filament.grams_used) }}g</small>
                 </div>
               {% endif %}
