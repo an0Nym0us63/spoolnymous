@@ -31,10 +31,11 @@
         <div id="group_{{ entry.id }}" class="collapse" data-bs-parent="#printAccordion">
           <div class="card-body small">
             <div class="row mb-2 text-center">
-              <div class="col-3"><i class="bi bi-clock"></i> {{ '%.2f'|format(entry.total_duration) }}h</div>
-              <div class="col-3"><i class="bi bi-box"></i> {{ entry.prints|length }}</div>
-              <div class="col-3"><i class="bi bi-currency-dollar"></i> {{ '%.2f'|format(entry.total_filament_cost) }} {{ currencysymbol }}</div>
-              <div class="col-3"><i class="bi bi-lightning"></i> {{ '%.2f'|format(entry.total_electric_cost) }} {{ currencysymbol }}</div>
+              <div class="col-2"><i class="bi bi-clock"></i> {{ '%.2f'|format(entry.total_duration) }}h</div>
+              <div class="col-2"><i class="bi bi-box"></i> {{ entry.prints|length }}</div>
+              <div class="col-2"><i class="bi bi-currency-dollar"></i> {{ '%.2f'|format(entry.total_filament_cost) }} {{ currencysymbol }}</div>
+              <div class="col-2"><i class="bi bi-lightning"></i> {{ '%.2f'|format(entry.total_electric_cost) }} {{ currencysymbol }}</div>
+              <div class="col-2"><i class="bi bi-cash-stack"></i> {{ '%.2f'|format(entry.total_cost) }} {{ currencysymbol }}</div>
             </div>
 
             {% set filaments_used = {} %}
@@ -52,11 +53,17 @@
             <div class="mb-2">
               <strong>Filaments utilisés :</strong>
               {% for key, grams in filaments_used.items() %}
+                {% set parts = key.split('-') %}
+                {% set filament_type = parts[0] %}
+                {% set color = parts[1] %}
                 <div class="card my-1">
                   <div class="card-body py-2 d-flex align-items-center gap-2">
+                    <div class="spool-icon small">
+                      <div style="background-color:#{{ color }};" title="#{{ color }}"></div>
+                    </div>
                     <div>
-                      <strong>{{ key }}</strong><br>
-                      <small>{{ '%.2f'|format(grams) }}g</small>
+                      <strong>{{ filament_type }}</strong><br>
+                      <small>{{ "%.2f"|format(grams) }}g</small>
                     </div>
                   </div>
                 </div>
