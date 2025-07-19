@@ -12,39 +12,50 @@
 {% endfor %}
 {% set base_query = '&'.join(query) %}
 
-{# Pagination flottante mobile #}
-<nav class="position-fixed bottom-0 start-50 translate-middle-x bg-body rounded shadow p-1 mb-2 d-md-none" style="z-index: 1030;">
-  <ul class="pagination pagination-sm mb-0 justify-content-center">
-    {% if page > 1 %}
-      <li class="page-item">
-        <a class="page-link rounded-pill"
-           href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page-1 }}"
-           aria-label="Précédent">
-          <span aria-hidden="true">«</span>
-        </a>
-      </li>
-    {% endif %}
+<!-- Bouton flottant -->
+<div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
+  <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="collapse" data-bs-target="#paginationCollapse" aria-expanded="false" aria-controls="paginationCollapse">
+    📄
+  </button>
+</div>
 
-    {% for p in range(1, total_pages+1) %}
-      <li class="page-item {% if p == page %}active{% endif %}">
-        <a class="page-link rounded-pill"
-           href="{{ url_for('print_history') }}?{{ base_query }}&page={{ p }}">
-           {{ p }}
-        </a>
-      </li>
-    {% endfor %}
+<!-- Bloc pagination caché -->
+<div class="position-fixed bottom-0 end-0 m-3" style="z-index:1029;">
+  <div class="collapse" id="paginationCollapse">
+    <div class="bg-body rounded shadow p-2">
+      <ul class="pagination pagination-sm mb-0 justify-content-center">
+        {% if page > 1 %}
+          <li class="page-item">
+            <a class="page-link rounded-pill"
+               href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page-1 }}"
+               aria-label="Précédent">
+              <span aria-hidden="true">«</span>
+            </a>
+          </li>
+        {% endif %}
 
-    {% if page < total_pages %}
-      <li class="page-item">
-        <a class="page-link rounded-pill"
-           href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page+1 }}"
-           aria-label="Suivant">
-          <span aria-hidden="true">»</span>
-        </a>
-      </li>
-    {% endif %}
-  </ul>
-</nav>
+        {% for p in range(1, total_pages+1) %}
+          <li class="page-item {% if p == page %}active{% endif %}">
+            <a class="page-link rounded-pill"
+               href="{{ url_for('print_history') }}?{{ base_query }}&page={{ p }}">
+               {{ p }}
+            </a>
+          </li>
+        {% endfor %}
+
+        {% if page < total_pages %}
+          <li class="page-item">
+            <a class="page-link rounded-pill"
+               href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page+1 }}"
+               aria-label="Suivant">
+              <span aria-hidden="true">»</span>
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</div>
 
 <!-- BOUTON FILTRES -->
 <div class="text-end mb-3">
