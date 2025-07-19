@@ -5,7 +5,7 @@
        aria-expanded="false"
        aria-controls="details_{{ print.id }}">
     <div class="d-flex flex-column text-start small">
-      <span><i class="bi bi-printer"></i></span>
+      <span>🖨️</span>
       <span class="text-muted">#{{ print.id }}</span>
     </div>
 
@@ -29,7 +29,7 @@
     <div class="card-body position-relative small">
 
       <!-- Actions flottantes -->
-     <div class="dropdown float-end mt-1">
+      <div class="dropdown float-end mt-1">
         <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
           Actions
         </button>
@@ -42,14 +42,14 @@
       </div>
 
       <div class="row row-cols-2 row-cols-md-5 g-2 mb-2 text-center">
-  <div><i class="bi bi-clock-fill text-primary"></i> {{ print.duration|hm_format }}</div>
-  <div><i class="bi bi-currency-dollar"></i> {{ '%.2f'|format(print.total_cost) }} {{ currencysymbol }}</div>
-  <div><i class="bi bi-lightning"></i> {{ '%.2f'|format(print.electric_cost) }} {{ currencysymbol }}</div>
-  <div><i class="bi bi-cash-stack"></i> {{ '%.2f'|format(print.full_cost) }} {{ currencysymbol }}</div>
-  {% if print.number_of_items > 1 %}
-    <div><i class="bi bi-grid"></i> {{ print.number_of_items }}</div>
-  {% endif %}
-</div>
+        <div>⏱ {{ print.duration|hm_format }}</div>
+        <div>🎯 {{ '%.2f'|format(print.total_cost) }} {{ currencysymbol }}</div>
+        <div>⚡ {{ '%.2f'|format(print.electric_cost) }} {{ currencysymbol }}</div>
+        <div>💵 {{ '%.2f'|format(print.full_cost) }} {{ currencysymbol }}</div>
+        {% if print.number_of_items > 1 %}
+          <div>🔢 {{ print.number_of_items }}</div>
+        {% endif %}
+      </div>
 
       {% if print.image_file %}
       <div class="text-center mb-3">
