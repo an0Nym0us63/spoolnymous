@@ -111,7 +111,7 @@ def two_closest_families(hex_color: str, threshold: float = 60.0) -> list[str]:
         result.append(sorted_families[1][0])
     return result
 
-def compute_pagination_pages(page, total_pages, window=2, max_buttons=7):
+def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
     pages = []
     if total_pages <= max_buttons:
         pages = list(range(1, total_pages + 1))
