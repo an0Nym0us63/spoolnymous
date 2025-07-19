@@ -33,8 +33,8 @@
             <div class="row mb-2">
               <div class="col-6"><i class="bi bi-clock"></i> <strong>Durée totale :</strong> {{ '%.2f'|format(entry.total_duration) }}h</div>
               <div class="col-6"><i class="bi bi-box"></i> <strong>Nombre de prints :</strong> {{ entry.prints|length }}</div>
-              <div class="col-6"><i class="bi bi-currency-dollar"></i> <strong>Coût filament total :</strong> {{ '%.2f'|format(entry.total_cost - entry.total_duration * COST_BY_HOUR) }} {{ currencysymbol }}</div>
-              <div class="col-6"><i class="bi bi-lightning"></i> <strong>Coût électricité total :</strong> {{ '%.2f'|format(entry.total_duration * COST_BY_HOUR) }} {{ currencysymbol }}</div>
+              <div class="col-6"><i class="bi bi-currency-dollar"></i> <strong>Coût filament total :</strong> {{ '%.2f'|format(entry.total_filament_cost) }} {{ currencysymbol }}</div>
+              <div class="col-6"><i class="bi bi-lightning"></i> <strong>Coût électricité total :</strong> {{ '%.2f'|format(entry.total_electric_cost) }} {{ currencysymbol }}</div>
               <div class="col-6"><i class="bi bi-cash-stack"></i> <strong>Coût total :</strong> {{ '%.2f'|format(entry.total_cost) }} {{ currencysymbol }}</div>
             </div>
 

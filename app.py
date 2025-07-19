@@ -505,6 +505,12 @@ def print_history():
                 "max_id": print_["id"]
             }
 
+    # On finalise les coûts des groupes (élec + filament)
+    for entry in entries.values():
+        if entry["type"] == "group":
+            entry["total_electric_cost"] = entry["total_duration"] * float(COST_BY_HOUR)
+            entry["total_filament_cost"] = entry["total_cost"] - entry["total_electric_cost"]
+
     # On trie tous les entries par max_id (ordre décroissant)
     entries_list = sorted(entries.values(), key=lambda e: e["max_id"], reverse=True)
 
@@ -528,6 +534,7 @@ def print_history():
         args=args,
         search=search
     )
+
 
 
 @app.route("/print_select_spool")
