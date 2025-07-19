@@ -580,8 +580,23 @@ def print_history():
     
         if idx_in_list is not None:
             target_page = (idx_in_list // per_page) + 1
+        
+            # on récupère le groupe du print pour focus_group_id
+            focus_group_id = None
+            for entry in entries_list:
+                if entry["type"] == "group":
+                    for p in entry["prints"]:
+                        if p["id"] == next_focus_id:
+                            focus_group_id = entry["id"]
+                            break
+        
             if target_page != page:
-                return redirect(url_for("print_history", page=target_page, focus_id=next_focus_id))
+                return redirect(url_for(
+                    "print_history",
+                    page=target_page,
+                    focus_id=next_focus_id,
+                    focus_group_id=focus_group_id
+                ))
     return render_template(
         'print_history.html',
         entries=entries_list,
@@ -595,7 +610,7 @@ def print_history():
         search=search,
         pagination_pages=pagination_pages,
         focus_id=next_focus_id,
-        focus_group_id=focus_group_id
+        focus_group_id=request.args.get("focus_group_id", type=int)
     )
 
 @app.route("/print_select_spool")
