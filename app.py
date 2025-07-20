@@ -482,7 +482,7 @@ def print_history():
 
     spool_list = fetchSpools(False, True)
 
-    entries = {}  # clé = group_id ou print_id
+    entries = {}
 
     for print_ in prints:
         if print_["duration"] is None:
@@ -534,11 +534,10 @@ def print_history():
                 entries[gid]["latest_date"] = print_["print_date"]
                 entries[gid]["thumbnail"] = print_["image_file"]
 
-            # cumul des filaments
             for filament in print_["filament_usage"]:
                 key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
                 if key not in entries[gid]["filament_usage"]:
-                    entries[gid]["filament_usage"][key] = dict(filament)  # copie
+                    entries[gid]["filament_usage"][key] = dict(filament)
                 else:
                     entries[gid]["filament_usage"][key]["grams_used"] += filament["grams_used"]
                     entries[gid]["filament_usage"][key]["cost"] += filament["cost"]
@@ -567,35 +566,42 @@ def print_history():
     pagination_pages = compute_pagination_pages(page, total_pages)
 
     # Gestion focus après action
-    next_focus_id = request.args.get("focus_id", type=int)
-    focus_group_id = None
-    
-    if next_focus_id:
-        idx_in_list = None
+    focus_print_id = request.args.get("focus_print_id", type=int)
+    focus_group_id = request.args.get("focus_group_id", type=int)
+
+    target_idx = None
+
+    if focus_print_id:
         for idx, entry in enumerate(entries_list):
-            if entry["type"] == "single" and entry["print"]["id"] == next_focus_id:
-                idx_in_list = idx
+            if entry["type"] == "single" and entry["print"]["id"] == focus_print_id:
+                target_idx = idx
                 if entry["print"].get("group_id"):
                     focus_group_id = entry["print"]["group_id"]
                 break
             elif entry["type"] == "group":
                 for p in entry["prints"]:
-                    if p["id"] == next_focus_id:
-                        idx_in_list = idx
+                    if p["id"] == focus_print_id:
+                        target_idx = idx
                         focus_group_id = entry["id"]
                         break
-                if idx_in_list is not None:
+                if target_idx is not None:
                     break
-    
-        if idx_in_list is not None:
-            target_page = (idx_in_list // per_page) + 1
-            if target_page != page:
-                # Redirige vers la bonne page si besoin (et garde focus_id pour dépliage)
-                return redirect(url_for(
-                    "print_history",
-                    page=target_page,
-                    focus_id=next_focus_id
-                ))
+
+    elif focus_group_id:
+        for idx, entry in enumerate(entries_list):
+            if entry["type"] == "group" and entry["id"] == focus_group_id:
+                target_idx = idx
+                break
+
+    if target_idx is not None:
+        target_page = (target_idx // per_page) + 1
+        if target_page != page:
+            kwargs = {"page": target_page}
+            if focus_print_id:
+                kwargs["focus_print_id"] = focus_print_id
+            if focus_group_id and not focus_print_id:
+                kwargs["focus_group_id"] = focus_group_id
+            return redirect(url_for("print_history", **kwargs))
 
     return render_template(
         'print_history.html',
@@ -609,7 +615,7 @@ def print_history():
         args=args,
         search=search,
         pagination_pages=pagination_pages,
-        focus_id=next_focus_id,
+        focus_print_id=focus_print_id,
         focus_group_id=focus_group_id,
         page_title="History"
     )
@@ -827,8 +833,7 @@ def edit_print_name():
     new_filename = request.form.get("file_name", "").strip()
     if new_filename:
         update_print_filename(print_id, new_filename)
-    return redirect_back(focus_id=print_id)
-
+    return redirect(url_for("print_history", focus_print_id=print_id))
 
 @app.route("/edit_print_items", methods=["POST"])
 def edit_print_items():
@@ -841,8 +846,7 @@ def edit_print_items():
         number_of_items = 1
 
     update_print_history_field(print_id, "number_of_items", number_of_items)
-    return redirect_back(focus_id=print_id)
-
+    return redirect(url_for("print_history", focus_print_id=print_id))
 
 @app.route("/create_group", methods=["POST"])
 def create_group():
@@ -852,9 +856,9 @@ def create_group():
     if group_name:
         group_id = create_print_group(group_name)
         update_print_history_field(print_id, "group_id", group_id)
+        return redirect(url_for("print_history", focus_group_id=group_id))
 
-    return redirect_back(focus_id=print_id)
-
+    return redirect(url_for("print_history", focus_print_id=print_id))
 
 @app.route("/assign_to_group", methods=["POST"])
 def assign_to_group():
@@ -862,27 +866,23 @@ def assign_to_group():
     group_id = int(request.form["group_id"])
 
     update_print_history_field(print_id, "group_id", group_id)
-    return redirect_back(focus_id=print_id)
-
+    return redirect(url_for("print_history", focus_group_id=group_id))
 
 @app.route("/remove_from_group", methods=["POST"])
 def remove_from_group():
     print_id = int(request.form["print_id"])
     update_print_history_field(print_id, "group_id", None)
-    return redirect_back(focus_id=print_id)
+    return redirect(url_for("print_history", focus_print_id=print_id))
 
 @app.route("/rename_group", methods=["POST"])
 def rename_group():
     group_id = int(request.form["group_id"])
     group_name = request.form["group_name"].strip()
 
-    page = request.args.get("page", 1, type=int)
-    focus_group_id = request.args.get("focus_group_id", group_id, type=int)
-
     if group_name:
         update_print_group_field(group_id, "name", group_name)
 
-    return redirect(url_for("print_history", page=page, focus_id=focus_group_id))
+    return redirect(url_for("print_history", focus_group_id=group_id))
 
 @app.route("/edit_group_items", methods=["POST"])
 def edit_group_items():
@@ -894,9 +894,6 @@ def edit_group_items():
     except (ValueError, TypeError):
         number_of_items = 1
 
-    page = request.args.get("page", 1, type=int)
-    focus_group_id = request.args.get("focus_group_id", group_id, type=int)
-
     update_print_group_field(group_id, "number_of_items", number_of_items)
 
-    return redirect(url_for("print_history", page=page, focus_id=focus_group_id))
+    return redirect(url_for("print_history", focus_group_id=group_id))

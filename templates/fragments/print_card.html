@@ -2,7 +2,7 @@
   <div class="card-header d-flex justify-content-between align-items-center clickable px-2 py-1"
        data-bs-toggle="collapse"
        data-bs-target="#details_{{ print.id }}"
-       aria-expanded="{{ focus_id == print.id|int }}"
+       aria-expanded="{{ focus_print_id == print.id|int }}"
        aria-controls="details_{{ print.id }}">
        
     <!-- Colonne gauche : ID + icône + badge -->
@@ -49,7 +49,7 @@
     </div>
   </div>
 
-  <div id="details_{{ print.id }}" class="collapse {% if focus_id == print.id|int %}show{% endif %}"
+  <div id="details_{{ print.id }}" class="collapse {% if focus_print_id == print.id|int %}show{% endif %}"
        data-bs-parent="{% if print.group_id %}#group_accordion_{{ print.group_id }}{% else %}#printAccordion{% endif %}">
     <div class="card-body position-relative small">
 
@@ -77,7 +77,7 @@
           </li>
           {% else %}
           <li>
-            <form method="post" action="{{ url_for('remove_from_group') }}?page={{ page }}&focus_id={{ print.id }}" class="m-0 p-0">
+            <form method="post" action="{{ url_for('remove_from_group') }}?page={{ page }}&focus_print_id={{ print.id }}" class="m-0 p-0">
               <input type="hidden" name="print_id" value="{{ print.id }}">
               <button type="submit" class="dropdown-item text-danger">
                 ❌ Retirer du groupe
