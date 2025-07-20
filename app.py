@@ -569,7 +569,7 @@ def print_history():
     # Gestion focus après action
     next_focus_id = request.args.get("focus_id", type=int)
     focus_group_id = None
-
+    
     if next_focus_id:
         idx_in_list = None
         for idx, entry in enumerate(entries_list):
@@ -586,15 +586,21 @@ def print_history():
                         break
                 if idx_in_list is not None:
                     break
-
+    
         if idx_in_list is not None:
             target_page = (idx_in_list // per_page) + 1
             if target_page != page:
-                # On garde le focus_group_id déduit même lors du redirect
+                # Pas sur la bonne page → redirige vers la bonne page avec focus
                 return redirect(url_for(
                     "print_history",
                     page=target_page,
                     focus_id=next_focus_id
+                ))
+            else:
+                # Déjà sur la bonne page → nettoie l'URL (retire focus_id)
+                return redirect(url_for(
+                    "print_history",
+                    page=page
                 ))
 
     return render_template(
