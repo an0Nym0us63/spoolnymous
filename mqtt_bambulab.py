@@ -107,7 +107,7 @@ def processMessage(data):
       name=PRINTER_STATE["print"]["subtask_name"]
       if PENDING_PRINT_METADATA["title"] != '':
         name = PENDING_PRINT_METADATA["title"]
-      if (PENDING_PRINT_METADATA["plateID"] != 1):
+      if (PENDING_PRINT_METADATA["plateID"] != '1'):
         name += ' - ' +PENDING_PRINT_METADATA["plateID"]
       print_id = insert_print(name, "cloud", PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"])
 
@@ -141,7 +141,7 @@ def processMessage(data):
         name=PENDING_PRINT_METADATA["file"]
         if PENDING_PRINT_METADATA["title"] != '':
             name = PENDING_PRINT_METADATA["title"]
-        if (PENDING_PRINT_METADATA["plateID"] != 1):
+        if (PENDING_PRINT_METADATA["plateID"] != '1'):
             name += ' - ' +PENDING_PRINT_METADATA["plateID"]
         print_id = insert_print(name, PRINTER_STATE["print"]["print_type"], PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],PENDING_PRINT_METADATA["title"])
 
