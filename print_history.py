@@ -321,7 +321,7 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # Compter le total
+    # Total count
     cursor.execute(f'''
         SELECT COUNT(DISTINCT p.id)
         FROM prints p
@@ -331,11 +331,11 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     ''', params)
     total_count = cursor.fetchone()[0]
 
-    # Charger les prints
-    cursor.execute(f'''
+    # Load prints with optional LIMIT/OFFSET
+    base_query = f'''
         SELECT DISTINCT p.id AS id, p.print_date, p.file_name,
                p.print_type, p.image_file, p.duration, p.number_of_items,
-               pg.id AS group_id, pg.name AS group_name,pg.number_of_items AS group_number_of_items,
+               pg.id AS group_id, pg.name AS group_name, pg.number_of_items AS group_number_of_items,
                (
                    SELECT json_group_array(json_object(
                        'spool_id', f2.spool_id,
@@ -350,12 +350,20 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
         LEFT JOIN print_groups pg ON pg.id = p.group_id
         {where_sql}
         ORDER BY p.print_date DESC
-        LIMIT ? OFFSET ?
-    ''', params + [limit, offset])
+    '''
 
+    if limit is not None:
+        base_query += " LIMIT ? OFFSET ?"
+        query_params = params + [limit, offset]
+    else:
+        query_params = params
+
+    cursor.execute(base_query, query_params)
     prints = [dict(row) for row in cursor.fetchall()]
     conn.close()
+
     return total_count, prints
+
 
 
 def get_filament_for_slot(print_id: int, ams_slot: int):
