@@ -77,6 +77,7 @@
           <li>
             <form method="post" action="{{ url_for('remove_from_group') }}?page={{ page }}&focus_print_id={{ print.id }}" class="m-0 p-0">
               <input type="hidden" name="print_id" value="{{ print.id }}">
+				<input type="hidden" name="page" value="{{ page }}">
               <button type="submit" class="dropdown-item text-danger">
                 ❌ Retirer du groupe
               </button>

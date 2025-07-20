@@ -141,102 +141,6 @@ def redirect_back(focus_id=None):
         kwargs["focus_id"] = focus_id
     return redirect(url_for("print_history", **kwargs))
 
-def get_page_of_group(group_id, per_page, filters=None, search=None):
-    filters = filters or {}
-
-    # Récupérer tous les prints (sans limite)
-    total_count, all_prints = get_prints_with_filament(
-        offset=0,
-        limit=None,
-        filters=filters,
-        search=search
-    )
-
-    spool_list = fetchSpools(False, True)
-
-    entries_complete = {}
-
-    for print_ in all_prints:
-        if print_["duration"] is None:
-            print_["duration"] = 0
-        print_["duration"] /= 3600
-        print_["electric_cost"] = print_["duration"] * float(COST_BY_HOUR)
-        print_["filament_usage"] = json.loads(print_["filament_info"])
-        print_["total_cost"] = 0
-        print_["tags"] = get_tags_for_print(print_["id"])
-        print_["total_weight"] = sum(f["grams_used"] for f in print_["filament_usage"])
-        for filament in print_["filament_usage"]:
-            if filament["spool_id"]:
-                for spool in spool_list:
-                    if spool['id'] == filament["spool_id"]:
-                        filament["spool"] = spool
-                        filament["cost"] = filament['grams_used'] * spool['cost_per_gram']
-                        print_["total_cost"] += filament["cost"]
-                        break
-
-        print_["full_cost"] = print_["total_cost"] + print_["electric_cost"]
-
-        if not print_.get("number_of_items"):
-            print_["number_of_items"] = 1
-        print_["full_cost_by_item"] = print_["full_cost"] / print_["number_of_items"]
-
-        if print_["group_id"]:
-            gid = print_["group_id"]
-            if gid not in entries_complete:
-                entries_complete[gid] = {
-                    "type": "group",
-                    "id": gid,
-                    "name": print_["group_name"],
-                    "prints": [],
-                    "total_duration": 0,
-                    "total_cost": 0,
-                    "max_id": 0,
-                    "latest_date": print_["print_date"],
-                    "thumbnail": print_["image_file"],
-                    "filament_usage": {},
-                    "number_of_items": print_["group_number_of_items"] or 1
-                }
-
-            entries_complete[gid]["prints"].append(print_)
-            entries_complete[gid]["total_duration"] += print_["duration"]
-            entries_complete[gid]["total_cost"] += print_["full_cost"]
-            entries_complete[gid]["total_weight"] = entries_complete[gid].get("total_weight", 0) + print_["total_weight"]
-            if print_["id"] > entries_complete[gid]["max_id"]:
-                entries_complete[gid]["max_id"] = print_["id"]
-                entries_complete[gid]["latest_date"] = print_["print_date"]
-                entries_complete[gid]["thumbnail"] = print_["image_file"]
-
-            for filament in print_["filament_usage"]:
-                key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
-                if key not in entries_complete[gid]["filament_usage"]:
-                    entries_complete[gid]["filament_usage"][key] = dict(filament)
-                else:
-                    entries_complete[gid]["filament_usage"][key]["grams_used"] += filament["grams_used"]
-                    entries_complete[gid]["filament_usage"][key]["cost"] += filament["cost"]
-
-        else:
-            entries_complete[print_["id"]] = {
-                "type": "single",
-                "print": print_,
-                "max_id": print_["id"]
-            }
-
-    entries_list_complete = sorted(entries_complete.values(), key=lambda e: e["max_id"], reverse=True)
-
-    # Chercher la position du groupe
-    target_idx = None
-    for idx, entry in enumerate(entries_list_complete):
-        if entry["type"] == "group" and entry["id"] == group_id:
-            target_idx = idx
-            break
-
-    if target_idx is None:
-        return 1  # par défaut page 1 si introuvable
-
-    # Calculer la page
-    target_page = (target_idx // per_page) + 1
-    return target_page
-
 init_mqtt()
 
 app = Flask(__name__)
@@ -571,117 +475,7 @@ def print_history():
     focus_print_id = request.args.get("focus_print_id", type=int)
     focus_group_id = request.args.get("focus_group_id", type=int)
 
-    # 1. Récupérer la liste complète si focus (pour calcul page correcte)
-    if focus_print_id or focus_group_id:
-        total_all, all_prints = get_prints_with_filament(
-            offset=0,
-            limit=None,
-            filters=filters,
-            search=search
-        )
-        spool_list = fetchSpools(False, True)
-        entries_all = {}
-
-        # Construire la liste complète des entrées (groupes + prints)
-        for p in all_prints:
-            if p["duration"] is None:
-                p["duration"] = 0
-            p["duration"] /= 3600
-            p["electric_cost"] = p["duration"] * float(COST_BY_HOUR)
-            p["filament_usage"] = json.loads(p["filament_info"])
-            p["total_cost"] = 0
-            p["tags"] = get_tags_for_print(p["id"])
-            p["total_weight"] = sum(f["grams_used"] for f in p["filament_usage"])
-            for filament in p["filament_usage"]:
-                if filament["spool_id"]:
-                    for spool in spool_list:
-                        if spool['id'] == filament["spool_id"]:
-                            filament["spool"] = spool
-                            filament["cost"] = filament['grams_used'] * spool['cost_per_gram']
-                            p["total_cost"] += filament["cost"]
-                            break
-            p["full_cost"] = p["total_cost"] + p["electric_cost"]
-            if not p.get("number_of_items"):
-                p["number_of_items"] = 1
-            p["full_cost_by_item"] = p["full_cost"] / p["number_of_items"]
-
-            if p["group_id"]:
-                gid = p["group_id"]
-                if gid not in entries_all:
-                    entries_all[gid] = {
-                        "type": "group",
-                        "id": gid,
-                        "name": p["group_name"],
-                        "prints": [],
-                        "total_duration": 0,
-                        "total_cost": 0,
-                        "max_id": 0,
-                        "latest_date": p["print_date"],
-                        "thumbnail": p["image_file"],
-                        "filament_usage": {},
-                        "number_of_items": p["group_number_of_items"] or 1
-                    }
-                entries_all[gid]["prints"].append(p)
-                entries_all[gid]["total_duration"] += p["duration"]
-                entries_all[gid]["total_cost"] += p["full_cost"]
-                entries_all[gid]["total_weight"] = entries_all[gid].get("total_weight", 0) + p["total_weight"]
-                if p["id"] > entries_all[gid]["max_id"]:
-                    entries_all[gid]["max_id"] = p["id"]
-                    entries_all[gid]["latest_date"] = p["print_date"]
-                    entries_all[gid]["thumbnail"] = p["image_file"]
-                for filament in p["filament_usage"]:
-                    key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
-                    if key not in entries_all[gid]["filament_usage"]:
-                        entries_all[gid]["filament_usage"][key] = dict(filament)
-                    else:
-                        entries_all[gid]["filament_usage"][key]["grams_used"] += filament["grams_used"]
-                        entries_all[gid]["filament_usage"][key]["cost"] += filament["cost"]
-            else:
-                entries_all[p["id"]] = {
-                    "type": "single",
-                    "print": p,
-                    "max_id": p["id"]
-                }
-
-        for entry in entries_all.values():
-            if entry["type"] == "group":
-                entry["total_electric_cost"] = entry["total_duration"] * float(COST_BY_HOUR)
-                entry["total_filament_cost"] = entry["total_cost"] - entry["total_electric_cost"]
-                entry["full_cost_by_item"] = entry["total_cost"] / entry["number_of_items"]
-
-        entries_sorted = sorted(entries_all.values(), key=lambda e: e["max_id"], reverse=True)
-
-        target_idx = None
-        if focus_print_id:
-            for i, entry in enumerate(entries_sorted):
-                if entry["type"] == "single" and entry["print"]["id"] == focus_print_id:
-                    target_idx = i
-                    if entry["print"].get("group_id"):
-                        focus_group_id = entry["print"]["group_id"]
-                    break
-                elif entry["type"] == "group":
-                    if any(p["id"] == focus_print_id for p in entry["prints"]):
-                        target_idx = i
-                        focus_group_id = entry["id"]
-                        break
-        elif focus_group_id:
-            for i, entry in enumerate(entries_sorted):
-                if entry["type"] == "group" and entry["id"] == focus_group_id:
-                    target_idx = i
-                    break
-
-        if target_idx is not None:
-            target_page = (target_idx // per_page) + 1
-            if target_page != page:
-                # redirect vers la bonne page avec focus
-                kwargs = {"page": target_page}
-                if focus_print_id:
-                    kwargs["focus_print_id"] = focus_print_id
-                elif focus_group_id:
-                    kwargs["focus_group_id"] = focus_group_id
-                return redirect(url_for("print_history", **kwargs))
-
-    # 2. Requête paginée réelle pour affichage
+    # Requête paginée
     total_count, prints = get_prints_with_filament(
         offset=offset,
         limit=per_page,
@@ -997,10 +791,13 @@ def filaments():
 def edit_print_name():
     print_id = int(request.form["print_id"])
     new_filename = request.form.get("file_name", "").strip()
+    page = int(request.form.get("page", 1))
+
     if new_filename:
         update_print_filename(print_id, new_filename)
-    return redirect(url_for("print_history", focus_print_id=print_id))
+    return redirect(url_for("print_history", page=page, focus_print_id=print_id))
 
+    
 @app.route("/edit_print_items", methods=["POST"])
 def edit_print_items():
     print_id = int(request.form["print_id"])
@@ -1011,44 +808,55 @@ def edit_print_items():
     except (ValueError, TypeError):
         number_of_items = 1
 
+    page = int(request.form.get("page", 1))
+
     update_print_history_field(print_id, "number_of_items", number_of_items)
-    return redirect(url_for("print_history", focus_print_id=print_id))
+
+    return redirect(url_for("print_history", page=page, focus_print_id=print_id))
 
 @app.route("/create_group", methods=["POST"])
 def create_group():
     print_id = int(request.form["print_id"])
     group_name = request.form["group_name"].strip()
+    page = int(request.form.get("page", 1))
 
     if group_name:
         group_id = create_print_group(group_name)
         update_print_history_field(print_id, "group_id", group_id)
-        return redirect(url_for("print_history", focus_group_id=group_id))
+        return redirect(url_for("print_history", page=page, focus_group_id=group_id))
 
-    return redirect(url_for("print_history", focus_print_id=print_id))
+    return redirect(url_for("print_history", page=page, focus_print_id=print_id))
 
 @app.route("/assign_to_group", methods=["POST"])
 def assign_to_group():
     print_id = int(request.form["print_id"])
     group_id = int(request.form["group_id"])
+    page = int(request.form.get("page", 1))  # On récupère la page envoyée (sinon 1)
 
     update_print_history_field(print_id, "group_id", group_id)
-    return redirect(url_for("print_history", focus_group_id=group_id))
+    # Redirection vers la page actuelle, avec focus sur le groupe
+    return redirect(url_for("print_history", page=page, focus_group_id=group_id))
+
 
 @app.route("/remove_from_group", methods=["POST"])
 def remove_from_group():
     print_id = int(request.form["print_id"])
+    page = int(request.form.get("page", 1))
+
     update_print_history_field(print_id, "group_id", None)
-    return redirect(url_for("print_history", focus_print_id=print_id))
+    # Redirection vers la page actuelle, focus sur le print retiré
+    return redirect(url_for("print_history", page=page, focus_print_id=print_id))
 
 @app.route("/rename_group", methods=["POST"])
 def rename_group():
     group_id = int(request.form["group_id"])
     group_name = request.form["group_name"].strip()
+    page = int(request.form.get("page", 1))
 
     if group_name:
         update_print_group_field(group_id, "name", group_name)
 
-    return redirect(url_for("print_history", focus_group_id=group_id))
+    return redirect(url_for("print_history", page=page, focus_group_id=group_id))
 
 @app.route("/edit_group_items", methods=["POST"])
 def edit_group_items():
@@ -1060,6 +868,8 @@ def edit_group_items():
     except (ValueError, TypeError):
         number_of_items = 1
 
+    page = int(request.form.get("page", 1))
+
     update_print_group_field(group_id, "number_of_items", number_of_items)
 
-    return redirect(url_for("print_history", focus_group_id=group_id))
+    return redirect(url_for("print_history", page=page, focus_group_id=group_id))

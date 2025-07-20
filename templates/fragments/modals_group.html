@@ -4,6 +4,7 @@
     <div class="modal-content">
       <form method="post" action="{{ url_for('rename_group', page=page, focus_group_id=entry.id) }}">
         <input type="hidden" name="group_id" value="{{ entry.id }}">
+		  <input type="hidden" name="page" value="{{ page }}">
         <div class="modal-header">
           <h5 class="modal-title" id="editGroupModalLabel_{{ entry.id }}">Renommer (Groupe #{{ entry.id }})</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
@@ -26,6 +27,7 @@
     <div class="modal-content">
       <form method="post" action="{{ url_for('edit_group_items', page=page, focus_group_id=entry.id) }}">
         <input type="hidden" name="group_id" value="{{ entry.id }}">
+		  <input type="hidden" name="page" value="{{ page }}">
         <div class="modal-header">
           <h5 class="modal-title" id="editGroupItemsModalLabel_{{ entry.id }}">Nombre d’éléments (Groupe #{{ entry.id }})</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>

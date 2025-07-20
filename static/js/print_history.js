@@ -11,43 +11,49 @@ $(document).ready(function () {
     }
 
     function initSelect2() {
-    $('.select2').each(function () {
-        if ($(this).hasClass('select2-hidden-accessible')) {
-            $(this).select2('destroy');
-        }
-        $(this).select2({ width: '100%' }).on('select2:open', applyThemeToDropdown);
-    });
-	 enhanceColorSelect();
-applyColorTags();
-}
+        $('.select2').each(function () {
+            if ($(this).hasClass('select2-hidden-accessible')) {
+                $(this).select2('destroy');
+            }
+            $(this).select2({ width: '100%' }).on('select2:open', applyThemeToDropdown);
+        });
+        enhanceColorSelect();
+        applyColorTags();
+    }
 
     initSelect2();
 
     $('#filtersCollapse').on('shown.bs.collapse', function () {
         initSelect2();
     });
-	 $('.add-tag-btn').on('click', function () {
-    const btn = $(this);
-    const printId = btn.data('print-id');
-    const input = btn.siblings('.add-tag-input');
-    const tag = input.val().trim();
 
-    if (!tag) return;
+    $('.add-tag-btn').on('click', function () {
+        const btn = $(this);
+        const printId = btn.data('print-id');
+        const input = btn.siblings('.add-tag-input');
+        const tag = input.val().trim();
+        if (!tag) return;
 
-    $.post(`/history/${printId}/tags/add`, { tag })
-      .done(() => location.reload())
-      .fail(() => alert('Erreur lors de l’ajout du tag.'));
-  });
+        $.post(`/history/${printId}/tags/add`, { tag })
+            .done(() => {
+                const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
+                window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
+            })
+            .fail(() => alert('Erreur lors de l’ajout du tag.'));
+    });
 
-  $('.remove-tag').on('click', function () {
-    const btn = $(this);
-    const printId = btn.data('print-id');
-    const tag = btn.data('tag');
+    $('.remove-tag').on('click', function () {
+        const btn = $(this);
+        const printId = btn.data('print-id');
+        const tag = btn.data('tag');
 
-    $.post(`/history/${printId}/tags/remove`, { tag })
-      .done(() => location.reload())
-      .fail(() => alert('Erreur lors de la suppression du tag.'));
-  });
+        $.post(`/history/${printId}/tags/remove`, { tag })
+            .done(() => {
+                const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
+                window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
+            })
+            .fail(() => alert('Erreur lors de la suppression du tag.'));
+    });
 });
 
 function confirmReajust(printId) {
@@ -60,61 +66,66 @@ function confirmDelete(printId) {
 
 function askRestockRatioPerFilament(printId, isDelete) {
     fetch(`/history/${printId}/filaments`)
-    .then(resp => resp.json())
-    .then(filaments => {
-        const formHtml = filaments.map(f => `
-            <div style="display:flex;align-items:center;margin-bottom:5px;gap:5px">
-                <div style="width:15px;height:15px;background:${f.color};border:1px solid #ccc"></div>
-                <span style="flex:1">${f.name}</span>
-                <input type="number" min="0" max="100" value="${isDelete ? 100 : 0}" id="ratio_${f.spool_id}" style="width:60px"> %
-            </div>
-        `).join("");
+        .then(resp => resp.json())
+        .then(filaments => {
+            const formHtml = filaments.map(f => `
+                <div style="display:flex;align-items:center;margin-bottom:5px;gap:5px">
+                    <div style="width:15px;height:15px;background:${f.color};border:1px solid #ccc"></div>
+                    <span style="flex:1">${f.name}</span>
+                    <input type="number" min="0" max="100" value="${isDelete ? 100 : 0}" id="ratio_${f.spool_id}" style="width:60px"> %
+                </div>
+            `).join("");
 
-        Swal.fire({
-            title: isDelete ? "Supprimer + Réajuster" : "Réajuster uniquement",
-            html: formHtml,
-            showCancelButton: true,
-            confirmButtonText: "Valider",
-            cancelButtonText: "Annuler",
-            preConfirm: () => {
-                const ratios = {};
-                filaments.forEach(f => {
-                    const val = parseInt(document.getElementById(`ratio_${f.spool_id}`).value) || 0;
-                    ratios[f.spool_id] = val;
-                });
-                return ratios;
-            }
-        }).then(result => {
-            if (result.isConfirmed) {
-                const url = isDelete
-                    ? `/history/delete/${printId}`
-                    : `/history/reajust/${printId}`;
+            Swal.fire({
+                title: isDelete ? "Supprimer + Réajuster" : "Réajuster uniquement",
+                html: formHtml,
+                showCancelButton: true,
+                confirmButtonText: "Valider",
+                cancelButtonText: "Annuler",
+                preConfirm: () => {
+                    const ratios = {};
+                    filaments.forEach(f => {
+                        const val = parseInt(document.getElementById(`ratio_${f.spool_id}`).value) || 0;
+                        ratios[f.spool_id] = val;
+                    });
+                    return ratios;
+                }
+            }).then(result => {
+                if (result.isConfirmed) {
+                    const url = isDelete
+                        ? `/history/delete/${printId}`
+                        : `/history/reajust/${printId}`;
 
-                fetch(url, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ restock: true, ratios: result.value })
-                })
-                .then(resp => resp.json())
-                .then(data => {
-                    if (data.status && data.status.toLowerCase() === "ok") {
-                        location.reload(); // Force le refresh pour éviter des états désynchronisés
-                    } else {
-                        Swal.fire("Erreur", data.error || "Impossible d'effectuer l'opération", "error");
-                    }
-                });
-            }
+                    const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
+
+                    fetch(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ restock: true, ratios: result.value })
+                    })
+                    .then(resp => resp.json())
+                    .then(data => {
+                        if (data.status && data.status.toLowerCase() === "ok") {
+                            // Redirection vers la page courante avec focus sur le print modifié
+                            window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
+                        } else {
+                            Swal.fire("Erreur", data.error || "Impossible d'effectuer l'opération", "error");
+                        }
+                    });
+                }
+            });
         });
-    });
 }
-
 
 function addTag(printId, tag) {
     fetch(`/history/${printId}/tags/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tag })
-    }).then(() => location.reload());
+    }).then(() => {
+        const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
+        window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
+    });
 }
 
 function removeTag(printId, tag) {
@@ -122,7 +133,10 @@ function removeTag(printId, tag) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tag })
-    }).then(() => location.reload());
+    }).then(() => {
+        const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
+        window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
+    });
 }
 
 const COLOR_NAME_MAP = {
@@ -178,13 +192,12 @@ function enhanceColorSelect() {
         width: '100%',
         templateResult: formatColorOption,
         templateSelection: formatColorOption,
-        escapeMarkup: function(m) { return m; }
+        escapeMarkup: m => m
     });
 
     applyColorTags(); // corrige au load
     $colorSelect.on('select2:select select2:unselect', () => applyColorTags());
 }
-
 
 function formatColorOption(state) {
     if (!state.id) return state.text;
@@ -250,34 +263,33 @@ function applyColorTags() {
     });
 }
 
-
 document.addEventListener("DOMContentLoaded", () => {
-  const accordions = document.querySelectorAll(".card-header[data-bs-toggle='collapse']");
+    const accordions = document.querySelectorAll(".card-header[data-bs-toggle='collapse']");
 
-  // Gestion du clic classique sur un header
-  accordions.forEach(header => {
-    header.addEventListener("click", (e) => {
-      const targetSelector = header.getAttribute("data-bs-target");
-      const target = document.querySelector(targetSelector);
+    // Gestion du clic classique sur un header
+    accordions.forEach(header => {
+        header.addEventListener("click", () => {
+            const targetSelector = header.getAttribute("data-bs-target");
+            const target = document.querySelector(targetSelector);
 
-      if (!target.classList.contains("show")) {
-        // On attend l'ouverture animée avant de scroller
-        setTimeout(() => {
-          const y = header.getBoundingClientRect().top + window.scrollY - 20;
-          window.scrollTo({ top: y, behavior: "smooth" });
-        }, 350);
-      }
+            if (!target.classList.contains("show")) {
+                // On attend l'ouverture animée avant de scroller
+                setTimeout(() => {
+                    const y = header.getBoundingClientRect().top + window.scrollY - 20;
+                    window.scrollTo({ top: y, behavior: "smooth" });
+                }, 350);
+            }
+        });
     });
-  });
 
-  // Gestion du focus_id à l'affichage initial
-  const focused = document.querySelector(".collapse.show");
-  if (focused) {
-    // On cherche le header qui l’a déclenché
-    const header = focused.closest(".card").querySelector(".card-header");
-    if (header) {
-      const y = header.getBoundingClientRect().top + window.scrollY - 20;
-      window.scrollTo({ top: y, behavior: "smooth" });
+    // Gestion du focus_id à l'affichage initial
+    const focused = document.querySelector(".collapse.show");
+    if (focused) {
+        // On cherche le header qui l’a déclenché
+        const header = focused.closest(".card").querySelector(".card-header");
+        if (header) {
+            const y = header.getBoundingClientRect().top + window.scrollY - 20;
+            window.scrollTo({ top: y, behavior: "smooth" });
+        }
     }
-  }
 });
