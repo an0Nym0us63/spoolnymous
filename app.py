@@ -556,6 +556,14 @@ def print_history():
 
     entries_list = sorted(entries.values(), key=lambda e: e["max_id"], reverse=True)
 
+    # --- Déplier automatiquement le groupe si un print a le focus ---
+    if focus_print_id and not focus_group_id:
+        for entry in entries_list:
+            if entry["type"] == "single" and entry["print"]["id"] == focus_print_id:
+                if entry["print"].get("group_id"):
+                    focus_group_id = entry["print"]["group_id"]
+                break
+
     total_pages = (total_count + per_page - 1) // per_page
 
     distinct_values = get_distinct_values()
