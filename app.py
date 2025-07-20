@@ -473,6 +473,131 @@ def print_history():
 
     search = request.args.get("search", "").strip()
 
+    # 1. Récupérer la liste complète pour calculer la page du focus
+    total_count, all_prints = get_prints_with_filament(
+        offset=0,
+        limit=None,  # aucun limite pour récupérer tout
+        filters=filters,
+        search=search
+    )
+
+    # Construire la liste complète des entrées (groupes + prints)
+    entries_complete = {}
+
+    spool_list = fetchSpools(False, True)
+
+    for print_ in all_prints:
+        if print_["duration"] is None:
+            print_["duration"] = 0
+        print_["duration"] /= 3600
+        print_["electric_cost"] = print_["duration"] * float(COST_BY_HOUR)
+        print_["filament_usage"] = json.loads(print_["filament_info"])
+        print_["total_cost"] = 0
+        print_["tags"] = get_tags_for_print(print_["id"])
+        print_["total_weight"] = sum(f["grams_used"] for f in print_["filament_usage"])
+        for filament in print_["filament_usage"]:
+            if filament["spool_id"]:
+                for spool in spool_list:
+                    if spool['id'] == filament["spool_id"]:
+                        filament["spool"] = spool
+                        filament["cost"] = filament['grams_used'] * spool['cost_per_gram']
+                        print_["total_cost"] += filament["cost"]
+                        break
+
+        print_["full_cost"] = print_["total_cost"] + print_["electric_cost"]
+
+        if not print_.get("number_of_items"):
+            print_["number_of_items"] = 1
+        print_["full_cost_by_item"] = print_["full_cost"] / print_["number_of_items"]
+
+        if print_["group_id"]:
+            gid = print_["group_id"]
+            if gid not in entries_complete:
+                entries_complete[gid] = {
+                    "type": "group",
+                    "id": gid,
+                    "name": print_["group_name"],
+                    "prints": [],
+                    "total_duration": 0,
+                    "total_cost": 0,
+                    "max_id": 0,
+                    "latest_date": print_["print_date"],
+                    "thumbnail": print_["image_file"],
+                    "filament_usage": {},
+                    "number_of_items": print_["group_number_of_items"] or 1
+                }
+
+            entries_complete[gid]["prints"].append(print_)
+            entries_complete[gid]["total_duration"] += print_["duration"]
+            entries_complete[gid]["total_cost"] += print_["full_cost"]
+            entries_complete[gid]["total_weight"] = entries_complete[gid].get("total_weight", 0) + print_["total_weight"]
+            if print_["id"] > entries_complete[gid]["max_id"]:
+                entries_complete[gid]["max_id"] = print_["id"]
+                entries_complete[gid]["latest_date"] = print_["print_date"]
+                entries_complete[gid]["thumbnail"] = print_["image_file"]
+
+            for filament in print_["filament_usage"]:
+                key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
+                if key not in entries_complete[gid]["filament_usage"]:
+                    entries_complete[gid]["filament_usage"][key] = dict(filament)
+                else:
+                    entries_complete[gid]["filament_usage"][key]["grams_used"] += filament["grams_used"]
+                    entries_complete[gid]["filament_usage"][key]["cost"] += filament["cost"]
+
+        else:
+            entries_complete[print_["id"]] = {
+                "type": "single",
+                "print": print_,
+                "max_id": print_["id"]
+            }
+
+    for entry in entries_complete.values():
+        if entry["type"] == "group":
+            entry["total_electric_cost"] = entry["total_duration"] * float(COST_BY_HOUR)
+            entry["total_filament_cost"] = entry["total_cost"] - entry["total_electric_cost"]
+            entry["full_cost_by_item"] = entry["total_cost"] / entry["number_of_items"]
+
+    entries_list_complete = sorted(entries_complete.values(), key=lambda e: e["max_id"], reverse=True)
+
+    # 2. Gestion focus et calcul page cible sur liste complète
+    focus_print_id = request.args.get("focus_print_id", type=int)
+    focus_group_id = request.args.get("focus_group_id", type=int)
+
+    target_idx = None
+
+    if focus_print_id:
+        for idx, entry in enumerate(entries_list_complete):
+            if entry["type"] == "single" and entry["print"]["id"] == focus_print_id:
+                target_idx = idx
+                if entry["print"].get("group_id"):
+                    focus_group_id = entry["print"]["group_id"]
+                break
+            elif entry["type"] == "group":
+                for p in entry["prints"]:
+                    if p["id"] == focus_print_id:
+                        target_idx = idx
+                        focus_group_id = entry["id"]
+                        break
+                if target_idx is not None:
+                    break
+
+    elif focus_group_id:
+        for idx, entry in enumerate(entries_list_complete):
+            if entry["type"] == "group" and entry["id"] == focus_group_id:
+                target_idx = idx
+                break
+
+    if target_idx is not None:
+        target_page = (target_idx // per_page) + 1
+        if target_page != page:
+            kwargs = {"page": target_page}
+            if focus_print_id:
+                kwargs["focus_print_id"] = focus_print_id
+            if focus_group_id and not focus_print_id:
+                kwargs["focus_group_id"] = focus_group_id
+            return redirect(url_for("print_history", **kwargs))
+
+    # 3. Requête paginée réelle pour affichage
     total_count, prints = get_prints_with_filament(
         offset=offset,
         limit=per_page,
@@ -480,8 +605,7 @@ def print_history():
         search=search
     )
 
-    spool_list = fetchSpools(False, True)
-
+    # Reconstruire la liste paginée des entrées (groupes + prints) à afficher
     entries = {}
 
     for print_ in prints:
@@ -565,43 +689,6 @@ def print_history():
     groups_list = get_print_groups()
     pagination_pages = compute_pagination_pages(page, total_pages)
 
-    focus_print_id = request.args.get("focus_print_id", type=int)
-    focus_group_id = request.args.get("focus_group_id", type=int)
-
-    target_idx = None
-
-    if focus_print_id:
-        for idx, entry in enumerate(entries_list):
-            if entry["type"] == "single" and entry["print"]["id"] == focus_print_id:
-                target_idx = idx
-                if entry["print"].get("group_id"):
-                    focus_group_id = entry["print"]["group_id"]
-                break
-            elif entry["type"] == "group":
-                for p in entry["prints"]:
-                    if p["id"] == focus_print_id:
-                        target_idx = idx
-                        focus_group_id = entry["id"]
-                        break
-                if target_idx is not None:
-                    break
-
-    elif focus_group_id:
-        for idx, entry in enumerate(entries_list):
-            if entry["type"] == "group" and entry["id"] == focus_group_id:
-                target_idx = idx
-                break
-
-    if target_idx is not None:
-        target_page = (target_idx // per_page) + 1
-        if target_page != page:
-            kwargs = {"page": target_page}
-            if focus_print_id:
-                kwargs["focus_print_id"] = focus_print_id
-            if focus_group_id and not focus_print_id:
-                kwargs["focus_group_id"] = focus_group_id
-            return redirect(url_for("print_history", **kwargs))
-
     return render_template(
         'print_history.html',
         entries=entries_list,
@@ -618,6 +705,7 @@ def print_history():
         focus_group_id=focus_group_id,
         page_title="History"
     )
+
 
 
 
