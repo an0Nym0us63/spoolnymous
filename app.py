@@ -608,7 +608,8 @@ def print_history():
         search=search,
         pagination_pages=pagination_pages,
         focus_id=next_focus_id,
-        focus_group_id=focus_group_id
+        focus_group_id=focus_group_id,
+        page_title="History"
     )
 
 
@@ -814,7 +815,8 @@ def filaments():
         search=search,
         sort=sort,
         all_families=sorted(all_families_in_page),
-        selected_family=selected_family
+        selected_family=selected_family,
+        page_title="Filaments"
     )
 
 @app.route("/edit_print_name", methods=["POST"])
