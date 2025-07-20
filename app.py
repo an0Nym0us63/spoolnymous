@@ -473,12 +473,7 @@ def print_history():
     search = request.args.get("search", "").strip()
 
     # Étape 1 : on récupère la liste complète (non paginée) pour calculer la bonne page
-    total_count, all_prints = get_prints_with_filament(
-        offset=0,
-        limit=None,
-        filters=filters,
-        search=search
-    )
+    total_count, all_prints = get_prints_with_filament(offset=0, limit=10**9, filters=filters, search=search)
 
     spool_list = fetchSpools(False, True)
 
