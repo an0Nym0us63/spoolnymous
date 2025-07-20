@@ -519,7 +519,8 @@ def print_history():
                     "max_id": 0,
                     "latest_date": print_["print_date"],
                     "thumbnail": print_["image_file"],
-                    "filament_usage": {}
+                    "filament_usage": {},
+                    "number_of_items": print_["group_number_of_items"] or 1
                 }
 
             entries[gid]["prints"].append(print_)
@@ -551,6 +552,7 @@ def print_history():
         if entry["type"] == "group":
             entry["total_electric_cost"] = entry["total_duration"] * float(COST_BY_HOUR)
             entry["total_filament_cost"] = entry["total_cost"] - entry["total_electric_cost"]
+            entry["full_cost_by_item"] = entry["total_cost"] / entry["number_of_items"]
 
     entries_list = sorted(entries.values(), key=lambda e: e["max_id"], reverse=True)
 

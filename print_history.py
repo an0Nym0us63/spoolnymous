@@ -335,7 +335,7 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     cursor.execute(f'''
         SELECT DISTINCT p.id AS id, p.print_date, p.file_name,
                p.print_type, p.image_file, p.duration, p.number_of_items,
-               pg.id AS group_id, pg.name AS group_name,
+               pg.id AS group_id, pg.name AS group_name,pg.number_of_items AS group_number_of_items
                (
                    SELECT json_group_array(json_object(
                        'spool_id', f2.spool_id,
