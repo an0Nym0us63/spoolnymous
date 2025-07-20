@@ -10,12 +10,12 @@
       <span class="position-relative d-inline-block" style="font-size: 1rem; line-height: 1;">
         <span style="position: relative; display: inline-block;">
           🖨
-          {% if print.number_of_items > 1 %}
-          <span class="badge bg-primary rounded-pill position-absolute"
-                style="top: 0; right: -0.4rem; transform: translate(50%, -50%); font-size: 0.6rem; padding: 0.15em 0.4em;">
-            {{ print.number_of_items }}
-          </span>
-          {% endif %}
+           {% if print.number_of_items > 1 %}
+  <span class="badge bg-info rounded-pill position-absolute"
+        style="bottom: -0.4rem; left: 50%; transform: translateX(-50%); font-size: 0.6rem; padding: 0.15em 0.4em;">
+    {{ print.number_of_items }}
+  </span>
+  {% endif %}
         </span>
       </span>
       <span class="badge bg-dark bg-opacity-75 text-light small">#{{ print.id }}</span>
