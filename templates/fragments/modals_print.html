@@ -1,4 +1,3 @@
-{% for print in prints %}
 <!-- Renommer -->
 <div class="modal fade" id="editModal_{{ print.id }}" tabindex="-1" aria-labelledby="editModalLabel_{{ print.id }}" aria-hidden="true">
   <div class="modal-dialog modal-sm modal-dialog-centered">
@@ -41,7 +40,7 @@
   </div>
 </div>
 
-<!-- Créer groupe -->
+<!-- Créer ou ajouter à un groupe -->
 <div class="modal fade" id="groupModal_{{ print.id }}" tabindex="-1" aria-labelledby="groupModalLabel_{{ print.id }}" aria-hidden="true">
   <div class="modal-dialog modal-sm modal-dialog-centered">
     <div class="modal-content">
@@ -61,22 +60,4 @@
 
       <form method="post" action="{{ url_for('assign_to_group', page=page, focus_print_id=print.id) }}">
         <div class="modal-header">
-          <h5 class="modal-title">Ajouter à un groupe</h5>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" name="print_id" value="{{ print.id }}">
-          <select class="form-select" name="group_id" required>
-            <option value="">Sélectionner…</option>
-            {% for group in groups_list %}
-              <option value="{{ group.id }}">{{ group.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary btn-sm">Ajouter</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-{% endfor %}
+          <h5 class=
