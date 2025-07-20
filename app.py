@@ -864,3 +864,33 @@ def remove_from_group():
     print_id = int(request.form["print_id"])
     update_print_history_field(print_id, "group_id", None)
     return redirect_back(focus_id=print_id)
+
+@app.route("/rename_group", methods=["POST"])
+def rename_group():
+    group_id = int(request.form["group_id"])
+    group_name = request.form["group_name"].strip()
+
+    page = request.args.get("page", 1, type=int)
+    focus_group_id = request.args.get("focus_group_id", group_id, type=int)
+
+    if group_name:
+        update_print_group_field(group_id, "name", group_name)
+
+    return redirect(url_for("print_history", page=page, focus_id=focus_group_id))
+
+@app.route("/edit_group_items", methods=["POST"])
+def edit_group_items():
+    group_id = int(request.form["group_id"])
+    try:
+        number_of_items = int(request.form["number_of_items"])
+        if number_of_items < 1:
+            number_of_items = 1
+    except (ValueError, TypeError):
+        number_of_items = 1
+
+    page = request.args.get("page", 1, type=int)
+    focus_group_id = request.args.get("focus_group_id", group_id, type=int)
+
+    update_print_group_field(group_id, "number_of_items", number_of_items)
+
+    return redirect(url_for("print_history", page=page, focus_id=focus_group_id))

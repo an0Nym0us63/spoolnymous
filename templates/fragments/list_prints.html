@@ -51,6 +51,23 @@
 
         <div id="group_{{ entry.id }}" class="collapse {% if focus_group_id == entry.id|int %}show{% endif %}" data-bs-parent="#printAccordion">
           <div class="card-body small">
+			<div class="dropdown float-end mt-1">
+  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+    Actions
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li>
+      <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editGroupModal_{{ entry.id }}">
+        📝 Renommer
+      </a>
+    </li>
+    <li>
+      <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editGroupItemsModal_{{ entry.id }}">
+        🔢 Nombre d’éléments
+      </a>
+    </li>
+  </ul>
+</div>
             <div class="row row-cols-2 row-cols-md-5 g-2 mb-2 text-center">
               <div>⏱ {{ entry.total_duration|hm_format }}</div>
 			  <div>⚖️ {{ '%.1f'|format(entry.total_weight) }}g</div>
@@ -98,7 +115,7 @@
           </div>
         </div>
       </div>
-
+	{% include 'fragments/modals_group.html' %}
     {% elif entry.type == "single" %}
       {% set print = entry.print %}
       {% include 'fragments/print_card.html' %}

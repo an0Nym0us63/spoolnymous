@@ -103,6 +103,11 @@ def create_database() -> None:
             cursor.execute("ALTER TABLE prints ADD COLUMN duration REAL")
         if "group_id" not in columns:
             cursor.execute("ALTER TABLE prints ADD COLUMN group_id INTEGER REFERENCES print_groups(id)")
+        # vérification des colonnes sur print_groups
+        cursor.execute("PRAGMA table_info(print_groups)")
+        group_columns = [row[1] for row in cursor.fetchall()]
+        if "number_of_items" not in group_columns:
+            cursor.execute("ALTER TABLE print_groups ADD COLUMN number_of_items INTEGER DEFAULT 1")
 
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS print_tags (
@@ -116,7 +121,8 @@ def create_database() -> None:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS print_groups (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL
+                name TEXT NOT NULL,
+                number_of_items INTEGER DEFAULT 1
             )
         ''')
 
@@ -452,6 +458,17 @@ def get_print_groups() -> list[dict]:
     groups = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return groups
+
+def update_print_group_field(group_id: int, field: str, value) -> None:
+    """
+    Met à jour un champ donné pour un groupe d'impressions.
+    """
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    query = f"UPDATE print_groups SET {field} = ? WHERE id = ?"
+    cursor.execute(query, (value, group_id))
+    conn.commit()
+    conn.close()
 
 
 

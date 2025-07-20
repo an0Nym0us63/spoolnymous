@@ -1,0 +1,43 @@
+<!-- MODAL DE RENOMMAGE GROUPE -->
+<div class="modal fade" id="editGroupModal_{{ entry.id }}" tabindex="-1" aria-labelledby="editGroupModalLabel_{{ entry.id }}" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('rename_group', page=page, focus_group_id=entry.id) }}">
+        <input type="hidden" name="group_id" value="{{ entry.id }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editGroupModalLabel_{{ entry.id }}">Renommer (Groupe #{{ entry.id }})</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <input type="text" class="form-control" name="group_name" value="{{ entry.name }}" placeholder="Nouveau nom">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOMBRE D'ÉLÉMENTS GROUPE -->
+<div class="modal fade" id="editGroupItemsModal_{{ entry.id }}" tabindex="-1" aria-labelledby="editGroupItemsModalLabel_{{ entry.id }}" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('edit_group_items', page=page, focus_group_id=entry.id) }}">
+        <input type="hidden" name="group_id" value="{{ entry.id }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editGroupItemsModalLabel_{{ entry.id }}">Nombre d’éléments (Groupe #{{ entry.id }})</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <input type="number" min="1" class="form-control" name="number_of_items" value="{{ entry.number_of_items or 1 }}">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
