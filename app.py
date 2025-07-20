@@ -590,18 +590,11 @@ def print_history():
         if idx_in_list is not None:
             target_page = (idx_in_list // per_page) + 1
             if target_page != page:
-                # Pas sur la bonne page → redirige vers la bonne page avec focus_id
+                # Redirige vers la bonne page si besoin (et garde focus_id pour dépliage)
                 return redirect(url_for(
                     "print_history",
                     page=target_page,
                     focus_id=next_focus_id
-                ))
-            elif request.args.get("focus_cleaned") != "1":
-                # Déjà sur la bonne page mais focus_id encore présent → nettoie
-                return redirect(url_for(
-                    "print_history",
-                    page=page,
-                    focus_cleaned="1"
                 ))
 
     return render_template(
