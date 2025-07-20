@@ -572,7 +572,7 @@ def print_history():
     focus_print_id = request.args.get("focus_print_id", type=int)
     focus_group_id = request.args.get("focus_group_id", type=int)
 
-    # 1. Si focus, récupérer la liste complète pour déterminer la page cible
+    # 1. Si focus present, on récupère toute la liste complète pour déterminer la page exacte du focus
     if focus_print_id or focus_group_id:
         total_count_all, all_prints = get_prints_with_filament(
             offset=0,
@@ -584,6 +584,7 @@ def print_history():
         spool_list = fetchSpools(False, True)
         entries_complete = {}
 
+        # Construction complète des entrées (groupes + prints) pour toute la liste
         for print_ in all_prints:
             if print_["duration"] is None:
                 print_["duration"] = 0
@@ -657,6 +658,7 @@ def print_history():
 
         entries_list_complete = sorted(entries_complete.values(), key=lambda e: e["max_id"], reverse=True)
 
+        # Trouver l'index de l'entrée focus (print ou groupe)
         target_idx = None
         if focus_print_id:
             for idx, entry in enumerate(entries_list_complete):
@@ -680,6 +682,7 @@ def print_history():
                     target_idx = idx
                     break
 
+        # Calcul de la page cible selon l'index trouvé
         if target_idx is not None:
             target_page = (target_idx // per_page) + 1
             if target_page != page:
@@ -690,7 +693,7 @@ def print_history():
                     kwargs["focus_group_id"] = focus_group_id
                 return redirect(url_for("print_history", **kwargs))
 
-    # 2. Requête paginée normale
+    # 2. Requête paginée normale pour affichage
     total_count, prints = get_prints_with_filament(
         offset=offset,
         limit=per_page,
@@ -701,6 +704,7 @@ def print_history():
     spool_list = fetchSpools(False, True)
     entries = {}
 
+    # Reconstruction des entrées paginées (groupes + prints)
     for print_ in prints:
         if print_["duration"] is None:
             print_["duration"] = 0
@@ -798,6 +802,7 @@ def print_history():
         focus_group_id=focus_group_id,
         page_title="History"
     )
+
 
 
 
