@@ -464,7 +464,6 @@ def print_history():
 
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per_page", 50))
-    offset = (page - 1) * per_page
 
     filters = {
         "filament_type": request.args.getlist("filament_type"),
@@ -473,18 +472,20 @@ def print_history():
 
     search = request.args.get("search", "").strip()
 
-    total_count, prints = get_prints_with_filament(
-        offset=offset,
-        limit=per_page,
+    # Étape 1 : on récupère la liste complète (non paginée) pour calculer la bonne page
+    total_count, all_prints = get_prints_with_filament(
+        offset=0,
+        limit=None,
         filters=filters,
         search=search
     )
 
     spool_list = fetchSpools(False, True)
 
+    # Construit entries_list sur la liste complète
     entries = {}
 
-    for print_ in prints:
+    for print_ in all_prints:
         if print_["duration"] is None:
             print_["duration"] = 0
         print_["duration"] /= 3600
@@ -603,9 +604,12 @@ def print_history():
                 kwargs["focus_group_id"] = focus_group_id
             return redirect(url_for("print_history", **kwargs))
 
+    # Pagination réelle
+    paginated_entries = entries_list[(page - 1) * per_page: page * per_page]
+
     return render_template(
         'print_history.html',
-        entries=entries_list,
+        entries=paginated_entries,
         groups_list=groups_list,
         currencysymbol=spoolman_settings["currency_symbol"],
         page=page,
@@ -619,6 +623,7 @@ def print_history():
         focus_group_id=focus_group_id,
         page_title="History"
     )
+
 
 
 @app.route("/print_select_spool")
