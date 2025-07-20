@@ -23,12 +23,6 @@
             ">
         {{ entry.prints|length }}
       </span>
-	  {% if entry.number_of_items > 1 %}
-<span class="badge bg-info rounded-pill position-absolute"
-      style="bottom: -0.4rem; right: -0.4rem; transform: translate(50%, 50%); font-size: 0.6rem; padding: 0.15em 0.4em;">
-  {{ entry.number_of_items }}
-</span>
-{% endif %}
     </span>
   </span>
   <span class="badge bg-dark bg-opacity-75 text-light small">#{{ entry.max_id }}</span>
@@ -46,9 +40,18 @@
 </div>
 
 <div class="text-end">
-  {% if entry.thumbnail %}
-    <img src="{{ url_for('static', filename='prints/' ~ entry.thumbnail) }}"
-         alt="Group Image" style="width:50px; height:auto;" class="rounded shadow-sm">
+{% if entry.thumbnail %}
+    <div style="position: relative; display: inline-block;">
+      <img src="{{ url_for('static', filename='prints/' ~ entry.thumbnail) }}"
+           alt="Group Image" style="width:50px; height:auto;" class="rounded shadow-sm">
+
+      {% if entry.number_of_items > 1 %}
+      <span class="badge bg-info rounded-pill"
+            style="position: absolute; top: 0; left: 0; transform: translate(-30%, -30%); font-size: 0.6rem; padding: 0.15em 0.4em;">
+        {{ entry.number_of_items }}
+      </span>
+      {% endif %}
+    </div>
   {% else %}
     <span class="text-muted">—</span>
   {% endif %}
