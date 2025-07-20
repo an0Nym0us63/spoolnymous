@@ -10,8 +10,6 @@
       <span class="position-relative d-inline-block" style="font-size: 1rem; line-height: 1;">
         <span style="position: relative; display: inline-block;">
           🖨
-           
-  </span>
         </span>
       </span>
       <span class="badge bg-dark bg-opacity-75 text-light small">#{{ print.id }}</span>
@@ -31,18 +29,18 @@
 
     <!-- Colonne droite : miniature -->
     <div class="text-end">
-       {% if print.image_file %}
-    <div style="position: relative; display: inline-block;">
-      <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
-           alt="Print Image" style="width:50px; height:auto;" class="rounded shadow-sm">
+      {% if print.image_file %}
+      <div style="position: relative; display: inline-block;">
+        <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
+             alt="Print Image" style="width:50px; height:auto;" class="rounded shadow-sm">
 
-      {% if print.number_of_items > 1 %}
-      <span class="badge bg-info rounded-pill"
-            style="position: absolute; top: 4px; right: 0px; font-size: 0.6rem; padding: 0.15em 0.4em;">
-        {{ print.number_of_items }}
-      </span>
-      {% endif %}
-    </div>
+        {% if print.number_of_items > 1 %}
+        <span class="badge bg-info rounded-pill"
+              style="position: absolute; top: 4px; right: 0px; font-size: 0.6rem; padding: 0.15em 0.4em;">
+          {{ print.number_of_items }}
+        </span>
+        {% endif %}
+      </div>
       {% else %}
         <span class="text-muted">—</span>
       {% endif %}
@@ -166,7 +164,6 @@
         <button class="btn btn-sm btn-success add-tag-btn" data-print-id="{{ print.id }}">✚ Ajouter</button>
       </div>
 
-      {% include 'fragments/modals_print.html' %}
     </div>
   </div>
 </div>

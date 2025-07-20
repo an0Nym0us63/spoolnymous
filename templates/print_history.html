@@ -55,7 +55,6 @@
   </div>
 </div>
 
-
 <!-- BOUTON FILTRES -->
 <div class="text-end mb-3">
   <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
@@ -98,6 +97,9 @@
 </div>
 
 {% include 'fragments/list_prints.html' %}
+
+<!-- Inclusion des modales prints -->
+{% include 'fragments/modals_print.html' %}
 
 {% endblock %}
 

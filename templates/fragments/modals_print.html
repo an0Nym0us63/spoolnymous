@@ -1,63 +1,91 @@
-<!-- Renommer -->
+<!-- MODAL DE RENOMMAGE -->
 <div class="modal fade" id="editModal_{{ print.id }}" tabindex="-1" aria-labelledby="editModalLabel_{{ print.id }}" aria-hidden="true">
-  <div class="modal-dialog modal-sm modal-dialog-centered">
+  <div class="modal-dialog">
     <div class="modal-content">
-      <form method="post" action="{{ url_for('edit_print_name', page=page, focus_print_id=print.id) }}">
+      <form method="post" action="{{ url_for('edit_print_name', page=page, focus_id=print.id) }}">
         <div class="modal-header">
-          <h5 class="modal-title" id="editModalLabel_{{ print.id }}">Renommer</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title" id="editModalLabel_{{ print.id }}">Renommer (Print #{{ print.id }})</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
         </div>
         <div class="modal-body">
           <input type="hidden" name="print_id" value="{{ print.id }}">
-          <input type="text" name="file_name" class="form-control" value="{{ print.file_name }}">
+          <div class="mb-3">
+            <label for="file_name_{{ print.id }}" class="form-label">Nouveau nom</label>
+            <input type="text" class="form-control" name="file_name" id="file_name_{{ print.id }}" value="{{ print.file_name }}">
+          </div>
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-primary btn-sm">Enregistrer</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
-<!-- Nombre d’éléments -->
+<!-- MODAL DE NOMBRE D'ÉLÉMENTS -->
 <div class="modal fade" id="editItemsModal_{{ print.id }}" tabindex="-1" aria-labelledby="editItemsModalLabel_{{ print.id }}" aria-hidden="true">
-  <div class="modal-dialog modal-sm modal-dialog-centered">
+  <div class="modal-dialog">
     <div class="modal-content">
-      <form method="post" action="{{ url_for('edit_print_items', page=page, focus_print_id=print.id) }}">
+      <form method="post" action="{{ url_for('edit_print_items', page=page, focus_id=print.id) }}">
         <div class="modal-header">
-          <h5 class="modal-title" id="editItemsModalLabel_{{ print.id }}">Nombre d’éléments</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <h5 class="modal-title" id="editItemsModalLabel_{{ print.id }}">Définir le nombre d’éléments (Print #{{ print.id }})</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
         </div>
         <div class="modal-body">
           <input type="hidden" name="print_id" value="{{ print.id }}">
-          <input type="number" name="number_of_items" class="form-control" value="{{ print.number_of_items }}">
+          <div class="mb-3">
+            <label for="number_of_items_{{ print.id }}" class="form-label">Nombre d’éléments</label>
+            <input type="number" min="1" class="form-control" name="number_of_items" id="number_of_items_{{ print.id }}" value="{{ print.number_of_items or 1 }}">
+          </div>
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-primary btn-sm">OK</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
-<!-- Créer ou ajouter à un groupe -->
+<!-- MODAL GROUPE -->
 <div class="modal fade" id="groupModal_{{ print.id }}" tabindex="-1" aria-labelledby="groupModalLabel_{{ print.id }}" aria-hidden="true">
-  <div class="modal-dialog modal-sm modal-dialog-centered">
+  <div class="modal-dialog">
     <div class="modal-content">
-      <form method="post" action="{{ url_for('create_group', page=page, focus_print_id=print.id) }}">
-        <div class="modal-header">
-          <h5 class="modal-title" id="groupModalLabel_{{ print.id }}">Créer un groupe</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" name="print_id" value="{{ print.id }}">
-          <input type="text" name="group_name" class="form-control" placeholder="Nom du groupe">
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary btn-sm">Créer</button>
-        </div>
-      </form>
+      <div class="modal-header">
+        <h5 class="modal-title" id="groupModalLabel_{{ print.id }}">Ajouter à un groupe (Print #{{ print.id }})</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
 
-      <form method="post" action="{{ url_for('assign_to_group', page=page, focus_print_id=print.id) }}">
-        <div class="modal-header">
-          <h5 class=
+      <div class="modal-body">
+        <form method="post" action="{{ url_for('create_group', page=page, focus_id=print.id) }}">
+          <input type="hidden" name="print_id" value="{{ print.id }}">
+          <div class="mb-3">
+            <label class="form-label">Créer un nouveau groupe</label>
+            <input type="text" name="group_name" class="form-control" placeholder="Nom du nouveau groupe">
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Créer et assigner</button>
+          </div>
+        </form>
+
+        <hr>
+
+        <form method="post" action="{{ url_for('assign_to_group', page=page, focus_id=print.id) }}">
+          <input type="hidden" name="print_id" value="{{ print.id }}">
+          <div class="mb-3">
+            <label class="form-label">Ou choisir un groupe existant</label>
+            <select name="group_id" class="form-select">
+              {% for group in groups_list %}
+              <option value="{{ group.id }}">{{ group.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-secondary">Assigner au groupe</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
