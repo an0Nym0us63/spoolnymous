@@ -32,7 +32,13 @@
     <div class="container-fluid">
 	  <a class="navbar-brand d-flex align-items-center" href="{{ url_for('home') }}">
   <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" width="24" height="24" class="me-2">
+  
+        {% if page_title %}
   <span class="fw-bold">{{ PRINTER_MODEL["model"] }} - {{ page_title or '' }}</span>
+  
+        {% else %}
+  <span class="fw-bold">{{ PRINTER_MODEL["model"] }}</span>
+        {% endif %}
 </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>

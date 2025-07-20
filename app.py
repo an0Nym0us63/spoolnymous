@@ -398,7 +398,8 @@ def home():
         success_message=success_message,
         ams_data=ams_data,
         vt_tray_data=vt_tray_data,
-        issue=issue
+        issue=issue,
+        page_title="Home"
     ))
 
     if request.args.get("webview") == "1":
@@ -429,7 +430,8 @@ def assign_tag():
   try:
     spools = sort_spools(fetchSpools())
 
-    return render_template('assign_tag.html', spools=spools)
+    return render_template('assign_tag.html', spools=spools,
+        page_title="NFC")
   except Exception as e:
     traceback.print_exc()
     return render_template('error.html', exception=str(e))
