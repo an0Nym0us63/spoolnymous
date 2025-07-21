@@ -1,9 +1,18 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="text-end mb-3">
-  <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#filamentFilters" aria-expanded="false" aria-controls="filamentFilters">
-    Filtres & Tri
+
+<!-- 🔷 Bouton flottant filtres -->
+<div class="position-fixed bottom-0 start-0 m-3" style="z-index:1030;">
+  <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="collapse" data-bs-target="#filamentFilters" aria-expanded="false" aria-controls="filamentFilters">
+    🔍
+  </button>
+</div>
+
+<!-- 🔷 Bouton flottant pagination -->
+<div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
+  <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="collapse" data-bs-target="#paginationCollapse" aria-expanded="false" aria-controls="paginationCollapse">
+    📄
   </button>
 </div>
 
@@ -15,26 +24,25 @@
       </div>
       <input type="hidden" name="page" value="1">
       <div class="col-md-3">
-  <select name="color" class="form-select select2">
-    <option value="">— Filtrer par famille de couleur —</option>
-    {% for fam in all_families %}
-      <option value="{{ fam }}" {% if fam == selected_family %}selected{% endif %}>
-        {{ fam }}
-      </option>
-    {% endfor %}
-  </select>
-</div>
-
-<div class="col-md-3">
-  <select name="sort" class="form-select">
-    <option value="default" {% if sort != 'remaining' %}selected{% endif %}>
-      Trier par Matériau/Vendor/Nom
-    </option>
-    <option value="remaining" {% if sort == 'remaining' %}selected{% endif %}>
-      Trier par Stock restant
-    </option>
-  </select>
-</div>
+        <select name="color" class="form-select select2">
+          <option value="">— Filtrer par famille de couleur —</option>
+          {% for fam in all_families %}
+            <option value="{{ fam }}" {% if fam == selected_family %}selected{% endif %}>
+              {{ fam }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select name="sort" class="form-select">
+          <option value="default" {% if sort != 'remaining' %}selected{% endif %}>
+            Trier par Matériau/Vendor/Nom
+          </option>
+          <option value="remaining" {% if sort == 'remaining' %}selected{% endif %}>
+            Trier par Stock restant
+          </option>
+        </select>
+      </div>
       <div class="col-md-1 text-end">
         <button type="submit" class="btn btn-primary">Appliquer</button>
       </div>
@@ -42,21 +50,26 @@
   </div>
 </div>
 
-<div class="pagination justify-content-center mb-4 mt-4">
-  {% if page > 1 %}
-    <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo; First</a>
-    <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo; Prev</a>
-  {% endif %}
+<div class="collapse mt-3 mb-4" id="paginationCollapse">
+  <div class="bg-body rounded shadow p-2 text-center">
+    <div class="d-inline-flex flex-wrap gap-1 align-items-center justify-content-center">
+      {% if page > 1 %}
+        <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo; First</a>
+        <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo; Prev</a>
+      {% endif %}
 
-  <span class="mx-2">
-    Page {{ page }} / {{ total_pages }}
-  </span>
+      <span class="mx-2">
+        Page {{ page }} / {{ total_pages }}
+      </span>
 
-  {% if page < total_pages %}
-    <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">Next &rsaquo;</a>
-    <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">Last &raquo;</a>
-  {% endif %}
+      {% if page < total_pages %}
+        <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">Next &rsaquo;</a>
+        <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">Last &raquo;</a>
+      {% endif %}
+    </div>
+  </div>
 </div>
+
 <div class="accordion" id="filamentsAccordion">
   {% for spool in filaments %}
     <div class="accordion-item">
@@ -68,36 +81,14 @@
 
             <!-- carré couleur -->
             <div class="me-3 d-flex align-items-stretch">
-             {% if spool.filament.multi_color_hexes %}
-  {% set colors =
-      spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
-      else spool.filament.multi_color_hexes %}
-  <span
-    style="
-      width: 12px;
-      min-height: 100%;
-      background: linear-gradient(90deg
-        {% for c in colors %}
-          , #{{ c.strip() }}
-        {% endfor %}
-      );
-      border-radius: 2px;
-      border: 1px solid #888;
-      display: inline-block;
-    ">
-  </span>
-{% else %}
-  <span
-    style="
-      width: 12px;
-      min-height: 100%;
-      background-color: #{{ spool.filament.color_hex }};
-      border-radius: 2px;
-      border: 1px solid #888;
-      display: inline-block;
-    ">
-  </span>
-{% endif %}
+              {% if spool.filament.multi_color_hexes %}
+                {% set colors =
+                    spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
+                    else spool.filament.multi_color_hexes %}
+                <span style="width:12px;min-height:100%;background:linear-gradient(90deg{% for c in colors %}, #{{c.strip()}}{% endfor %});border-radius:2px;border:1px solid #888;display:inline-block;"></span>
+              {% else %}
+                <span style="width:12px;min-height:100%;background-color:#{{ spool.filament.color_hex }};border-radius:2px;border:1px solid #888;display:inline-block;"></span>
+              {% endif %}
             </div>
 
             <!-- Texte -->
@@ -120,106 +111,23 @@
       <div id="collapse{{ spool.id }}" class="accordion-collapse collapse"
            aria-labelledby="heading{{ spool.id }}" data-bs-parent="#filamentsAccordion">
         <div class="accordion-body">
-          <ul class="list-unstyled mb-0">
-            <li><strong>Fournisseur :</strong> {{ spool.filament.vendor.name }}</li>
-            <li><strong>Matière :</strong> {{ spool.filament.material }}</li>
-            <li><strong>Nom :</strong> {{ spool.filament.name }}</li>
-            <li>
-              <strong>Filament ID :</strong>
-              <span class="badge bg-secondary">{{ spool.filament.extra.filament_id|replace('"','') or "—" }}</span>
-            </li>
-            {% if spool.extra.tag %}
-            <li>
-              <strong>Tag :</strong>
-              <span class="badge bg-info text-dark">{{ spool.extra.tag|replace('"','') }}</span>
-            </li>
-            {% endif %}
-            <li><strong>Première utilisation :</strong> 
-              {% if spool.first_used %}
-                {% set date_parts = spool.first_used[:10].split('-') %}
-                {{ date_parts[2] }}/{{ date_parts[1] }}/{{ date_parts[0] }} {{ spool.first_used[11:16] }}
-              {% else %}
-                —
-              {% endif %}
-            </li>
-            <li><strong>Dernière utilisation :</strong> 
-              {% if spool.last_used %}
-                {% set date_parts = spool.last_used[:10].split('-') %}
-                {{ date_parts[2] }}/{{ date_parts[1] }}/{{ date_parts[0] }} {{ spool.last_used[11:16] }}
-              {% else %}
-                —
-              {% endif %}
-            </li>
-           <li><strong>Poids initial :</strong> {{ spool.initial_weight|round|int }} g</li>
-           <li><strong>Prix :</strong> {{ spool.price|default("—") }} €</li>
-
-            <li><strong>Stock restant :</strong> {{ spool.remaining_weight|round|int }} g</li>
-            <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
-            <li><strong>Couleur :</strong> 
-  {% if spool.filament.multi_color_hexes %}
-    {% set colors =
-        spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
-        else spool.filament.multi_color_hexes %}
-    <span
-      style="
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        vertical-align: middle;
-        background: linear-gradient(90deg
-          {% for c in colors %}
-            , #{{ c.strip() }}
-          {% endfor %}
-        );
-        border-radius: 4px;
-        border: 1px solid #ccc;
-      ">
-    </span>
-    <span class="ms-2">
-      {% for c in colors %}
-        #{{ c.strip() }}{% if not loop.last %} / {% endif %}
-      {% endfor %}
-    </span>
-  {% else %}
-    <span
-      style="
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        vertical-align: middle;
-        background-color: #{{ spool.filament.color_hex }};
-        border-radius: 4px;
-        border: 1px solid #ccc;
-      ">
-    </span>
-    <span class="ms-2">#{{ spool.filament.color_hex }}</span>
-  {% endif %}
-</li>
-          </ul>
+          <!-- infos détaillées -->
+          …
         </div>
       </div>
     </div>
   {% endfor %}
 </div>
 
-<div class="pagination justify-content-center mt-4">
-  {% if page > 1 %}
-    <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo; First</a>
-    <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo; Prev</a>
-  {% endif %}
-
-  <span class="mx-2">
-    Page {{ page }} / {{ total_pages }}
-  </span>
-
-  {% if page < total_pages %}
-    <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">Next &rsaquo;</a>
-    <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">Last &raquo;</a>
-  {% endif %}
-</div>
 {% endblock %}
+
 {% block scripts %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="{{ url_for('static', filename='js/print_history.js') }}"></script>
+<script>
+$(document).ready(function() {
+  $('.select2').select2({ width: '100%' });
+});
+</script>
 {% endblock %}
