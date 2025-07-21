@@ -26,12 +26,14 @@ $(document).ready(function () {
             $select.select2('destroy');
         }
 
+        const $modal = $select.closest('.modal');
+
         $select.select2({
+            dropdownParent: $modal,
             width: '100%',
             tags: true,
             placeholder: "Tapez pour rechercher ou créer…",
             minimumInputLength: 1,
-            allowClear: true,
             ajax: {
                 url: '/api/groups/search',
                 dataType: 'json',
@@ -45,23 +47,7 @@ $(document).ready(function () {
                     };
                 },
                 cache: true
-            },
-            language: {
-                noResults: function () { return "Aucun résultat"; },
-                inputTooShort: function () { return "Saisissez au moins un caractère"; }
-            },
-            createTag: function (params) {
-                const term = $.trim(params.term);
-                if (term === '') {
-                    return null;
-                }
-                return {
-                    id: term,
-                    text: term,
-                    newTag: true
-                };
-            },
-            escapeMarkup: function (m) { return m; }
+            }
         }).on('select2:open', applyThemeToDropdown);
     }
 
