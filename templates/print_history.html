@@ -25,7 +25,7 @@
 </div>
 
 <!-- Offcanvas pagination -->
-<div class="offcanvas offcanvas-bottom" tabindex="-1" id="paginationOffcanvas" aria-labelledby="paginationOffcanvasLabel" style="height:50vh">
+<div class="offcanvas offcanvas-bottom" tabindex="-1" id="paginationOffcanvas" aria-labelledby="paginationOffcanvasLabel" style="height:40vh">
   <div class="offcanvas-header">
     <h5 class="offcanvas-title" id="paginationOffcanvasLabel">Pagination</h5>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
@@ -33,23 +33,23 @@
   <div class="offcanvas-body">
     <ul class="pagination pagination-sm mb-3 justify-content-center flex-wrap">
       {% if page > 1 %}
-        <li class="page-item">
+        <li class="page-item mx-1">
           <a class="page-link rounded-pill" href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page-1 }}">«</a>
         </li>
       {% endif %}
 
       {% for p in pagination_pages %}
         {% if p == '…' %}
-          <li class="page-item disabled"><span class="page-link">…</span></li>
+          <li class="page-item disabled mx-1"><span class="page-link">…</span></li>
         {% else %}
-          <li class="page-item {% if p == page %}active{% endif %}">
+          <li class="page-item {% if p == page %}active{% endif %} mx-1">
             <a class="page-link rounded-pill" href="{{ url_for('print_history') }}?{{ base_query }}&page={{ p }}">{{ p }}</a>
           </li>
         {% endif %}
       {% endfor %}
 
       {% if page < total_pages %}
-        <li class="page-item">
+        <li class="page-item mx-1">
           <a class="page-link rounded-pill" href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page+1 }}">»</a>
         </li>
       {% endif %}
@@ -66,7 +66,7 @@
 </div>
 
 <!-- Offcanvas filtres -->
-<div class="offcanvas offcanvas-bottom" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel" style="height:50vh">
+<div class="offcanvas offcanvas-bottom" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel" style="height:60vh">
   <div class="offcanvas-header">
     <h5 class="offcanvas-title" id="filtersOffcanvasLabel">Filtres</h5>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
