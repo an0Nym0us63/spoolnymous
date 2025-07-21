@@ -22,43 +22,33 @@ $(document).ready(function () {
     }
 
     function initAjaxSelect2($select) {
-    if ($select.hasClass('select2-hidden-accessible')) {
-        $select.select2('destroy');
-    }
-
-    const $modal = $select.closest('.modal');
-
-    $select.select2({
-        dropdownParent: $modal,
-        width: '100%',
-        tags: true,
-        language: {
-            inputTooShort: function () { return "Tapez pour rechercher…"; },
-            noResults: function () { return "Aucun résultat trouvé."; }
-        },
-        placeholder: "Tapez pour rechercher ou créer…",
-        minimumInputLength: 1,
-        ajax: {
-            url: '/api/groups/search',
-            dataType: 'json',
-            delay: 250,
-            data: function (params) {
-                return { q: params.term };
-            },
-            processResults: function (data) {
-                if (!data.results) return { results: [] };
-                // Les clés attendues par Select2 sont `id` et `text`
-                return {
-                    results: data.results.map(item => ({
-                        id: item.id,
-                        text: item.text
-                    }))
-                };
-            },
-            cache: true
+        if ($select.hasClass('select2-hidden-accessible')) {
+            $select.select2('destroy');
         }
-    }).on('select2:open', applyThemeToDropdown);
-}
+        $select.select2({
+            width: '100%',
+            tags: true,
+            placeholder: "Rechercher ou créer…",
+            minimumInputLength: 0,  // on enlève le message chiant
+            language: {
+                inputTooShort: () => ""
+            },
+            ajax: {
+                url: '/api/groups/search',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return { q: params.term || "" };
+                },
+                processResults: function (data) {
+                    return {
+                        results: (data.results || []).map(g => ({ id: g.id, text: g.text }))
+                    };
+                },
+                cache: true
+            }
+        }).on('select2:open', applyThemeToDropdown);
+    }
 
     initSelect2();
 
@@ -103,8 +93,67 @@ $(document).ready(function () {
             })
             .fail(() => alert('Erreur lors de la suppression du tag.'));
     });
-
 });
+
+function confirmReajust(printId) {
+    askRestockRatioPerFilament(printId, false);
+}
+
+function confirmDelete(printId) {
+    askRestockRatioPerFilament(printId, true);
+}
+
+function askRestockRatioPerFilament(printId, isDelete) {
+    fetch(`/history/${printId}/filaments`)
+        .then(resp => resp.json())
+        .then(filaments => {
+            const formHtml = filaments.map(f => `
+                <div style="display:flex;align-items:center;margin-bottom:5px;gap:5px">
+                    <div style="width:15px;height:15px;background:${f.color};border:1px solid #ccc"></div>
+                    <span style="flex:1">${f.name}</span>
+                    <input type="number" min="0" max="100" value="${isDelete ? 100 : 0}" id="ratio_${f.spool_id}" style="width:60px"> %
+                </div>
+            `).join("");
+
+            Swal.fire({
+                title: isDelete ? "Supprimer + Réajuster" : "Réajuster uniquement",
+                html: formHtml,
+                showCancelButton: true,
+                confirmButtonText: "Valider",
+                cancelButtonText: "Annuler",
+                preConfirm: () => {
+                    const ratios = {};
+                    filaments.forEach(f => {
+                        const val = parseInt(document.getElementById(`ratio_${f.spool_id}`).value) || 0;
+                        ratios[f.spool_id] = val;
+                    });
+                    return ratios;
+                }
+            }).then(result => {
+                if (result.isConfirmed) {
+                    const url = isDelete
+                        ? `/history/delete/${printId}`
+                        : `/history/reajust/${printId}`;
+
+                    const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
+
+                    fetch(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ restock: true, ratios: result.value })
+                    })
+                    .then(resp => resp.json())
+                    .then(data => {
+                        if (data.status && data.status.toLowerCase() === "ok") {
+                            window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
+                        } else {
+                            Swal.fire("Erreur", data.error || "Impossible d'effectuer l'opération", "error");
+                        }
+                    });
+                }
+            });
+        });
+}
 
 const COLOR_NAME_MAP = {
     "Black": "Noir",
