@@ -21,7 +21,7 @@
 <div class="position-fixed bottom-0 start-50 translate-middle-x mb-5" style="z-index:1029; max-width: 90%;">
   <div class="collapse" id="paginationCollapse">
     <div class="bg-body rounded shadow p-2">
-      <ul class="pagination pagination-sm mb-0 justify-content-center flex-wrap">
+      <ul class="pagination pagination-sm mb-2 justify-content-center flex-wrap">
         {% if page > 1 %}
           <li class="page-item">
             <a class="page-link rounded-pill"
@@ -51,6 +51,18 @@
           </li>
         {% endif %}
       </ul>
+
+      <form class="d-flex justify-content-center align-items-center gap-2" method="get" style="max-width: 200px; margin: auto;">
+        {% for k, vlist in args.items() %}
+          {% for v in vlist %}
+            <input type="hidden" name="{{ k }}" value="{{ v }}">
+          {% endfor %}
+        {% endfor %}
+        <input type="number" name="page" min="1" max="{{ total_pages }}" value="{{ page }}"
+               class="form-control form-control-sm text-center" style="width: 60px;">
+        <button type="submit" class="btn btn-sm btn-primary">Aller</button>
+        <span class="text-muted small">/ {{ total_pages }}</span>
+      </form>
     </div>
   </div>
 </div>
