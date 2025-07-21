@@ -495,14 +495,17 @@ def print_history():
         p["total_cost"] = 0
         p["tags"] = get_tags_for_print(p["id"])
         p["total_weight"] = sum(f["grams_used"] for f in p["filament_usage"])
+
         for filament in p["filament_usage"]:
             if filament["spool_id"]:
                 for spool in spool_list:
                     if spool['id'] == filament["spool_id"]:
                         filament["spool"] = spool
-                        filament["cost"] = filament['grams_used'] * spool['cost_per_gram']
+                        filament["cost"] = filament['grams_used'] * spool.get('cost_per_gram', 0.0)
                         p["total_cost"] += filament["cost"]
                         break
+            # si le spool_id est None ou non trouvé, on s'assure d'avoir une clé "cost"
+            filament.setdefault("cost", 0.0)
 
         p["full_cost"] = p["total_cost"] + p["electric_cost"]
 
@@ -534,13 +537,16 @@ def print_history():
                 entries[gid]["max_id"] = p["id"]
                 entries[gid]["latest_date"] = p["print_date"]
                 entries[gid]["thumbnail"] = p["image_file"]
+
             for filament in p["filament_usage"]:
                 key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
                 if key not in entries[gid]["filament_usage"]:
+                    # on force la présence de la clé cost
                     entries[gid]["filament_usage"][key] = dict(filament)
+                    entries[gid]["filament_usage"][key].setdefault("cost", 0.0)
                 else:
                     entries[gid]["filament_usage"][key]["grams_used"] += filament["grams_used"]
-                    entries[gid]["filament_usage"][key]["cost"] += filament["cost"]
+                    entries[gid]["filament_usage"][key]["cost"] += filament.get("cost", 0.0)
         else:
             entries[p["id"]] = {
                 "type": "single",
@@ -588,6 +594,7 @@ def print_history():
         focus_group_id=focus_group_id,
         page_title="History"
     )
+
 
 @app.route("/print_select_spool")
 def print_select_spool():
