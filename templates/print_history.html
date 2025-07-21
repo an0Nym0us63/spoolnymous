@@ -24,44 +24,31 @@
   </button>
 </div>
 
-<!-- Offcanvas pagination -->
-<div class="offcanvas offcanvas-bottom" tabindex="-1" id="paginationOffcanvas" aria-labelledby="paginationOffcanvasLabel" style="height:40vh">
+<div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="paginationOffcanvas" aria-labelledby="paginationOffcanvasLabel">
   <div class="offcanvas-header">
     <h5 class="offcanvas-title" id="paginationOffcanvasLabel">Pagination</h5>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
   </div>
-  <div class="offcanvas-body">
-    <ul class="pagination pagination-sm mb-3 justify-content-center flex-wrap">
+  <div class="offcanvas-body text-center">
+    <div class="d-inline-flex flex-wrap gap-1 align-items-center justify-content-center">
       {% if page > 1 %}
-        <li class="page-item mx-1">
-          <a class="page-link rounded-pill" href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page-1 }}">«</a>
-        </li>
+        <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo; First</a>
+        <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo; Prev</a>
       {% endif %}
 
-      {% for p in pagination_pages %}
-        {% if p == '…' %}
-          <li class="page-item disabled mx-1"><span class="page-link">…</span></li>
-        {% else %}
-          <li class="page-item {% if p == page %}active{% endif %} mx-1">
-            <a class="page-link rounded-pill" href="{{ url_for('print_history') }}?{{ base_query }}&page={{ p }}">{{ p }}</a>
-          </li>
-        {% endif %}
-      {% endfor %}
+      <form method="get" class="d-inline-flex align-items-center mx-2">
+        <label for="gotoPage" class="me-1 mb-0">Page</label>
+        <input type="number" min="1" max="{{ total_pages }}" id="gotoPage" name="page" value="{{ page }}" class="form-control form-control-sm" style="width: 70px;">
+        <button type="submit" class="btn btn-sm btn-primary ms-1">Aller</button>
+      </form>
+
+      <span class="mx-2">/ {{ total_pages }}</span>
 
       {% if page < total_pages %}
-        <li class="page-item mx-1">
-          <a class="page-link rounded-pill" href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page+1 }}">»</a>
-        </li>
+        <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">Next &rsaquo;</a>
+        <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">Last &raquo;</a>
       {% endif %}
-    </ul>
-
-    <form method="get" class="d-flex justify-content-center mt-3">
-      <input type="hidden" name="{{ base_query }}" value="">
-      <div class="input-group" style="max-width:150px;">
-        <input type="number" name="page" min="1" max="{{ total_pages }}" class="form-control form-control-sm" placeholder="Page…" required>
-        <button class="btn btn-sm btn-primary" type="submit">Aller</button>
-      </div>
-    </form>
+    </div>
   </div>
 </div>
 
