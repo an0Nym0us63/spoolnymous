@@ -38,11 +38,11 @@
 
       <form method="get" class="d-inline-flex align-items-center mx-2">
         <label for="gotoPage" class="me-1 mb-0"></label>
-        <input type="number" min="1" max="{{ total_pages }}" id="gotoPage" name="page" value="{{ page }}" class="form-control form-control-sm" style="width: 30px;">
+        <input type="number" min="1" max="{{ total_pages }}" id="gotoPage" name="page" value="{{ page }}" class="form-control form-control-sm" style="width: 40px;">
         <button type="submit" class="btn btn-sm btn-primary ms-1">Aller</button>
       </form>
 
-      <span class="mx-2">/ {{ total_pages }}</span>
+      <span class="mx-1">/{{ total_pages }}</span>
 
       {% if page < total_pages %}
         <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">&rsaquo;</a>
