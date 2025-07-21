@@ -70,7 +70,7 @@
   </div>
 </div>
 
-<div class="accordion" id="filamentsAccordion">
+<div class="accordion mb-2" id="filamentsAccordion">
   {% for spool in filaments %}
     <div class="accordion-item">
       <h2 class="accordion-header" id="heading{{ spool.id }}">
@@ -111,8 +111,47 @@
       <div id="collapse{{ spool.id }}" class="accordion-collapse collapse"
            aria-labelledby="heading{{ spool.id }}" data-bs-parent="#filamentsAccordion">
         <div class="accordion-body">
-          <!-- infos détaillées -->
-          …
+          <ul class="list-unstyled mb-0">
+            <li><strong>Fournisseur :</strong> {{ spool.filament.vendor.name }}</li>
+            <li><strong>Matière :</strong> {{ spool.filament.material }}</li>
+            <li><strong>Nom :</strong> {{ spool.filament.name }}</li>
+            <li><strong>Filament ID :</strong> <span class="badge bg-secondary">{{ spool.filament.extra.filament_id|replace('"','') or "—" }}</span></li>
+            {% if spool.extra.tag %}
+              <li><strong>Tag :</strong> <span class="badge bg-info text-dark">{{ spool.extra.tag|replace('"','') }}</span></li>
+            {% endif %}
+            <li><strong>Première utilisation :</strong>
+              {% if spool.first_used %}
+                {% set date_parts = spool.first_used[:10].split('-') %}
+                {{ date_parts[2] }}/{{ date_parts[1] }}/{{ date_parts[0] }} {{ spool.first_used[11:16] }}
+              {% else %}
+                —
+              {% endif %}
+            </li>
+            <li><strong>Dernière utilisation :</strong>
+              {% if spool.last_used %}
+                {% set date_parts = spool.last_used[:10].split('-') %}
+                {{ date_parts[2] }}/{{ date_parts[1] }}/{{ date_parts[0] }} {{ spool.last_used[11:16] }}
+              {% else %}
+                —
+              {% endif %}
+            </li>
+            <li><strong>Poids initial :</strong> {{ spool.initial_weight|round|int }} g</li>
+            <li><strong>Prix :</strong> {{ spool.price|default("—") }} €</li>
+            <li><strong>Stock restant :</strong> {{ spool.remaining_weight|round|int }} g</li>
+            <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
+            <li><strong>Couleur :</strong>
+              {% if spool.filament.multi_color_hexes %}
+                {% set colors =
+                    spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
+                    else spool.filament.multi_color_hexes %}
+                <span style="display:inline-block;width:20px;height:20px;vertical-align:middle;background:linear-gradient(90deg{% for c in colors %}, #{{c.strip()}}{% endfor %});border-radius:4px;border:1px solid #ccc;"></span>
+                <span class="ms-2">{% for c in colors %}#{{ c.strip() }}{% if not loop.last %} / {% endif %}{% endfor %}</span>
+              {% else %}
+                <span style="display:inline-block;width:20px;height:20px;vertical-align:middle;background-color:#{{ spool.filament.color_hex }};border-radius:4px;border:1px solid #ccc;"></span>
+                <span class="ms-2">#{{ spool.filament.color_hex }}</span>
+              {% endif %}
+            </li>
+          </ul>
         </div>
       </div>
     </div>
