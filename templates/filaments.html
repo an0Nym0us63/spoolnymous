@@ -11,7 +11,7 @@
 
 <!-- Bouton flottant filtres -->
 <div class="position-fixed bottom-0 start-0 m-3" style="z-index:1030;">
-  <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#filtersOffcanvas" aria-controls="filtersOffcanvas">
+  <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#filamentFilters" aria-controls="filamentFilters">
     🔍
   </button>
 </div>
@@ -62,8 +62,8 @@
   <div class="offcanvas-body text-center">
     <div class="d-inline-flex flex-wrap gap-1 align-items-center justify-content-center">
       {% if page > 1 %}
-        <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo; First</a>
-        <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo; Prev</a>
+        <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo;</a>
+        <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo;</a>
       {% endif %}
 
       <form method="get" class="d-inline-flex align-items-center mx-2">
@@ -75,8 +75,8 @@
       <span class="mx-2">/ {{ total_pages }}</span>
 
       {% if page < total_pages %}
-        <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">Next &rsaquo;</a>
-        <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">Last &raquo;</a>
+        <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">&rsaquo;</a>
+        <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">&raquo;</a>
       {% endif %}
     </div>
   </div>
@@ -84,7 +84,7 @@
 
 <div class="accordion" id="filamentsAccordion">
   {% for spool in filaments %}
-    <div class="accordion-item mb-2">
+    <div class="accordion-item">
       <h2 class="accordion-header" id="heading{{ spool.id }}">
         <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse"
                 data-bs-target="#collapse{{ spool.id }}" aria-expanded="false"
