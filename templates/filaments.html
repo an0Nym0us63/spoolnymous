@@ -70,9 +70,9 @@
   </div>
 </div>
 
-<div class="accordion mb-2" id="filamentsAccordion">
+<div class="accordion mb-3" id="filamentsAccordion">
   {% for spool in filaments %}
-    <div class="accordion-item">
+    <div class="accordion-item" style="margin-bottom: 1rem;">
       <h2 class="accordion-header" id="heading{{ spool.id }}">
         <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse"
                 data-bs-target="#collapse{{ spool.id }}" aria-expanded="false"
