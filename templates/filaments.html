@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<div id="filamentsAccordion">
+<div class="accordion" id="filamentsAccordion">
   {% for spool in filaments %}
     <div class="accordion-item">
       <h2 class="accordion-header" id="heading{{ spool.id }}">
@@ -49,16 +49,17 @@
 
 {% block extra_floating %}
 
-<!-- Bouton et zone flottante des filtres -->
+<!-- Bouton filtres flottant -->
 <div class="position-fixed bottom-0 start-0 m-2" style="z-index:1030;">
   <button class="btn btn-outline-primary btn-sm rounded-circle" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
     🔍
   </button>
 </div>
 
-<div class="position-fixed bottom-0 start-50 translate-middle-x mb-4" style="z-index:1029; max-width: 95%;">
+<!-- Zone flottante filtres -->
+<div class="position-fixed bottom-0 start-50 translate-middle-x mb-5" style="z-index:1029; max-width: 95%;">
   <div class="collapse" id="filtersCollapse">
-    <div class="bg-body rounded shadow p-3" style="min-height: 150px;">
+    <div class="bg-body rounded shadow p-3" style="min-height: 180px;">
       <form method="get" class="row g-2">
         <div class="col-md-4">
           <input type="text" name="search" class="form-control" placeholder="Nom, matériau ou vendor" value="{{ search }}">
@@ -86,13 +87,14 @@
   </div>
 </div>
 
-<!-- Bouton et zone flottante pagination -->
+<!-- Bouton pagination flottant -->
 <div class="position-fixed bottom-0 end-0 m-2" style="z-index:1030;">
   <button class="btn btn-outline-primary btn-sm rounded-circle" type="button" data-bs-toggle="collapse" data-bs-target="#paginationCollapse" aria-expanded="false" aria-controls="paginationCollapse">
     📄
   </button>
 </div>
 
+<!-- Zone flottante pagination -->
 <div class="position-fixed bottom-0 start-50 translate-middle-x mb-2" style="z-index:1029; max-width: 90%;">
   <div class="collapse" id="paginationCollapse">
     <div class="bg-body rounded shadow p-2">
@@ -124,6 +126,7 @@
 </div>
 
 {% endblock %}
+
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/print_history.js') }}"></script>
 {% endblock %}
