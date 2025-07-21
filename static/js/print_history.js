@@ -40,30 +40,43 @@ $(document).ready(function () {
     }
 
     function initAjaxSelect2($select) {
-        if ($select.hasClass('select2-hidden-accessible')) {
-            $select.select2('destroy');
-        }
-
-        $select.select2({
-            width: '100%',
-            tags: true,
-            placeholder: "Tapez pour rechercher ou créer…",
-            minimumInputLength: 1,
-            language: {
-                inputTooShort: () => "Commencez à taper pour chercher ou créer…"
-            },
-            ajax: {
-                url: '/api/groups/search',
-                dataType: 'json',
-                delay: 250,
-                data: params => ({ q: params.term }),
-                processResults: data => ({
-                    results: (data.results || []).map(g => ({ id: g.id, text: g.text }))
-                }),
-                cache: true
-            }
-        }).on('select2:open', applyThemeToDropdown);
+    if ($select.hasClass('select2-hidden-accessible')) {
+        $select.select2('destroy');
     }
+
+    const $modal = $select.closest('.modal');
+
+    $select.select2({
+        dropdownParent: $modal,
+        width: '100%',
+        tags: true,
+        language: {
+            inputTooShort: function () { return "Tapez pour rechercher…"; },
+            noResults: function () { return "Aucun résultat trouvé."; }
+        },
+        placeholder: "Tapez pour rechercher ou créer…",
+        minimumInputLength: 1,
+        ajax: {
+            url: '/api/groups/search',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return { q: params.term };
+            },
+            processResults: function (data) {
+                if (!data.results) return { results: [] };
+                // Les clés attendues par Select2 sont `id` et `text`
+                return {
+                    results: data.results.map(item => ({
+                        id: item.id,
+                        text: item.text
+                    }))
+                };
+            },
+            cache: true
+        }
+    }).on('select2:open', applyThemeToDropdown);
+}
 
     initSelect2();
     $('.select2-ajax').each(function () {
