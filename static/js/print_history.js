@@ -22,34 +22,43 @@ $(document).ready(function () {
     }
 
     function initAjaxSelect2($select) {
-        if ($select.hasClass('select2-hidden-accessible')) {
-            $select.select2('destroy');
-        }
-
-        const $modal = $select.closest('.modal');
-
-        $select.select2({
-            dropdownParent: $modal,
-            width: '100%',
-            tags: true,
-            placeholder: "Tapez pour rechercher ou créer…",
-            minimumInputLength: 1,
-            ajax: {
-                url: '/api/groups/search',
-                dataType: 'json',
-                delay: 250,
-                data: function (params) {
-                    return { q: params.term };
-                },
-                processResults: function (data) {
-                    return {
-                        results: (data.results || []).map(g => ({ id: g.id, text: g.name }))
-                    };
-                },
-                cache: true
-            }
-        }).on('select2:open', applyThemeToDropdown);
+    if ($select.hasClass('select2-hidden-accessible')) {
+        $select.select2('destroy');
     }
+
+    const $modal = $select.closest('.modal');
+
+    $select.select2({
+        dropdownParent: $modal,
+        width: '100%',
+        tags: true,
+        language: {
+            inputTooShort: function () { return "Tapez pour rechercher…"; },
+            noResults: function () { return "Aucun résultat trouvé."; }
+        },
+        placeholder: "Tapez pour rechercher ou créer…",
+        minimumInputLength: 1,
+        ajax: {
+            url: '/api/groups/search',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return { q: params.term };
+            },
+            processResults: function (data) {
+                if (!data.results) return { results: [] };
+                // Les clés attendues par Select2 sont `id` et `text`
+                return {
+                    results: data.results.map(item => ({
+                        id: item.id,
+                        text: item.text
+                    }))
+                };
+            },
+            cache: true
+        }
+    }).on('select2:open', applyThemeToDropdown);
+}
 
     initSelect2();
 
