@@ -1,13 +1,13 @@
-function detectThemeClass() {
-    const theme = document.documentElement.getAttribute("data-bs-theme") || "light";
-    return theme === "dark" ? "select2-dark" : "select2-light";
-}
-
 $(document).ready(function () {
-    function applyThemeToDropdown() {
+
+    function detectThemeClass() {
         const theme = document.documentElement.getAttribute("data-bs-theme") || "light";
-        const classToAdd = theme === "dark" ? "select2-dark" : "select2-light";
-        $('.select2-dropdown').removeClass('select2-dark select2-light').addClass(classToAdd);
+        return theme === "dark" ? "select2-dark" : "select2-light";
+    }
+
+    function applyThemeToDropdown() {
+        const theme = detectThemeClass();
+        $('.select2-dropdown').removeClass('select2-dark select2-light').addClass(theme);
     }
 
     function initSelect2() {
@@ -21,10 +21,42 @@ $(document).ready(function () {
         applyColorTags();
     }
 
+    function initAjaxSelect2($select) {
+        $select.select2({
+            width: '100%',
+            tags: true,
+            placeholder: "Tapez pour rechercher ou créer…",
+            minimumInputLength: 1,
+            ajax: {
+                url: '/api/groups/search',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return { q: params.term };
+                },
+                processResults: function (data) {
+                    return { results: data.results };
+                },
+                cache: true
+            }
+        }).on('select2:open', applyThemeToDropdown);
+
+        // Focus automatique
+        setTimeout(() => $select.focus(), 100);
+    }
+
     initSelect2();
 
     $('#filtersCollapse').on('shown.bs.collapse', function () {
         initSelect2();
+    });
+
+    $(document).on('shown.bs.modal', '.modal', function () {
+        const $modal = $(this);
+        const $select = $modal.find('.select2-ajax');
+        if ($select.length && !$select.hasClass('select2-hidden-accessible')) {
+            initAjaxSelect2($select);
+        }
     });
 
     $('.add-tag-btn').on('click', function () {
@@ -53,55 +85,6 @@ $(document).ready(function () {
                 window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
             })
             .fail(() => alert('Erreur lors de la suppression du tag.'));
-    });
-
-    // 🔷 Initialisation .select2-ajax si déjà dans le DOM
-    $('.select2-ajax').select2({
-        width: '100%',
-        tags: true,
-        placeholder: "Tapez pour rechercher ou créer…",
-        minimumInputLength: 1,
-        ajax: {
-            url: '/api/groups/search',
-            dataType: 'json',
-            delay: 250,
-            data: function (params) {
-                return { q: params.term };
-            },
-            processResults: function (data) {
-                return { results: data.results };
-            },
-            cache: true
-        }
-    }).on('select2:open', applyThemeToDropdown);
-
-    // 🔷 Ré-initialisation .select2-ajax à chaque ouverture de modale
-    $(document).on('shown.bs.modal', '.modal', function () {
-        const $modal = $(this);
-        const $select = $modal.find('.select2-ajax');
-        if ($select.length && !$select.hasClass('select2-hidden-accessible')) {
-            $select.select2({
-                width: '100%',
-                tags: true,
-                placeholder: "Tapez pour rechercher ou créer…",
-                minimumInputLength: 1,
-                ajax: {
-                    url: '/api/groups/search',
-                    dataType: 'json',
-                    delay: 250,
-                    data: function (params) {
-                        return { q: params.term };
-                    },
-                    processResults: function (data) {
-                        return { results: data.results };
-                    },
-                    cache: true
-                }
-            }).on('select2:open', applyThemeToDropdown);
-
-            // focus immédiat
-            setTimeout(() => $select.focus(), 100);
-        }
     });
 
 });
