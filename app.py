@@ -2,6 +2,7 @@ import json
 import traceback
 import uuid
 import math
+import datetime
 
 from flask import Flask, request, render_template, redirect, url_for,jsonify,g, make_response
 
@@ -912,6 +913,7 @@ def api_groups_search():
     results = []
     for group in groups:
         if q.lower() in group["name"].lower():
-            label = f"{group['name']} (créé le {group['created_at'][:16]})"
+            created_at = datetime.strptime(group["created_at"], "%Y-%m-%d %H:%M:%S")
+            label = f"{group['name']} (créé le {created_at.strftime('%d/%m/%Y %H:%M')})"
             results.append({"id": group["id"], "text": label})
     return jsonify({"results": results})
