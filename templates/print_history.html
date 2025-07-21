@@ -12,7 +12,7 @@
 
 <!-- Bouton flottant pagination -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
-  <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="collapse" data-bs-target="#paginationCollapse" aria-expanded="false" aria-controls="paginationCollapse">
+  <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#paginationOffcanvas" aria-controls="paginationOffcanvas">
     📄
   </button>
 </div>
@@ -24,39 +24,49 @@
   </button>
 </div>
 
-<!-- Bloc pagination -->
-<div class="position-fixed bottom-0 start-50 translate-middle-x mb-5" style="z-index:1029; max-width: 90%;">
-  <div class="collapse" id="paginationCollapse">
-    <div class="bg-body rounded shadow p-2">
-      <ul class="pagination pagination-sm mb-0 justify-content-center flex-wrap">
-        {% if page > 1 %}
-          <li class="page-item">
-            <a class="page-link rounded-pill" href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page-1 }}">«</a>
+<!-- Offcanvas pagination -->
+<div class="offcanvas offcanvas-bottom" tabindex="-1" id="paginationOffcanvas" aria-labelledby="paginationOffcanvasLabel" style="height:50vh">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="paginationOffcanvasLabel">Pagination</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
+  </div>
+  <div class="offcanvas-body">
+    <ul class="pagination pagination-sm mb-3 justify-content-center flex-wrap">
+      {% if page > 1 %}
+        <li class="page-item">
+          <a class="page-link rounded-pill" href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page-1 }}">«</a>
+        </li>
+      {% endif %}
+
+      {% for p in pagination_pages %}
+        {% if p == '…' %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% else %}
+          <li class="page-item {% if p == page %}active{% endif %}">
+            <a class="page-link rounded-pill" href="{{ url_for('print_history') }}?{{ base_query }}&page={{ p }}">{{ p }}</a>
           </li>
         {% endif %}
+      {% endfor %}
 
-        {% for p in pagination_pages %}
-          {% if p == '…' %}
-            <li class="page-item disabled"><span class="page-link">…</span></li>
-          {% else %}
-            <li class="page-item {% if p == page %}active{% endif %}">
-              <a class="page-link rounded-pill" href="{{ url_for('print_history') }}?{{ base_query }}&page={{ p }}">{{ p }}</a>
-            </li>
-          {% endif %}
-        {% endfor %}
+      {% if page < total_pages %}
+        <li class="page-item">
+          <a class="page-link rounded-pill" href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page+1 }}">»</a>
+        </li>
+      {% endif %}
+    </ul>
 
-        {% if page < total_pages %}
-          <li class="page-item">
-            <a class="page-link rounded-pill" href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page+1 }}">»</a>
-          </li>
-        {% endif %}
-      </ul>
-    </div>
+    <form method="get" class="d-flex justify-content-center mt-3">
+      <input type="hidden" name="{{ base_query }}" value="">
+      <div class="input-group" style="max-width:150px;">
+        <input type="number" name="page" min="1" max="{{ total_pages }}" class="form-control form-control-sm" placeholder="Page…" required>
+        <button class="btn btn-sm btn-primary" type="submit">Aller</button>
+      </div>
+    </form>
   </div>
 </div>
 
 <!-- Offcanvas filtres -->
-<div class="offcanvas offcanvas-bottom" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel" style="height:75vh">
+<div class="offcanvas offcanvas-bottom" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel" style="height:50vh">
   <div class="offcanvas-header">
     <h5 class="offcanvas-title" id="filtersOffcanvasLabel">Filtres</h5>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
