@@ -72,7 +72,7 @@
         <button type="submit" class="btn btn-sm btn-primary ms-1">Aller</button>
       </form>
 
-      <span class="mx-1">/{{ total_pages }}</span>
+      <span>/{{ total_pages }}</span>
 
       {% if page < total_pages %}
         <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">&rsaquo;</a>
