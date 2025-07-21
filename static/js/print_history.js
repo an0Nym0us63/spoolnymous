@@ -22,6 +22,10 @@ $(document).ready(function () {
     }
 
     function initAjaxSelect2($select) {
+        if ($select.hasClass('select2-hidden-accessible')) {
+            $select.select2('destroy');
+        }
+
         $select.select2({
             width: '100%',
             tags: true,
@@ -35,13 +39,14 @@ $(document).ready(function () {
                     return { q: params.term };
                 },
                 processResults: function (data) {
-                    return { results: data.results };
+                    return {
+                        results: (data.results || []).map(g => ({ id: g.id, text: g.name }))
+                    };
                 },
                 cache: true
             }
         }).on('select2:open', applyThemeToDropdown);
 
-        // Focus automatique
         setTimeout(() => $select.focus(), 100);
     }
 
@@ -54,7 +59,7 @@ $(document).ready(function () {
     $(document).on('shown.bs.modal', '.modal', function () {
         const $modal = $(this);
         const $select = $modal.find('.select2-ajax');
-        if ($select.length && !$select.hasClass('select2-hidden-accessible')) {
+        if ($select.length) {
             initAjaxSelect2($select);
         }
     });
@@ -87,243 +92,4 @@ $(document).ready(function () {
             .fail(() => alert('Erreur lors de la suppression du tag.'));
     });
 
-});
-
-
-function confirmReajust(printId) {
-    askRestockRatioPerFilament(printId, false);
-}
-
-function confirmDelete(printId) {
-    askRestockRatioPerFilament(printId, true);
-}
-
-function askRestockRatioPerFilament(printId, isDelete) {
-    fetch(`/history/${printId}/filaments`)
-        .then(resp => resp.json())
-        .then(filaments => {
-            const formHtml = filaments.map(f => `
-                <div style="display:flex;align-items:center;margin-bottom:5px;gap:5px">
-                    <div style="width:15px;height:15px;background:${f.color};border:1px solid #ccc"></div>
-                    <span style="flex:1">${f.name}</span>
-                    <input type="number" min="0" max="100" value="${isDelete ? 100 : 0}" id="ratio_${f.spool_id}" style="width:60px"> %
-                </div>
-            `).join("");
-
-            Swal.fire({
-                title: isDelete ? "Supprimer + Réajuster" : "Réajuster uniquement",
-                html: formHtml,
-                showCancelButton: true,
-                confirmButtonText: "Valider",
-                cancelButtonText: "Annuler",
-                preConfirm: () => {
-                    const ratios = {};
-                    filaments.forEach(f => {
-                        const val = parseInt(document.getElementById(`ratio_${f.spool_id}`).value) || 0;
-                        ratios[f.spool_id] = val;
-                    });
-                    return ratios;
-                }
-            }).then(result => {
-                if (result.isConfirmed) {
-                    const url = isDelete
-                        ? `/history/delete/${printId}`
-                        : `/history/reajust/${printId}`;
-
-                    const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
-
-                    fetch(url, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ restock: true, ratios: result.value })
-                    })
-                    .then(resp => resp.json())
-                    .then(data => {
-                        if (data.status && data.status.toLowerCase() === "ok") {
-                            // Redirection vers la page courante avec focus sur le print modifié
-                            window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
-                        } else {
-                            Swal.fire("Erreur", data.error || "Impossible d'effectuer l'opération", "error");
-                        }
-                    });
-                }
-            });
-        });
-}
-
-function addTag(printId, tag) {
-    fetch(`/history/${printId}/tags/add`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tag })
-    }).then(() => {
-        const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
-        window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
-    });
-}
-
-function removeTag(printId, tag) {
-    fetch(`/history/${printId}/tags/remove`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tag })
-    }).then(() => {
-        const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
-        window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
-    });
-}
-
-const COLOR_NAME_MAP = {
-    "Black": "Noir",
-    "White": "Blanc",
-    "Grey": "Gris",
-    "Red": "Rouge",
-    "Dark Red": "Rouge foncé",
-    "Pink": "Rose",
-    "Magenta": "Magenta",
-    "Brown": "Marron",
-    "Yellow": "Jaune",
-    "Gold": "Doré",
-    "Orange": "Orange",
-    "Green": "Vert",
-    "Dark Green": "Vert foncé",
-    "Lime": "Vert fluo",
-    "Teal": "Turquoise",
-    "Blue": "Bleu",
-    "Navy": "Bleu marine",
-    "Cyan": "Cyan",
-    "Lavender": "Lavande",
-    "Purple": "Violet",
-    "Dark Purple": "Violet foncé"
-};
-
-function enhanceColorSelect() {
-    const $colorSelect = $('select[name="color"]');
-
-    // Collect current options and replace with enhanced sorted ones
-    const options = $colorSelect.find('option').map(function () {
-        const value = $(this).val();
-        const selected = $(this).is(':selected');
-        const label = COLOR_NAME_MAP[value] || value;
-        return { value, label, selected };
-    }).get();
-
-    options.sort((a, b) => a.label.localeCompare(b.label, 'fr'));
-
-    $colorSelect.empty();
-
-    for (const opt of options) {
-        const $opt = $('<option>')
-            .val(opt.value)
-            .text(opt.label)
-            .attr('data-color', opt.value)
-            .prop('selected', opt.selected);
-        $colorSelect.append($opt);
-    }
-
-    // Enhance with Select2 + template
-    $colorSelect.select2({
-        width: '100%',
-        templateResult: formatColorOption,
-        templateSelection: formatColorOption,
-        escapeMarkup: m => m
-    });
-
-    applyColorTags(); // corrige au load
-    $colorSelect.on('select2:select select2:unselect', () => applyColorTags());
-}
-
-function formatColorOption(state) {
-    if (!state.id) return state.text;
-    const colorHex = getFamilyHex(state.id);
-    const label = state.text;
-    const $el = $(`
-        <div style="display:flex;align-items:center;gap:8px;">
-            <span style="width:14px;height:14px;border-radius:3px;background:${colorHex};border:1px solid #ccc"></span>
-            <span>${label}</span>
-        </div>
-    `);
-    return $el;
-}
-
-function getFamilyHex(name) {
-    const map = {
-        "Black": "#000000",
-        "White": "#FFFFFF",
-        "Grey": "#A0A0A0",
-        "Red": "#DC143C",
-        "Dark Red": "#8B0000",
-        "Pink": "#FFB6C1",
-        "Magenta": "#FF00FF",
-        "Brown": "#964B00",
-        "Yellow": "#FFDC00",
-        "Gold": "#D4AF37",
-        "Orange": "#FF8C00",
-        "Green": "#50C878",
-        "Dark Green": "#006400",
-        "Lime": "#BFFF00",
-        "Teal": "#008080",
-        "Blue": "#6496FF",
-        "Navy": "#000080",
-        "Cyan": "#00FFFF",
-        "Lavender": "#E6E6FA",
-        "Purple": "#A020F0",
-        "Dark Purple": "#5A3C78"
-    };
-    return map[name] || "#CCCCCC";
-}
-
-function applyColorTags() {
-    $('.select2-selection__choice').each(function () {
-        const val = $(this).attr('title'); // français
-        const enName = Object.keys(COLOR_NAME_MAP).find(k => COLOR_NAME_MAP[k] === val) || val;
-        const hex = getFamilyHex(enName);
-        const label = val;
-
-        $(this).html(`
-            <span class="select2-selection__choice__remove" role="presentation">×</span>
-            <span style="
-                display: inline-block;
-                width: 12px;
-                height: 12px;
-                margin: 0 4px;
-                background: ${hex};
-                border: 1px solid #ccc;
-                border-radius: 2px;
-                vertical-align: middle;
-            "></span>
-            <span>${label}</span>
-        `);
-    });
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-    const accordions = document.querySelectorAll(".card-header[data-bs-toggle='collapse']");
-
-    // Gestion du clic classique sur un header
-    accordions.forEach(header => {
-        header.addEventListener("click", () => {
-            const targetSelector = header.getAttribute("data-bs-target");
-            const target = document.querySelector(targetSelector);
-
-            if (!target.classList.contains("show")) {
-                // On attend l'ouverture animée avant de scroller
-                setTimeout(() => {
-                    const y = header.getBoundingClientRect().top + window.scrollY - 20;
-                    window.scrollTo({ top: y, behavior: "smooth" });
-                }, 350);
-            }
-        });
-    });
-
-    // Gestion du focus_id à l'affichage initial
-    const focused = document.querySelector(".collapse.show");
-    if (focused) {
-        // On cherche le header qui l’a déclenché
-        const header = focused.closest(".card").querySelector(".card-header");
-        if (header) {
-            const y = header.getBoundingClientRect().top + window.scrollY - 20;
-            window.scrollTo({ top: y, behavior: "smooth" });
-        }
-    }
 });
