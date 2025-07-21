@@ -10,24 +10,28 @@
 {% endfor %}
 {% set base_query = '&'.join(query) %}
 
-<!-- Bouton flottant -->
+<!-- Bouton flottant pagination -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
   <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="collapse" data-bs-target="#paginationCollapse" aria-expanded="false" aria-controls="paginationCollapse">
     📄
   </button>
 </div>
 
-<!-- Bloc pagination centrée -->
+<!-- Bouton flottant filtres -->
+<div class="position-fixed bottom-0 start-0 m-3" style="z-index:1030;">
+  <button class="btn btn-sm btn-outline-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#filtersOffcanvas" aria-controls="filtersOffcanvas">
+    🔍
+  </button>
+</div>
+
+<!-- Bloc pagination -->
 <div class="position-fixed bottom-0 start-50 translate-middle-x mb-5" style="z-index:1029; max-width: 90%;">
   <div class="collapse" id="paginationCollapse">
     <div class="bg-body rounded shadow p-2">
-      <ul class="pagination pagination-sm mb-2 justify-content-center flex-wrap">
+      <ul class="pagination pagination-sm mb-0 justify-content-center flex-wrap">
         {% if page > 1 %}
           <li class="page-item">
-            <a class="page-link rounded-pill"
-               href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page-1 }}">
-              «
-            </a>
+            <a class="page-link rounded-pill" href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page-1 }}">«</a>
           </li>
         {% endif %}
 
@@ -36,76 +40,59 @@
             <li class="page-item disabled"><span class="page-link">…</span></li>
           {% else %}
             <li class="page-item {% if p == page %}active{% endif %}">
-              <a class="page-link rounded-pill"
-                 href="{{ url_for('print_history') }}?{{ base_query }}&page={{ p }}">{{ p }}</a>
+              <a class="page-link rounded-pill" href="{{ url_for('print_history') }}?{{ base_query }}&page={{ p }}">{{ p }}</a>
             </li>
           {% endif %}
         {% endfor %}
 
         {% if page < total_pages %}
           <li class="page-item">
-            <a class="page-link rounded-pill"
-               href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page+1 }}">
-              »
-            </a>
+            <a class="page-link rounded-pill" href="{{ url_for('print_history') }}?{{ base_query }}&page={{ page+1 }}">»</a>
           </li>
         {% endif %}
       </ul>
-
-      <form class="d-flex justify-content-center align-items-center gap-2" method="get" style="max-width: 200px; margin: auto;">
-        {% for k, vlist in args.items() %}
-          {% for v in vlist %}
-            <input type="hidden" name="{{ k }}" value="{{ v }}">
-          {% endfor %}
-        {% endfor %}
-        <input type="number" name="page" min="1" max="{{ total_pages }}" value="{{ page }}"
-               class="form-control form-control-sm text-center" style="width: 60px;">
-        <button type="submit" class="btn btn-sm btn-primary">Aller</button>
-        <span class="text-muted small">/ {{ total_pages }}</span>
-      </form>
     </div>
   </div>
 </div>
 
-<!-- BOUTON FILTRES -->
-<div class="text-end mb-3">
-  <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
-    🔍 Filtres
-  </button>
-</div>
+<!-- Offcanvas filtres -->
+<div class="offcanvas offcanvas-bottom" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="filtersOffcanvasLabel">Filtres</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form method="get">
+      <div class="row g-2">
+        <div class="col-md-6">
+          <label for="filament_type">Type de filament</label>
+          <select name="filament_type" multiple class="form-select select2">
+            {% for ft in distinct_values.filament_types %}
+              <option value="{{ ft }}" {% if ft in filters.filament_type %}selected{% endif %}>{{ ft }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-<!-- FORMULAIRE FILTRES -->
-<div id="filtersCollapse" class="collapse mb-4">
-  <form method="get">
-    <div class="row g-2">
-      <div class="col-md-6">
-        <label for="filament_type">Filament Type</label>
-        <select name="filament_type" multiple class="form-select select2">
-          {% for ft in distinct_values.filament_types %}
-            <option value="{{ ft }}" {% if ft in filters.filament_type %}selected{% endif %}>{{ ft }}</option>
-          {% endfor %}
-        </select>
-      </div>
+        <div class="col-md-6">
+          <label for="color">Couleur du filament</label>
+          <select name="color" multiple class="form-select select2">
+            {% for family in distinct_values.colors %}
+              <option value="{{ family }}" {% if family in filters.color %}selected{% endif %}>{{ family }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-      <div class="col-md-6">
-        <label for="color">Filament Color</label>
-        <select name="color" multiple class="form-select select2">
-          {% for family in distinct_values.colors %}
-            <option value="{{ family }}" {% if family in filters.color %}selected{% endif %}>{{ family }}</option>
-          {% endfor %}
-        </select>
-      </div>
+        <div class="col-md-6">
+          <label for="search" class="form-label">Fichier ou tag</label>
+          <input type="text" name="search" id="search" class="form-control" value="{{ search or '' }}">
+        </div>
 
-      <div class="col-md-6">
-        <label for="search" class="form-label">Fichier / Tag</label>
-        <input type="text" name="search" id="search" class="form-control" value="{{ search or '' }}">
+        <div class="col-12 text-end mt-2">
+          <button type="submit" class="btn btn-primary">Appliquer</button>
+        </div>
       </div>
-
-      <div class="col-12 text-end mt-2">
-        <button type="submit" class="btn btn-primary">Appliquer</button>
-      </div>
-    </div>
-  </form>
+    </form>
+  </div>
 </div>
 
 {% include 'fragments/list_prints.html' %}
