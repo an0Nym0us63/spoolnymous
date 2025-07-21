@@ -44,7 +44,6 @@ def create_database() -> None:
         conn = sqlite3.connect(db_config["db_path"])
         cursor = conn.cursor()
 
-        # Table prints avec group_id dès la création
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS prints (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,7 +83,9 @@ def create_database() -> None:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS print_groups (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL
+                name TEXT NOT NULL,
+                number_of_items INTEGER DEFAULT 1,
+                created_at TEXT
             )
         ''')
 
@@ -103,28 +104,32 @@ def create_database() -> None:
             cursor.execute("ALTER TABLE prints ADD COLUMN duration REAL")
         if "group_id" not in columns:
             cursor.execute("ALTER TABLE prints ADD COLUMN group_id INTEGER REFERENCES print_groups(id)")
-        # vérification des colonnes sur print_groups
+
         cursor.execute("PRAGMA table_info(print_groups)")
         group_columns = [row[1] for row in cursor.fetchall()]
         if "number_of_items" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN number_of_items INTEGER DEFAULT 1")
+        if "created_at" not in group_columns:
+            cursor.execute("ALTER TABLE print_groups ADD COLUMN created_at TEXT")
 
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS print_tags (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                print_id INTEGER NOT NULL,
-                tag TEXT NOT NULL,
-                FOREIGN KEY (print_id) REFERENCES prints(id) ON DELETE CASCADE
-            )
-        ''')
-
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS print_groups (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                number_of_items INTEGER DEFAULT 1
-            )
-        ''')
+            # initialiser created_at pour les groupes existants
+            cursor.execute("SELECT id FROM print_groups")
+            for row in cursor.fetchall():
+                gid = row[0]
+                cursor.execute("""
+                    SELECT print_date FROM prints
+                    WHERE group_id = ?
+                    ORDER BY id DESC LIMIT 1
+                """, (gid,))
+                result = cursor.fetchone()
+                if result and result[0]:
+                    cursor.execute("""
+                        UPDATE print_groups SET created_at = ? WHERE id = ?
+                    """, (result[0], gid))
+                else:
+                    cursor.execute("""
+                        UPDATE print_groups SET created_at = DATETIME('now') WHERE id = ?
+                    """, (gid,))
 
         conn.commit()
         conn.close()
@@ -447,9 +452,12 @@ def create_print_group(name: str) -> int:
     """
     Crée un groupe d'impressions et retourne son ID.
     """
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO print_groups (name) VALUES (?)", (name,))
+    cursor.execute("""
+        INSERT INTO print_groups (name, created_at) VALUES (?, ?)
+    """, (name, now_str))
     group_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -462,7 +470,11 @@ def get_print_groups() -> list[dict]:
     conn = sqlite3.connect(db_config["db_path"])
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    cursor.execute("SELECT id, name FROM print_groups ORDER BY name ASC")
+    cursor.execute("""
+        SELECT id, name, created_at 
+        FROM print_groups 
+        ORDER BY created_at DESC
+    """)
     groups = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return groups
@@ -478,6 +490,30 @@ def update_print_group_field(group_id: int, field: str, value) -> None:
     conn.commit()
     conn.close()
 
+def update_group_created_at(group_id: int) -> None:
+    """
+    Met à jour created_at d’un groupe avec la date du print le plus récent (id le plus élevé).
+    Supprime le groupe s’il ne reste plus de prints.
+    """
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT print_date FROM prints
+        WHERE group_id = ?
+        ORDER BY id DESC LIMIT 1
+    """, (group_id,))
+    result = cursor.fetchone()
+    if result:
+        cursor.execute("""
+            UPDATE print_groups SET created_at = ? WHERE id = ?
+        """, (result[0], group_id))
+    else:
+        # plus aucun print dans le groupe → suppression du groupe
+        cursor.execute("""
+            DELETE FROM print_groups WHERE id = ?
+        """, (group_id,))
+    conn.commit()
+    conn.close()
 
 
 create_database()

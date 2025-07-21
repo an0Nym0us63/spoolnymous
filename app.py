@@ -12,7 +12,7 @@ from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at
 
 
 COLOR_FAMILIES = {
@@ -838,28 +838,44 @@ def create_group():
     if group_name:
         group_id = create_print_group(group_name)
         update_print_history_field(print_id, "group_id", group_id)
+        update_group_created_at(group_id)  # 🔷 Ajout ici
         return redirect(url_for("print_history", page=page, focus_group_id=group_id))
 
     return redirect(url_for("print_history", page=page, focus_print_id=print_id))
-
+    
 @app.route("/assign_to_group", methods=["POST"])
 def assign_to_group():
+    group_id_or_name = request.form["group_id_or_name"]
     print_id = int(request.form["print_id"])
-    group_id = int(request.form["group_id"])
-    page = int(request.form.get("page", 1))  # On récupère la page envoyée (sinon 1)
+    page = int(request.form.get("page", 1))
+
+    if group_id_or_name.isdigit():
+        group_id = int(group_id_or_name)
+    else:
+        group_id = create_print_group(group_id_or_name)
 
     update_print_history_field(print_id, "group_id", group_id)
-    # Redirection vers la page actuelle, avec focus sur le groupe
-    return redirect(url_for("print_history", page=page, focus_group_id=group_id))
+    update_group_created_at(group_id)
 
+    return redirect(url_for("print_history", page=page, focus_group_id=group_id))
 
 @app.route("/remove_from_group", methods=["POST"])
 def remove_from_group():
     print_id = int(request.form["print_id"])
     page = int(request.form.get("page", 1))
 
+    # On récupère l’actuel group_id avant de le mettre à None
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("SELECT group_id FROM prints WHERE id = ?", (print_id,))
+    result = cursor.fetchone()
+    group_id = result[0] if result else None
+    conn.close()
+
     update_print_history_field(print_id, "group_id", None)
-    # Redirection vers la page actuelle, focus sur le print retiré
+    if group_id:
+        update_group_created_at(group_id)  # 🔷 Ajout ici
+
     return redirect(url_for("print_history", page=page, focus_print_id=print_id))
 
 @app.route("/rename_group", methods=["POST"])
@@ -888,3 +904,14 @@ def edit_group_items():
     update_print_group_field(group_id, "number_of_items", number_of_items)
 
     return redirect(url_for("print_history", page=page, focus_group_id=group_id))
+
+@app.route("/api/groups/search")
+def api_groups_search():
+    q = request.args.get("q", "").strip()
+    groups = get_print_groups()
+    results = []
+    for group in groups:
+        if q.lower() in group["name"].lower():
+            label = f"{group['name']} (créé le {group['created_at'][:16]})"
+            results.append({"id": group["id"], "text": label})
+    return jsonify({"results": results})
