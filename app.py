@@ -906,6 +906,8 @@ def edit_group_items():
 
     return redirect(url_for("print_history", page=page, focus_group_id=group_id))
 
+from datetime import datetime
+
 @app.route("/api/groups/search")
 def api_groups_search():
     q = request.args.get("q", "").strip()
@@ -913,7 +915,12 @@ def api_groups_search():
     results = []
     for group in groups:
         if q.lower() in group["name"].lower():
-            created_at = datetime.strptime(group["created_at"], "%Y-%m-%d %H:%M:%S")
-            label = f"{group['name']} (créé le {created_at.strftime('%d/%m/%Y %H:%M')})"
+            created_at_str = group.get("created_at")
+            try:
+                created_at = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
+                created_at_fmt = created_at.strftime('%d/%m/%Y %H:%M')
+            except Exception:
+                created_at_fmt = created_at_str or "?"
+            label = f"{group['name']} (créé le {created_at_fmt})"
             results.append({"id": group["id"], "text": label})
     return jsonify({"results": results})
