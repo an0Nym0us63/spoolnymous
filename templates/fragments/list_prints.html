@@ -1,7 +1,7 @@
 <div class="print-history" id="printAccordion">
   {% for entry in entries %}
     {% if entry.type == "group" %}
-      <div class="card mb-2">
+      <div class="card mb-1">
         <div class="card-header d-flex justify-content-between align-items-center clickable px-2 py-1"
              data-bs-toggle="collapse"
              data-bs-target="#group_{{ entry.id }}"
