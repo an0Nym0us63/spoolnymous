@@ -21,39 +21,48 @@ $(document).ready(function () {
         applyColorTags();
     }
 
+    function initAjaxSelect2($select) {
+        if ($select.hasClass('select2-hidden-accessible')) {
+            $select.select2('destroy');
+        }
+        $select.select2({
+            width: '100%',
+            tags: true,
+            placeholder: "Tapez pour rechercher ou créer…",
+            minimumInputLength: 1,
+            ajax: {
+                url: '/api/groups/search',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return { q: params.term };
+                },
+                processResults: function (data) {
+                    return {
+                        results: (data.results || []).map(g => ({ id: g.id, text: g.name }))
+                    };
+                },
+                cache: true
+            }
+        }).on('select2:open', applyThemeToDropdown);
+    }
+
     initSelect2();
+
+    // Initialise tous les select2-ajax présents dès le début
+    $('.select2-ajax').each(function () {
+        initAjaxSelect2($(this));
+    });
+
+    // Réinitialise aussi au cas où la modale serait rechargée après le DOM ready
+    $(document).on('shown.bs.modal', '.modal', function () {
+        $(this).find('.select2-ajax').each(function () {
+            initAjaxSelect2($(this));
+        });
+    });
 
     $('#filtersCollapse').on('shown.bs.collapse', function () {
         initSelect2();
-    });
-
-    $(document).on('shown.bs.modal', '.modal', function () {
-        const $modal = $(this);
-        const $select = $modal.find('.select2-ajax');
-        if ($select.length && !$select.hasClass('select2-hidden-accessible')) {
-            $select.select2({
-                width: '100%',
-                tags: true,
-                placeholder: "Tapez pour rechercher ou créer…",
-                minimumInputLength: 1,
-                ajax: {
-                    url: '/api/groups/search',
-                    dataType: 'json',
-                    delay: 250,
-                    data: function (params) {
-                        return { q: params.term };
-                    },
-                    processResults: function (data) {
-                        return {
-                            results: (data.results || []).map(g => ({ id: g.id, text: g.name }))
-                        };
-                    },
-                    cache: true
-                }
-            }).on('select2:open', applyThemeToDropdown);
-
-            setTimeout(() => $select.focus(), 100);
-        }
     });
 
     $('.add-tag-btn').on('click', function () {
