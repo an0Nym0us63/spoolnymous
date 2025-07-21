@@ -13,7 +13,7 @@ from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print
 
 
 COLOR_FAMILIES = {
@@ -865,17 +865,11 @@ def remove_from_group():
     print_id = int(request.form["print_id"])
     page = int(request.form.get("page", 1))
 
-    # On récupère l’actuel group_id avant de le mettre à None
-    conn = sqlite3.connect(db_config["db_path"])
-    cursor = conn.cursor()
-    cursor.execute("SELECT group_id FROM prints WHERE id = ?", (print_id,))
-    result = cursor.fetchone()
-    group_id = result[0] if result else None
-    conn.close()
+    group_id = get_group_id_of_print(print_id)
 
     update_print_history_field(print_id, "group_id", None)
     if group_id:
-        update_group_created_at(group_id)  # 🔷 Ajout ici
+        update_group_created_at(group_id)
 
     return redirect(url_for("print_history", page=page, focus_print_id=print_id))
 

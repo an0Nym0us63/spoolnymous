@@ -515,5 +515,12 @@ def update_group_created_at(group_id: int) -> None:
     conn.commit()
     conn.close()
 
+def get_group_id_of_print(print_id: int) -> int | None:
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("SELECT group_id FROM prints WHERE id = ?", (print_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else None
 
 create_database()
