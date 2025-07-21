@@ -117,57 +117,76 @@ $(document).ready(function () {
     };
 
     function askRestockRatioPerFilament(printId, isDelete) {
-        fetch(`/history/${printId}/filaments`)
-            .then(resp => resp.json())
-            .then(filaments => {
-                const formHtml = filaments.map(f => `
-                    <div style="display:flex;align-items:center;margin-bottom:5px;gap:5px">
-                        <div style="width:15px;height:15px;background:${f.color};border:1px solid #ccc"></div>
-                        <span style="flex:1">${f.name}</span>
-                        <input type="number" min="0" max="100" value="${isDelete ? 100 : 0}" id="ratio_${f.spool_id}" style="width:60px"> %
-                    </div>
-                `).join("");
+    fetch(`/history/${printId}/filaments`)
+        .then(resp => resp.json())
+        .then(filaments => {
+            const formHtml = `
+                <div id="ratiosForm">
+                    ${filaments.map(f => `
+                        <div style="display:flex;align-items:center;margin-bottom:5px;gap:5px">
+                            <div style="width:15px;height:15px;background:${f.color};border:1px solid #ccc"></div>
+                            <span style="flex:1">${f.name}</span>
+                            <input type="number" min="0" max="100" value="${isDelete ? 100 : 0}" id="ratio_${f.spool_id}" style="width:60px"> %
+                        </div>
+                    `).join("")}
+                </div>
+                <div class="d-flex justify-content-around mt-2">
+                    ${[0, 25, 50, 75, 100].map(val => `
+                        <button type="button" class="btn btn-sm btn-outline-primary preset-btn" data-value="${val}">${val}%</button>
+                    `).join("")}
+                </div>
+            `;
 
-                Swal.fire({
-                    title: isDelete ? "Supprimer + Réajuster" : "Réajuster uniquement",
-                    html: formHtml,
-                    showCancelButton: true,
-                    confirmButtonText: "Valider",
-                    cancelButtonText: "Annuler",
-                    customClass: getSwalThemeClasses(),
-                    preConfirm: () => {
-                        const ratios = {};
-                        filaments.forEach(f => {
-                            const val = parseInt(document.getElementById(`ratio_${f.spool_id}`).value) || 0;
-                            ratios[f.spool_id] = val;
-                        });
-                        return ratios;
-                    }
-                }).then(result => {
-                    if (result.isConfirmed) {
-                        const url = isDelete
-                            ? `/history/delete/${printId}`
-                            : `/history/reajust/${printId}`;
-
-                        const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
-
-                        fetch(url, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ restock: true, ratios: result.value })
-                        })
-                            .then(resp => resp.json())
-                            .then(data => {
-                                if (data.status?.toLowerCase() === "ok") {
-                                    window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
-                                } else {
-                                    Swal.fire("Erreur", data.error || "Échec de l’opération", "error");
-                                }
+            Swal.fire({
+                title: isDelete ? "Supprimer + Réajuster" : "Réajuster uniquement",
+                html: formHtml,
+                showCancelButton: true,
+                confirmButtonText: "Valider",
+                cancelButtonText: "Annuler",
+                customClass: getSwalThemeClasses(),
+                didOpen: () => {
+                    document.querySelectorAll('.preset-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const val = btn.getAttribute('data-value');
+                            filaments.forEach(f => {
+                                document.getElementById(`ratio_${f.spool_id}`).value = val;
                             });
-                    }
-                });
+                        });
+                    });
+                },
+                preConfirm: () => {
+                    const ratios = {};
+                    filaments.forEach(f => {
+                        const val = parseInt(document.getElementById(`ratio_${f.spool_id}`).value) || 0;
+                        ratios[f.spool_id] = val;
+                    });
+                    return ratios;
+                }
+            }).then(result => {
+                if (result.isConfirmed) {
+                    const url = isDelete
+                        ? `/history/delete/${printId}`
+                        : `/history/reajust/${printId}`;
+
+                    const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
+
+                    fetch(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ restock: true, ratios: result.value })
+                    })
+                        .then(resp => resp.json())
+                        .then(data => {
+                            if (data.status?.toLowerCase() === "ok") {
+                                window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
+                            } else {
+                                Swal.fire("Erreur", data.error || "Échec de l’opération", "error");
+                            }
+                        });
+                }
             });
-    }
+        });
+}
 });
 
 const COLOR_NAME_MAP = {
