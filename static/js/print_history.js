@@ -40,43 +40,31 @@ $(document).ready(function () {
     }
 
     function initAjaxSelect2($select) {
-    if ($select.hasClass('select2-hidden-accessible')) {
-        $select.select2('destroy');
-    }
-
-    const $modal = $select.closest('.modal');
-
-    $select.select2({
-        dropdownParent: $modal,
-        width: '100%',
-        tags: true,
-        language: {
-            inputTooShort: function () { return "Tapez pour rechercher…"; },
-            noResults: function () { return "Aucun résultat trouvé."; }
-        },
-        placeholder: "Tapez pour rechercher ou créer…",
-        minimumInputLength: 1,
-        ajax: {
-            url: '/api/groups/search',
-            dataType: 'json',
-            delay: 250,
-            data: function (params) {
-                return { q: params.term };
-            },
-            processResults: function (data) {
-                if (!data.results) return { results: [] };
-                // Les clés attendues par Select2 sont `id` et `text`
-                return {
-                    results: data.results.map(item => ({
-                        id: item.id,
-                        text: item.text
-                    }))
-                };
-            },
-            cache: true
+        if ($select.hasClass('select2-hidden-accessible')) {
+            $select.select2('destroy');
         }
-    }).on('select2:open', applyThemeToDropdown);
-}
+
+        $select.select2({
+            width: '100%',
+            tags: true,
+            dropdownParent: $select.closest('.modal'),
+            placeholder: "Tapez pour rechercher ou créer…",
+            minimumInputLength: 1,
+            language: {
+                inputTooShort: () => "Commencez à taper pour chercher ou créer…"
+            },
+            ajax: {
+                url: '/api/groups/search',
+                dataType: 'json',
+                delay: 250,
+                data: params => ({ q: params.term }),
+                processResults: data => ({
+                    results: (data.results || []).map(g => ({ id: g.id, text: g.text }))
+                }),
+                cache: true
+            }
+        }).on('select2:open', applyThemeToDropdown);
+    }
 
     initSelect2();
     $('.select2-ajax').each(function () {
@@ -130,78 +118,79 @@ $(document).ready(function () {
     };
 
     function askRestockRatioPerFilament(printId, isDelete) {
-    fetch(`/history/${printId}/filaments`)
-        .then(resp => resp.json())
-        .then(filaments => {
-            const formHtml = `
-                <div id="ratiosForm">
-                    ${filaments.map(f => `
-                        <div style="display:flex;align-items:center;margin-bottom:5px;gap:5px">
-                            <div style="width:15px;height:15px;background:${f.color};border:1px solid #ccc"></div>
-                            <span style="flex:1">${f.name}</span>
-                            <input type="number" min="0" max="100" value="${isDelete ? 100 : 0}" id="ratio_${f.spool_id}" style="width:60px"> %
-                        </div>
-                    `).join("")}
-                </div>
-                <div class="d-flex justify-content-around mt-2">
-                    ${[0, 25, 50, 75, 100].map(val => `
-                        <button type="button" class="btn btn-sm btn-outline-primary preset-btn" data-value="${val}">${val}%</button>
-                    `).join("")}
-                </div>
-            `;
+        fetch(`/history/${printId}/filaments`)
+            .then(resp => resp.json())
+            .then(filaments => {
+                const formHtml = `
+                    <div id="ratiosForm">
+                        ${filaments.map(f => `
+                            <div style="display:flex;align-items:center;margin-bottom:5px;gap:5px">
+                                <div style="width:15px;height:15px;background:${f.color};border:1px solid #ccc"></div>
+                                <span style="flex:1">${f.name}</span>
+                                <input type="number" min="0" max="100" value="${isDelete ? 100 : 0}" id="ratio_${f.spool_id}" style="width:60px"> %
+                            </div>
+                        `).join("")}
+                    </div>
+                    <div class="d-flex justify-content-around mt-2">
+                        ${[0, 25, 50, 75, 100].map(val => `
+                            <button type="button" class="btn btn-sm btn-outline-primary preset-btn" data-value="${val}">${val}%</button>
+                        `).join("")}
+                    </div>
+                `;
 
-            Swal.fire({
-                title: isDelete ? "Supprimer + Réajuster" : "Réajuster uniquement",
-                html: formHtml,
-                showCancelButton: true,
-                confirmButtonText: "Valider",
-                cancelButtonText: "Annuler",
-                customClass: getSwalThemeClasses(),
-                didOpen: () => {
-                    document.querySelectorAll('.preset-btn').forEach(btn => {
-                        btn.addEventListener('click', () => {
-                            const val = btn.getAttribute('data-value');
-                            filaments.forEach(f => {
-                                document.getElementById(`ratio_${f.spool_id}`).value = val;
+                Swal.fire({
+                    title: isDelete ? "Supprimer + Réajuster" : "Réajuster uniquement",
+                    html: formHtml,
+                    showCancelButton: true,
+                    confirmButtonText: "Valider",
+                    cancelButtonText: "Annuler",
+                    customClass: getSwalThemeClasses(),
+                    didOpen: () => {
+                        document.querySelectorAll('.preset-btn').forEach(btn => {
+                            btn.addEventListener('click', () => {
+                                const val = btn.getAttribute('data-value');
+                                filaments.forEach(f => {
+                                    document.getElementById(`ratio_${f.spool_id}`).value = val;
+                                });
                             });
                         });
-                    });
-                },
-                preConfirm: () => {
-                    const ratios = {};
-                    filaments.forEach(f => {
-                        const val = parseInt(document.getElementById(`ratio_${f.spool_id}`).value) || 0;
-                        ratios[f.spool_id] = val;
-                    });
-                    return ratios;
-                }
-            }).then(result => {
-                if (result.isConfirmed) {
-                    const url = isDelete
-                        ? `/history/delete/${printId}`
-                        : `/history/reajust/${printId}`;
-
-                    const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
-
-                    fetch(url, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ restock: true, ratios: result.value })
-                    })
-                        .then(resp => resp.json())
-                        .then(data => {
-                            if (data.status?.toLowerCase() === "ok") {
-                                window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
-                            } else {
-                                Swal.fire("Erreur", data.error || "Échec de l’opération", "error");
-                            }
+                    },
+                    preConfirm: () => {
+                        const ratios = {};
+                        filaments.forEach(f => {
+                            const val = parseInt(document.getElementById(`ratio_${f.spool_id}`).value) || 0;
+                            ratios[f.spool_id] = val;
                         });
-                }
+                        return ratios;
+                    }
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        const url = isDelete
+                            ? `/history/delete/${printId}`
+                            : `/history/reajust/${printId}`;
+
+                        const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
+
+                        fetch(url, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ restock: true, ratios: result.value })
+                        })
+                            .then(resp => resp.json())
+                            .then(data => {
+                                if (data.status?.toLowerCase() === "ok") {
+                                    window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
+                                } else {
+                                    Swal.fire("Erreur", data.error || "Échec de l’opération", "error");
+                                }
+                            });
+                    }
+                });
             });
-        });
-}
+    }
 });
 
+// Fonctions couleurs
 const COLOR_NAME_MAP = {
     "Black": "Noir", "White": "Blanc", "Grey": "Gris", "Red": "Rouge", "Dark Red": "Rouge foncé",
     "Pink": "Rose", "Magenta": "Magenta", "Brown": "Marron", "Yellow": "Jaune", "Gold": "Doré",
