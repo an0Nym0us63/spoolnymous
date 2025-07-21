@@ -54,29 +54,58 @@ $(document).ready(function () {
             })
             .fail(() => alert('Erreur lors de la suppression du tag.'));
     });
-	
-	$('.select2-ajax').select2({
-    width: '100%',
-    tags: true,
-    placeholder: "Tapez pour rechercher ou créer…",
-    minimumInputLength: 1,
-    ajax: {
-        url: '/api/groups/search',
-        dataType: 'json',
-        delay: 250,
-        data: function (params) {
-            return { q: params.term };
-        },
-        processResults: function (data) {
-            return { results: data.results };
-        },
-        cache: true
-    }
-}).on('select2:open', () => {
-    const theme = detectThemeClass();
-    $('.select2-dropdown').removeClass('select2-dark select2-light').addClass(theme);
+
+    // 🔷 Initialisation .select2-ajax si déjà dans le DOM
+    $('.select2-ajax').select2({
+        width: '100%',
+        tags: true,
+        placeholder: "Tapez pour rechercher ou créer…",
+        minimumInputLength: 1,
+        ajax: {
+            url: '/api/groups/search',
+            dataType: 'json',
+            delay: 250,
+            data: function (params) {
+                return { q: params.term };
+            },
+            processResults: function (data) {
+                return { results: data.results };
+            },
+            cache: true
+        }
+    }).on('select2:open', applyThemeToDropdown);
+
+    // 🔷 Ré-initialisation .select2-ajax à chaque ouverture de modale
+    $(document).on('shown.bs.modal', '.modal', function () {
+        const $modal = $(this);
+        const $select = $modal.find('.select2-ajax');
+        if ($select.length && !$select.hasClass('select2-hidden-accessible')) {
+            $select.select2({
+                width: '100%',
+                tags: true,
+                placeholder: "Tapez pour rechercher ou créer…",
+                minimumInputLength: 1,
+                ajax: {
+                    url: '/api/groups/search',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return { q: params.term };
+                    },
+                    processResults: function (data) {
+                        return { results: data.results };
+                    },
+                    cache: true
+                }
+            }).on('select2:open', applyThemeToDropdown);
+
+            // focus immédiat
+            setTimeout(() => $select.focus(), 100);
+        }
+    });
+
 });
-});
+
 
 function confirmReajust(printId) {
     askRestockRatioPerFilament(printId, false);
