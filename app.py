@@ -930,17 +930,9 @@ def reajust_spool_route(spool_id):
         return redirect(request.referrer or url_for('filament_page'))
 
     response = reajust_spool(spool_id, new_weight)
-    if response.ok:
-        flash(f'Bobine #{spool_id} réajustée à {new_weight} g', 'success')
-    else:
-        flash(f'Échec du réajustement de la bobine #{spool_id}', 'danger')
     return redirect(request.referrer or url_for('filament_page'))
 
 @app.route('/spool/<int:spool_id>/archive', methods=['POST'])
 def archive_spool_route(spool_id):
     response = archive_spool(spool_id)
-    if response.ok:
-        flash(f'Bobine #{spool_id} archivée, déplacée dans Archives et active_tray vidé', 'success')
-    else:
-        flash(f'Échec de l’archivage de la bobine #{spool_id}', 'danger')
     return redirect(request.referrer or url_for('filament_page'))
