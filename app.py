@@ -11,7 +11,7 @@ from filament import generate_filament_brand_code, generate_filament_temperature
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
-from spoolman_client import patchExtraTags, getSpoolById, consumeSpool
+from spoolman_client import patchExtraTags, getSpoolById, consumeSpool, archive_spool, reajust_spool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
 from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print
 
@@ -922,25 +922,25 @@ def api_groups_search():
     return jsonify({"results": results})
     
 @app.route('/spool/<int:spool_id>/reajust', methods=['POST'])
-def reajust_spool(spool_id):
+def reajust_spool_route(spool_id):
     try:
         new_weight = float(request.form.get('new_weight'))
     except (ValueError, TypeError):
         flash('Poids invalide', 'danger')
         return redirect(request.referrer or url_for('filament_page'))
 
-    result = spoolman_api_reajust(spool_id, new_weight)
-    if result.ok:
+    response = reajust_spool(spool_id, new_weight)
+    if response.ok:
         flash(f'Bobine #{spool_id} réajustée à {new_weight} g', 'success')
     else:
         flash(f'Échec du réajustement de la bobine #{spool_id}', 'danger')
     return redirect(request.referrer or url_for('filament_page'))
 
 @app.route('/spool/<int:spool_id>/archive', methods=['POST'])
-def archive_spool(spool_id):
-    result = spoolman_api_archive(spool_id)
-    if result.ok:
-        flash(f'Bobine #{spool_id} archivée', 'success')
+def archive_spool_route(spool_id):
+    response = archive_spool(spool_id)
+    if response.ok:
+        flash(f'Bobine #{spool_id} archivée, déplacée dans Archives et active_tray vidé', 'success')
     else:
         flash(f'Échec de l’archivage de la bobine #{spool_id}', 'danger')
     return redirect(request.referrer or url_for('filament_page'))

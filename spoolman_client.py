@@ -59,6 +59,28 @@ def consumeSpool(spool_id, use_weight):
   print(response.status_code)
   print(response.text)
 
+def reajust_spool(spool_id, new_weight):
+    print(f"Réajuster spool {spool_id} à {new_weight}g")
+    response = requests.patch(f"{SPOOLMAN_API_URL}/spool/{spool_id}", json={
+        "remaining_weight": new_weight
+    })
+    print(response.status_code)
+    print(response.text)
+    return response
+
+def archive_spool(spool_id):
+    print(f"Archiver spool {spool_id}, le déplacer en Archives et vider extra.active_tray")
+    response = requests.patch(f"{SPOOLMAN_API_URL}/spool/{spool_id}", json={
+        "archived": True,
+        "location": "Archives",
+        "extra": {
+            "active_tray": None
+        }
+    })
+    print(response.status_code)
+    print(response.text)
+    return response
+
 def fetchSettings():
   response = requests.get(f"{SPOOLMAN_API_URL}/setting/")
   print(response.status_code)
