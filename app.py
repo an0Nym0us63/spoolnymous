@@ -704,9 +704,11 @@ def get_tags(print_id):
 
 @app.route("/history/<int:print_id>/tags/add", methods=["POST"])
 def add_tag(print_id):
-    tag = request.form.get("tag")
-    if tag:
-        add_tag_to_print(print_id, tag)
+    tag = request.form.get("tag", "")
+    # On découpe la chaîne en mots
+    tags = [word.strip() for word in tag.split() if word.strip()]
+    for t in tags:
+        add_tag_to_print(print_id, t)
     return jsonify({"status": "ok"})
 
 @app.route("/history/<int:print_id>/tags/remove", methods=["POST"])
