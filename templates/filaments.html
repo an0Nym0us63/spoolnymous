@@ -129,11 +129,9 @@
       </button>
     </li>
     <li>
-      <form method="post" action="{{ url_for('archive_spool', spool_id=spool.id) }}" class="m-0">
-        <button type="submit" class="dropdown-item text-warning">
-          🗄️ Archiver
-        </button>
-      </form>
+      <button type="button" class="dropdown-item text-warning" data-bs-toggle="modal" data-bs-target="#archiveModal_{{ spool.id }}">
+  🗄️ Archiver
+</button>
     </li>
   </ul>
 </div>
@@ -182,7 +180,7 @@
 <div class="modal fade" id="reajustModal_{{ spool.id }}" tabindex="-1" aria-labelledby="reajustModalLabel_{{ spool.id }}" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <form method="post" action="{{ url_for('reajust_spool', spool_id=spool.id) }}">
+      <form method="post" action="{{ url_for('reajust_spool_route', spool_id=spool.id) }}">
         <div class="modal-header">
           <h5 class="modal-title" id="reajustModalLabel_{{ spool.id }}">Réajuster la bobine #{{ spool.id }}</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
@@ -196,6 +194,26 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
           <button type="submit" class="btn btn-primary">Valider</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="archiveModal_{{ spool.id }}" tabindex="-1" aria-labelledby="archiveModalLabel_{{ spool.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('archive_spool_route', spool_id=spool.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="archiveModalLabel_{{ spool.id }}">Confirmer l’archivage</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <p>Voulez-vous vraiment archiver la bobine <strong>#{{ spool.id }}</strong> ?</p>
+          <p class="small text-muted">Elle sera déplacée dans la localisation « Archives » et son champ <code>active_tray</code> sera vidé.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-warning">✅ Archiver</button>
         </div>
       </form>
     </div>
