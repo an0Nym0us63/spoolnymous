@@ -366,6 +366,9 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     cursor.execute(base_query, query_params)
     prints = [dict(row) for row in cursor.fetchall()]
     conn.close()
+    for p in prints:
+        p["file_name"] = translate_title(p["file_name"])
+
 
     return total_count, prints
 
