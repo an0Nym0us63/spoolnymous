@@ -91,39 +91,44 @@
   {% for spool in filaments %}
     <div class="accordion-item">
       <h2 class="accordion-header d-flex justify-content-between align-items-center" id="heading{{ spool.id }}">
-  <button class="accordion-button collapsed py-2 flex-grow-1 text-start" type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#collapse{{ spool.id }}"
-          aria-expanded="false"
-          aria-controls="collapse{{ spool.id }}">
-    <div class="d-flex w-100 align-items-stretch">
-      <div class="me-3 d-flex align-items-stretch">
-        {% if spool.filament.multi_color_hexes %}
-          {% set colors =
-              spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
-              else spool.filament.multi_color_hexes %}
-          <span style="width:12px;min-height:100%;background:linear-gradient(90deg{% for c in colors %}, #{{c.strip()}}{% endfor %});border-radius:2px;border:1px solid #888;display:inline-block;"></span>
-        {% else %}
-          <span style="width:12px;min-height:100%;background-color:#{{ spool.filament.color_hex }};border-radius:2px;border:1px solid #888;display:inline-block;"></span>
-        {% endif %}
+  <div class="flex-grow-1">
+    <button class="accordion-button collapsed py-2 w-100 text-start" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#collapse{{ spool.id }}"
+            aria-expanded="false"
+            aria-controls="collapse{{ spool.id }}">
+      <div class="d-flex w-100 align-items-stretch">
+        <div class="me-3 d-flex align-items-stretch">
+          {% if spool.filament.multi_color_hexes %}
+            {% set colors =
+                spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
+                else spool.filament.multi_color_hexes %}
+            <span style="width:12px;min-height:100%;background:linear-gradient(90deg{% for c in colors %}, #{{c.strip()}}{% endfor %});border-radius:2px;border:1px solid #888;display:inline-block;"></span>
+          {% else %}
+            <span style="width:12px;min-height:100%;background-color:#{{ spool.filament.color_hex }};border-radius:2px;border:1px solid #888;display:inline-block;"></span>
+          {% endif %}
+        </div>
+        <div class="flex-grow-1 text-start">
+          <div><strong>{{ spool.filament.material }}</strong> / {{ spool.filament.name }}</div>
+          <div>{{ spool.filament.vendor.name }}</div>
+        </div>
+        <div class="d-flex flex-column justify-content-center align-items-end ms-2 text-end">
+          {% if spool.location %}
+            <div class="small text-muted">{{ spool.location }}</div>
+          {% endif %}
+          <strong>{{ spool.remaining_weight|round|int }} g</strong>
+        </div>
       </div>
-      <div class="flex-grow-1 text-start">
-        <div><strong>{{ spool.filament.material }}</strong> / {{ spool.filament.name }}</div>
-        <div>{{ spool.filament.vendor.name }}</div>
-      </div>
-      <div class="d-flex flex-column justify-content-center align-items-end ms-2 text-end">
-        {% if spool.location %}
-          <div class="small text-muted">{{ spool.location }}</div>
-        {% endif %}
-        <strong>{{ spool.remaining_weight|round|int }} g</strong>
-      </div>
-    </div>
-  </button>
+    </button>
+  </div>
 
-  <a href="{{ url_for('fill', spool_id=spool.id, ams=ams_id, tray=tray_id) }}"
-     class="badge bg-primary rounded-pill ms-2 align-middle text-decoration-none me-3">
-    <i class="bi bi-plus-circle"></i> Fill
-  </a>
+  <div class="ms-2 me-3 d-flex align-items-center">
+    <a href="{{ url_for('fill', spool_id=spool.id, ams=ams_id, tray=tray_id) }}"
+       class="btn btn-sm btn-primary py-0 px-2 d-inline-flex align-items-center"
+       style="font-size:0.8rem; line-height:1;">
+      <i class="bi bi-plus-circle me-1"></i>
+    </a>
+  </div>
 </h2>
 
 
