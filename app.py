@@ -235,9 +235,92 @@ def fill():
     setActiveSpool(ams_id, tray_id, spool_data)
     return redirect(url_for('home', success_message=f"Updated Spool ID {spool_id} to AMS {ams_id}, Tray {tray_id}."))
   else:
-    spools = fetchSpools()
-        
-    return render_template('fill.html', spools=spools, ams_id=ams_id, tray_id=tray_id)
+    page = int(request.args.get("page", 1))
+    per_page = 25
+    search = request.args.get("search", "").lower()
+    sort = request.args.get("sort", "default")
+
+    all_filaments = fetchSpools() or []
+
+    # filtre nom / couleur
+    if search:
+        search_terms = search.split()
+
+        def matches(f):
+            filament = f.get("filament", {})
+            vendor = filament.get("vendor", {})
+            fields = [
+                filament.get("name", "").lower(),
+                filament.get("material", "").lower(),
+                vendor.get("name", "").lower(),
+                f.get("location", "").lower(),
+            ]
+            # Chaque terme doit être présent dans au moins un des champs
+            return all(
+                any(term in field for field in fields)
+                for term in search_terms
+            )
+
+        all_filaments = [f for f in all_filaments if matches(f)]
+
+    def sort_key(f):
+        filament = f.get("filament", {})
+        vendor = filament.get("vendor", {})
+        return (
+            f.get("location", "").lower(),
+            filament.get("material", "").lower(),
+            vendor.get("name", "").lower(),
+            filament.get("name", "").lower()
+        )
+    if sort == "remaining":
+        all_filaments.sort(key=lambda f: f.get("remaining_weight") or 0)
+    else:
+        all_filaments.sort(key=sort_key)
+    all_families_in_page = set()
+
+    for spool in all_filaments:
+        filament = spool.get("filament", {})
+        hexes = []
+
+        if filament.get("multi_color_hexes"):
+            if isinstance(filament["multi_color_hexes"], str):
+                hexes = filament["multi_color_hexes"].split(",")
+            elif isinstance(filament["multi_color_hexes"], list):
+                hexes = filament["multi_color_hexes"]
+        elif filament.get("color_hex"):
+            hexes = [filament["color_hex"]]
+
+    
+        families = set()
+        for hx in hexes:
+            fams = two_closest_families(hx, threshold=60)
+            families.update(fams)
+    
+        spool["color_families"] = sorted(families)
+        all_families_in_page.update(families)
+    selected_family = request.args.get("color")
+    if selected_family:
+        all_filaments = [
+            f for f in all_filaments
+            if selected_family in f.get("color_families", [])
+        ]
+    total = len(all_filaments)
+    total_pages = math.ceil(total / per_page)
+    filaments_page = all_filaments[(page-1)*per_page : page*per_page]
+
+    return render_template(
+        "fill.html",
+        filaments=filaments_page,
+        page=page,
+        total_pages=total_pages,
+        search=search,
+        sort=sort,
+        all_families=sorted(all_families_in_page),
+        selected_family=selected_family,
+        page_title="Fill",
+        ams_id=ams_id, 
+        tray_id=tray_id
+    )
 
 @app.route("/spool_info")
 def spool_info():
