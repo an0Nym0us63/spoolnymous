@@ -75,7 +75,7 @@ def archive_spool(spool_id):
         "location": "Archives",
         "remaining_weight": 0,
         "extra": {
-            "active_tray": ""
+            "active_tray": "\"\""
         }
     })
     print(response.status_code)
