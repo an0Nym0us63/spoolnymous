@@ -309,7 +309,7 @@ def on_message(client, userdata, msg):
                     spool['color_dist']=color_dist
                     print(filament_id + ' ' +spool["filament"]["color_hex"] + ' : ' + str(color_dist)) 
                     if foundspool == None:
-                        if color_dist<25:
+                        if color_dist<50:
                             foundspool= spool
                     else:
                         if color_dist<foundspool['color_dist']:
