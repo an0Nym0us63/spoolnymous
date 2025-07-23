@@ -440,7 +440,7 @@ def setActiveSpool(ams_id, tray_id, spool_data):
   ams_message["print"]["tray_sub_brands"] = ""
 
   print(ams_message)
-  publish(getMqttClient(), ams_message)
+  #publish(getMqttClient(), ams_message)
 @app.route("/")
 def home():
   if not isMqttClientConnected():
