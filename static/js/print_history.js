@@ -219,13 +219,14 @@ function enhanceColorSelect() {
             .prop('selected', opt.selected)
             .appendTo($colorSelect);
     }
-
-    $colorSelect.select2({
-        width: '100%',
-        templateResult: formatColorOption,
-        templateSelection: formatColorOption,
-        escapeMarkup: m => m
-    });
+$colorSelect.select2({
+    width: '100%',
+    placeholder: "— Filtrer par famille de couleur —",
+    allowClear: true,
+    templateResult: formatColorOption,
+    templateSelection: formatColorOption,
+    escapeMarkup: m => m
+});
 
     applyColorTags();
     $colorSelect.on('select2:select select2:unselect', applyColorTags);
