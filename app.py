@@ -920,3 +920,27 @@ def api_groups_search():
             label = f"{group['name']} (créé le {created_at_fmt})"
             results.append({"id": group["id"], "text": label})
     return jsonify({"results": results})
+    
+@app.route('/spool/<int:spool_id>/reajust', methods=['POST'])
+def reajust_spool(spool_id):
+    try:
+        new_weight = float(request.form.get('new_weight'))
+    except (ValueError, TypeError):
+        flash('Poids invalide', 'danger')
+        return redirect(request.referrer or url_for('filament_page'))
+
+    result = spoolman_api_reajust(spool_id, new_weight)
+    if result.ok:
+        flash(f'Bobine #{spool_id} réajustée à {new_weight} g', 'success')
+    else:
+        flash(f'Échec du réajustement de la bobine #{spool_id}', 'danger')
+    return redirect(request.referrer or url_for('filament_page'))
+
+@app.route('/spool/<int:spool_id>/archive', methods=['POST'])
+def archive_spool(spool_id):
+    result = spoolman_api_archive(spool_id)
+    if result.ok:
+        flash(f'Bobine #{spool_id} archivée', 'success')
+    else:
+        flash(f'Échec de l’archivage de la bobine #{spool_id}', 'danger')
+    return redirect(request.referrer or url_for('filament_page'))

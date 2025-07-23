@@ -117,6 +117,26 @@
       <div id="collapse{{ spool.id }}" class="accordion-collapse collapse"
            aria-labelledby="heading{{ spool.id }}" data-bs-parent="#filamentsAccordion">
         <div class="accordion-body">
+			<div class="dropdown float-end">
+  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+    Actions
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li>
+      <button class="dropdown-item text-primary" type="button"
+              data-bs-toggle="modal" data-bs-target="#reajustModal_{{ spool.id }}">
+        🔄 Réajuster
+      </button>
+    </li>
+    <li>
+      <form method="post" action="{{ url_for('archive_spool', spool_id=spool.id) }}" class="m-0">
+        <button type="submit" class="dropdown-item text-warning">
+          🗄️ Archiver
+        </button>
+      </form>
+    </li>
+  </ul>
+</div>
           <ul class="list-unstyled mb-0">
             <li><strong>Fournisseur :</strong> {{ spool.filament.vendor.name }}</li>
             <li><strong>Matière :</strong> {{ spool.filament.material }}</li>
@@ -158,6 +178,29 @@
               {% endif %}
             </li>
           </ul>
+		  
+<div class="modal fade" id="reajustModal_{{ spool.id }}" tabindex="-1" aria-labelledby="reajustModalLabel_{{ spool.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('reajust_spool', spool_id=spool.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="reajustModalLabel_{{ spool.id }}">Réajuster la bobine #{{ spool.id }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="new_weight_{{ spool.id }}" class="form-label">Poids restant (g)</label>
+            <input type="number" class="form-control" name="new_weight" id="new_weight_{{ spool.id }}" min="0" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">Valider</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
         </div>
       </div>
     </div>
