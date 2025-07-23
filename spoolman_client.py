@@ -69,10 +69,11 @@ def reajust_spool(spool_id, new_weight):
     return response
 
 def archive_spool(spool_id):
-    print(f"Archiver spool {spool_id}, le déplacer en Archives et vider extra.active_tray")
+    print(f"Archiver spool {spool_id}, le déplacer en Archives, vider active_tray et mettre remaining_weight à 0")
     response = requests.patch(f"{SPOOLMAN_API_URL}/spool/{spool_id}", json={
         "archived": True,
         "location": "Archives",
+        "remaining_weight": 0,
         "extra": {
             "active_tray": None
         }
