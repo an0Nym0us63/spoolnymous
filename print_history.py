@@ -2,7 +2,6 @@ import os
 import sqlite3
 from datetime import datetime
 import math
-from translator import translate_title
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
