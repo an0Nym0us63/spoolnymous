@@ -113,12 +113,12 @@
               <strong>{{ spool.remaining_weight|round|int }} g</strong>
             </div>
           </div>
+        </button>
 		  <a href="{{ url_for('fill', spool_id=spool.id, ams=ams_id, tray=tray_id) }}">
     <span class="badge bg-primary rounded-pill">
       <i class="bi bi-plus-circle"></i> Fill
     </span>
   </a>
-        </button>
       </h2>
 
       <div id="collapse{{ spool.id }}" class="accordion-collapse collapse"
