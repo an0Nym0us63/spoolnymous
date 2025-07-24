@@ -691,7 +691,7 @@ def get_statistics(period: str = "all") -> dict:
         grams = u["grams_used"]
         if not hex_color:
             continue
-        family = closest_main_family(hex_color)
+        family = closest_family(hex_color)
         if family:
             color_family_counts[family] = color_family_counts.get(family, 0) + grams
             if family not in color_family_colors:
