@@ -1,4 +1,3 @@
-
 {% extends "base.html" %}
 {% block content %}
 <div class="container my-4">
@@ -95,13 +94,13 @@
     {% endfor %}
   </div>
 
-  {% set sections = [
-    ("filamentType", "Répartition par type de filament", stats.filament_type_pie),
-    ("vendor", "Répartition par marque", stats.vendor_pie),
-    ("colorFamily", "Répartition par couleur", stats.color_family_pie)
+  {% set pies = [
+    ('filamentType', 'Répartition par type de filament', stats.filament_type_pie),
+    ('vendor', 'Répartition par marque', stats.vendor_pie),
+    ('colorFamily', 'Répartition par couleur', stats.color_family_pie)
   ] %}
 
-  {% for id, title, data in sections %}
+  {% for id, title, dataset in pies %}
   <div class="my-4">
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h6 class="text-center text-muted flex-grow-1">{{ title }}</h6>
@@ -114,15 +113,18 @@
       <table class="table table-sm table-bordered text-center align-middle">
         <thead><tr><th>Nom</th><th>Quantité</th></tr></thead>
         <tbody>
-          {% for i in range(data.labels | length) %}
-          <tr><td>{{ data.labels[i] }}</td><td>
-            {% set v = data.values[i] %}
-            {% if v >= 1000 %}
-              {{ (v / 1000) | round(2) }} kg
-            {% else %}
-              {{ v | round(1) }} g
-            {% endif %}
-          </td></tr>
+          {% for i in range(dataset["labels"] | length) %}
+          <tr>
+            <td>{{ dataset["labels"][i] }}</td>
+            <td>
+              {% set val = dataset["values"][i] %}
+              {% if val >= 1000 %}
+                {{ (val / 1000) | round(2) }} kg
+              {% else %}
+                {{ val | round(1) }} g
+              {% endif %}
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
@@ -148,13 +150,13 @@
     });
   });
 
-  // Chart: Vendor
-  new Chart(document.getElementById('vendorPieChart').getContext('2d'), {
+  const ctxVendor = document.getElementById('vendorPieChart').getContext('2d');
+  new Chart(ctxVendor, {
     type: 'pie',
     data: {
-      labels: {{ stats.vendor_pie.labels | tojson }},
+      labels: {{ stats.vendor_pie["labels"]|tojson }},
       datasets: [{
-        data: {{ stats.vendor_pie.values | tojson }},
+        data: {{ stats.vendor_pie["values"]|tojson }},
         backgroundColor: [
           '#4e79a7', '#f28e2b', '#e15759', '#76b7b2',
           '#59a14f', '#edc948', '#b07aa1', '#ff9da7',
@@ -164,82 +166,34 @@
     },
     options: {
       plugins: {
-        legend: { position: 'bottom' },
+        legend: {
+          position: 'bottom'
+        },
         tooltip: {
           callbacks: {
-            label: ctx => {
-              const label = ctx.label || '';
-              const v = ctx.parsed || 0;
-              return v >= 1000 ? `${label}: ${(v / 1000).toFixed(1)} kg` : `${label}: ${v.toFixed(1)} g`;
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.parsed || 0;
+              if (value >= 1000) {
+                return `${label}: ${(value / 1000).toFixed(1)} kg`;
+              } else {
+                return `${label}: ${value.toFixed(1)} g`;
+              }
             }
           }
         }
       }
     }
   });
-
-  // Chart: Filament Type
-  new Chart(document.getElementById('filamentTypePieChart').getContext('2d'), {
-    type: 'pie',
-    data: {
-      labels: {{ stats.filament_type_pie.labels | tojson }},
-      datasets: [{
-        data: {{ stats.filament_type_pie.values | tojson }},
-        backgroundColor: [
-          '#4e79a7', '#f28e2b', '#e15759', '#76b7b2',
-          '#59a14f', '#edc948', '#b07aa1', '#ff9da7',
-          '#9c755f', '#bab0ac'
-        ]
-      }]
-    },
-    options: {
-      plugins: {
-        legend: { position: 'bottom' },
-        tooltip: {
-          callbacks: {
-            label: ctx => {
-              const v = ctx.parsed || 0;
-              return v >= 1000 ? `${ctx.label}: ${(v / 1000).toFixed(1)} kg` : `${ctx.label}: ${v.toFixed(1)} g`;
-            }
-          }
-        }
-      }
-    }
-  });
-
-  // Chart: Color Family
-  new Chart(document.getElementById('colorFamilyPieChart').getContext('2d'), {
-    type: 'pie',
-    data: {
-      labels: {{ stats.color_family_pie.labels | tojson }},
-      datasets: [{
-        data: {{ stats.color_family_pie.values | tojson }},
-        backgroundColor: {{ stats.color_family_pie.colors | tojson }}
-      }]
-    },
-    options: {
-      plugins: {
-        legend: { position: 'bottom' },
-        tooltip: {
-          callbacks: {
-            label: ctx => {
-              const v = ctx.raw || 0;
-              return v >= 1000 ? `${ctx.label}: ${(v / 1000).toFixed(2)} kg` : `${ctx.label}: ${v.toFixed(1)} g`;
-            }
-          }
-        }
-      }
-    }
-  });
-
-  // Chart: Duration Histogram
-  new Chart(document.getElementById('durationHistogram').getContext('2d'), {
+  
+  const ctxDuration = document.getElementById('durationHistogram').getContext('2d');
+  new Chart(ctxDuration, {
     type: 'bar',
     data: {
-      labels: {{ stats.duration_histogram.labels | tojson }},
+      labels: {{ stats.duration_histogram["labels"]|tojson }},
       datasets: [{
         label: 'Nombre d’impressions',
-        data: {{ stats.duration_histogram.values | tojson }},
+        data: {{ stats.duration_histogram["values"]|tojson }},
         backgroundColor: 'rgba(75, 192, 192, 0.6)',
         borderColor: 'rgba(75, 192, 192, 1)',
         borderWidth: 1
@@ -250,11 +204,87 @@
       scales: {
         y: {
           beginAtZero: true,
-          title: { display: true, text: 'Nombre d’impressions' }
+          title: {
+            display: true,
+            text: 'Nombre d’impressions'
+          }
         }
       },
-      plugins: { legend: { display: false } }
+      plugins: {
+        legend: {
+          display: false
+        }
+      }
+    }
+  });
+  
+   const ctxFilamentType = document.getElementById('filamentTypePieChart').getContext('2d');
+  new Chart(ctxFilamentType, {
+    type: 'pie',
+    data: {
+      labels: {{ stats.filament_type_pie["labels"]|tojson }},
+      datasets: [{
+        data: {{ stats.filament_type_pie["values"]|tojson }},
+        backgroundColor: [
+          '#4e79a7', '#f28e2b', '#e15759', '#76b7b2',
+          '#59a14f', '#edc948', '#b07aa1', '#ff9da7',
+          '#9c755f', '#bab0ac'
+        ]
+      }]
+    },
+    options: {
+      plugins: {
+        legend: {
+          position: 'bottom'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let value = context.parsed;
+              return value >= 1000
+                ? (value / 1000).toFixed(1) + ' kg'
+                : value.toFixed(1) + ' g';
+            }
+          }
+        }
+      }
+    }
+  });
+  const colorFamilyLabels = {{ stats.color_family_pie["labels"] | tojson }};
+  const colorFamilyValues = {{ stats.color_family_pie["values"] | tojson }};
+  const colorFamilyColors = {{ stats.color_family_pie["colors"] | tojson }};
+
+  new Chart(document.getElementById('colorFamilyPieChart').getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: colorFamilyLabels,
+      datasets: [{
+        data: colorFamilyValues,
+        backgroundColor: colorFamilyColors
+      }]
+    },
+    options: {
+      plugins: {
+        legend: {
+          position: 'bottom'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.label || '';
+              let value = context.raw || 0;
+              if (value >= 1000) {
+                return `${label}: ${(value / 1000).toFixed(2)} kg`;
+              } else {
+                return `${label}: ${value.toFixed(1)} g`;
+              }
+            }
+          }
+        }
+      }
     }
   });
 </script>
+</div>
+
 {% endblock %}
