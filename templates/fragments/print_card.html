@@ -124,6 +124,13 @@
              alt="Print Image" class="img-fluid rounded" style="max-width:200px;" />
       </div>
       {% endif %}
+	  {% if print.original_name %}
+<div class="text-center mb-3">
+  <span class="badge bg-light text-dark border" style="font-size: 0.75rem;">
+    🔖 Nom original : {{ print.original_name }}
+  </span>
+</div>
+{% endif %}
 
       <div class="mb-3">
         <strong>Filaments :</strong>

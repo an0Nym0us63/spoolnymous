@@ -54,6 +54,7 @@ def create_database() -> None:
                 duration REAL,
                 number_of_items INTEGER DEFAULT 1,
                 group_id INTEGER,
+                original_name TEXT,
                 FOREIGN KEY (group_id) REFERENCES print_groups(id)
             )
         ''')
@@ -104,6 +105,9 @@ def create_database() -> None:
             cursor.execute("ALTER TABLE prints ADD COLUMN duration REAL")
         if "group_id" not in columns:
             cursor.execute("ALTER TABLE prints ADD COLUMN group_id INTEGER REFERENCES print_groups(id)")
+        if "original_name" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN original_name TEXT")
+            cursor.execute("UPDATE prints SET original_name = file_name WHERE original_name IS NULL OR original_name = ''")
 
         cursor.execute("PRAGMA table_info(print_groups)")
         group_columns = [row[1] for row in cursor.fetchall()]
@@ -141,10 +145,10 @@ def insert_print(file_name: str, print_type: str, image_file: str = None, print_
 
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO prints (print_date, file_name, print_type, image_file, duration)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (print_date, file_name, print_type, image_file, duration))
+     cursor.execute('''
+        INSERT INTO prints (print_date, file_name, print_type, image_file, duration, original_name)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (print_date, file_name, print_type, image_file, duration, file_name))
     print_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -339,8 +343,9 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     # Load prints with optional LIMIT/OFFSET
     base_query = f'''
         SELECT DISTINCT p.id AS id, p.print_date, p.file_name,
-               p.print_type, p.image_file, p.duration, p.number_of_items,
-               pg.id AS group_id, pg.name AS group_name, pg.number_of_items AS group_number_of_items,
+            p.original_name,
+            p.print_type, p.image_file, p.duration, p.number_of_items,
+            pg.id AS group_id, pg.name AS group_name, pg.number_of_items AS group_number_of_items,
                (
                    SELECT json_group_array(json_object(
                        'spool_id', f2.spool_id,
