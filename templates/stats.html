@@ -6,10 +6,10 @@
   <form method="get" class="d-flex justify-content-center mb-4 flex-wrap gap-2">
     {% for key, label in {
       'all': 'Tout',
-      'day': 'Aujourd’hui',
-      '7d': '7 derniers jours',
-      '1m': 'Dernier mois',
-      '1y': 'Dernière année'
+      'day': '24h',
+      '7d': '7j',
+      '1m': '1m',
+      '1y': '1a'
     }.items() %}
       <button type="submit" name="period" value="{{ key }}"
               class="btn btn-sm {% if selected_period == key %}btn-primary{% else %}btn-outline-secondary{% endif %}">
@@ -21,12 +21,12 @@
   <!-- Statistiques -->
   <div class="row g-3">
     {% set cards = [
-      ('🖨 Nombre d’impressions', stats.total_prints),
-      ('⏱ Temps total', stats.total_duration | default(0) | round(1)),
-      ('⚖️ Poids total', stats.total_weight | default(0) | round(1)),
-      ('💰 Coût filament', stats.filament_cost | default(0) | round(2)),
-      ('⚡ Coût électricité', stats.electric_cost | default(0) | round(2)),
-      ('💵 Coût total', stats.total_cost | default(0) | round(2))
+      ('🖨', stats.total_prints),
+      ('⏱', stats.total_duration | default(0) | round(1)),
+      ('⚖️', stats.total_weight | default(0) | round(1)),
+      ('💰', stats.filament_cost | default(0) | round(2)),
+      ('⚡', stats.electric_cost | default(0) | round(2)),
+      ('💵', stats.total_cost | default(0) | round(2))
     ] %}
 
     {% for label, value in cards %}

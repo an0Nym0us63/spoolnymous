@@ -555,12 +555,14 @@ def get_statistics(period: str = "all") -> dict:
     params = []
     now = datetime.now()
 
-    if period == "7d":
+    if period == "day":
+        since = now - timedelta(days=1)
+    elif period == "7d":
         since = now - timedelta(days=7)
     elif period == "1m":
-        since = now.replace(day=1)
+        since = now - timedelta(days=30)
     elif period == "1y":
-        since = now.replace(month=1, day=1)
+        since = now - timedelta(days=365)
     else:
         since = None
 
