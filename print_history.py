@@ -2,6 +2,9 @@ import os
 import sqlite3
 from datetime import datetime, timedelta
 import math
+from spoolman_service import fetchSpools
+from collections import defaultdict
+from config import COST_BY_HOUR
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
@@ -541,63 +544,84 @@ def get_statistics(period: str = "all") -> dict:
     Récupère des statistiques globales sur les impressions.
     :param period: "all", "7d", "1m", "1y"
     """
-
     conn = sqlite3.connect(db_config["db_path"])
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # Calcul de la borne basse
+    # Définir la borne inférieure de période
     date_clause = ""
     params = []
     now = datetime.now()
 
     if period == "7d":
         since = now - timedelta(days=7)
-        date_clause = "WHERE p.print_date >= ?"
-        params = [since.strftime("%Y-%m-%d %H:%M:%S")]
     elif period == "1m":
         since = now.replace(day=1)
-        date_clause = "WHERE p.print_date >= ?"
-        params = [since.strftime("%Y-%m-%d %H:%M:%S")]
     elif period == "1y":
         since = now.replace(month=1, day=1)
+    else:
+        since = None
+
+    if since:
         date_clause = "WHERE p.print_date >= ?"
         params = [since.strftime("%Y-%m-%d %H:%M:%S")]
-    
-    # Stats globales
+
+    # Charger les impressions
     cursor.execute(f"""
-        SELECT 
-            COUNT(DISTINCT p.id) AS total_prints,
-            SUM(p.duration) AS total_duration,
-            SUM(f.grams_used) AS total_filament_grams
+        SELECT p.id, p.duration
         FROM prints p
-        LEFT JOIN filament_usage f ON f.print_id = p.id
         {date_clause}
     """, params)
-    row = cursor.fetchone()
+    prints = cursor.fetchall()
+    print_ids = [p["id"] for p in prints]
 
-    # Coût filament
+    if not prints:
+        return {
+            "total_prints": 0,
+            "total_duration": 0.0,
+            "total_weight": 0.0,
+            "filament_cost": 0.0,
+            "electric_cost": 0.0,
+            "total_cost": 0.0
+        }
+
+    # Durée totale
+    total_duration = sum(p["duration"] or 0 for p in prints)
+
+    # Charger l’usage de filament
     cursor.execute(f"""
-        SELECT SUM(f.grams_used * COALESCE(s.cost_per_gram, 0)) AS filament_cost
-        FROM filament_usage f
-        JOIN prints p ON p.id = f.print_id
-        LEFT JOIN spools s ON s.id = f.spool_id
-        {date_clause}
-    """, params)
-    filament_cost = cursor.fetchone()[0] or 0.0
-
-    duration_hours = (row["total_duration"] or 0.0) / 3600
-    electric_cost = duration_hours * float(COST_BY_HOUR)
+        SELECT print_id, spool_id, grams_used
+        FROM filament_usage
+        WHERE print_id IN ({','.join('?' for _ in print_ids)})
+    """, print_ids)
+    usage = cursor.fetchall()
 
     conn.close()
 
+    # Croiser avec les spools
+    spools_by_id = {spool["id"]: spool for spool in fetchSpools(False, True)}
+
+    total_weight = 0.0
+    filament_cost = 0.0
+
+    for u in usage:
+        grams = u["grams_used"]
+        spool = spools_by_id.get(u["spool_id"])
+        cost_per_gram = spool.get("cost_per_gram", 0.0) if spool else 0.0
+        total_weight += grams
+        filament_cost += grams * cost_per_gram
+
+    # Coût électricité
+    duration_hours = total_duration / 3600
+    electric_cost = duration_hours * float(COST_BY_HOUR)
+
     return {
-        "total_prints": row["total_prints"] or 0,
-        "total_duration_hours": duration_hours,
-        "total_filament_grams": row["total_filament_grams"] or 0.0,
-        "total_filament_cost": filament_cost,
-        "total_electric_cost": electric_cost,
-        "total_full_cost": filament_cost + electric_cost
+        "total_prints": len(print_ids),
+        "total_duration": duration_hours,
+        "total_weight": total_weight,
+        "filament_cost": filament_cost,
+        "electric_cost": electric_cost,
+        "total_cost": filament_cost + electric_cost
     }
 
 create_database()
