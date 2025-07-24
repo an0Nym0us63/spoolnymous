@@ -53,11 +53,14 @@
 
   {% if stats.timeline %}
   <hr class="my-4">
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <h6 class="card-title text-muted text-center mb-3">Évolution des coûts</h6>
-      <canvas id="costChart" height="80"></canvas>
+  <div class="card shadow-sm mt-4">
+  <div class="card-body">
+    <h6 class="card-title text-muted text-center mb-3">Quantité de filament utilisée</h6>
+    <div style="height: 300px;">
+      <canvas id="filamentChart"></canvas>
     </div>
+  </div>
+</div>
   </div>
   {% endif %}
 
@@ -66,28 +69,40 @@
 {% if stats.timeline %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  const ctx = document.getElementById('costChart').getContext('2d');
-  const chart = new Chart(ctx, {
-    type: 'line',
+  const filamentCtx = document.getElementById('filamentChart').getContext('2d');
+  const filamentChart = new Chart(filamentCtx, {
+    type: 'bar',
     data: {
-      labels: {{ stats.timeline | map(attribute='label') | list | tojson }},
+      labels: {{ timeline.labels|tojson }},
       datasets: [{
-        label: 'Coût total',
-        data: {{ stats.timeline | map(attribute='cost') | list | tojson }},
-        fill: true,
-        tension: 0.3,
-        borderWidth: 2
+        label: 'Grammage total',
+        data: {{ timeline.values|tojson }},
+        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       scales: {
+        x: {
+          ticks: {
+            maxRotation: 60,
+            minRotation: 0
+          }
+        },
         y: {
           beginAtZero: true,
-          ticks: {
-            callback: value => value + ' {{ currencysymbol }}'
+          title: {
+            display: true,
+            text: 'Grammes'
           }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
         }
       }
     }
