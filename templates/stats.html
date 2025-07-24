@@ -110,7 +110,7 @@
   <div id="{{ id }}ChartContainer" class="ratio {% if id == 'duration' %}ratio-16x9{% else %}ratio-1x1{% endif %} mx-auto" style="max-width: 400px;">
     <canvas id="{{ id }}PieChart"></canvas>
   </div>
-  <<div id="{{ id }}TableContainer" class="table-responsive visually-hidden">
+  <div id="{{ id }}TableContainer" class="table-responsive visually-hidden">
   <table class="table table-sm table-bordered text-center align-middle">
     <thead>
       <tr><th>Nom</th><th>Quantité</th></tr>
@@ -125,13 +125,17 @@
           {{ dataset["labels"][i] }}
         </td>
         <td>
-          {% set val = dataset["values"][i] %}
-          {% if val >= 1000 %}
-            {{ (val / 1000) | round(2) }} kg
-          {% else %}
-            {{ val | round(1) }} g
-          {% endif %}
-        </td>
+  {% set val = dataset["values"][i] %}
+  {% if id == "duration" %}
+    {{ val }}
+  {% else %}
+    {% if val >= 1000 %}
+      {{ (val / 1000) | round(2) }} kg
+    {% else %}
+      {{ val | round(1) }} g
+    {% endif %}
+  {% endif %}
+</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -189,7 +193,7 @@
     }
   });
   
-  const ctxDuration = document.getElementById('durationHistogram').getContext('2d');
+  const ctxDuration = document.getElementById('durationPieChart').getContext('2d');
   new Chart(ctxDuration, {
     type: 'bar',
     data: {
