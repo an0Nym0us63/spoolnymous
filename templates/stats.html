@@ -181,46 +181,36 @@
       }
     }
   });
-  const colorFamilyLabels = {{ stats.color_family_pie.labels |tojson }};
-  const colorFamilyValues = {{ stats.color_family_pie.values | tojson }};
+  const colorFamilyLabels = {{ stats.color_family_pie["labels"] | tojson }};
+  const colorFamilyValues = {{ stats.color_family_pie["values"] | tojson }};
+  const colorFamilyColors = {{ stats.color_family_pie["colors"] | tojson }};
 
-  const colorFamilyToHex = {
-    'Noir': '#000000',
-    'Blanc': '#FFFFFF',
-    'Gris': '#A0A0A0',
-    'Rouge': '#DC143C',
-    'Orange': '#FF8C00',
-    'Jaune': '#FFDC00',
-    'Vert': '#50C878',
-    'Bleu': '#6496FF',
-    'Violet': '#A020F0',
-    'Marron': '#964B00'
-  };
-
-  const backgroundColors = colorFamilyLabels.map(label => colorFamilyToHex[label] || '#CCCCCC');
-
-  const ctxColor = document.getElementById('colorFamilyPieChart').getContext('2d');
-  new Chart(ctxColor, {
+  new Chart(document.getElementById('colorFamilyChart').getContext('2d'), {
     type: 'pie',
     data: {
       labels: colorFamilyLabels,
       datasets: [{
         data: colorFamilyValues,
-        backgroundColor: backgroundColors
+        backgroundColor: colorFamilyColors
       }]
     },
     options: {
       plugins: {
+        legend: {
+          position: 'bottom'
+        },
         tooltip: {
           callbacks: {
             label: function(context) {
-              const value = context.parsed;
-              return `${context.label}: ${value >= 1000 ? (value / 1000).toFixed(1) + ' kg' : value.toFixed(1) + ' g'}`;
+              let label = context.label || '';
+              let value = context.raw || 0;
+              if (value >= 1000) {
+                return `${label}: ${(value / 1000).toFixed(2)} kg`;
+              } else {
+                return `${label}: ${value.toFixed(1)} g`;
+              }
             }
           }
-        },
-        legend: {
-          position: 'bottom'
         }
       }
     }
