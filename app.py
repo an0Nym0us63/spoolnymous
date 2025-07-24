@@ -1051,3 +1051,18 @@ def download_model(filename):
         as_attachment=True,
         download_name=cleaned_name
     )
+
+@app.route("/stats")
+def stats():
+    spoolman_settings = getSettings()
+    period = request.args.get("period", "all")
+
+    stats_data = get_statistics(period)
+
+    return render_template(
+        "stats.html",
+        stats=stats_data,
+        currencysymbol=spoolman_settings["currency_symbol"],
+        selected_period=period,
+        page_title="Statistiques"
+    )

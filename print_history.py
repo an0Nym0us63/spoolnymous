@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 import math
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
@@ -535,5 +535,69 @@ def get_group_id_of_print(print_id: int) -> int | None:
     result = cursor.fetchone()
     conn.close()
     return result[0] if result else None
+
+def get_statistics(period: str = "all") -> dict:
+    """
+    Récupère des statistiques globales sur les impressions.
+    :param period: "all", "7d", "1m", "1y"
+    """
+
+    conn = sqlite3.connect(db_config["db_path"])
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    # Calcul de la borne basse
+    date_clause = ""
+    params = []
+    now = datetime.now()
+
+    if period == "7d":
+        since = now - timedelta(days=7)
+        date_clause = "WHERE p.print_date >= ?"
+        params = [since.strftime("%Y-%m-%d %H:%M:%S")]
+    elif period == "1m":
+        since = now.replace(day=1)
+        date_clause = "WHERE p.print_date >= ?"
+        params = [since.strftime("%Y-%m-%d %H:%M:%S")]
+    elif period == "1y":
+        since = now.replace(month=1, day=1)
+        date_clause = "WHERE p.print_date >= ?"
+        params = [since.strftime("%Y-%m-%d %H:%M:%S")]
+    
+    # Stats globales
+    cursor.execute(f"""
+        SELECT 
+            COUNT(DISTINCT p.id) AS total_prints,
+            SUM(p.duration) AS total_duration,
+            SUM(f.grams_used) AS total_filament_grams
+        FROM prints p
+        LEFT JOIN filament_usage f ON f.print_id = p.id
+        {date_clause}
+    """, params)
+    row = cursor.fetchone()
+
+    # Coût filament
+    cursor.execute(f"""
+        SELECT SUM(f.grams_used * COALESCE(s.cost_per_gram, 0)) AS filament_cost
+        FROM filament_usage f
+        JOIN prints p ON p.id = f.print_id
+        LEFT JOIN spools s ON s.id = f.spool_id
+        {date_clause}
+    """, params)
+    filament_cost = cursor.fetchone()[0] or 0.0
+
+    duration_hours = (row["total_duration"] or 0.0) / 3600
+    electric_cost = duration_hours * float(COST_BY_HOUR)
+
+    conn.close()
+
+    return {
+        "total_prints": row["total_prints"] or 0,
+        "total_duration_hours": duration_hours,
+        "total_filament_grams": row["total_filament_grams"] or 0.0,
+        "total_filament_cost": filament_cost,
+        "total_electric_cost": electric_cost,
+        "total_full_cost": filament_cost + electric_cost
+    }
 
 create_database()

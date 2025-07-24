@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container my-4">
+
+  <!-- Filtres de période -->
+  <form method="get" class="d-flex justify-content-center mb-4 flex-wrap gap-2">
+    {% for key, label in {
+      'all': 'Tout',
+      '7d': '7 derniers jours',
+      '30d': 'Dernier mois',
+      '1y': 'Dernière année'
+    }.items() %}
+      <button type="submit" name="period" value="{{ key }}"
+              class="btn btn-sm {% if selected_period == key %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+        {{ label }}
+      </button>
+    {% endfor %}
+  </form>
+
+  <!-- Statistiques -->
+  <div class="row g-3">
+    {% set cards = [
+      ('🖨 Total d’impressions', stats.total_prints),
+      ('⏱ Temps total', stats.total_duration | default(0) | round(1)),
+      ('⚖️ Poids total', stats.total_weight | default(0) | round(1)),
+      ('💰 Coût filament', stats.filament_cost | default(0) | round(2)),
+      ('⚡ Coût électricité', stats.electric_cost | default(0) | round(2)),
+      ('💵 Coût total', stats.total_cost | default(0) | round(2))
+    ] %}
+
+    {% for label, value in cards %}
+    <div class="col-6 col-md-4 col-lg-3">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body text-center">
+          <h6 class="card-title small text-muted">{{ label }}</h6>
+          <p class="card-text fs-5 fw-bold">
+            {% if 'Coût' in label %}
+              {{ value }} {{ currencysymbol }}
+            {% elif 'Temps' in label %}
+              {{ value }} h
+            {% elif 'Poids' in label %}
+              {{ value }} g
+            {% else %}
+              {{ value }}
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
