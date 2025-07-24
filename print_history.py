@@ -683,20 +683,25 @@ def get_statistics(period: str = "all") -> dict:
     }
     
     # Répartition par famille de couleur
-    repartition_couleur = {}
-    for u in usage:
-        color_hex = None
-        spool = spools_by_id.get(u["spool_id"])
-        if spool:
-            color_hex = spool.get("filament", {}).get("color_hex")
+    color_family_counts = {}
+    color_family_colors = {}
     
-        if color_hex:
-            famille = closest_family(color_hex)
-            repartition_couleur[famille] = repartition_couleur.get(famille, 0) + u["grams_used"]
+    for u in usage:
+        hex_color = u["color"]
+        grams = u["grams_used"]
+        if not hex_color:
+            continue
+        family = closest_main_family(hex_color)
+        if family:
+            color_family_counts[family] = color_family_counts.get(family, 0) + grams
+            if family not in color_family_colors:
+                rgb = MAIN_COLOR_FAMILIES[family]
+                color_family_colors[family] = '#{:02X}{:02X}{:02X}'.format(*rgb)
     
     color_family_pie = {
-        "labels": list(repartition_couleur.keys()),
-        "values": list(repartition_couleur.values())
+        "labels": list(color_family_counts.keys()),
+        "values": list(color_family_counts.values()),
+        "colors": [color_family_colors[f] for f in color_family_counts.keys()]
     }
 
     return {
