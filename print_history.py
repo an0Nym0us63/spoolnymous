@@ -745,23 +745,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         "values": list(color_family_counts.values()),
         "colors": [color_family_colors[f] for f in color_family_counts.keys()]
     }
-    stats_data["vendor_pie"] = sort_pie_data(stats_data["vendor_pie"])
-    stats_data["filament_type_pie"] = sort_pie_data(stats_data["filament_type_pie"])
-    stats_data["color_family_pie"] = {
-        **sort_pie_data({
-            "labels": stats_data["color_family_pie"]["labels"],
-            "values": stats_data["color_family_pie"]["values"]
-        }),
-        "colors": stats_data["color_family_pie"]["colors"]  # on réassigne dans le même ordre juste après
-    }
-    # réordonner les couleurs
-    ordered_families = stats_data["color_family_pie"]["labels"]
-    stats_data["color_family_pie"]["colors"] = [
-        stats_data["color_family_pie"]["colors"][stats_data["color_family_pie"]["labels"].index(fam)]
-        for fam in ordered_families
-    ]
-
-    return {
+    stats_data = {
         "total_prints": len(print_ids),
         "total_duration": duration_hours,
         "total_weight": total_weight,
@@ -773,5 +757,24 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         "filament_type_pie": filament_type_pie,
         "color_family_pie": color_family_pie
     }
+    
+    # Et maintenant que stats_data existe, tu peux faire tes tris :
+    stats_data["vendor_pie"] = sort_pie_data(stats_data["vendor_pie"])
+    stats_data["filament_type_pie"] = sort_pie_data(stats_data["filament_type_pie"])
+    stats_data["color_family_pie"] = {
+        **sort_pie_data({
+            "labels": stats_data["color_family_pie"]["labels"],
+            "values": stats_data["color_family_pie"]["values"]
+        }),
+        "colors": stats_data["color_family_pie"]["colors"]
+    }
+    # Réordonner les couleurs
+    ordered_families = stats_data["color_family_pie"]["labels"]
+    stats_data["color_family_pie"]["colors"] = [
+        stats_data["color_family_pie"]["colors"][stats_data["color_family_pie"]["labels"].index(fam)]
+        for fam in ordered_families
+    ]
+    
+    return stats_data
 
 create_database()
