@@ -635,7 +635,10 @@ def get_statistics(period: str = "all") -> dict:
     # Histogramme durée (en heures)
     duration_bins = [0] * 11  # 0–1h, ..., 9–10h, ≥10h
     for p in prints:
-        h = (p["duration"] or 0) / 3600
+        duration = p["duration"]
+        if not duration or duration <= 0:
+            continue  # On ignore les impressions sans durée valide
+        h = duration / 3600
         index = min(int(h), 10)
         duration_bins[index] += 1
     
