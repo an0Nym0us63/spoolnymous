@@ -90,7 +90,7 @@
             </a>
           </li>
 {% if print.model_file %}
-<li>
+<li class="d-none d-md-block">
   <a class="dropdown-item text-success"
      href="{{ url_for('download_model', filename=print.model_file, as=print.original_name ~ '.3mf') }}">
     📥 Télécharger .3mf
