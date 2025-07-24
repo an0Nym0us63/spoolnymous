@@ -650,8 +650,9 @@ def get_statistics(period: str = "all") -> dict:
     # Répartition par type de filament
     filament_type_counts = {}
     for u in usage:
-        ftype = u.get("filament_type") or "Inconnu"
-        filament_type_counts[ftype] = filament_type_counts.get(ftype, 0) + u["grams_used"]
+        ftype = u["filament_type"]
+        if ftype:  # On ignore les types manquants ou None
+            filament_type_counts[ftype] = filament_type_counts.get(ftype, 0) + u["grams_used"]
     
     filament_type_pie = {
         "labels": list(filament_type_counts.keys()),
