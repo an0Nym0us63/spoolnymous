@@ -60,6 +60,13 @@
     <canvas id="vendorPieChart"></canvas>
   </div>
 </div>
+<div class="my-4">
+  <h6 class="text-center text-muted">Répartition des durées d’impression</h6>
+  <div class="ratio ratio-16x9">
+    <canvas id="durationHistogram"></canvas>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   const ctxVendor = document.getElementById('vendorPieChart').getContext('2d');
@@ -93,6 +100,38 @@
               }
             }
           }
+        }
+      }
+    }
+  });
+  
+  const ctxDuration = document.getElementById('durationHistogram').getContext('2d');
+  new Chart(ctxDuration, {
+    type: 'bar',
+    data: {
+      labels: {{ stats.duration_histogram["labels"]|tojson }},
+      datasets: [{
+        label: 'Nombre d’impressions',
+        data: {{ stats.duration_histogram["values"]|tojson }},
+        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Nombre d’impressions'
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
         }
       }
     }

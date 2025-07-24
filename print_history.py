@@ -631,6 +631,18 @@ def get_statistics(period: str = "all") -> dict:
         "labels": list(vendor_counts.keys()),
         "values": list(vendor_counts.values())
     }
+    
+    # Histogramme durée (en heures)
+    duration_bins = [0] * 11  # 0–1h, ..., 9–10h, ≥10h
+    for p in prints:
+        h = (p["duration"] or 0) / 3600
+        index = min(int(h), 10)
+        duration_bins[index] += 1
+    
+    duration_histogram = {
+        "labels": [f"{i}–{i+1}h" for i in range(10)] + ["≥10h"],
+        "values": duration_bins
+    }
 
     return {
         "total_prints": len(print_ids),
@@ -639,7 +651,8 @@ def get_statistics(period: str = "all") -> dict:
         "filament_cost": filament_cost,
         "electric_cost": electric_cost,
         "total_cost": filament_cost + electric_cost,
-        "vendor_pie": vendor_pie
+        "vendor_pie": vendor_pie,
+        "duration_histogram": duration_histogram
     }
 
 create_database()
