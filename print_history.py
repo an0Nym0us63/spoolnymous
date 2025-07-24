@@ -145,7 +145,7 @@ def insert_print(file_name: str, print_type: str, image_file: str = None, print_
 
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
-     cursor.execute('''
+    cursor.execute('''
         INSERT INTO prints (print_date, file_name, print_type, image_file, duration, original_name)
         VALUES (?, ?, ?, ?, ?, ?)
     ''', (print_date, file_name, print_type, image_file, duration, file_name))
