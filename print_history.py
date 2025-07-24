@@ -617,7 +617,7 @@ def get_statistics(period: str = "all") -> dict:
 
     # Charger l’usage de filament
     cursor.execute(f"""
-        SELECT print_id, spool_id, grams_used, filament_type
+        SELECT print_id, spool_id, grams_used, filament_type, color
         FROM filament_usage
         WHERE print_id IN ({','.join('?' for _ in print_ids)})
     """, print_ids)
