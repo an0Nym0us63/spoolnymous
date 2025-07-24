@@ -2,7 +2,6 @@ import os
 import sqlite3
 from datetime import datetime, timedelta
 import math
-from spoolman_service import fetchSpools
 from collections import defaultdict
 from config import COST_BY_HOUR
 
@@ -544,6 +543,9 @@ def get_statistics(period: str = "all") -> dict:
     Récupère des statistiques globales sur les impressions.
     :param period: "all", "7d", "1m", "1y"
     """
+    
+    from spoolman_service import fetchSpools
+    
     conn = sqlite3.connect(db_config["db_path"])
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
