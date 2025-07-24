@@ -541,11 +541,10 @@ def get_group_id_of_print(print_id: int) -> int | None:
 def get_statistics(period: str = "all") -> dict:
     """
     Récupère des statistiques globales sur les impressions.
-    :param period: "all", "7d", "1m", "1y"
+    :param period: "all", "7d", "1m", "1y", "day"
     """
-    
     from spoolman_service import fetchSpools
-    
+
     conn = sqlite3.connect(db_config["db_path"])
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -555,14 +554,21 @@ def get_statistics(period: str = "all") -> dict:
     params = []
     now = datetime.now()
 
-    if period == "7d":
+    if period == "day":
+        since = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        step = "hour"
+    elif period == "7d":
         since = now - timedelta(days=7)
+        step = "day"
     elif period == "1m":
         since = now.replace(day=1)
+        step = "day"
     elif period == "1y":
         since = now.replace(month=1, day=1)
+        step = "month"
     else:
         since = None
+        step = "year"
 
     if since:
         date_clause = "WHERE p.print_date >= ?"
@@ -570,7 +576,7 @@ def get_statistics(period: str = "all") -> dict:
 
     # Charger les impressions
     cursor.execute(f"""
-        SELECT p.id, p.duration
+        SELECT p.id, p.duration, p.print_date
         FROM prints p
         {date_clause}
     """, params)
@@ -584,7 +590,8 @@ def get_statistics(period: str = "all") -> dict:
             "total_weight": 0.0,
             "filament_cost": 0.0,
             "electric_cost": 0.0,
-            "total_cost": 0.0
+            "total_cost": 0.0,
+            "timeline": []
         }
 
     # Durée totale
@@ -606,12 +613,36 @@ def get_statistics(period: str = "all") -> dict:
     total_weight = 0.0
     filament_cost = 0.0
 
+    date_by_id = {p["id"]: p["print_date"] for p in prints}
+    timeline = {}
+
+    def get_label(dt: datetime) -> str:
+        if step == "hour":
+            return dt.strftime("%H:00")
+        elif step == "day":
+            return dt.strftime("%Y-%m-%d")
+        elif step == "month":
+            return dt.strftime("%Y-%m")
+        else:
+            return dt.strftime("%Y")
+
+    for p in prints:
+        dt = datetime.strptime(p["print_date"], "%Y-%m-%d %H:%M:%S")
+        label = get_label(dt)
+        duration_hours = (p["duration"] or 0) / 3600
+        timeline.setdefault(label, 0.0)
+        timeline[label] += duration_hours * float(COST_BY_HOUR)
+
     for u in usage:
         grams = u["grams_used"]
         spool = spools_by_id.get(u["spool_id"])
         cost_per_gram = spool.get("cost_per_gram", 0.0) if spool else 0.0
         total_weight += grams
         filament_cost += grams * cost_per_gram
+        dt = datetime.strptime(date_by_id[u["print_id"]], "%Y-%m-%d %H:%M:%S")
+        label = get_label(dt)
+        timeline.setdefault(label, 0.0)
+        timeline[label] += grams * cost_per_gram
 
     # Coût électricité
     duration_hours = total_duration / 3600
@@ -623,7 +654,9 @@ def get_statistics(period: str = "all") -> dict:
         "total_weight": total_weight,
         "filament_cost": filament_cost,
         "electric_cost": electric_cost,
-        "total_cost": filament_cost + electric_cost
+        "total_cost": filament_cost + electric_cost,
+        "timeline": [{"label": k, "cost": round(v, 2)} for k, v in sorted(timeline.items())]
     }
+
 
 create_database()

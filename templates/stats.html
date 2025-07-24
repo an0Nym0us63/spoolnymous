@@ -6,8 +6,9 @@
   <form method="get" class="d-flex justify-content-center mb-4 flex-wrap gap-2">
     {% for key, label in {
       'all': 'Tout',
+      'day': 'Aujourd’hui',
       '7d': '7 derniers jours',
-      '30d': 'Dernier mois',
+      '1m': 'Dernier mois',
       '1y': 'Dernière année'
     }.items() %}
       <button type="submit" name="period" value="{{ key }}"
@@ -20,7 +21,7 @@
   <!-- Statistiques -->
   <div class="row g-3">
     {% set cards = [
-      ('🖨 Total d’impressions', stats.total_prints),
+      ('🖨 Nombre d’impressions', stats.total_prints),
       ('⏱ Temps total', stats.total_duration | default(0) | round(1)),
       ('⚖️ Poids total', stats.total_weight | default(0) | round(1)),
       ('💰 Coût filament', stats.filament_cost | default(0) | round(2)),
@@ -49,5 +50,48 @@
     </div>
     {% endfor %}
   </div>
+
+  {% if stats.timeline %}
+  <hr class="my-4">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h6 class="card-title text-muted text-center mb-3">Évolution des coûts</h6>
+      <canvas id="costChart" height="80"></canvas>
+    </div>
+  </div>
+  {% endif %}
+
 </div>
+
+{% if stats.timeline %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('costChart').getContext('2d');
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: {{ stats.timeline | map(attribute='label') | list | tojson }},
+      datasets: [{
+        label: 'Coût total',
+        data: {{ stats.timeline | map(attribute='cost') | list | tojson }},
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: value => value + ' {{ currencysymbol }}'
+          }
+        }
+      }
+    }
+  });
+</script>
+{% endif %}
 {% endblock %}
