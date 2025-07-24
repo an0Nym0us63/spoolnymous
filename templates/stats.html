@@ -50,63 +50,6 @@
     </div>
     {% endfor %}
   </div>
-
-  {% if stats.timeline %}
-  <hr class="my-4">
-  <div class="card shadow-sm mt-4">
-  <div class="card-body">
-    <h6 class="card-title text-muted text-center mb-3">Quantité de filament utilisée</h6>
-    <div style="height: 300px;">
-      <canvas id="filamentChart"></canvas>
-    </div>
-  </div>
-</div>
-  </div>
-  {% endif %}
-
 </div>
 
-{% if stats.timeline %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-  const filamentCtx = document.getElementById('filamentChart').getContext('2d');
-  const filamentChart = new Chart(filamentCtx, {
-    type: 'bar',
-    data: {
-      labels: {{ stats.timeline.labels|tojson }},
-      datasets: [{
-        label: 'Grammage total',
-        data: {{ stats.timeline.values|tojson }},
-        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          ticks: {
-            maxRotation: 60,
-            minRotation: 0
-          }
-        },
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Grammes'
-          }
-        }
-      },
-      plugins: {
-        legend: {
-          display: false
-        }
-      }
-    }
-  });
-</script>
-{% endif %}
 {% endblock %}
