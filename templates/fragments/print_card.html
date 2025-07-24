@@ -93,7 +93,7 @@
 <li>
   <a class="dropdown-item text-success"
      href="{{ url_for('static', filename='prints/' ~ print.model_file) }}"
-     download>
+     download="{{ print.original_name }}.3mf">
     📥 Télécharger .3mf
   </a>
 </li>
