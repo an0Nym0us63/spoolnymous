@@ -110,32 +110,34 @@
   <div id="{{ id }}ChartContainer" class="ratio {% if id == 'duration' %}ratio-16x9{% else %}ratio-1x1{% endif %} mx-auto" style="max-width: 400px;">
     <canvas id="{{ id }}PieChart"></canvas>
   </div>
-  <div id="{{ id }}TableContainer" class="table-responsive visually-hidden">
-    <table class="table table-sm table-bordered text-center align-middle">
-      <thead><tr><th>Nom</th><th>Quantité</th></tr></thead>
-      <tbody>
-        {% set sorted_data = dataset["labels"] | zip(dataset["values"]) | sort(attribute='1', reverse=true) %}
-        {% for label, val in sorted_data %}
-        <tr>
-          <td>
-            {% if is_color %}
-              {% set idx = dataset["labels"].index(label) %}
-              <span class="d-inline-block me-1" style="width:12px;height:12px;background-color:{{ dataset['colors'][idx] }};"></span>
-            {% endif %}
-            {{ label }}
-          </td>
-          <td>
-            {% if val >= 1000 %}
-              {{ (val / 1000) | round(2) }} kg
-            {% else %}
-              {{ val | round(1) }} g
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  <<div id="{{ id }}TableContainer" class="table-responsive visually-hidden">
+  <table class="table table-sm table-bordered text-center align-middle">
+    <thead>
+      <tr><th>Nom</th><th>Quantité</th></tr>
+    </thead>
+    <tbody>
+      {% for i in range(dataset["labels"] | length) %}
+      <tr>
+        <td>
+          {% if is_color %}
+            <span class="d-inline-block me-1" style="width:12px;height:12px;background-color:{{ dataset['colors'][i] }};border:1px solid #999;border-radius:2px;"></span>
+          {% endif %}
+          {{ dataset["labels"][i] }}
+        </td>
+        <td>
+          {% set val = dataset["values"][i] %}
+          {% if val >= 1000 %}
+            {{ (val / 1000) | round(2) }} kg
+          {% else %}
+            {{ val | round(1) }} g
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
 </div>
 {% endfor %}
 
