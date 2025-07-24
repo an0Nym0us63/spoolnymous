@@ -342,25 +342,33 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
 
     # Load prints with optional LIMIT/OFFSET
     base_query = f'''
-        SELECT DISTINCT p.id AS id, p.print_date, p.file_name,
+        SELECT DISTINCT p.id AS id,
+            p.print_date,
+            p.file_name,
             p.original_name,
-            p.print_type, p.image_file, p.duration, p.number_of_items,
-            pg.id AS group_id, pg.name AS group_name, pg.number_of_items AS group_number_of_items,
-               (
-                   SELECT json_group_array(json_object(
-                       'spool_id', f2.spool_id,
-                       'filament_type', f2.filament_type,
-                       'color', f2.color,
-                       'grams_used', f2.grams_used,
-                       'ams_slot', f2.ams_slot
-                   )) FROM filament_usage f2 WHERE f2.print_id = p.id
-               ) AS filament_info
+            p.print_type,
+            p.image_file,
+            p.duration,
+            p.number_of_items,
+            pg.id AS group_id,
+            pg.name AS group_name,
+            pg.number_of_items AS group_number_of_items,
+            (
+                SELECT json_group_array(json_object(
+                    'spool_id', f2.spool_id,
+                    'filament_type', f2.filament_type,
+                    'color', f2.color,
+                    'grams_used', f2.grams_used,
+                    'ams_slot', f2.ams_slot
+                )) FROM filament_usage f2 WHERE f2.print_id = p.id
+            ) AS filament_info
         FROM prints p
         LEFT JOIN filament_usage f ON f.print_id = p.id
         LEFT JOIN print_groups pg ON pg.id = p.group_id
         {where_sql}
         ORDER BY p.print_date DESC
     '''
+
 
     if limit is not None:
         base_query += " LIMIT ? OFFSET ?"
