@@ -55,6 +55,12 @@
     {% endfor %}
   </div>
   <div class="my-4">
+  <h6 class="text-center text-muted">Répartition par type de filament</h6>
+  <div class="ratio ratio-1x1 mx-auto" style="max-width: 400px;">
+    <canvas id="filamentTypePieChart"></canvas>
+  </div>
+</div>
+  <div class="my-4">
   <h6 class="text-center text-muted">Répartition par marque</h6>
   <div class="ratio ratio-1x1 mx-auto" style="max-width: 400px;">
     <canvas id="vendorPieChart"></canvas>
@@ -132,6 +138,39 @@
       plugins: {
         legend: {
           display: false
+        }
+      }
+    }
+  });
+  
+   const ctxFilamentType = document.getElementById('filamentTypePieChart').getContext('2d');
+  new Chart(ctxFilamentType, {
+    type: 'pie',
+    data: {
+      labels: {{ stats.filament_type_pie["labels"]|tojson }},
+      datasets: [{
+        data: {{ stats.filament_type_pie["values"]|tojson }},
+        backgroundColor: [
+          '#4e79a7', '#f28e2b', '#e15759', '#76b7b2',
+          '#59a14f', '#edc948', '#b07aa1', '#ff9da7',
+          '#9c755f', '#bab0ac'
+        ]
+      }]
+    },
+    options: {
+      plugins: {
+        legend: {
+          position: 'bottom'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let value = context.parsed;
+              return value >= 1000
+                ? (value / 1000).toFixed(1) + ' kg'
+                : value.toFixed(1) + ' g';
+            }
+          }
         }
       }
     }

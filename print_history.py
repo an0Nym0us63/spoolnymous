@@ -646,6 +646,17 @@ def get_statistics(period: str = "all") -> dict:
         "labels": [f"{i}–{i+1}h" for i in range(10)] + ["≥10h"],
         "values": duration_bins
     }
+    
+    # Répartition par type de filament
+    filament_type_counts = {}
+    for u in usage:
+        ftype = u.get("filament_type") or "Inconnu"
+        filament_type_counts[ftype] = filament_type_counts.get(ftype, 0) + u["grams_used"]
+    
+    filament_type_pie = {
+        "labels": list(filament_type_counts.keys()),
+        "values": list(filament_type_counts.values())
+    }
 
     return {
         "total_prints": len(print_ids),
@@ -655,7 +666,8 @@ def get_statistics(period: str = "all") -> dict:
         "electric_cost": electric_cost,
         "total_cost": filament_cost + electric_cost,
         "vendor_pie": vendor_pie,
-        "duration_histogram": duration_histogram
+        "duration_histogram": duration_histogram,
+        "filament_type_pie": filament_type_pie
     }
 
 create_database()
