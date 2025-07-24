@@ -73,10 +73,10 @@
   const filamentChart = new Chart(filamentCtx, {
     type: 'bar',
     data: {
-      labels: {{ timeline.labels|tojson }},
+      labels: {{ stats.timeline.labels|tojson }},
       datasets: [{
         label: 'Grammage total',
-        data: {{ timeline.values|tojson }},
+        data: {{ stats.timeline.values|tojson }},
         backgroundColor: 'rgba(54, 162, 235, 0.6)',
         borderColor: 'rgba(54, 162, 235, 1)',
         borderWidth: 1
