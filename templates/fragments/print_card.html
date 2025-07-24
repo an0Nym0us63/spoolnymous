@@ -89,11 +89,10 @@
               🔄 Réajuster
             </a>
           </li>
-		  {% if print.model_file %}
+{% if print.model_file %}
 <li>
   <a class="dropdown-item text-success"
-     href="{{ url_for('static', filename='prints/' ~ print.model_file) }}"
-     download="{{ print.original_name }}.3mf">
+     href="{{ url_for('download_model', filename=print.model_file, as=print.original_name ~ '.3mf') }}">
     📥 Télécharger .3mf
   </a>
 </li>

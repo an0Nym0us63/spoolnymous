@@ -4,8 +4,9 @@ import uuid
 import math
 import datetime
 import os
+import re
 
-from flask import Flask, request, render_template, redirect, url_for,jsonify,g, make_response
+from flask import Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort
 
 from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,LOCATION_MAPPING,AMS_ORDER, COST_BY_HOUR
 from filament import generate_filament_brand_code, generate_filament_temperatures
@@ -1025,3 +1026,28 @@ def reajust_spool_route(spool_id):
 def archive_spool_route(spool_id):
     response = archive_spool(spool_id)
     return redirect(request.referrer or url_for('filament_page'))
+
+@app.route("/download_model/<filename>")
+def download_model(filename):
+    # Sécuriser le nom du fichier réel (dans 'static/prints')
+    safe_filename = os.path.basename(filename)
+
+    # Nom souhaité côté utilisateur (dans l'URL `?as=...`)
+    requested_name = request.args.get("as", safe_filename)
+
+    # Nettoyage du nom pour éviter les injections ou caractères suspects
+    cleaned_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', requested_name)
+    if not cleaned_name.endswith('.3mf'):
+        cleaned_name += '.3mf'
+
+    # Vérifie que le fichier existe avant d’envoyer
+    full_path = os.path.join('static', 'prints', safe_filename)
+    if not os.path.isfile(full_path):
+        return abort(404)
+
+    return send_from_directory(
+        os.path.join('static', 'prints'),
+        safe_filename,
+        as_attachment=True,
+        download_name=cleaned_name
+    )
