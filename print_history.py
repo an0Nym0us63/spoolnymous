@@ -54,11 +54,21 @@ COLOR_FAMILIES = {
     'Dark Purple': (90, 60, 120), # violet foncé
 }
 
-def sort_pie_data(pie_data):
-    combined = list(zip(pie_data["labels"], pie_data["values"]))
-    sorted_combined = sorted(combined, key=operator.itemgetter(1), reverse=True)
-    labels, values = zip(*sorted_combined) if sorted_combined else ([], [])
-    return {"labels": list(labels), "values": list(values)}
+def sort_pie_data(pie):
+    """
+    Trie labels, values (et couleurs si présentes) par ordre décroissant des valeurs.
+    """
+    combined = list(zip(pie["labels"], pie["values"], pie.get("colors", [None] * len(pie["labels"]))))
+    combined.sort(key=lambda x: x[1], reverse=True)
+
+    sorted_labels, sorted_values, sorted_colors = zip(*combined)
+    result = {
+        "labels": list(sorted_labels),
+        "values": list(sorted_values)
+    }
+    if pie.get("colors"):
+        result["colors"] = list(sorted_colors)
+    return result
 
 def create_database() -> None:
     if not os.path.exists(db_config["db_path"]):
@@ -761,13 +771,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
     # Et maintenant que stats_data existe, tu peux faire tes tris :
     stats_data["vendor_pie"] = sort_pie_data(stats_data["vendor_pie"])
     stats_data["filament_type_pie"] = sort_pie_data(stats_data["filament_type_pie"])
-    stats_data["color_family_pie"] = {
-        **sort_pie_data({
-            "labels": stats_data["color_family_pie"]["labels"],
-            "values": stats_data["color_family_pie"]["values"]
-        }),
-        "colors": stats_data["color_family_pie"]["colors"]
-    }
+    stats_data["color_family_pie"] = sort_pie_data(stats_data["color_family_pie"])
     # Réordonner les couleurs
     ordered_families = stats_data["color_family_pie"]["labels"]
     stats_data["color_family_pie"]["colors"] = [
