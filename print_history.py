@@ -561,19 +561,22 @@ def get_group_id_of_print(print_id: int) -> int | None:
     conn.close()
     return result[0] if result else None
 
-def get_statistics(period: str = "all") -> dict:
+def get_statistics(period: str = "all", filters: dict = None, search: str = None) -> dict:
     """
-    Récupère des statistiques globales sur les impressions.
+    Récupère des statistiques globales sur les impressions avec filtres optionnels.
     :param period: "all", "7d", "1m", "1y"
+    :param filters: dictionnaire avec 'filament_type' et 'color' (valeurs multiples)
+    :param search: chaîne libre (tag, nom de fichier ou groupe)
     """
-    
     from spoolman_service import fetchSpools
-    
+
+    filters = filters or {}
+
     conn = sqlite3.connect(db_config["db_path"])
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # Définir la borne inférieure de période
+    # Filtrage temporel
     date_clause = ""
     params = []
     now = datetime.now()
@@ -590,14 +593,54 @@ def get_statistics(period: str = "all") -> dict:
         since = None
 
     if since:
-        date_clause = "WHERE p.print_date >= ?"
-        params = [since.strftime("%Y-%m-%d %H:%M:%S")]
+        date_clause = "p.print_date >= ?"
+        params.append(since.strftime("%Y-%m-%d %H:%M:%S"))
+
+    # Filtres filament_type
+    if filters.get("filament_type"):
+        placeholders = ",".join("?" for _ in filters["filament_type"])
+        clause = f"f.filament_type IN ({placeholders})"
+        params.extend(filters["filament_type"])
+        date_clause = f"{date_clause} AND {clause}" if date_clause else clause
+
+    # Filtres color (via familles)
+    if filters.get("color"):
+        cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
+        all_colors = [row[0] for row in cursor.fetchall()]
+        selected_hexes_by_family = []
+        for fam in filters["color"]:
+            hexes = [c for c in all_colors if fam in two_closest_families(c)]
+            if hexes:
+                selected_hexes_by_family.append(hexes)
+
+        if selected_hexes_by_family:
+            color_subclause = " OR ".join(
+                ["f.color IN (" + ",".join("?" for _ in hexes) + ")" for hexes in selected_hexes_by_family]
+            )
+            date_clause = f"{date_clause} AND ({color_subclause})" if date_clause else f"({color_subclause})"
+            for hexes in selected_hexes_by_family:
+                params.extend(hexes)
+
+    # Filtres recherche texte libre
+    if search:
+        words = [w.strip().lower() for w in search.split() if w.strip()]
+        for w in words:
+            date_clause += f""" AND (
+                LOWER(p.file_name) LIKE ?
+                OR EXISTS (
+                    SELECT 1 FROM print_tags pt WHERE pt.print_id = p.id AND LOWER(pt.tag) LIKE ?
+                )
+            )"""
+            params.extend([f"%{w}%"] * 2)
+
+    where_sql = f"WHERE {date_clause}" if date_clause else ""
 
     # Charger les impressions
     cursor.execute(f"""
-        SELECT p.id, p.duration
+        SELECT DISTINCT p.id, p.duration
         FROM prints p
-        {date_clause}
+        LEFT JOIN filament_usage f ON f.print_id = p.id
+        {where_sql}
     """, params)
     prints = cursor.fetchall()
     print_ids = [p["id"] for p in prints]
@@ -622,10 +665,8 @@ def get_statistics(period: str = "all") -> dict:
         WHERE print_id IN ({','.join('?' for _ in print_ids)})
     """, print_ids)
     usage = cursor.fetchall()
-
     conn.close()
 
-    # Croiser avec les spools
     spools_by_id = {spool["id"]: spool for spool in fetchSpools(False, True)}
 
     total_weight = 0.0
@@ -638,10 +679,9 @@ def get_statistics(period: str = "all") -> dict:
         total_weight += grams
         filament_cost += grams * cost_per_gram
 
-    # Coût électricité
     duration_hours = total_duration / 3600
     electric_cost = duration_hours * float(COST_BY_HOUR)
-    
+
     vendor_counts = {}
     for u in usage:
         spool = spools_by_id.get(u["spool_id"])
@@ -654,38 +694,34 @@ def get_statistics(period: str = "all") -> dict:
         "labels": list(vendor_counts.keys()),
         "values": list(vendor_counts.values())
     }
-    
-    # Histogramme durée (en heures)
-    duration_bins = [0] * 11  # 0–1h, ..., 9–10h, ≥10h
+
+    duration_bins = [0] * 11
     for p in prints:
         duration = p["duration"]
         if not duration or duration <= 0:
-            continue  # On ignore les impressions sans durée valide
+            continue
         h = duration / 3600
         index = min(int(h), 10)
         duration_bins[index] += 1
-    
+
     duration_histogram = {
         "labels": [f"{i}–{i+1}h" for i in range(10)] + ["≥10h"],
         "values": duration_bins
     }
-    
-    # Répartition par type de filament
+
     filament_type_counts = {}
     for u in usage:
         ftype = u["filament_type"]
-        if ftype:  # On ignore les types manquants ou None
+        if ftype:
             filament_type_counts[ftype] = filament_type_counts.get(ftype, 0) + u["grams_used"]
-    
+
     filament_type_pie = {
         "labels": list(filament_type_counts.keys()),
         "values": list(filament_type_counts.values())
     }
-    
-    # Répartition par famille de couleur
+
     color_family_counts = {}
     color_family_colors = {}
-    
     for u in usage:
         hex_color = u["color"]
         grams = u["grams_used"]
@@ -697,7 +733,7 @@ def get_statistics(period: str = "all") -> dict:
             if family not in color_family_colors:
                 rgb = MAIN_COLOR_FAMILIES[family]
                 color_family_colors[family] = '#{:02X}{:02X}{:02X}'.format(*rgb)
-    
+
     color_family_pie = {
         "labels": list(color_family_counts.keys()),
         "values": list(color_family_counts.values()),

@@ -1054,15 +1054,28 @@ def download_model(filename):
 
 @app.route("/stats")
 def stats():
+    from print_history import get_distinct_values
+
     spoolman_settings = getSettings()
+
+    # Récupérer les filtres, recherche et période
+    filters = {
+        "filament_type": request.args.getlist("filament_type"),
+        "color": request.args.getlist("color")
+    }
+    search = request.args.get("search", "").strip()
     period = request.args.get("period", "all")
 
-    stats_data = get_statistics(period)
+    # Calcul des stats avec filtres
+    stats_data = get_statistics(period=period, filters=filters, search=search)
 
     return render_template(
         "stats.html",
         stats=stats_data,
         currencysymbol=spoolman_settings["currency_symbol"],
         selected_period=period,
+        filters=filters,
+        search=search,
+        distinct_values=get_distinct_values(),
         page_title="Statistiques"
     )

@@ -1,22 +1,65 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container my-4">
+	<!-- Bouton flottant filtres -->
+<div class="position-fixed bottom-0 start-0 m-3" style="z-index:1030;">
+  <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#filtersOffcanvas" aria-controls="filtersOffcanvas">
+    🔍
+  </button>
+</div>
+<!-- Offcanvas filtres -->
+<div class="offcanvas offcanvas-bottom" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel" style="height:60vh">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="filtersOffcanvasLabel">Filtres</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form method="get">
+      <div class="row row-cols-1 row-cols-md-2 g-3">
+        <div class="col">
+          <label for="period">Période</label>
+          <select name="period" id="period" class="form-select">
+            {% for key, label in {
+              'all': 'Tout',
+              'day': '24h',
+              '7d': '7j',
+              '1m': '1m',
+              '1y': '1a'
+            }.items() %}
+              <option value="{{ key }}" {% if selected_period == key %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+		<div class="col">
+  <label for="search" class="form-label">Fichier ou tag</label>
+  <input type="text" name="search" id="search" class="form-control" value="{{ search or '' }}">
+</div>
 
-  <!-- Filtres de période -->
-  <form method="get" class="d-flex justify-content-center mb-4 flex-wrap gap-2">
-    {% for key, label in {
-      'all': 'Tout',
-      'day': '24h',
-      '7d': '7j',
-      '1m': '1m',
-      '1y': '1a'
-    }.items() %}
-      <button type="submit" name="period" value="{{ key }}"
-              class="btn btn-sm {% if selected_period == key %}btn-primary{% else %}btn-outline-secondary{% endif %}">
-        {{ label }}
-      </button>
-    {% endfor %}
-  </form>
+        <div class="col">
+          <label for="filament_type">Type de filament</label>
+          <select name="filament_type" multiple class="form-select select2">
+            {% for ft in distinct_values.filament_types %}
+              <option value="{{ ft }}" {% if ft in filters.filament_type %}selected{% endif %}>{{ ft }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col">
+          <label for="color">Famille de couleur</label>
+          <select name="color" multiple class="form-select select2">
+            {% for c in distinct_values.colors %}
+              <option value="{{ c }}" {% if c in filters.color %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col text-end align-self-end">
+          <button type="submit" class="btn btn-primary">Appliquer</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
 
   <!-- Statistiques -->
   <div class="row g-3">
