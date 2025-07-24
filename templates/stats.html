@@ -185,7 +185,7 @@
   const colorFamilyValues = {{ stats.color_family_pie["values"] | tojson }};
   const colorFamilyColors = {{ stats.color_family_pie["colors"] | tojson }};
 
-  new Chart(document.getElementById('colorFamilyChart').getContext('2d'), {
+  new Chart(document.getElementById('colorFamilyPieChart').getContext('2d'), {
     type: 'pie',
     data: {
       labels: colorFamilyLabels,
