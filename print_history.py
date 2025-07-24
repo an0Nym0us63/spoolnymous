@@ -618,6 +618,19 @@ def get_statistics(period: str = "all") -> dict:
     # Coût électricité
     duration_hours = total_duration / 3600
     electric_cost = duration_hours * float(COST_BY_HOUR)
+    
+    vendor_counts = {}
+    for u in usage:
+        spool = spools_by_id.get(u["spool_id"])
+        if spool:
+            vendor = spool.get("filament", {}).get("vendor", {}).get("name")
+            if vendor:
+                vendor_counts[vendor] = vendor_counts.get(vendor, 0) + u["grams_used"]
+
+    vendor_pie = {
+        "labels": list(vendor_counts.keys()),
+        "values": list(vendor_counts.values())
+    }
 
     return {
         "total_prints": len(print_ids),
@@ -625,7 +638,8 @@ def get_statistics(period: str = "all") -> dict:
         "total_weight": total_weight,
         "filament_cost": filament_cost,
         "electric_cost": electric_cost,
-        "total_cost": filament_cost + electric_cost
+        "total_cost": filament_cost + electric_cost,
+        "vendor_pie": vendor_pie
     }
 
 create_database()
