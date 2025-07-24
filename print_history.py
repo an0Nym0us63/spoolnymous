@@ -7,6 +7,19 @@ from config import COST_BY_HOUR
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
+MAIN_COLOR_FAMILIES = {
+    'Noir': (0, 0, 0),
+    'Blanc': (255, 255, 255),
+    'Gris': (160, 160, 160),
+    'Rouge': (220, 20, 60),
+    'Orange': (255, 140, 0),
+    'Jaune': (255, 220, 0),
+    'Vert': (80, 200, 120),
+    'Bleu': (100, 150, 255),
+    'Violet': (160, 32, 240),
+    'Marron': (150, 75, 0)
+}
+
 COLOR_FAMILIES = {
     # Neutres
     'Black': (0, 0, 0),
@@ -247,6 +260,16 @@ def two_closest_families(hex_color: str, threshold: float = 60.0) -> list[str]:
     if sorted_families[1][1] <= threshold:
         result.append(sorted_families[1][0])
     return result
+
+def closest_family(hex_color: str) -> str:
+    """
+    Retourne la famille de couleur principale la plus proche.
+    """
+    distances = {
+        famille: color_distance(hex_color, '#{:02X}{:02X}{:02X}'.format(*rgb))
+        for famille, rgb in MAIN_COLOR_FAMILIES.items()
+    }
+    return min(distances.items(), key=lambda x: x[1])[0]
 
 
 def get_distinct_values():
@@ -658,6 +681,23 @@ def get_statistics(period: str = "all") -> dict:
         "labels": list(filament_type_counts.keys()),
         "values": list(filament_type_counts.values())
     }
+    
+    # Répartition par famille de couleur
+    repartition_couleur = {}
+    for u in usage:
+        color_hex = None
+        spool = spools_by_id.get(u["spool_id"])
+        if spool:
+            color_hex = spool.get("filament", {}).get("color_hex")
+    
+        if color_hex:
+            famille = closest_family(color_hex)
+            repartition_couleur[famille] = repartition_couleur.get(famille, 0) + u["grams_used"]
+    
+    color_family_pie = {
+        "labels": list(repartition_couleur.keys()),
+        "values": list(repartition_couleur.values())
+    }
 
     return {
         "total_prints": len(print_ids),
@@ -668,7 +708,8 @@ def get_statistics(period: str = "all") -> dict:
         "total_cost": filament_cost + electric_cost,
         "vendor_pie": vendor_pie,
         "duration_histogram": duration_histogram,
-        "filament_type_pie": filament_type_pie
+        "filament_type_pie": filament_type_pie,
+        "color_family_pie": color_family_pie
     }
 
 create_database()

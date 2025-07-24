@@ -67,6 +67,12 @@
   </div>
 </div>
 <div class="my-4">
+  <h6 class="text-center text-muted">Répartition par couleur</h6>
+  <div class="ratio ratio-1x1 mx-auto" style="max-width: 400px;">
+    <canvas id="colorFamilyPieChart"></canvas>
+  </div>
+</div>
+<div class="my-4">
   <h6 class="text-center text-muted">Répartition des durées d’impression</h6>
   <div class="ratio ratio-16x9">
     <canvas id="durationHistogram"></canvas>
@@ -171,6 +177,50 @@
                 : value.toFixed(1) + ' g';
             }
           }
+        }
+      }
+    }
+  });
+  const colorFamilyLabels = {{ stats.color_family_pie["labels"]|tojson }};
+  const colorFamilyValues = {{ stats.color_family_pie.["values"]|tojson }};
+
+  const colorFamilyToHex = {
+    'Noir': '#000000',
+    'Blanc': '#FFFFFF',
+    'Gris': '#A0A0A0',
+    'Rouge': '#DC143C',
+    'Orange': '#FF8C00',
+    'Jaune': '#FFDC00',
+    'Vert': '#50C878',
+    'Bleu': '#6496FF',
+    'Violet': '#A020F0',
+    'Marron': '#964B00'
+  };
+
+  const backgroundColors = colorFamilyLabels.map(label => colorFamilyToHex[label] || '#CCCCCC');
+
+  const ctxColor = document.getElementById('colorFamilyPieChart').getContext('2d');
+  new Chart(ctxColor, {
+    type: 'pie',
+    data: {
+      labels: colorFamilyLabels,
+      datasets: [{
+        data: colorFamilyValues,
+        backgroundColor: backgroundColors
+      }]
+    },
+    options: {
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const value = context.parsed;
+              return `${context.label}: ${value >= 1000 ? (value / 1000).toFixed(1) + ' kg' : value.toFixed(1) + ' g'}`;
+            }
+          }
+        },
+        legend: {
+          position: 'bottom'
         }
       }
     }
