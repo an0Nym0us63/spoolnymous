@@ -136,24 +136,6 @@
       <div id="collapse{{ spool.id }}" class="accordion-collapse collapse"
            aria-labelledby="heading{{ spool.id }}" data-bs-parent="#filamentsAccordion">
         <div class="accordion-body">
-			<div class="dropdown float-end">
-  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-    Actions
-  </button>
-  <ul class="dropdown-menu dropdown-menu-end">
-    <li>
-      <button class="dropdown-item text-primary" type="button"
-              data-bs-toggle="modal" data-bs-target="#reajustModal_{{ spool.id }}">
-        🔄 Réajuster
-      </button>
-    </li>
-    <li>
-      <button type="button" class="dropdown-item text-warning" data-bs-toggle="modal" data-bs-target="#archiveModal_{{ spool.id }}">
-  🗄️ Archiver
-</button>
-    </li>
-  </ul>
-</div>
           <ul class="list-unstyled mb-0">
             <li><strong>Fournisseur :</strong> {{ spool.filament.vendor.name }}</li>
             <li><strong>Matière :</strong> {{ spool.filament.material }}</li>

@@ -596,7 +596,12 @@ def print_history():
         if not p.get("number_of_items"):
             p["number_of_items"] = 1
         p["full_cost_by_item"] = p["full_cost"] / p["number_of_items"]
-
+        if p.get("image_file") and p["image_file"].endswith(".png"):
+            model_file = p["image_file"].replace(".png", ".3mf")
+            model_path = os.path.join(app.static_folder, 'prints', model_file)
+            p["model_file"] = model_file if os.path.isfile(model_path) else None
+        else:
+            p["model_file"] = None
         if p["group_id"]:
             gid = p["group_id"]
             if gid not in entries:

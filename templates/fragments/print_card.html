@@ -89,6 +89,15 @@
               🔄 Réajuster
             </a>
           </li>
+		  {% if print.model_file %}
+<li>
+  <a class="dropdown-item text-success"
+     href="{{ url_for('static', filename='prints/' ~ print.model_file) }}"
+     download>
+    📥 Télécharger .3mf
+  </a>
+</li>
+{% endif %}
           <li>
             <a class="dropdown-item text-danger" href="#" onclick="confirmDelete({{ print.id }})">
               🗑 Supprimer

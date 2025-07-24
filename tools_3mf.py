@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 import pycurl
 import urllib.parse
 import os
+import shutil
 import re
 import time
 from datetime import datetime, timezone
@@ -284,19 +285,21 @@ def getMetaDataFrom3mf(url,taskname):
         else:
           print(f"File '{slice_info_path}' not found in the archive.")
           return {}
-
-        metadata["image"] = time.strftime('%Y%m%d%H%M%S') + ".png"
+        filename = time.strftime('%Y%m%d%H%M%S')
+        metadata["image"] = filename + ".png"
+        metadata["model"] = filename + ".3mf"
 
         with z.open("Metadata/plate_"+metadata["plateID"]+".png") as source_file:
           with open(os.path.join(os.getcwd(), 'static', 'prints', metadata["image"]), 'wb') as target_file:
               target_file.write(source_file.read())
-
+              
+        shutil.copyfile(temp_file_name, os.path.join(os.path.join(os.getcwd(), 'static', 'prints'), metadata["model"]))
         # Check for the Metadata/slice_info.config file
         gcode_path = "Metadata/plate_"+metadata["plateID"]+".gcode"
         if gcode_path in z.namelist():
           with z.open(gcode_path) as gcode_file:
             metadata["filamentOrder"] =  get_filament_order(gcode_file)
-
+        
         print(metadata)
 
         return metadata
