@@ -320,7 +320,11 @@ def get_distinct_values():
     filaments = []
     for display_name, spools in grouped.items():
         ids = [str(s["id"]) for s in spools]
-        color = next((s["filament"].get("color_hex") for s in spools if s.get("filament") and s["filament"].get("color_hex")),None)
+        raw_color = next(
+                (s["filament"].get("color_hex") for s in spools if s.get("filament") and s["filament"].get("color_hex")),
+                None
+                )
+        color = f"#{raw_color.lstrip('#')}" if raw_color else None
         filaments.append({
             "ids": ids,
             "display_name": display_name,
