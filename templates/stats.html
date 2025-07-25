@@ -65,8 +65,8 @@
       ('💰', stats.filament_cost | default(0) | round(2)),
       ('⚡', stats.electric_cost | default(0) | round(2)),
       ('💵', stats.total_cost | default(0) | round(2)),
-      ('🧵', stats.spool_count),
-      ('📦', stats.spool_weight | default(0) | round(1))
+	('🧵', (stats.used_spool_count | default(0)) ~ '/' ~ (stats.spool_count | default(0))),
+	('📦', (stats.used_spool_weight | default(0) | round(1)) ~ '/' ~ (stats.spool_weight | default(0) | round(1)))
     ] %}
     {% for label, value in cards %}
     <div class="col-6 col-md-4 col-lg-3">

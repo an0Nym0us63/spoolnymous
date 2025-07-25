@@ -858,7 +858,16 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
     spools = fetchSpools(cached=False, archived=False)
     stats_data["spool_count"] = len(spools)
     stats_data["spool_weight"] = round(sum(s.get("remaining_weight", 0) or 0 for s in spools), 1)
-    
+     # Bobines utilisées dans les impressions filtrées
+    used_spool_ids = set(u["spool_id"] for u in usage if u["spool_id"] in spools_by_id)
+    used_spools = [spools_by_id[spool_id] for spool_id in used_spool_ids]
+
+    used_spool_count = len(used_spools)
+    used_spool_weight = round(sum(s.get("remaining_weight", 0) or 0 for s in used_spools), 1)
+
+    # Mise à jour des stats spool (bobines utilisées parmi les impressions filtrées)
+    stats_data["used_spool_count"] = used_spool_count
+    stats_data["used_spool_weight"] = used_spool_weight
     return stats_data
 
 create_database()
