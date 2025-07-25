@@ -33,7 +33,11 @@ $(document).ready(function () {
         if ($(this).hasClass('select2-hidden-accessible')) {
             $(this).select2('destroy');
         }
-        $(this).select2({ width: '100%' }).on('select2:open', applyThemeToDropdown);
+        $(this).select2({
+        width: '100%',
+        placeholder: $(this).data('placeholder') || '',
+        allowClear: $(this).prop('multiple') ? false : true
+    }).on('select2:open', applyThemeToDropdown);
     });
 
     $('.select2-filament').each(function () {
@@ -41,9 +45,11 @@ $(document).ready(function () {
     if ($(this).hasClass('select2-hidden-accessible')) {
         $(this).select2('destroy');
     }
-    $(this).select2({
+     $(this).select2({
         width: '100%',
         dropdownParent: $parentCanvas,
+        placeholder: $(this).data('placeholder') || '',
+        allowClear: true,
         templateResult: formatFilamentOption,
         templateSelection: formatFilamentOption,
         matcher: function(params, data) {
