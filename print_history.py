@@ -332,6 +332,11 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     filters = filters or {}
     where_clauses = []
     params = []
+    
+    if filters.get("filament_id"):
+        placeholders = ",".join("?" for _ in filters["filament_id"])
+        where_clauses.append(f"f.spool_id IN ({placeholders})")
+        params.extend(filters["filament_id"])
 
     if filters.get("filament_type"):
         placeholders = ",".join("?" for _ in filters["filament_type"])
