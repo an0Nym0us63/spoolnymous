@@ -668,7 +668,8 @@ def print_history():
     args.pop('page', None)
     groups_list = get_print_groups()
     pagination_pages = compute_pagination_pages(page, total_pages)
-
+    
+    filters["filament_id"] = [fid for group in filters["filament_id"] for fid in group.split(',') if fid]
     return render_template(
         'print_history.html',
         entries=entries_list,
