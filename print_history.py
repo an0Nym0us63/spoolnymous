@@ -302,7 +302,7 @@ def get_distinct_values():
         families.update(two_closest_families(hex_color))
     conn.close()
 
-    spools = fetchSpools(include_archived=True, include_hidden=True)
+    spools = fetchSpools(cached=False, archived=True)
     grouped = defaultdict(list)
 
     for s in spools:
