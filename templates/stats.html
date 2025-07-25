@@ -1,12 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container my-4">
+
   <!-- Bouton flottant filtres -->
   <div class="position-fixed bottom-0 start-0 m-3" style="z-index:1030;">
     <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#filtersOffcanvas" aria-controls="filtersOffcanvas">
       🔍
     </button>
   </div>
+
   <!-- Offcanvas filtres -->
   <div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel">
     <div class="offcanvas-header">
@@ -20,18 +22,14 @@
             <label for="period">Période</label>
             <select name="period" id="period" class="form-select">
               {% for key, label in {
-                'all': 'Tout',
-                'day': '24h',
-                '7d': '7j',
-                '1m': '1m',
-                '1y': '1a'
+                'all': 'Tout', 'day': '24h', '7d': '7j', '1m': '1m', '1y': '1a'
               }.items() %}
                 <option value="{{ key }}" {% if selected_period == key %}selected{% endif %}>{{ label }}</option>
               {% endfor %}
             </select>
           </div>
           <div class="col">
-            <label for="search" class="form-label">Fichier ou tag</label>
+            <label for="search">Fichier ou tag</label>
             <input type="text" name="search" id="search" class="form-control" value="{{ search or '' }}">
           </div>
           <div class="col">
@@ -67,8 +65,8 @@
       ('💰', stats.filament_cost | default(0) | round(2)),
       ('⚡', stats.electric_cost | default(0) | round(2)),
       ('💵', stats.total_cost | default(0) | round(2)),
-	  ('🧵', stats.spool_count),
-	  ('📦', stats.spool_weight | default(0) | round(1))
+      ('🧵', stats.spool_count),
+      ('📦', stats.spool_weight | default(0) | round(1))
     ] %}
     {% for label, value in cards %}
     <div class="col-6 col-md-4 col-lg-3">
@@ -78,7 +76,7 @@
           <p class="card-text fs-5 fw-bold">
           {% if '💰' in label or '⚡' in label or '💵' in label %}
             {{ value }} {{ currencysymbol }}
-          {% elif '⚖️' in label %}
+          {% elif '⚖️' in label or '📦' in label %}
             {% if value >= 1000 %}
               {{ (value / 1000) | round(2) }} kg
             {% else %}
@@ -86,12 +84,6 @@
             {% endif %}
           {% elif '⏱' in label %}
             {{ value }} h
-			{% elif '📦' in label %}
-  {% if value >= 1000 %}
-    {{ (value / 1000) | round(2) }} kg
-  {% else %}
-    {{ value }} g
-  {% endif %}
           {% else %}
             {{ value }}
           {% endif %}
@@ -102,57 +94,61 @@
     {% endfor %}
   </div>
 
-  {% set all_charts = [
-  ('filamentType', 'Répartition par type de filament', stats.filament_type_pie, False),
-  ('vendor', 'Répartition par marque', stats.vendor_pie, False),
-  ('topFilaments', 'Top 15 filaments', stats.top_filaments, False),
-  ('colorFamily', 'Répartition par couleur', stats.color_family_pie, True),
-  ('duration', 'Répartition des durées d’impression', stats.duration_histogram, False)
-] %}
+  <!-- Graphiques -->
+  {% set charts = [
+    ('filamentType', 'Répartition par type de filament', stats.filament_type_pie, False),
+    ('vendor', 'Répartition par marque', stats.vendor_pie, False),
+    ('topFilaments', 'Top 15 filaments', stats.top_filaments, False),
+    ('colorFamily', 'Répartition par couleur', stats.color_family_pie, True),
+    ('duration', 'Répartition des durées d’impression', stats.duration_histogram, False)
+  ] %}
 
-{% for id, title, dataset, is_color in all_charts %}
-<div class="my-4">
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <h6 class="text-center text-muted flex-grow-1">{{ title }}</h6>
-    <button class="btn btn-sm btn-outline-secondary ms-2 toggle-chart-table" data-target="{{ id }}">🔁</button>
+  <div class="row row-cols-1 row-cols-md-2 g-4 my-4">
+    {% for id, title, dataset, is_color in charts %}
+    <div class="col">
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="text-center text-muted flex-grow-1 mb-0">{{ title }}</h6>
+            <button class="btn btn-sm btn-outline-secondary ms-2 toggle-chart-table" data-target="{{ id }}">🔁</button>
+          </div>
+          <div id="{{ id }}ChartContainer" class="ratio {% if id == 'duration' %}ratio-16x9{% else %}ratio-1x1{% endif %}">
+            <canvas id="{{ id }}PieChart"></canvas>
+          </div>
+          <div id="{{ id }}TableContainer" class="table-responsive visually-hidden mt-3">
+            <table class="table table-sm table-bordered text-center align-middle">
+              <thead><tr><th>Nom</th><th>Quantité</th></tr></thead>
+              <tbody>
+              {% for i in range(dataset["labels"] | length) %}
+              <tr>
+                <td>
+                  {% if is_color %}
+                    <span class="d-inline-block me-1" style="width:12px;height:12px;background-color:{{ dataset['colors'][i] }};border:1px solid #999;border-radius:2px;"></span>
+                  {% endif %}
+                  {{ dataset["labels"][i] }}
+                </td>
+                <td>
+                  {% set val = dataset["values"][i] %}
+                  {% if id == "duration" %}
+                    {{ val }}
+                  {% else %}
+                    {% if val >= 1000 %}
+                      {{ (val / 1000) | round(2) }} kg
+                    {% else %}
+                      {{ val | round(1) }} g
+                    {% endif %}
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
   </div>
-  <div id="{{ id }}ChartContainer" class="ratio {% if id == 'duration' %}ratio-16x9{% else %}ratio-1x1{% endif %} mx-auto" style="max-width: 400px;">
-    <canvas id="{{ id }}PieChart"></canvas>
-  </div>
-  <div id="{{ id }}TableContainer" class="table-responsive visually-hidden">
-  <table class="table table-sm table-bordered text-center align-middle">
-    <thead>
-      <tr><th>Nom</th><th>Quantité</th></tr>
-    </thead>
-    <tbody>
-      {% for i in range(dataset["labels"] | length) %}
-      <tr>
-        <td>
-          {% if is_color %}
-            <span class="d-inline-block me-1" style="width:12px;height:12px;background-color:{{ dataset['colors'][i] }};border:1px solid #999;border-radius:2px;"></span>
-          {% endif %}
-          {{ dataset["labels"][i] }}
-        </td>
-        <td>
-  {% set val = dataset["values"][i] %}
-  {% if id == "duration" %}
-    {{ val }}
-  {% else %}
-    {% if val >= 1000 %}
-      {{ (val / 1000) | round(2) }} kg
-    {% else %}
-      {{ val | round(1) }} g
-    {% endif %}
-  {% endif %}
-</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-
-</div>
-{% endfor %}
 
 </div>
 
