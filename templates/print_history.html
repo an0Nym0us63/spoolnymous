@@ -85,12 +85,10 @@
   <option></option>
   {% for filament in distinct_values.filaments %}
     <option value="{{ filament.ids | join(',') }}"
-            data-color="{{ filament.color }}"
-            {% for fid in filament.ids %}
-              {% if fid in filters.filament_id %}selected{% break %}{% endif %}
-            {% endfor %}>
-      {{ filament.display_name }}
-    </option>
+        data-color="{{ filament.color }}"
+        {% if filament.ids | map('string') | select('in', filters.filament_id) | list | length > 0 %}selected{% endif %}>
+  {{ filament.display_name }}
+</option>
   {% endfor %}
 </select>
 </div>
