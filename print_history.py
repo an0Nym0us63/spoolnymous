@@ -761,7 +761,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         spool = spools_by_id.get(u["spool_id"])
         if spool:
             vendor = spool.get("filament", {}).get("vendor", {}).get("name", "Inconnu")
-            type_ = u.get("filament_type", "Inconnu")
+            type_ = u["filament_type"] if "filament_type" in u.keys() else "Inconnu"
             name = spool.get("name", "Sans nom")
             key = f"{vendor} - {type_} - {name}"
             filament_totals[key] = filament_totals.get(key, 0.0) + u["grams_used"]
