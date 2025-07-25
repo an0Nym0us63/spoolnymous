@@ -5,6 +5,7 @@ import math
 from collections import defaultdict
 from config import COST_BY_HOUR
 import operator
+from mqtt_bambulab import fetchSpools
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
