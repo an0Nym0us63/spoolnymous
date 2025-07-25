@@ -37,15 +37,24 @@ $(document).ready(function () {
     });
 
     $('.select2-filament').each(function () {
-        if ($(this).hasClass('select2-hidden-accessible')) {
-            $(this).select2('destroy');
+    const $parentCanvas = $(this).closest('.offcanvas');  // ou un autre conteneur visible
+    if ($(this).hasClass('select2-hidden-accessible')) {
+        $(this).select2('destroy');
+    }
+    $(this).select2({
+        width: '100%',
+        dropdownParent: $parentCanvas,
+        templateResult: formatFilamentOption,
+        templateSelection: formatFilamentOption,
+        matcher: function(params, data) {
+            if ($.trim(params.term) === '') return data;
+            if (typeof data.text === 'undefined') return null;
+            const terms = params.term.toLowerCase().split(/\s+/);
+            const text = data.text.toLowerCase();
+            return terms.every(t => text.includes(t)) ? data : null;
         }
-        $(this).select2({
-            width: '100%',
-            templateResult: formatFilamentOption,
-            templateSelection: formatFilamentOption
-        }).on('select2:open', applyThemeToDropdown);
-    });
+    }).on('select2:open', applyThemeToDropdown);
+});
 
     enhanceColorSelect();
     applyColorTags();
