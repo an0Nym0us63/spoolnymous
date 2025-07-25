@@ -5,7 +5,6 @@ import math
 from collections import defaultdict
 from config import COST_BY_HOUR
 import operator
-from mqtt_bambulab import fetchSpools
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
@@ -290,6 +289,7 @@ def closest_family(hex_color: str) -> str:
 
 
 def get_distinct_values():
+    from mqtt_bambulab import fetchSpools
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
     cursor.execute("SELECT DISTINCT filament_type FROM filament_usage")
