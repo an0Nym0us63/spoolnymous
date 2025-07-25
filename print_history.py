@@ -667,7 +667,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         all_colors = [row[0] for row in cursor.fetchall()]
         selected_hexes_by_family = []
         for fam in filters["color"]:
-            hexes = [c for c in all_colors if fam == closest_family(c)]
+            hexes = [c for c in all_colors if fam in two_closest_families(c)]
             if hexes:
                 selected_hexes_by_family.append(hexes)
 
@@ -738,7 +738,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         selected_families = set(filters["color"])
         usage = [
             u for u in usage
-            if u["color"] and closest_family(u["color"]) in selected_families
+            if u["color"] and any(f in selected_families for f in two_closest_families(u["color"]))
         ]
 
     spools_by_id = {spool["id"]: spool for spool in fetchSpools(False, True)}
