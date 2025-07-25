@@ -342,7 +342,7 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     where_clauses = []
     params = []
     
-    if filters.get("filament_id") and filters["filament_id"]!='':
+    if filters.get("filament_id"):
         ids = []
         for val in filters["filament_id"]:
             ids.extend(val.split(','))

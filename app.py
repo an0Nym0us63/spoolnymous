@@ -556,6 +556,7 @@ def print_history():
         "color": request.args.getlist("color"),
         "filament_id": request.args.getlist("filament_id")
     }
+    filters["filament_id"] = [v for v in filters["filament_id"] if v.strip()]
     search = request.args.get("search", "").strip()
 
     focus_print_id = request.args.get("focus_print_id", type=int)
