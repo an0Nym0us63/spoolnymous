@@ -262,9 +262,13 @@ $colorSelect.select2({
 function formatFilamentOption(option) {
     if (!option.id) return option.text;
     const color = $(option.element).data('color');
-    if (!color) return option.text;
-    const swatch = `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};margin-right:6px;"></span>`;
-    return $(`<span>${swatch}${option.text}</span>`);
+    const small = `style="font-size: 0.8rem; line-height: 1.2;"`;
+
+    const swatch = color
+        ? `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};margin-right:6px;"></span>`
+        : '';
+
+    return $(`<span ${small}>${swatch}${option.text}</span>`);
 }
 
 function formatColorOption(state) {

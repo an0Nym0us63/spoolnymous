@@ -84,9 +84,11 @@
   <select name="filament_id" class="form-select select2-filament" data-placeholder="— Tous les filaments —">
   <option></option>
   {% for filament in distinct_values.filaments %}
-    <option value="{{ filament.id }}"
+    <option value="{{ filament.ids | join(',') }}"
             data-color="{{ filament.color }}"
-            {% if filament.id|string == filters.filament_id|first %}selected{% endif %}>
+            {% for fid in filament.ids %}
+              {% if fid in filters.filament_id %}selected{% break %}{% endif %}
+            {% endfor %}>
       {{ filament.display_name }}
     </option>
   {% endfor %}

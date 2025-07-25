@@ -287,45 +287,52 @@ def closest_family(hex_color: str) -> str:
     }
     return min(distances.items(), key=lambda x: x[1])[0]
 
-
 def get_distinct_values():
     from mqtt_bambulab import fetchSpools
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
+
     cursor.execute("SELECT DISTINCT filament_type FROM filament_usage")
     filament_types = sorted([row[0] for row in cursor.fetchall()])
+
     cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
     raw_colors = [row[0] for row in cursor.fetchall()]
     families = set()
     for hex_color in raw_colors:
         families.update(two_closest_families(hex_color))
     conn.close()
-    spools = fetchSpools(cached=False,archived=True)
-    filaments = []
+
+    spools = fetchSpools(include_archived=True, include_hidden=True)
+    grouped = defaultdict(list)
+
     for s in spools:
         filament = s.get("filament")
         if not filament:
             continue
-
-        name_parts = [
+        parts = [
             filament.get("vendor", {}).get("name", ""),
             filament.get("material", ""),
             filament.get("name", "")
         ]
-        display = " - ".join(part for part in name_parts if part)
+        display = " - ".join(part for part in parts if part)
         if s.get("is_archived"):
             display += " (Archivé)"
+        grouped[display].append(s)
 
+    filaments = []
+    for display_name, spools in grouped.items():
+        ids = [str(s["id"]) for s in spools]
+        color = next((s.get("color_hex") for s in spools if s.get("color_hex")), None)
         filaments.append({
-            "id": s["id"],
-            "display_name": display,
-            "archived": s.get("is_archived", False),
-            "color": s.get("color_hex")  # peut être None
+            "ids": ids,
+            "display_name": display_name,
+            "color": color
         })
+
     return {
         "filament_types": filament_types,
         "colors": sorted(families),
-        "filaments":filaments
+        "filaments": filaments
     }
 
 def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
@@ -334,9 +341,13 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     params = []
     
     if filters.get("filament_id"):
-        placeholders = ",".join("?" for _ in filters["filament_id"])
+        ids = []
+        for val in filters["filament_id"]:
+            ids.extend(val.split(','))
+        ids = list(set(ids))  # éviter les doublons
+        placeholders = ",".join("?" for _ in ids)
         where_clauses.append(f"f.spool_id IN ({placeholders})")
-        params.extend(filters["filament_id"])
+        params.extend(ids)
 
     if filters.get("filament_type"):
         placeholders = ",".join("?" for _ in filters["filament_type"])
