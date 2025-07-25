@@ -769,17 +769,16 @@ def get_print_filaments(print_id):
 
         spool = getSpoolById(spool_id) if spool_id else None
         if spool:
+            color = spool.get("filament", {}).get("color_hex")
             vendor = spool.get("filament", {}).get("vendor", {}).get("name", "UnknownVendor")
             material = spool.get("filament", {}).get("material", "UnknownMaterial")
             realName = spool.get("filament", {}).get("name", "UnknownName")
             name = f"#{spool_id} - {realName} - {vendor} - {material}"
         else:
+            color = usage.get("color", "#000000")
             name = usage.get("filament_type", "N/A")
-        color = spool.get("filament", {}).get("color_hex")
         if color:
             color = f"#{color}"
-        else:
-            color = usage.get("color", "#000000")
         enriched.append({
             "spool_id": spool_id,
             "grams_used": grams_used,
