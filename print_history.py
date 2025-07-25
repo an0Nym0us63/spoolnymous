@@ -315,14 +315,12 @@ def get_distinct_values():
             filament.get("name", "")
         ]
         display = " - ".join(part for part in parts if part)
-        if s.get("is_archived"):
-            display += " (Archivé)"
         grouped[display].append(s)
 
     filaments = []
     for display_name, spools in grouped.items():
         ids = [str(s["id"]) for s in spools]
-        color = next((s.get("color_hex") for s in spools if s.get("color_hex")), None)
+        color = next((s["filament"].get("color_hex") for s in spools if s.get("filament") and s["filament"].get("color_hex")),None)
         filaments.append({
             "ids": ids,
             "display_name": display_name,
