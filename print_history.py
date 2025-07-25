@@ -733,6 +733,13 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
     """, print_ids)
     usage = cursor.fetchall()
     conn.close()
+    
+    if filters.get("color"):
+        selected_families = set(filters["color"])
+        usage = [
+            u for u in usage
+            if u["color"] and any(f in selected_families for f in two_closest_families(u["color"]))
+        ]
 
     spools_by_id = {spool["id"]: spool for spool in fetchSpools(False, True)}
 
