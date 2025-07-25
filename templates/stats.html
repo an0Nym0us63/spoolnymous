@@ -97,9 +97,9 @@
   {% set all_charts = [
   ('filamentType', 'Répartition par type de filament', stats.filament_type_pie, False),
   ('vendor', 'Répartition par marque', stats.vendor_pie, False),
+  ('topFilaments', 'Top 15 filaments', stats.top_filaments, False),
   ('colorFamily', 'Répartition par couleur', stats.color_family_pie, True),
-  ('duration', 'Répartition des durées d’impression', stats.duration_histogram, False),
-  ('topFilaments', 'Top 15 filaments', stats.top_filaments, False)
+  ('duration', 'Répartition des durées d’impression', stats.duration_histogram, False)
 ] %}
 
 {% for id, title, dataset, is_color in all_charts %}
