@@ -668,7 +668,12 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
             "total_weight": 0.0,
             "filament_cost": 0.0,
             "electric_cost": 0.0,
-            "total_cost": 0.0
+            "total_cost": 0.0,
+            "vendor_pie": {"labels": [], "values": []},
+            "duration_histogram": {"labels": [], "values": []},
+            "filament_type_pie": {"labels": [], "values": []},
+            "color_family_pie": {"labels": [], "values": [], "colors": []},
+            "top_filaments": {"labels": [], "values": []}
         }
 
     # Durée totale
