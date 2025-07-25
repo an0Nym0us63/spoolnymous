@@ -98,7 +98,8 @@
   ('filamentType', 'Répartition par type de filament', stats.filament_type_pie, False),
   ('vendor', 'Répartition par marque', stats.vendor_pie, False),
   ('colorFamily', 'Répartition par couleur', stats.color_family_pie, True),
-  ('duration', 'Répartition des durées d’impression', stats.duration_histogram, False)
+  ('duration', 'Répartition des durées d’impression', stats.duration_histogram, False),
+  ('topFilaments', 'Top 15 filaments', stats.top_filaments, False)
 ] %}
 
 {% for id, title, dataset, is_color in all_charts %}
@@ -291,6 +292,40 @@
       }
     }
   });
+  
+  const ctxTopFilaments = document.getElementById('topFilamentsPieChart').getContext('2d');
+new Chart(ctxTopFilaments, {
+  type: 'pie',
+  data: {
+    labels: {{ stats.top_filaments.labels | tojson }},
+    datasets: [{
+      data: {{ stats.top_filaments.values | tojson }},
+      backgroundColor: [
+        '#4e79a7', '#f28e2b', '#e15759', '#76b7b2',
+        '#59a14f', '#edc948', '#b07aa1', '#ff9da7',
+        '#9c755f', '#bab0ac', '#86BCB6', '#FFBE7D',
+        '#C2C2C2', '#FFB5E8', '#8CD17D'
+      ]
+    }]
+  },
+  options: {
+    plugins: {
+      legend: {
+        position: 'bottom'
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            let value = context.parsed;
+            return value >= 1000
+              ? (value / 1000).toFixed(2) + ' kg'
+              : value.toFixed(1) + ' g';
+          }
+        }
+      }
+    }
+  }
+});
 </script>
 </div>
 

@@ -755,6 +755,23 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         "values": list(color_family_counts.values()),
         "colors": [color_family_colors[f] for f in color_family_counts.keys()]
     }
+    
+    filament_totals = {}
+    for u in usage:
+        spool = spools_by_id.get(u["spool_id"])
+        if spool:
+            vendor = spool["filament"]["vendor"]["name"]
+            type_ = spool["filament_type"]
+            name = spool["name"]
+            key = f"{vendor} - {type_} - {name}"
+            filament_totals[key] = filament_totals.get(key, 0.0) + u["grams_used"]
+    
+    sorted_filaments = sorted(filament_totals.items(), key=lambda x: x[1], reverse=True)[:15]
+    top_filaments = {
+        "labels": [label for label, _ in sorted_filaments],
+        "values": [val for _, val in sorted_filaments]
+    }
+    
     stats_data = {
         "total_prints": len(print_ids),
         "total_duration": duration_hours,
@@ -765,7 +782,8 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         "vendor_pie": vendor_pie,
         "duration_histogram": duration_histogram,
         "filament_type_pie": filament_type_pie,
-        "color_family_pie": color_family_pie
+        "color_family_pie": color_family_pie,
+        "top_filaments": top_filaments
     }
     
     # Et maintenant que stats_data existe, tu peux faire tes tris :
