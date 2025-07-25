@@ -300,7 +300,7 @@ def get_distinct_values():
     for hex_color in raw_colors:
         families.update(two_closest_families(hex_color))
     conn.close()
-    spools = fetchSpools(include_archived=True, include_hidden=True)
+    spools = fetchSpools(cached=False,archived=True)
     filaments = []
     for s in spools:
         filament = s.get("filament")
