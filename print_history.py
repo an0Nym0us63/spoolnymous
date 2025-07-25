@@ -262,7 +262,7 @@ def color_distance(hex1: str, hex2: str) -> float:
     lab2 = rgb_to_lab(*rgb2)
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(lab1, lab2)))
 
-def two_closest_families(hex_color: str, threshold: float = 60.0) -> list[str]:
+def two_closest_families(hex_color: str, threshold: float = 45.0) -> list[str]:
     """
     Retourne la famille la plus proche et la deuxième si sa distance est < threshold.
     """
