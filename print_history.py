@@ -324,7 +324,8 @@ def get_distinct_values():
         })
     return {
         "filament_types": filament_types,
-        "colors": sorted(families)
+        "colors": sorted(families),
+        "filaments":filaments
     }
 
 def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
