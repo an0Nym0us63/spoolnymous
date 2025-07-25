@@ -29,15 +29,27 @@ $(document).ready(function () {
     }
 
     function initSelect2() {
-        $('.select2').each(function () {
-            if ($(this).hasClass('select2-hidden-accessible')) {
-                $(this).select2('destroy');
-            }
-            $(this).select2({ width: '100%' }).on('select2:open', applyThemeToDropdown);
-        });
-        enhanceColorSelect();
-        applyColorTags();
-    }
+    $('.select2').each(function () {
+        if ($(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2('destroy');
+        }
+        $(this).select2({ width: '100%' }).on('select2:open', applyThemeToDropdown);
+    });
+
+    $('.select2-filament').each(function () {
+        if ($(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2('destroy');
+        }
+        $(this).select2({
+            width: '100%',
+            templateResult: formatFilamentOption,
+            templateSelection: formatFilamentOption
+        }).on('select2:open', applyThemeToDropdown);
+    });
+
+    enhanceColorSelect();
+    applyColorTags();
+}
 
     function initAjaxSelect2($select) {
         if ($select.hasClass('select2-hidden-accessible')) {
@@ -230,6 +242,14 @@ $colorSelect.select2({
 
     applyColorTags();
     $colorSelect.on('select2:select select2:unselect', applyColorTags);
+}
+
+function formatFilamentOption(option) {
+    if (!option.id) return option.text;
+    const color = $(option.element).data('color');
+    if (!color) return option.text;
+    const swatch = `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};margin-right:6px;"></span>`;
+    return $(`<span>${swatch}${option.text}</span>`);
 }
 
 function formatColorOption(state) {

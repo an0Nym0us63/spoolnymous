@@ -78,6 +78,20 @@
             {% endfor %}
           </select>
         </div>
+		
+		<div class="col">
+  <label for="filament_id">Filament</label>
+  <select name="filament_id" class="form-select select2-filament">
+  <option value="">—</option>
+  {% for filament in distinct_values.filaments %}
+    <option value="{{ filament.id }}"
+            data-color="{{ filament.color }}"
+            {% if filament.id|string == filters.filament_id|first %}selected{% endif %}>
+      {{ filament.display_name }}
+    </option>
+  {% endfor %}
+</select>
+</div>
 
         <div class="col">
           <label for="search" class="form-label">Fichier ou tag</label>

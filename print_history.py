@@ -299,6 +299,28 @@ def get_distinct_values():
     for hex_color in raw_colors:
         families.update(two_closest_families(hex_color))
     conn.close()
+    spools = fetchSpools(include_archived=True, include_hidden=True)
+    filaments = []
+    for s in spools:
+        filament = s.get("filament")
+        if not filament:
+            continue
+
+        name_parts = [
+            filament.get("vendor", {}).get("name", ""),
+            filament.get("material", ""),
+            filament.get("name", "")
+        ]
+        display = " - ".join(part for part in name_parts if part)
+        if s.get("is_archived"):
+            display += " (Archivé)"
+
+        filaments.append({
+            "id": s["id"],
+            "display_name": display,
+            "archived": s.get("is_archived", False),
+            "color": s.get("color_hex")  # peut être None
+        })
     return {
         "filament_types": filament_types,
         "colors": sorted(families)

@@ -553,7 +553,8 @@ def print_history():
 
     filters = {
         "filament_type": request.args.getlist("filament_type"),
-        "color": request.args.getlist("color")
+        "color": request.args.getlist("color"),
+        "filament_id": request.args.getlist("filament_id")
     }
     search = request.args.get("search", "").strip()
 
