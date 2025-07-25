@@ -641,12 +641,16 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
     if search:
         words = [w.strip().lower() for w in search.split() if w.strip()]
         for w in words:
-            date_clause += f""" AND (
+            search_clause = f"""(
                 LOWER(p.file_name) LIKE ?
                 OR EXISTS (
                     SELECT 1 FROM print_tags pt WHERE pt.print_id = p.id AND LOWER(pt.tag) LIKE ?
                 )
             )"""
+            if date_clause:
+                date_clause += f" AND {search_clause}"
+            else:
+                date_clause = search_clause
             params.extend([f"%{w}%"] * 2)
 
     where_sql = f"WHERE {date_clause}" if date_clause else ""
