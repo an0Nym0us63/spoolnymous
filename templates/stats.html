@@ -65,8 +65,8 @@
       ('💰', stats.filament_cost | default(0) | round(2)),
       ('⚡', stats.electric_cost | default(0) | round(2)),
       ('💵', stats.total_cost | default(0) | round(2)),
-	('🧵', stats.used_spool_count ~ '/' ~ stats.spool_count),
-  ('📦', (stats.used_spool_weight | default(0) | round(1)) ~ '/' ~ (stats.spool_weight | default(0) | round(1)))
+      ('🧵', stats.spool_count),
+      ('📦', stats.spool_weight | default(0) | round(1))
     ] %}
     {% for label, value in cards %}
     <div class="col-6 col-md-4 col-lg-3">
@@ -75,27 +75,18 @@
           <h6 class="card-title small text-muted">{{ label }}</h6>
           <p class="card-text fs-5 fw-bold">
           {% if '💰' in label or '⚡' in label or '💵' in label %}
-  {{ value }} {{ currencysymbol }}
-{% elif '📦' in label and '/' in value %}
-  {% set parts = value.split('/') %}
-  {% set used = parts[0] | float %}
-  {% set total = parts[1] | float %}
-  {% if total >= 1000 %}
-    {{ (used / 1000) | round(2) }}/{{ (total / 1000) | round(2) }} kg
-  {% else %}
-    {{ used | round(1) }}/{{ total | round(1) }} g
-  {% endif %}
-{% elif '⚖️' in label %}
-  {% if value >= 1000 %}
-    {{ (value / 1000) | round(2) }} kg
-  {% else %}
-    {{ value }} g
-  {% endif %}
-{% elif '⏱' in label %}
-  {{ value }} h
-{% else %}
-  {{ value }}
-{% endif %}
+            {{ value }} {{ currencysymbol }}
+          {% elif '⚖️' in label or '📦' in label %}
+            {% if value >= 1000 %}
+              {{ (value / 1000) | round(2) }} kg
+            {% else %}
+              {{ value }} g
+            {% endif %}
+          {% elif '⏱' in label %}
+            {{ value }} h
+          {% else %}
+            {{ value }}
+          {% endif %}
           </p>
         </div>
       </div>
