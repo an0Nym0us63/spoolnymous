@@ -66,7 +66,9 @@
       ('⚖️', stats.total_weight | default(0) | round(1)),
       ('💰', stats.filament_cost | default(0) | round(2)),
       ('⚡', stats.electric_cost | default(0) | round(2)),
-      ('💵', stats.total_cost | default(0) | round(2))
+      ('💵', stats.total_cost | default(0) | round(2)),
+	  ('🧵', stats.spool_count),
+	  ('📦', stats.spool_weight | default(0) | round(1))
     ] %}
     {% for label, value in cards %}
     <div class="col-6 col-md-4 col-lg-3">
@@ -84,6 +86,12 @@
             {% endif %}
           {% elif '⏱' in label %}
             {{ value }} h
+			{% elif '📦' in label %}
+  {% if value >= 1000 %}
+    {{ (value / 1000) | round(2) }} kg
+  {% else %}
+    {{ value }} g
+  {% endif %}
           {% else %}
             {{ value }}
           {% endif %}

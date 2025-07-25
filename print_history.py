@@ -823,6 +823,10 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         "values": [val for _, val in sorted_filaments]
     }
     
+    spools = fetchSpools(cached=False, archived=False)
+    stats_data["spool_count"] = len(spools)
+    stats_data["spool_weight"] = round(sum(s.get("remaining_weight", 0) or 0 for s in spools), 1)
+    
     stats_data = {
         "total_prints": len(print_ids),
         "total_duration": duration_hours,
