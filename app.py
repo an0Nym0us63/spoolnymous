@@ -831,7 +831,6 @@ def filaments():
                 vendor.get("name", "").lower(),
                 f.get("location", "").lower(),
             ]
-            # Chaque terme doit être présent dans au moins un des champs
             return all(
                 any(term in field for field in fields)
                 for term in search_terms
@@ -848,10 +847,12 @@ def filaments():
             vendor.get("name", "").lower(),
             filament.get("name", "").lower()
         )
+
     if sort == "remaining":
         all_filaments.sort(key=lambda f: f.get("remaining_weight") or 0)
     else:
         all_filaments.sort(key=sort_key)
+
     all_families_in_page = set()
 
     for spool in all_filaments:
@@ -866,23 +867,33 @@ def filaments():
         elif filament.get("color_hex"):
             hexes = [filament["color_hex"]]
 
-    
         families = set()
         for hx in hexes:
             fams = two_closest_families(hx, threshold=60)
             families.update(fams)
-    
+
         spool["color_families"] = sorted(families)
         all_families_in_page.update(families)
+
     selected_family = request.args.get("color")
     if selected_family:
         all_filaments = [
             f for f in all_filaments
             if selected_family in f.get("color_families", [])
         ]
+
     total = len(all_filaments)
     total_pages = math.ceil(total / per_page)
     filaments_page = all_filaments[(page-1)*per_page : page*per_page]
+
+    # ==== Statistiques ====
+    vendor_names = {
+        f.get("filament", {}).get("vendor", {}).get("name", "")
+        for f in all_filaments
+        if f.get("filament", {}).get("vendor")
+    }
+    total_vendors = len(vendor_names)
+    total_remaining = sum(f.get("remaining_weight") or 0 for f in all_filaments)
 
     return render_template(
         "filaments.html",
@@ -893,7 +904,10 @@ def filaments():
         sort=sort,
         all_families=sorted(all_families_in_page),
         selected_family=selected_family,
-        page_title="Filaments"
+        page_title="Filaments",
+        total_filaments=total,
+        total_vendors=total_vendors,
+        total_remaining=total_remaining
     )
 
 @app.route("/edit_print_name", methods=["POST"])
