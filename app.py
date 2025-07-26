@@ -918,7 +918,7 @@ def edit_print_name():
 
     if new_filename:
         update_print_filename(print_id, new_filename)
-    return redirect(url_for("print_history", page=page, focus_print_id=print_id))
+    return redirect(url_for("print_history", page=page, search=request.args.get("search",''), focus_print_id=print_id))
 
     
 @app.route("/edit_print_items", methods=["POST"])
@@ -935,7 +935,7 @@ def edit_print_items():
 
     update_print_history_field(print_id, "number_of_items", number_of_items)
 
-    return redirect(url_for("print_history", page=page, focus_print_id=print_id))
+    return redirect(url_for("print_history", page=page, search=request.args.get("search",''), focus_print_id=print_id))
 
 @app.route("/create_group", methods=["POST"])
 def create_group():
@@ -949,7 +949,7 @@ def create_group():
         update_group_created_at(group_id)  # 🔷 Ajout ici
         return redirect(url_for("print_history", page=page, focus_group_id=group_id))
 
-    return redirect(url_for("print_history", page=page, focus_print_id=print_id))
+    return redirect(url_for("print_history", page=page, search=request.args.get("search",''), focus_print_id=print_id))
     
 @app.route("/assign_to_group", methods=["POST"])
 def assign_to_group():
@@ -965,7 +965,7 @@ def assign_to_group():
     update_print_history_field(print_id, "group_id", group_id)
     update_group_created_at(group_id)
 
-    return redirect(url_for("print_history", page=page, focus_group_id=group_id))
+    return redirect(url_for("print_history", page=page, search=request.args.get("search",''), focus_group_id=group_id))
 
 @app.route("/remove_from_group", methods=["POST"])
 def remove_from_group():
@@ -978,7 +978,7 @@ def remove_from_group():
     if group_id:
         update_group_created_at(group_id)
 
-    return redirect(url_for("print_history", page=page, focus_print_id=print_id))
+    return redirect(url_for("print_history", page=page, search=request.args.get("search",''), focus_print_id=print_id))
 
 @app.route("/rename_group", methods=["POST"])
 def rename_group():
@@ -989,7 +989,7 @@ def rename_group():
     if group_name:
         update_print_group_field(group_id, "name", group_name)
 
-    return redirect(url_for("print_history", page=page, focus_group_id=group_id))
+    return redirect(url_for("print_history", page=page, search=request.args.get("search",''), focus_group_id=group_id))
 
 @app.route("/edit_group_items", methods=["POST"])
 def edit_group_items():
@@ -1111,4 +1111,4 @@ def adjust_duration():
     except Exception as e:
         pass
 
-    return redirect(url_for("print_history", page=request.args.get("page"), focus_print_id=print_id))
+    return redirect(url_for("print_history", page=request.args.get("page"), search=request.args.get("search",''),focus_print_id=print_id))
