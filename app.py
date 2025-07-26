@@ -606,10 +606,11 @@ def print_history():
         else:
             p["model_file"] = None
     
-        if p["group_id"]:
+        if p.get("group_id"):
             gid = p["group_id"]
-            if gid not in entries:
-                entries[gid] = {
+            entry = entries.get(gid)
+            if not entry or entry.get("type") != "group":
+                entry = {
                     "type": "group",
                     "id": gid,
                     "name": p.get("group_name", f"Groupe {gid}"),
@@ -623,17 +624,18 @@ def print_history():
                     "filament_usage": {},
                     "number_of_items": p.get("group_number_of_items") or 1
                 }
-            entry = entries[gid]
+                entries[gid] = entry
+        
             entry["prints"].append(p)
             entry["total_duration"] += p["duration"]
             entry["total_cost"] += p["full_cost"]
             entry["total_weight"] += p["total_weight"]
-    
+        
             if p["id"] > entry["max_id"]:
                 entry["max_id"] = p["id"]
                 entry["latest_date"] = p["print_date"]
                 entry["thumbnail"] = p["image_file"]
-    
+        
             for filament in p["filament_usage"]:
                 key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
                 usage = entry["filament_usage"].setdefault(key, dict(filament))
@@ -641,6 +643,7 @@ def print_history():
                 if usage is not filament:
                     usage["grams_used"] += filament["grams_used"]
                     usage["cost"] += filament.get("cost", 0.0)
+        
         else:
             entries[p["id"]] = {
                 "type": "single",
