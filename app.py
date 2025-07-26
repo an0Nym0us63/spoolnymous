@@ -16,7 +16,7 @@ from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool, archive_spool, reajust_spool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,filter_prints_by_search_terms
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print
 
 
 COLOR_FAMILIES = {
@@ -562,17 +562,8 @@ def print_history():
     focus_print_id = request.args.get("focus_print_id", type=int)
     focus_group_id = request.args.get("focus_group_id", type=int)
 
-    raw_prints = get_prints_with_filament(filters=filters)
+    raw_prints = get_prints_with_filament(filters=filters, search=search)
     spool_list = fetchSpools(False, True)
-
-    # enrichir les prints avec leurs tags pour le filtrage
-    for p in raw_prints:
-        p["tags"] = get_tags_for_print(p["id"])
-
-    if search:
-        search_terms = [w.strip() for w in search.lower().split() if w.strip()]
-        raw_prints = filter_prints_by_search_terms(raw_prints, search_terms)
-
     entries = {}
 
     for p in raw_prints:
@@ -582,6 +573,7 @@ def print_history():
         p["electric_cost"] = p["duration"] * float(COST_BY_HOUR)
         p["filament_usage"] = json.loads(p["filament_info"])
         p["total_cost"] = 0
+        p["tags"] = get_tags_for_print(p["id"])
         p["total_weight"] = sum(f["grams_used"] for f in p["filament_usage"])
 
         for filament in p["filament_usage"]:
@@ -621,28 +613,29 @@ def print_history():
                     "total_weight": 0,
                     "max_id": 0,
                     "latest_date": p["print_date"],
-                    "thumbnail": None,
+                    "thumbnail": None,  # sera défini plus bas
                     "filament_usage": {},
                     "number_of_items": p.get("group_number_of_items") or 1,
                     "primary_print_id": p.get("group_primary_print_id"),
                 }
                 entries[entry_key] = entry
-
+        
             entry["prints"].append(p)
             entry["total_duration"] += p["duration"]
             entry["total_cost"] += p["full_cost"]
             entry["total_weight"] += p["total_weight"]
-
+        
             if p["id"] > entry["max_id"]:
                 entry["max_id"] = p["id"]
                 entry["latest_date"] = p["print_date"]
-
+        
+            # Définir la miniature en fonction du primary_print_id s’il est défini
             if entry.get("primary_print_id"):
                 if p["id"] == entry["primary_print_id"]:
                     entry["thumbnail"] = p["image_file"]
             elif not entry.get("thumbnail"):
                 entry["thumbnail"] = p["image_file"]
-
+        
             for filament in p["filament_usage"]:
                 key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
                 if key not in entry["filament_usage"]:
@@ -673,7 +666,7 @@ def print_history():
 
     entries_list = sorted(entries.values(), key=lambda e: e["max_id"], reverse=True)
     total_pages = (len(entries_list) + per_page - 1) // per_page
-    paged_entries = entries_list[(page - 1) * per_page: page * per_page]
+    paged_entries = entries_list[(page - 1) * per_page : page * per_page]
 
     if focus_print_id and not focus_group_id:
         for entry in entries_list:
@@ -687,6 +680,7 @@ def print_history():
     args.pop('page', None)
     groups_list = get_print_groups()
     pagination_pages = compute_pagination_pages(page, total_pages)
+
     filters["filament_id"] = [fid for group in filters["filament_id"] for fid in group.split(',') if fid]
 
     return render_template(

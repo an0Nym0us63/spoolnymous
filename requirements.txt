@@ -4,4 +4,3 @@ flask==3.1.0
 pyopenssl==24.3.0
 pycurl==7.45.6
 gunicorn==23.0.0
-deep-translator==1.11.4
