@@ -563,7 +563,6 @@ def print_history():
     focus_print_id = request.args.get("focus_print_id", type=int)
     focus_group_id = request.args.get("focus_group_id", type=int)
 
-    # Requête paginée
     total_count, prints = get_prints_with_filament(
         offset=offset,
         limit=per_page,
@@ -583,7 +582,7 @@ def print_history():
         p["total_cost"] = 0
         p["tags"] = get_tags_for_print(p["id"])
         p["total_weight"] = sum(f["grams_used"] for f in p["filament_usage"])
-    
+
         for filament in p["filament_usage"]:
             if filament["spool_id"]:
                 for spool in spool_list:
@@ -593,9 +592,9 @@ def print_history():
                         p["total_cost"] += filament["cost"]
                         break
             filament.setdefault("cost", 0.0)
-    
+
         p["full_cost"] = p["total_cost"] + p["electric_cost"]
-    
+
         if not p.get("number_of_items"):
             p["number_of_items"] = 1
         p["full_cost_by_item"] = p["full_cost"] / p["number_of_items"]
@@ -605,10 +604,11 @@ def print_history():
             p["model_file"] = model_file if os.path.isfile(model_path) else None
         else:
             p["model_file"] = None
-    
+
         if p.get("group_id"):
             gid = p["group_id"]
-            entry = entries.get(gid)
+            entry_key = f"group_{gid}"
+            entry = entries.get(entry_key)
             if not entry or entry.get("type") != "group":
                 entry = {
                     "type": "group",
@@ -624,18 +624,18 @@ def print_history():
                     "filament_usage": {},
                     "number_of_items": p.get("group_number_of_items") or 1
                 }
-                entries[gid] = entry
-        
+                entries[entry_key] = entry
+
             entry["prints"].append(p)
             entry["total_duration"] += p["duration"]
             entry["total_cost"] += p["full_cost"]
             entry["total_weight"] += p["total_weight"]
-        
+
             if p["id"] > entry["max_id"]:
                 entry["max_id"] = p["id"]
                 entry["latest_date"] = p["print_date"]
                 entry["thumbnail"] = p["image_file"]
-        
+
             for filament in p["filament_usage"]:
                 key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
                 if key not in entry["filament_usage"]:
@@ -651,9 +651,8 @@ def print_history():
                     usage = entry["filament_usage"][key]
                     usage["grams_used"] += filament["grams_used"]
                     usage["cost"] += filament.get("cost", 0.0)
-        
         else:
-            entries[p["id"]] = {
+            entries[f"print_{p['id']}"] = {
                 "type": "single",
                 "print": p,
                 "max_id": p["id"]
@@ -667,7 +666,6 @@ def print_history():
 
     entries_list = sorted(entries.values(), key=lambda e: e["max_id"], reverse=True)
 
-    # --- Déplier automatiquement le groupe si un print a le focus ---
     if focus_print_id and not focus_group_id:
         for entry in entries_list:
             if entry["type"] == "single" and entry["print"]["id"] == focus_print_id:
@@ -682,7 +680,7 @@ def print_history():
     args.pop('page', None)
     groups_list = get_print_groups()
     pagination_pages = compute_pagination_pages(page, total_pages)
-    
+
     filters["filament_id"] = [fid for group in filters["filament_id"] for fid in group.split(',') if fid]
     return render_template(
         'print_history.html',
@@ -700,6 +698,7 @@ def print_history():
         focus_group_id=focus_group_id,
         page_title="History"
     )
+
 
 
 @app.route("/print_select_spool")
