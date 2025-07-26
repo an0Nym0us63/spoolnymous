@@ -342,22 +342,28 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     where_clauses = []
     params = []
     
-    if filters.get("filament_id"):
+    # Filtrage par filament_id
+    if filters.get("filament_id") and any(v.strip() for v in filters["filament_id"]):
         ids = []
         for val in filters["filament_id"]:
             ids.extend(val.split(','))
-        ids = list(set(ids))  # éviter les doublons
-        placeholders = ",".join("?" for _ in ids)
-        where_clauses.append(f"f.spool_id IN ({placeholders})")
-        params.extend(ids)
+        ids = list(set(i for i in ids if i.strip()))
+        if ids:
+            placeholders = ",".join("?" for _ in ids)
+            where_clauses.append(f"f.spool_id IN ({placeholders})")
+            params.extend(ids)
 
-    if filters.get("filament_type"):
-        placeholders = ",".join("?" for _ in filters["filament_type"])
-        where_clauses.append(f"f.filament_type IN ({placeholders})")
-        params.extend(filters["filament_type"])
+    # Filtrage par type de filament
+    if filters.get("filament_type") and any(v.strip() for v in filters["filament_type"]):
+        types = [v.strip() for v in filters["filament_type"] if v.strip()]
+        if types:
+            placeholders = ",".join("?" for _ in types)
+            where_clauses.append(f"f.filament_type IN ({placeholders})")
+            params.extend(types)
 
-    if filters.get("color"):
-        color_families = filters["color"]
+    # Filtrage par couleur
+    if filters.get("color") and any(v.strip() for v in filters["color"]):
+        color_families = [v.strip() for v in filters["color"] if v.strip()]
         conn = sqlite3.connect(db_config["db_path"])
         cursor = conn.cursor()
         cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
@@ -366,10 +372,7 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
 
         selected_hexes_by_family = []
         for fam in color_families:
-            hexes = [
-                c for c in all_colors
-                if fam in two_closest_families(c)
-            ]
+            hexes = [c for c in all_colors if fam in two_closest_families(c)]
             if hexes:
                 selected_hexes_by_family.append(hexes)
 
@@ -387,6 +390,7 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
                 params.extend(hexes)
             params.append(len(selected_hexes_by_family))
 
+    # Recherche textuelle
     if search:
         words = [w.strip().lower() for w in search.split() if w.strip()]
         word_clauses = []
@@ -423,7 +427,7 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     ''', params)
     total_count = cursor.fetchone()[0]
 
-    # Load prints with optional LIMIT/OFFSET
+    # Chargement des prints paginés
     base_query = f'''
         SELECT DISTINCT p.id AS id,
             p.print_date,
@@ -452,7 +456,6 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
         ORDER BY p.print_date DESC
     '''
 
-
     if limit is not None:
         base_query += " LIMIT ? OFFSET ?"
         query_params = params + [limit, offset]
@@ -464,6 +467,7 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     conn.close()
 
     return total_count, prints
+
 
 
 
