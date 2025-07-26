@@ -952,7 +952,7 @@ def create_group():
         group_id = create_print_group(group_name)
         update_print_history_field(print_id, "group_id", group_id)
         update_group_created_at(group_id)  # 🔷 Ajout ici
-        return redirect(url_for("print_history", page=page, focus_group_id=group_id))
+        return redirect(url_for("print_history", page=page, search=request.args.get("search",''), focus_group_id=group_id))
 
     return redirect(url_for("print_history", page=page, search=request.args.get("search",''), focus_print_id=print_id))
     
