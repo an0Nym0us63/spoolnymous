@@ -855,10 +855,6 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         for fam in ordered_families
     ]
     
-    spools = fetchSpools(cached=False, archived=False)
-    stats_data["spool_count"] = len(spools)
-    stats_data["spool_weight"] = round(sum(s.get("remaining_weight", 0) or 0 for s in spools), 1)
-    
     return stats_data
 
 create_database()
