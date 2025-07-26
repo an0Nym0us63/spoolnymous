@@ -117,7 +117,8 @@ def create_database() -> None:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 number_of_items INTEGER DEFAULT 1,
-                created_at TEXT
+                created_at TEXT,
+                primary_print_id INTEGER
             )
         ''')
 
@@ -146,6 +147,8 @@ def create_database() -> None:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN number_of_items INTEGER DEFAULT 1")
         if "created_at" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN created_at TEXT")
+        if "primary_print_id" not in group_columns:
+            cursor.execute("ALTER TABLE print_groups ADD COLUMN primary_print_id INTEGER")
 
             # initialiser created_at pour les groupes existants
             cursor.execute("SELECT id FROM print_groups")
@@ -845,5 +848,12 @@ def adjustDuration(print_id: int, duration_seconds: int) -> None:
     Met à jour la durée (en secondes) d’une impression dans l’historique.
     """
     update_print_history_field(print_id, "duration", duration_seconds)
+
+def set_group_primary_print(group_id: int, print_id: int):
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("UPDATE print_groups SET primary_print_id = ? WHERE id = ?", (print_id, group_id))
+    conn.commit()
+    conn.close()
 
 create_database()

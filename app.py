@@ -602,7 +602,7 @@ def print_history():
             gid = p["group_id"]
             entry_key = f"group_{gid}"
             entry = entries.get(entry_key)
-            if not entry:
+            if not entry or entry.get("type") != "group":
                 entry = {
                     "type": "group",
                     "id": gid,
@@ -613,33 +613,44 @@ def print_history():
                     "total_weight": 0,
                     "max_id": 0,
                     "latest_date": p["print_date"],
-                    "thumbnail": p["image_file"],
+                    "thumbnail": None,  # sera défini plus bas
                     "filament_usage": {},
-                    "number_of_items": p.get("group_number_of_items") or 1
+                    "number_of_items": p.get("group_number_of_items") or 1,
+                    "primary_print_id": p.get("group_primary_print_id"),
                 }
                 entries[entry_key] = entry
-
+        
             entry["prints"].append(p)
             entry["total_duration"] += p["duration"]
             entry["total_cost"] += p["full_cost"]
             entry["total_weight"] += p["total_weight"]
+        
             if p["id"] > entry["max_id"]:
                 entry["max_id"] = p["id"]
                 entry["latest_date"] = p["print_date"]
+        
+            # Définir la miniature en fonction du primary_print_id s’il est défini
+            if entry.get("primary_print_id"):
+                if p["id"] == entry["primary_print_id"]:
+                    entry["thumbnail"] = p["image_file"]
+            elif not entry.get("thumbnail"):
                 entry["thumbnail"] = p["image_file"]
-
+        
             for filament in p["filament_usage"]:
                 key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
-                usage = entry["filament_usage"].setdefault(key, {
-                    "grams_used": 0,
-                    "cost": 0.0,
-                    "spool": filament.get("spool"),
-                    "spool_id": filament.get("spool_id"),
-                    "filament_type": filament.get("filament_type"),
-                    "color": filament.get("color")
-                })
-                usage["grams_used"] += filament["grams_used"]
-                usage["cost"] += filament.get("cost", 0.0)
+                if key not in entry["filament_usage"]:
+                    entry["filament_usage"][key] = {
+                        "grams_used": filament["grams_used"],
+                        "cost": filament.get("cost", 0.0),
+                        "spool": filament.get("spool"),
+                        "spool_id": filament.get("spool_id"),
+                        "filament_type": filament.get("filament_type"),
+                        "color": filament.get("color")
+                    }
+                else:
+                    usage = entry["filament_usage"][key]
+                    usage["grams_used"] += filament["grams_used"]
+                    usage["cost"] += filament.get("cost", 0.0)
         else:
             entries[f"print_{p['id']}"] = {
                 "type": "single",
@@ -1114,3 +1125,13 @@ def adjust_duration():
         pass
 
     return redirect(url_for("print_history", page=request.args.get("page"), search=request.args.get("search",''),focus_print_id=print_id))
+
+@app.route("/set_group_primary", methods=["POST"])
+def set_group_primary():
+    print_id = int(request.form["print_id"])
+    group_id = int(request.form["group_id"])
+    set_group_primary_print(group_id, print_id)
+    page = request.form.get("page", 1)
+    search = request.form.get("search", "")
+    return redirect(url_for("print_history", page=page, search=search, focus_group_id=group_id))
+
