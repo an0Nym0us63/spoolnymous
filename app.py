@@ -638,9 +638,17 @@ def print_history():
         
             for filament in p["filament_usage"]:
                 key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
-                usage = entry["filament_usage"].setdefault(key, dict(filament))
-                usage.setdefault("cost", 0.0)
-                if usage is not filament:
+                if key not in entry["filament_usage"]:
+                    entry["filament_usage"][key] = {
+                        "grams_used": filament["grams_used"],
+                        "cost": filament.get("cost", 0.0),
+                        "spool": filament.get("spool"),
+                        "spool_id": filament.get("spool_id"),
+                        "filament_type": filament.get("filament_type"),
+                        "color": filament.get("color")
+                    }
+                else:
+                    usage = entry["filament_usage"][key]
                     usage["grams_used"] += filament["grams_used"]
                     usage["cost"] += filament.get("cost", 0.0)
         
