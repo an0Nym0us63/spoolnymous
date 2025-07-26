@@ -337,12 +337,11 @@ def get_distinct_values():
         "filaments": filaments
     }
 
-def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
+def get_prints_with_filament(filters=None, search=None):
     filters = filters or {}
     where_clauses = []
     params = []
     
-    # Filtrage par filament_id
     if filters.get("filament_id") and any(v.strip() for v in filters["filament_id"]):
         ids = []
         for val in filters["filament_id"]:
@@ -353,7 +352,6 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
             where_clauses.append(f"f.spool_id IN ({placeholders})")
             params.extend(ids)
 
-    # Filtrage par type de filament
     if filters.get("filament_type") and any(v.strip() for v in filters["filament_type"]):
         types = [v.strip() for v in filters["filament_type"] if v.strip()]
         if types:
@@ -361,7 +359,6 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
             where_clauses.append(f"f.filament_type IN ({placeholders})")
             params.extend(types)
 
-    # Filtrage par couleur
     if filters.get("color") and any(v.strip() for v in filters["color"]):
         color_families = [v.strip() for v in filters["color"] if v.strip()]
         conn = sqlite3.connect(db_config["db_path"])
@@ -390,7 +387,6 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
                 params.extend(hexes)
             params.append(len(selected_hexes_by_family))
 
-    # Recherche textuelle
     if search:
         words = [w.strip().lower() for w in search.split() if w.strip()]
         word_clauses = []
@@ -417,18 +413,7 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # Total count
-    cursor.execute(f'''
-        SELECT COUNT(DISTINCT p.id)
-        FROM prints p
-        LEFT JOIN filament_usage f ON f.print_id = p.id
-        LEFT JOIN print_groups pg ON pg.id = p.group_id
-        {where_sql}
-    ''', params)
-    total_count = cursor.fetchone()[0]
-
-    # Chargement des prints paginés
-    base_query = f'''
+    query = f'''
         SELECT DISTINCT p.id AS id,
             p.print_date,
             p.file_name,
@@ -455,18 +440,12 @@ def get_prints_with_filament(offset=0, limit=10, filters=None, search=None):
         {where_sql}
         ORDER BY p.print_date DESC
     '''
-
-    if limit is not None:
-        base_query += " LIMIT ? OFFSET ?"
-        query_params = params + [limit, offset]
-    else:
-        query_params = params
-
-    cursor.execute(base_query, query_params)
+    cursor.execute(query, params)
     prints = [dict(row) for row in cursor.fetchall()]
     conn.close()
 
-    return total_count, prints
+    return prints
+
 
 
 

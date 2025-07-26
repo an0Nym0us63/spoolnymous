@@ -550,7 +550,6 @@ def print_history():
 
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per_page", 50))
-    offset = (page - 1) * per_page
 
     filters = {
         "filament_type": request.args.getlist("filament_type"),
@@ -563,17 +562,11 @@ def print_history():
     focus_print_id = request.args.get("focus_print_id", type=int)
     focus_group_id = request.args.get("focus_group_id", type=int)
 
-    total_count, prints = get_prints_with_filament(
-        offset=offset,
-        limit=per_page,
-        filters=filters,
-        search=search
-    )
-
+    raw_prints = get_prints_with_filament(filters=filters, search=search)
     spool_list = fetchSpools(False, True)
     entries = {}
 
-    for p in prints:
+    for p in raw_prints:
         if p["duration"] is None:
             p["duration"] = 0
         p["duration"] /= 3600
@@ -609,7 +602,7 @@ def print_history():
             gid = p["group_id"]
             entry_key = f"group_{gid}"
             entry = entries.get(entry_key)
-            if not entry or entry.get("type") != "group":
+            if not entry:
                 entry = {
                     "type": "group",
                     "id": gid,
@@ -630,7 +623,6 @@ def print_history():
             entry["total_duration"] += p["duration"]
             entry["total_cost"] += p["full_cost"]
             entry["total_weight"] += p["total_weight"]
-
             if p["id"] > entry["max_id"]:
                 entry["max_id"] = p["id"]
                 entry["latest_date"] = p["print_date"]
@@ -638,19 +630,16 @@ def print_history():
 
             for filament in p["filament_usage"]:
                 key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
-                if key not in entry["filament_usage"]:
-                    entry["filament_usage"][key] = {
-                        "grams_used": filament["grams_used"],
-                        "cost": filament.get("cost", 0.0),
-                        "spool": filament.get("spool"),
-                        "spool_id": filament.get("spool_id"),
-                        "filament_type": filament.get("filament_type"),
-                        "color": filament.get("color")
-                    }
-                else:
-                    usage = entry["filament_usage"][key]
-                    usage["grams_used"] += filament["grams_used"]
-                    usage["cost"] += filament.get("cost", 0.0)
+                usage = entry["filament_usage"].setdefault(key, {
+                    "grams_used": 0,
+                    "cost": 0.0,
+                    "spool": filament.get("spool"),
+                    "spool_id": filament.get("spool_id"),
+                    "filament_type": filament.get("filament_type"),
+                    "color": filament.get("color")
+                })
+                usage["grams_used"] += filament["grams_used"]
+                usage["cost"] += filament.get("cost", 0.0)
         else:
             entries[f"print_{p['id']}"] = {
                 "type": "single",
@@ -665,6 +654,8 @@ def print_history():
             entry["full_cost_by_item"] = entry["total_cost"] / entry["number_of_items"]
 
     entries_list = sorted(entries.values(), key=lambda e: e["max_id"], reverse=True)
+    total_pages = (len(entries_list) + per_page - 1) // per_page
+    paged_entries = entries_list[(page - 1) * per_page : page * per_page]
 
     if focus_print_id and not focus_group_id:
         for entry in entries_list:
@@ -673,8 +664,6 @@ def print_history():
                     focus_group_id = entry["print"]["group_id"]
                 break
 
-    total_pages = (total_count + per_page - 1) // per_page
-
     distinct_values = get_distinct_values()
     args = request.args.to_dict(flat=False)
     args.pop('page', None)
@@ -682,9 +671,10 @@ def print_history():
     pagination_pages = compute_pagination_pages(page, total_pages)
 
     filters["filament_id"] = [fid for group in filters["filament_id"] for fid in group.split(',') if fid]
+
     return render_template(
         'print_history.html',
-        entries=entries_list,
+        entries=paged_entries,
         groups_list=groups_list,
         currencysymbol=spoolman_settings["currency_symbol"],
         page=page,
