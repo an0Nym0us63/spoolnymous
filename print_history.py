@@ -5,6 +5,7 @@ import math
 from collections import defaultdict
 from config import COST_BY_HOUR
 import operator
+from deep_translator import GoogleTranslator
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
@@ -172,6 +173,36 @@ def create_database() -> None:
         conn.commit()
         conn.close()
 
+def filter_prints_by_search_terms(prints, search_terms):
+    filtered = []
+    translator = GoogleTranslator(source='en', target='fr')
+
+    for p in prints:
+        file_name = p.get("file_name", "").lower()
+        group_name = p.get("group_name", "").lower()
+        tags = [t.lower() for t in p.get("tags", [])]
+
+        # Traductions anticipées
+        try:
+            translated_file = translator.translate(file_name)
+            translated_group = translator.translate(group_name)
+        except Exception:
+            translated_file = file_name
+            translated_group = group_name
+
+        for term in search_terms:
+            term = term.lower()
+            if (
+                term in file_name or
+                term in group_name or
+                any(term in tag for tag in tags) or
+                term in translated_file or
+                term in translated_group
+            ):
+                filtered.append(p)
+                break  # on garde le print s’il matche un seul terme
+
+    return filtered
 
 def insert_print(file_name: str, print_type: str, image_file: str = None, print_date: str = None, duration: float = 0) -> int:
     if print_date is None:
@@ -449,10 +480,6 @@ def get_prints_with_filament(filters=None, search=None):
     conn.close()
 
     return prints
-
-
-
-
 
 def get_filament_for_slot(print_id: int, ams_slot: int):
     conn = sqlite3.connect(db_config["db_path"])
