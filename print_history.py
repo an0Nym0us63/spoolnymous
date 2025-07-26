@@ -179,7 +179,7 @@ def filter_prints_by_search_terms(prints, search_terms):
 
     for p in prints:
         file_name = p.get("file_name", "").lower()
-        group_name = p.get("group_name", "").lower()
+        group_name = (p.get("group_name") or "").lower()
         tags = [t.lower() for t in p.get("tags", [])]
 
         # Traductions anticipées
