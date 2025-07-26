@@ -90,11 +90,11 @@
         <div class="modal-body">
           <div class="mb-3">
             <label for="hours_{{ print.id }}" class="form-label">Heures</label>
-            <input type="number" class="form-control" id="hours_{{ print.id }}" name="hours" min="0" required>
+            <input type="number" class="form-control" id="hours_{{ print.id }}" name="hours" min="0" step="0.01">
           </div>
           <div class="mb-3">
             <label for="minutes_{{ print.id }}" class="form-label">Minutes</label>
-            <input type="number" class="form-control" id="minutes_{{ print.id }}" name="minutes" min="0" max="59" required>
+            <input type="number" class="form-control" id="minutes_{{ print.id }}" name="minutes" min="0" step="1">
           </div>
         </div>
        <button type="button" class="btn btn-primary"

@@ -1098,12 +1098,16 @@ def stats():
 @app.route("/adjust_duration", methods=["POST"])
 def adjust_duration():
     print_id = int(request.form["print_id"])
-    hours = int(request.form.get("hours", 0))
-    minutes = int(request.form.get("minutes", 0))
-    duration_seconds = (hours * 3600) + (minutes * 60)
+    try:
+        hours = float(request.form.get("hours", 0) or 0)
+        minutes = float(request.form.get("minutes", 0) or 0)
+    except ValueError:
+        pass
+
+    total_seconds = int((hours * 60 + minutes) * 60)
 
     try:
-        adjustDuration(print_id, duration_seconds)
+        adjustDuration(print_id, total_seconds)
     except Exception as e:
         pass
 

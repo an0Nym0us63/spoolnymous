@@ -216,50 +216,43 @@ $(document).ready(function () {
             });
     }
 	window.confirmAdjustDuration = function (printId) {
-        const hours = document.getElementById(`hours_${printId}`).value;
-        const minutes = document.getElementById(`minutes_${printId}`).value;
+    const hourInput = document.getElementById(`hours_${printId}`).value;
+    const minInput = document.getElementById(`minutes_${printId}`).value;
 
-        if (!hours && !minutes) {
-            Swal.fire({
-                title: "Durée vide",
-                text: "Merci de saisir une durée (heures ou minutes).",
-                icon: "warning",
-                confirmButtonText: "OK",
-                customClass: getSwalThemeClasses()
-            });
-            return;
-        }
+    const hours = parseFloat(hourInput || "0");
+    const minutes = parseFloat(minInput || "0");
 
-        const h = parseInt(hours || 0, 10);
-        const m = parseInt(minutes || 0, 10);
-
-        if (isNaN(h) || isNaN(m)) {
-            Swal.fire({
-                title: "Valeurs invalides",
-                text: "Veuillez entrer des nombres valides.",
-                icon: "error",
-                confirmButtonText: "OK",
-                customClass: getSwalThemeClasses()
-            });
-            return;
-        }
-
-        const msg = `Confirmer l’ajustement de la durée à ${h}h${m > 0 ? ' ' + m + 'min' : ''} ?`;
-
+    if ((isNaN(hours) && isNaN(minutes)) || (hours <= 0 && minutes <= 0)) {
         Swal.fire({
-            title: "Confirmer l’ajustement",
-            text: msg,
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonText: "Oui",
-            cancelButtonText: "Annuler",
+            title: "Durée vide",
+            text: "Merci de saisir une durée dans au moins un des deux champs.",
+            icon: "warning",
+            confirmButtonText: "OK",
             customClass: getSwalThemeClasses()
-        }).then(result => {
-            if (result.isConfirmed) {
-                document.querySelector(`#adjustDurationModal_${printId} form`).submit();
-            }
         });
-    };
+        return;
+    }
+
+    const totalMinutes = (isNaN(hours) ? 0 : hours * 60) + (isNaN(minutes) ? 0 : minutes);
+    const hFinal = Math.floor(totalMinutes / 60);
+    const mFinal = Math.round(totalMinutes % 60);
+
+    const msg = `Confirmer l’ajustement de la durée à ${hFinal}h${mFinal > 0 ? ' ' + mFinal + 'min' : ''} ?`;
+
+    Swal.fire({
+        title: "Confirmer l’ajustement",
+        text: msg,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Oui",
+        cancelButtonText: "Annuler",
+        customClass: getSwalThemeClasses()
+    }).then(result => {
+        if (result.isConfirmed) {
+            document.querySelector(`#adjustDurationModal_${printId} form`).submit();
+        }
+    });
+};
 });
 
 // Fonctions couleurs
