@@ -428,6 +428,7 @@ def get_prints_with_filament(filters=None, search=None):
             pg.id AS group_id,
             pg.name AS group_name,
             pg.number_of_items AS group_number_of_items,
+            pg.primary_print_id AS group_primary_print_id,
             (
                 SELECT json_group_array(json_object(
                     'spool_id', f2.spool_id,
