@@ -2,7 +2,7 @@
 <div class="modal fade" id="editModal_{{ print.id }}" tabindex="-1" aria-labelledby="editModalLabel_{{ print.id }}" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <form method="post" action="{{ url_for('edit_print_name', page=page, focus_id=print.id) }}">
+      <form method="post" action="{{ url_for('edit_print_name', page=page,search=search, focus_id=print.id) }}">
         <div class="modal-header">
           <h5 class="modal-title" id="editModalLabel_{{ print.id }}">Renommer (Print #{{ print.id }})</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
@@ -29,7 +29,7 @@
 <div class="modal fade" id="editItemsModal_{{ print.id }}" tabindex="-1" aria-labelledby="editItemsModalLabel_{{ print.id }}" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <form method="post" action="{{ url_for('edit_print_items', page=page, focus_id=print.id) }}">
+      <form method="post" action="{{ url_for('edit_print_items', page=page,search=search, focus_id=print.id) }}">
         <div class="modal-header">
           <h5 class="modal-title" id="editItemsModalLabel_{{ print.id }}">Nombre d’éléments (Print #{{ print.id }})</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
@@ -56,7 +56,7 @@
 <div class="modal fade" id="groupModal_{{ print.id }}" tabindex="-1" aria-labelledby="groupModalLabel_{{ print.id }}" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <form method="post" action="{{ url_for('assign_to_group', page=page, focus_id=print.id) }}">
+      <form method="post" action="{{ url_for('assign_to_group', page=page,search=search, focus_id=print.id) }}">
         <div class="modal-header">
           <h5 class="modal-title" id="groupModalLabel_{{ print.id }}">Ajouter à un groupe (Print #{{ print.id }})</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
@@ -83,7 +83,7 @@
 
 <div class="modal fade" id="adjustDurationModal_{{ print.id }}" tabindex="-1" aria-labelledby="adjustDurationModalLabel_{{ print.id }}" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <form method="post" action="{{ url_for('adjust_duration') }}?page={{ page }}&focus_print_id={{ print.id }}">
+    <form method="post" action="{{ url_for('adjust_duration') }}?page={{ page }}&search={{ search }}&focus_print_id={{ print.id }}">
       <input type="hidden" name="print_id" value="{{ print.id }}">
 	  <input type="hidden" name="page" value="{{ page }}">
 	  <input type="hidden" name="search" value="{{ search }}">
