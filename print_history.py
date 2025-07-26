@@ -857,4 +857,10 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
     
     return stats_data
 
+def adjustDuration(print_id: int, duration_seconds: int) -> None:
+    """
+    Met à jour la durée (en secondes) d’une impression dans l’historique.
+    """
+    update_print_history_field(print_id, "duration", duration_seconds)
+
 create_database()

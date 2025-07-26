@@ -77,3 +77,31 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="adjustDurationModal_{{ print.id }}" tabindex="-1" aria-labelledby="adjustDurationModalLabel_{{ print.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="post" action="{{ url_for('adjust_duration') }}?page={{ page }}&focus_print_id={{ print.id }}">
+      <input type="hidden" name="print_id" value="{{ print.id }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="adjustDurationModalLabel_{{ print.id }}">🕒 Ajuster la durée</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="hours_{{ print.id }}" class="form-label">Heures</label>
+            <input type="number" class="form-control" id="hours_{{ print.id }}" name="hours" min="0" required>
+          </div>
+          <div class="mb-3">
+            <label for="minutes_{{ print.id }}" class="form-label">Minutes</label>
+            <input type="number" class="form-control" id="minutes_{{ print.id }}" name="minutes" min="0" max="59" required>
+          </div>
+        </div>
+       <button type="button" class="btn btn-primary"
+        onclick="confirmAdjustDuration('{{ print.id }}')">
+  ✅ Enregistrer
+</button>
+      </div>
+    </form>
+  </div>
+</div>

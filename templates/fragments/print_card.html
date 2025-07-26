@@ -67,6 +67,11 @@
               🔢 Nombre d’éléments
             </a>
           </li>
+		  <li>
+  <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#adjustDurationModal_{{ print.id }}">
+    🕒 Ajuster durée
+  </a>
+</li>
           {% if not print.group_id %}
           <li>
             <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#groupModal_{{ print.id }}">

@@ -15,7 +15,7 @@ from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool, archive_spool, reajust_spool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration
 
 
 COLOR_FAMILIES = {
@@ -1094,3 +1094,17 @@ def stats():
         distinct_values=get_distinct_values(),
         page_title="Statistiques"
     )
+
+@app.route("/adjust_duration", methods=["POST"])
+def adjust_duration():
+    print_id = int(request.form["print_id"])
+    hours = int(request.form.get("hours", 0))
+    minutes = int(request.form.get("minutes", 0))
+    duration_seconds = (hours * 3600) + (minutes * 60)
+
+    try:
+        adjustDuration(print_id, duration_seconds)
+    except Exception as e:
+        pass
+
+    return redirect(url_for("index", page=request.args.get("page"), focus_print_id=print_id))

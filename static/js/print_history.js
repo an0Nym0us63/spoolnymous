@@ -215,6 +215,51 @@ $(document).ready(function () {
                 });
             });
     }
+	window.confirmAdjustDuration = function (printId) {
+        const hours = document.getElementById(`hours_${printId}`).value;
+        const minutes = document.getElementById(`minutes_${printId}`).value;
+
+        if (!hours && !minutes) {
+            Swal.fire({
+                title: "Durée vide",
+                text: "Merci de saisir une durée (heures ou minutes).",
+                icon: "warning",
+                confirmButtonText: "OK",
+                customClass: getSwalThemeClasses()
+            });
+            return;
+        }
+
+        const h = parseInt(hours || 0, 10);
+        const m = parseInt(minutes || 0, 10);
+
+        if (isNaN(h) || isNaN(m)) {
+            Swal.fire({
+                title: "Valeurs invalides",
+                text: "Veuillez entrer des nombres valides.",
+                icon: "error",
+                confirmButtonText: "OK",
+                customClass: getSwalThemeClasses()
+            });
+            return;
+        }
+
+        const msg = `Confirmer l’ajustement de la durée à ${h}h${m > 0 ? ' ' + m + 'min' : ''} ?`;
+
+        Swal.fire({
+            title: "Confirmer l’ajustement",
+            text: msg,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: "Oui",
+            cancelButtonText: "Annuler",
+            customClass: getSwalThemeClasses()
+        }).then(result => {
+            if (result.isConfirmed) {
+                document.querySelector(`#adjustDurationModal_${printId} form`).submit();
+            }
+        });
+    };
 });
 
 // Fonctions couleurs
