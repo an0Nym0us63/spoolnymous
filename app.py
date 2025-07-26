@@ -5,6 +5,7 @@ import math
 import datetime
 import os
 import re
+from collections import defaultdict
 
 from flask import Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort
 
@@ -582,7 +583,7 @@ def print_history():
         p["total_cost"] = 0
         p["tags"] = get_tags_for_print(p["id"])
         p["total_weight"] = sum(f["grams_used"] for f in p["filament_usage"])
-
+    
         for filament in p["filament_usage"]:
             if filament["spool_id"]:
                 for spool in spool_list:
@@ -591,11 +592,10 @@ def print_history():
                         filament["cost"] = filament['grams_used'] * spool.get('cost_per_gram', 0.0)
                         p["total_cost"] += filament["cost"]
                         break
-            # si le spool_id est None ou non trouvé, on s'assure d'avoir une clé "cost"
             filament.setdefault("cost", 0.0)
-
+    
         p["full_cost"] = p["total_cost"] + p["electric_cost"]
-
+    
         if not p.get("number_of_items"):
             p["number_of_items"] = 1
         p["full_cost_by_item"] = p["full_cost"] / p["number_of_items"]
@@ -605,38 +605,39 @@ def print_history():
             p["model_file"] = model_file if os.path.isfile(model_path) else None
         else:
             p["model_file"] = None
+    
         if p["group_id"]:
             gid = p["group_id"]
-            entry = entries.setdefault(gid, {
-                "type": "group",
-                "id": gid,
-                "name": p["group_name"],
-                "prints": [],
-                "total_duration": 0,
-                "total_cost": 0,
-                "total_weight": 0,
-                "max_id": 0,
-                "latest_date": p["print_date"],
-                "thumbnail": p["image_file"],
-                "filament_usage": {},
-                "number_of_items": p["group_number_of_items"] or 1
-            })
-
+            if gid not in entries:
+                entries[gid] = {
+                    "type": "group",
+                    "id": gid,
+                    "name": p.get("group_name", f"Groupe {gid}"),
+                    "prints": [],
+                    "total_duration": 0,
+                    "total_cost": 0,
+                    "total_weight": 0,
+                    "max_id": 0,
+                    "latest_date": p["print_date"],
+                    "thumbnail": p["image_file"],
+                    "filament_usage": {},
+                    "number_of_items": p.get("group_number_of_items") or 1
+                }
+            entry = entries[gid]
             entry["prints"].append(p)
             entry["total_duration"] += p["duration"]
             entry["total_cost"] += p["full_cost"]
             entry["total_weight"] += p["total_weight"]
-
+    
             if p["id"] > entry["max_id"]:
                 entry["max_id"] = p["id"]
                 entry["latest_date"] = p["print_date"]
                 entry["thumbnail"] = p["image_file"]
-
+    
             for filament in p["filament_usage"]:
                 key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
                 usage = entry["filament_usage"].setdefault(key, dict(filament))
                 usage.setdefault("cost", 0.0)
-
                 if usage is not filament:
                     usage["grams_used"] += filament["grams_used"]
                     usage["cost"] += filament.get("cost", 0.0)
@@ -646,7 +647,6 @@ def print_history():
                 "print": p,
                 "max_id": p["id"]
             }
-
 
     for entry in entries.values():
         if entry["type"] == "group":
