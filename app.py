@@ -1111,4 +1111,4 @@ def adjust_duration():
     except Exception as e:
         pass
 
-    return redirect(url_for("index", page=request.args.get("page"), focus_print_id=print_id))
+    return redirect(url_for("print_history", page=request.args.get("page"), focus_print_id=print_id))
