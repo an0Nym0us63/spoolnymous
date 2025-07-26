@@ -81,29 +81,29 @@
     </div>
   </div>
 </div>
-<!-- Statistiques filament compactes -->
-<div class="row row-cols-3 g-1 mb-3 text-center align-items-stretch">
+<!-- Statistiques filament responsive -->
+<div class="row row-cols-3 g-2 mb-3 text-center align-items-stretch">
   <div class="col">
     <div class="card border-0 shadow-sm h-100">
-      <div class="card-body py-1 px-2 d-flex flex-column justify-content-center align-items-center">
-        <div class="fs-5">🧵</div>
-        <div class="small">{{ total_filaments }}</div>
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">🧵</div>
+        <div class="small fw-bold">{{ total_filaments }}</div>
       </div>
     </div>
   </div>
   <div class="col">
     <div class="card border-0 shadow-sm h-100">
-      <div class="card-body py-1 px-2 d-flex flex-column justify-content-center align-items-center">
-        <div class="fs-5">🏭</div>
-        <div class="small">{{ total_vendors }}</div>
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">🏭</div>
+        <div class="small fw-bold">{{ total_vendors }}</div>
       </div>
     </div>
   </div>
   <div class="col">
     <div class="card border-0 shadow-sm h-100">
-      <div class="card-body py-1 px-2 d-flex flex-column justify-content-center align-items-center">
-        <div class="fs-5">⚖️</div>
-        <div class="small">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">⚖️</div>
+        <div class="small fw-bold">
           {% if total_remaining >= 1000 %}
             {{ (total_remaining / 1000) | round(2) }} kg
           {% else %}
