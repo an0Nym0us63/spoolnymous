@@ -607,44 +607,46 @@ def print_history():
             p["model_file"] = None
         if p["group_id"]:
             gid = p["group_id"]
-            if gid not in entries:
-                entries[gid] = {
-                    "type": "group",
-                    "id": gid,
-                    "name": p["group_name"],
-                    "prints": [],
-                    "total_duration": 0,
-                    "total_cost": 0,
-                    "max_id": 0,
-                    "latest_date": p["print_date"],
-                    "thumbnail": p["image_file"],
-                    "filament_usage": {},
-                    "number_of_items": p["group_number_of_items"] or 1
-                }
-            entries[gid]["prints"].append(p)
-            entries[gid]["total_duration"] += p["duration"]
-            entries[gid]["total_cost"] += p["full_cost"]
-            entries[gid]["total_weight"] = entries[gid].get("total_weight", 0) + p["total_weight"]
-            if p["id"] > entries[gid]["max_id"]:
-                entries[gid]["max_id"] = p["id"]
-                entries[gid]["latest_date"] = p["print_date"]
-                entries[gid]["thumbnail"] = p["image_file"]
+            entry = entries.setdefault(gid, {
+                "type": "group",
+                "id": gid,
+                "name": p["group_name"],
+                "prints": [],
+                "total_duration": 0,
+                "total_cost": 0,
+                "total_weight": 0,
+                "max_id": 0,
+                "latest_date": p["print_date"],
+                "thumbnail": p["image_file"],
+                "filament_usage": {},
+                "number_of_items": p["group_number_of_items"] or 1
+            })
+
+            entry["prints"].append(p)
+            entry["total_duration"] += p["duration"]
+            entry["total_cost"] += p["full_cost"]
+            entry["total_weight"] += p["total_weight"]
+
+            if p["id"] > entry["max_id"]:
+                entry["max_id"] = p["id"]
+                entry["latest_date"] = p["print_date"]
+                entry["thumbnail"] = p["image_file"]
 
             for filament in p["filament_usage"]:
                 key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
-                if key not in entries[gid]["filament_usage"]:
-                    # on force la présence de la clé cost
-                    entries[gid]["filament_usage"][key] = dict(filament)
-                    entries[gid]["filament_usage"][key].setdefault("cost", 0.0)
-                else:
-                    entries[gid]["filament_usage"][key]["grams_used"] += filament["grams_used"]
-                    entries[gid]["filament_usage"][key]["cost"] += filament.get("cost", 0.0)
+                usage = entry["filament_usage"].setdefault(key, dict(filament))
+                usage.setdefault("cost", 0.0)
+
+                if usage is not filament:
+                    usage["grams_used"] += filament["grams_used"]
+                    usage["cost"] += filament.get("cost", 0.0)
         else:
             entries[p["id"]] = {
                 "type": "single",
                 "print": p,
                 "max_id": p["id"]
             }
+
 
     for entry in entries.values():
         if entry["type"] == "group":
