@@ -1,7 +1,10 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1>Fill slot</h1>
-<h2>AMS: {{ ams_id }}, Tray: {{ tray_id }}</h2>
+{% if assign_print_id is defined %}
+  <h2>Assigner une bobine au print #{{ assign_print_id }}</h2>
+{% else %}
+  <h2>AMS: {{ ams_id }}, Tray: {{ tray_id }}</h2>
+{% endif %}
 
 <!-- Bouton flottant pagination -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
