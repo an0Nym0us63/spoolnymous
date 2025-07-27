@@ -196,18 +196,39 @@ def update_translated_name(name):
 
     return translated.strip()
 
+def clean_print_name(raw_name: str) -> str:
+    # 1. Supprimer l'extension (.stl, .gcode, etc.)
+    name, _ = os.path.splitext(raw_name)
+
+    # 2. Remplacer uniquement les underscores `_` et les tirets longs `–` par des espaces
+    name = name.replace('_', ' ')
+    name = name.replace('–', ' ')  # tiret long (alt+0150 ou U+2013)
+
+    # 3. Supprimer les suffixes techniques type "v2", "final3", "rev1"
+    name = re.sub(r'\b(v|rev|final)\d*\b', '', name, flags=re.IGNORECASE)
+
+    # 4. Réduire les espaces multiples
+    name = re.sub(r'\s+', ' ', name)
+
+    # 5. Nettoyage des bords + capitalisation intelligente
+    name = name.strip()
+    name = name[:1].upper() + name[1:] if name else name
+
+    return name
+
 def insert_print(file_name: str, print_type: str, image_file: str = None, print_date: str = None, duration: float = 0) -> int:
     if print_date is None:
         print_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    translated = update_translated_name(file_name)
+    cleaned = clean_print_name(file_name)
+    translated = clean_print_name(update_translated_name(cleaned))
 
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO prints (print_date, file_name, print_type, image_file, duration, original_name, translated_name)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (print_date, file_name, print_type, image_file, duration, file_name, translated))
+    ''', (print_date, cleaned, print_type, image_file, duration, file_name, translated))
     print_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -491,14 +512,15 @@ def get_filament_for_slot(print_id: int, ams_slot: int):
     return result
 
 def update_print_filename(print_id: int, new_filename: str):
-    translated = update_translated_name(new_filename)
+    cleaned = clean_print_name(new_filename)
+    translated = clean_print_name(update_translated_name(cleaned))
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
     cursor.execute('''
         UPDATE prints
         SET file_name = ?, translated_name = ?
         WHERE id = ?
-    ''', (new_filename, translated, print_id))
+    ''', (cleaned, translated, print_id))
     conn.commit()
     conn.close()
 
