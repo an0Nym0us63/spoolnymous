@@ -181,6 +181,8 @@ def create_database() -> None:
         conn.close()
 
 def update_translated_name(name):
+    source = "en"
+    target = "fr"
     ctx_prefix = "__ctx__ "  # Contexte neutre pour forcer la traduction
     contextualized_text = ctx_prefix + name
 
