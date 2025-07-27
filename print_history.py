@@ -411,6 +411,7 @@ def get_prints_with_filament(filters=None, search=None):
         for w in words:
             word_clauses.append("""
                 LOWER(p.file_name) LIKE ?
+                OR LOWER(p.translated_name) LIKE ?
                 OR EXISTS (
                     SELECT 1 FROM print_tags pt
                     WHERE pt.print_id = p.id AND LOWER(pt.tag) LIKE ?
@@ -420,10 +421,11 @@ def get_prints_with_filament(filters=None, search=None):
                     WHERE pg.id = p.group_id AND LOWER(pg.name) LIKE ?
                 )
             """)
-            params.extend([f"%{w}%"] * 3)
-
+            params.extend([f"%{w}%"] * 4)
+    
         if word_clauses:
             where_clauses.append(f"( {' OR '.join(word_clauses)} )")
+
 
     where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
