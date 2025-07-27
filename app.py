@@ -309,7 +309,13 @@ def fill():
     total = len(all_filaments)
     total_pages = math.ceil(total / per_page)
     filaments_page = all_filaments[(page-1)*per_page : page*per_page]
+    assign_print_id = request.args.get("assign_print_id")
+    assign_filament_index = request.args.get("assign_filament_index")
+    assign_page = request.args.get("assign_page")
+    assign_search = request.args.get("assign_search")
 
+    if not search and assign_search:
+        search = assign_search
     return render_template(
         "fill.html",
         filaments=filaments_page,
@@ -321,7 +327,11 @@ def fill():
         selected_family=selected_family,
         page_title="Fill",
         ams_id=ams_id, 
-        tray_id=tray_id
+        tray_id=tray_id,
+        assign_print_id=assign_print_id,
+        assign_filament_index=assign_filament_index,
+        assign_page=assign_page,
+        assign_search=assign_search
     )
 
 @app.route("/spool_info")
