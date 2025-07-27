@@ -142,7 +142,7 @@ def create_database() -> None:
         if "original_name" not in columns:
             cursor.execute("ALTER TABLE prints ADD COLUMN original_name TEXT")
             cursor.execute("UPDATE prints SET original_name = file_name WHERE original_name IS NULL OR original_name = ''")
-        if "translated_name " not in columns:
+        if "translated_name" not in columns:
             cursor.execute("ALTER TABLE prints ADD COLUMN translated_name TEXT")
             cursor.execute("SELECT id, file_name FROM prints")
             for pid, fname in cursor.fetchall():
