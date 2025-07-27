@@ -313,9 +313,7 @@ def fill():
     assign_filament_index = request.args.get("assign_filament_index")
     assign_page = request.args.get("assign_page")
     assign_search = request.args.get("assign_search")
-
-    if not search and assign_search:
-        search = assign_search
+    is_assign_mode = all([assign_print_id, assign_filament_index])
     return render_template(
         "fill.html",
         filaments=filaments_page,
@@ -331,7 +329,8 @@ def fill():
         assign_print_id=assign_print_id,
         assign_filament_index=assign_filament_index,
         assign_page=assign_page,
-        assign_search=assign_search
+        assign_search=assign_search,
+        is_assign_mode=is_assign_mode
     )
 
 @app.route("/spool_info")
