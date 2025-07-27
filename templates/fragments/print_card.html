@@ -157,25 +157,6 @@
           <div class="card my-1">
             <div class="card-body py-2 d-flex align-items-center gap-2">
               {% if filament.spool %}
-			  <a href="{{ url_for('fill',
-                      ams=0,
-                      tray=0,
-                      assign_print_id=print.id,
-                      assign_filament_index=filament.ams_slot,
-                      assign_page=page,
-                      search=search,
-                      assign_search=filament.filament_type) }}"
-     class="nav-link link-body-emphasis" title="Assigner une bobine">
-    <div class="filament-info d-flex align-items-center gap-2">
-      <div class="spool-icon vertical small">
-        <div style="background-color: {{ filament.color }};"></div>
-      </div>
-      <div class="spool-details">
-        <strong>Non assigné - {{ filament.filament_type }}</strong><br>
-        <small>{{ "%.2f"|format(filament.grams_used) }}g</small>
-      </div>
-    </div>
-  </a>
                 <div class="spool-icon small">
                   {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
                     {% for color in filament.spool.filament.multi_color_hexes %}
