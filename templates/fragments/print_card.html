@@ -171,19 +171,26 @@
                   <small>{{ filament.spool.filament.name }} - {{ "%.2f"|format(filament.grams_used) }}g - {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}</small>
                 </div>
               {% else %}
-  <div class="spool-info">
-    <a href="{{ url_for('print_select_spool', ams_slot=filament.ams_slot, print_id=print.id) }}" class="nav-link link-body-emphasis" title="Assigner une bobine">
-      <div class="filament-info d-flex align-items-center gap-2">
-        <div class="spool-icon vertical small">
-          <div style="background-color: {{ filament.color }};"></div>
-        </div>
-        <div class="spool-details">
-          <strong>Non assigné - {{ filament.filament_type }}</strong><br>
-          <small>{{ "%.2f"|format(filament.grams_used) }}g</small>
-        </div>
+<div class="spool-info">
+  <a href="{{ url_for('fill',
+                      ams=0,
+                      tray=0,
+                      assign_print_id=print.id,
+                      assign_filament_index=loop.index0,
+                      assign_page=page,
+                      assign_search=search) }}"
+     class="nav-link link-body-emphasis" title="Assigner une bobine">
+    <div class="filament-info d-flex align-items-center gap-2">
+      <div class="spool-icon vertical small">
+        <div style="background-color: {{ filament.color }};"></div>
       </div>
-    </a>
-  </div>
+      <div class="spool-details">
+        <strong>Non assigné - {{ filament.filament_type }}</strong><br>
+        <small>{{ "%.2f"|format(filament.grams_used) }}g</small>
+      </div>
+    </div>
+  </a>
+</div>
 {% endif %}
             </div>
           </div>

@@ -701,8 +701,6 @@ def print_history():
         page_title="History"
     )
 
-
-
 @app.route("/print_select_spool")
 def print_select_spool():
 
@@ -1135,4 +1133,16 @@ def set_group_primary():
     page = request.form.get("page", 1)
     search = request.form.get("search", "")
     return redirect(url_for("print_history", page=page, search=search, focus_group_id=group_id))
+
+@app.route('/assign_spool_to_print', methods=['POST'])
+def assign_spool_to_print():
+    spool_id = int(request.form['spool_id'])
+    print_id = int(request.form['print_id'])
+    filament_index = int(request.form['filament_index'])  # correspond à ams_slot dans ta BDD
+    page = request.form.get('page', 1)
+    search = request.form.get('search', '')
+
+    update_filament_spool(print_id=print_id, filament_id=filament_index, spool_id=spool_id)
+
+    return redirect(url_for('print_history', page=page, focus_print_id=print_id, search=search))
 
