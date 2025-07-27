@@ -6,6 +6,7 @@ from collections import defaultdict
 from config import COST_BY_HOUR
 import operator
 from deep_translator import GoogleTranslator
+import re
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
