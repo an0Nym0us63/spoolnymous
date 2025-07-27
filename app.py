@@ -684,6 +684,13 @@ def print_history():
                 if entry["print"].get("group_id"):
                     focus_group_id = entry["print"]["group_id"]
                 break
+            elif entry["type"] == "group":
+                for p in entry["prints"]:
+                    if p["id"] == focus_print_id:
+                        focus_group_id = p.get("group_id")
+                        break
+                if focus_group_id:
+                    break
 
     distinct_values = get_distinct_values()
     args = request.args.to_dict(flat=False)
