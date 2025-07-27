@@ -184,15 +184,16 @@ def update_translated_name(name):
     source = "en"
     target = "fr"
     ctx_prefix = "__ctx__ "  # Contexte neutre pour forcer la traduction
-    contextualized_text = ctx_prefix + name
+    contextualized_text = f"This is a {name}"
 
     translated = GoogleTranslator(source=source, target=target).translate(contextualized_text)
 
-    # Nettoyage du préfixe s'il est resté
-    if translated.startswith("__ctx__"):
-        translated = translated.replace("__ctx__", "", 1).strip()
 
-    return translated
+    # Supprimer les préfixes de contexte traduits (insensibles à la casse)
+    prefix_pattern = r"^(ceci est (un|une)|c'est (un|une)?|il s'agit d'(un|une)|il s'agit de)\s+"
+    translated = re.sub(prefix_pattern, '', translated, flags=re.IGNORECASE)
+
+    return translated.strip()
 
 def insert_print(file_name: str, print_type: str, image_file: str = None, print_date: str = None, duration: float = 0) -> int:
     if print_date is None:
