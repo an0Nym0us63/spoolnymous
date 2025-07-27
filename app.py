@@ -575,6 +575,7 @@ def print_history():
         p["total_cost"] = 0
         p["tags"] = get_tags_for_print(p["id"])
         p["total_weight"] = sum(f["grams_used"] for f in p["filament_usage"])
+        p["translated_name"] = p.get("translated_name", "")
 
         for filament in p["filament_usage"]:
             if filament["spool_id"]:

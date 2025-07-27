@@ -5,6 +5,7 @@ import math
 from collections import defaultdict
 from config import COST_BY_HOUR
 import operator
+from deep_translator import GoogleTranslator
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
@@ -86,6 +87,7 @@ def create_database() -> None:
                 number_of_items INTEGER DEFAULT 1,
                 group_id INTEGER,
                 original_name TEXT,
+                translated_name TEXT,
                 FOREIGN KEY (group_id) REFERENCES print_groups(id)
             )
         ''')
@@ -140,6 +142,12 @@ def create_database() -> None:
         if "original_name" not in columns:
             cursor.execute("ALTER TABLE prints ADD COLUMN original_name TEXT")
             cursor.execute("UPDATE prints SET original_name = file_name WHERE original_name IS NULL OR original_name = ''")
+        if "translated_name " not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN translated_name TEXT")
+            cursor.execute("SELECT id, file_name FROM prints")
+            for pid, fname in cursor.fetchall():
+                translated = update_translated_name(fname)
+                cursor.execute("UPDATE prints SET translated_name = ? WHERE id = ?", (translated, pid))
 
         cursor.execute("PRAGMA table_info(print_groups)")
         group_columns = [row[1] for row in cursor.fetchall()]
@@ -172,17 +180,24 @@ def create_database() -> None:
         conn.commit()
         conn.close()
 
+def update_translated_name(name):
+    try:
+        return GoogleTranslator(source='en', target='fr').translate(name)
+    except Exception:
+        return name
 
 def insert_print(file_name: str, print_type: str, image_file: str = None, print_date: str = None, duration: float = 0) -> int:
     if print_date is None:
         print_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    translated = update_translated_name(file_name)
+
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO prints (print_date, file_name, print_type, image_file, duration, original_name)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (print_date, file_name, print_type, image_file, duration, file_name))
+        INSERT INTO prints (print_date, file_name, print_type, image_file, duration, original_name, translated_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (print_date, file_name, print_type, image_file, duration, file_name, translated))
     print_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -421,6 +436,7 @@ def get_prints_with_filament(filters=None, search=None):
             p.print_date,
             p.file_name,
             p.original_name,
+            p.translated_name,
             p.print_type,
             p.image_file,
             p.duration,
@@ -450,10 +466,6 @@ def get_prints_with_filament(filters=None, search=None):
 
     return prints
 
-
-
-
-
 def get_filament_for_slot(print_id: int, ams_slot: int):
     conn = sqlite3.connect(db_config["db_path"])
     conn.row_factory = sqlite3.Row
@@ -467,13 +479,14 @@ def get_filament_for_slot(print_id: int, ams_slot: int):
     return result
 
 def update_print_filename(print_id: int, new_filename: str):
+    translated = update_translated_name(new_filename)
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
     cursor.execute('''
         UPDATE prints
-        SET file_name = ?
+        SET file_name = ?, translated_name = ?
         WHERE id = ?
-    ''', (new_filename, print_id))
+    ''', (new_filename, translated, print_id))
     conn.commit()
     conn.close()
 
