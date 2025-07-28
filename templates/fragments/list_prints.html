@@ -29,8 +29,11 @@
 </div>
 
 <div class="flex-grow-1 d-flex flex-column align-items-center">
-  <div class="fw-semibold text-primary text-center small">
-    {{ entry.name }}
+  <div class="text-center small text-wrap" style="word-break: break-word;">
+    <span class="badge rounded-pill px-2 py-1 text-dark bg-light fw-normal"
+      style="font-size: 0.75rem; border: 1px solid #ced4da;">
+  {{ entry.name }}
+</span>
   </div>
   <div>
     <span class="badge bg-secondary bg-opacity-25 text-muted small">
