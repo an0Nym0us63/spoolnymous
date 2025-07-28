@@ -1162,3 +1162,18 @@ def assign_spool_to_print():
 
     return redirect(url_for('print_history', page=page, focus_print_id=print_id, search=search))
 
+@app.route("/change_print_status", methods=["POST"])
+def change_print_status():
+    print_id = int(request.form.get("print_id"))
+    new_status = request.form.get("status", "SUCCESS").strip()
+    note = request.form.get("status_note", "").strip()
+    page = request.form.get("page", 1)
+    search = request.form.get("search", "")
+
+    if new_status not in {"SUCCESS", "IN_PROGRESS", "FAILED", "PARTIAL"}:
+        return redirect(url_for("print_history", page=page, search=search, focus_print_id=print_id))
+
+    update_print_history_field(print_id, "status", new_status)
+    update_print_history_field(print_id, "status_note", note)
+
+    return redirect(url_for("print_history", page=page, search=search, focus_print_id=print_id))

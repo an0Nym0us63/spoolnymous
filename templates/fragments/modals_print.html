@@ -110,3 +110,38 @@
     </form>
   </div>
 </div>
+
+<div class="modal fade" id="changeStatusModal_{{ print.id }}" tabindex="-1" aria-labelledby="changeStatusModalLabel_{{ print.id }}" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="post" action="{{ url_for('change_print_status') }}">
+      <input type="hidden" name="print_id" value="{{ print.id }}">
+      <input type="hidden" name="page" value="{{ page }}">
+      <input type="hidden" name="search" value="{{ search }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="changeStatusModalLabel_{{ print.id }}">Changer le statut de l’impression</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="status_{{ print.id }}" class="form-label">Statut</label>
+            <select class="form-select" id="status_{{ print.id }}" name="status" required>
+              <option value="SUCCESS" {% if print.status == 'SUCCESS' %}selected{% endif %}>Succès</option>
+              <option value="IN_PROGRESS" {% if print.status == 'IN_PROGRESS' %}selected{% endif %}>En cours</option>
+              <option value="FAILED" {% if print.status == 'FAILED' %}selected{% endif %}>Échec</option>
+              <option value="PARTIAL" {% if print.status == 'PARTIAL' %}selected{% endif %}>Partiel</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="status_note_{{ print.id }}" class="form-label">Note (facultatif)</label>
+            <textarea class="form-control" id="status_note_{{ print.id }}" name="status_note" rows="2">{{ print.status_note }}</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">✅ Enregistrer</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

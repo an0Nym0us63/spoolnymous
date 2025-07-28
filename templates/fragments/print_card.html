@@ -19,6 +19,20 @@
     <div class="flex-grow-1 d-flex flex-column align-items-center">
       <div class="fw-semibold text-primary text-center small text-wrap" style="word-break: break-word;">
         {{ print.file_name or 'Print #' ~ print.id }}
+		{% if print.status %}
+  <span class="badge rounded-pill small ms-2
+    {% if print.status == 'SUCCESS' %}bg-success
+    {% elif print.status == 'IN_PROGRESS' %}bg-warning text-dark
+    {% elif print.status == 'FAILED' %}bg-danger
+    {% elif print.status == 'PARTIAL' %}bg-info text-dark
+    {% else %}bg-secondary{% endif %}">
+    {% if print.status == 'SUCCESS' %}Succès
+    {% elif print.status == 'IN_PROGRESS' %}En cours
+    {% elif print.status == 'FAILED' %}Échec
+    {% elif print.status == 'PARTIAL' %}Partiel
+    {% else %}Inconnu{% endif %}
+  </span>
+{% endif %}
       </div>
       <div>
         <span class="badge bg-secondary bg-opacity-25 text-muted small">
@@ -70,6 +84,11 @@
 		  <li>
   <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#adjustDurationModal_{{ print.id }}">
     🕒 Ajuster durée
+  </a>
+</li>
+<li>
+  <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#changeStatusModal_{{ print.id }}">
+    🧾 Changer statut
   </a>
 </li>
           {% if not print.group_id %}
@@ -151,6 +170,14 @@
   <span class="badge d-inline-block bg-secondary bg-opacity-10 border rounded-pill px-3 py-1"
         style="font-size: 0.65rem; max-width: 90vw; white-space: normal; word-break: break-word;">
     <span class="text-secondary">🔖</span> <span class="text-muted">{{ print.original_name }}</span>
+  </span>
+</div>
+{% endif %}
+{% if print.status_note %}
+<div class="text-center mb-3">
+  <span class="badge d-inline-block bg-warning bg-opacity-10 border border-warning rounded-pill px-3 py-1"
+        style="font-size: 0.65rem; max-width: 90vw; white-space: normal; word-break: break-word;">
+    <span class="text-warning">🧾</span> <span class="text-muted">{{ print.status_note }}</span>
   </span>
 </div>
 {% endif %}

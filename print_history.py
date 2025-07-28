@@ -89,6 +89,8 @@ def create_database() -> None:
                 group_id INTEGER,
                 original_name TEXT,
                 translated_name TEXT,
+                status TEXT DEFAULT 'SUCCESS',
+                status_note TEXT,
                 FOREIGN KEY (group_id) REFERENCES print_groups(id)
             )
         ''')
@@ -149,6 +151,11 @@ def create_database() -> None:
             for pid, fname in cursor.fetchall():
                 translated = update_translated_name(fname)
                 cursor.execute("UPDATE prints SET translated_name = ? WHERE id = ?", (translated, pid))
+        if "status" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN status TEXT DEFAULT 'SUCCESS'")
+            cursor.execute("UPDATE prints SET status = 'SUCCESS' WHERE status IS NULL")
+        if "status_note" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN status_note TEXT")
 
         cursor.execute("PRAGMA table_info(print_groups)")
         group_columns = [row[1] for row in cursor.fetchall()]
@@ -470,6 +477,8 @@ def get_prints_with_filament(filters=None, search=None):
             p.file_name,
             p.original_name,
             p.translated_name,
+            p.status,
+            p.status_note,
             p.print_type,
             p.image_file,
             p.duration,
