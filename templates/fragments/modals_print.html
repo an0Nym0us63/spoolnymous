@@ -130,8 +130,8 @@
   <option value="TO_REDO" {% if print.status == 'TO_REDO' %}selected{% endif %}>🟡 À refaire</option>
   <option value="PARTIAL" {% if print.status == 'PARTIAL' %}selected{% endif %}>🟠 Partiel</option>
   <option value="FAILED" {% if print.status == 'FAILED' %}selected{% endif %}>🔴 Échec</option>
-</select>
   <option value="IN_PROGRESS" {% if print.status == 'IN_PROGRESS' %}selected{% endif %}>🔵 En cours</option>
+</select>
           </div>
           <div class="mb-3">
             <label for="status_note_{{ print.id }}" class="form-label">Note (facultatif)</label>

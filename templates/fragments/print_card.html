@@ -20,13 +20,7 @@
       <div class="fw-semibold text-primary text-center small text-wrap" style="word-break: break-word;">
         {{ print.file_name or 'Print #' ~ print.id }}
 		{% if print.status %}
-  <span class="badge rounded-pill small ms-2
-    {% if print.status == 'SUCCESS' %}bg-success
-    {% elif print.status == 'IN_PROGRESS' %}bg-primary
-    {% elif print.status == 'PARTIAL' %}bg-warning text-dark
-    {% elif print.status == 'FAILED' %}bg-danger
-    {% elif print.status == 'TO_REDO' %}bg-warning text-dark
-    {% else %}bg-secondary{% endif %}">
+  <span class="ms-2" style="font-size: 1rem;">
     {% if print.status == 'SUCCESS' %}🟢
     {% elif print.status == 'IN_PROGRESS' %}🔵
     {% elif print.status == 'PARTIAL' %}🟠
