@@ -188,13 +188,13 @@
   <div class="accordion" id="filamentAccordion_{{ print.id }}">
     <div class="accordion-item border-0">
       <h2 class="accordion-header">
-        <button class="accordion-button collapsed px-2 py-1 d-flex justify-content-between align-items-center"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#collapseFilaments_{{ print.id }}"
-                aria-expanded="false"
-                aria-controls="collapseFilaments_{{ print.id }}"
-                style="background-color: #f8f9fa; font-size: 0.9rem;">
+        <button class="accordion-button collapsed bg-body-secondary text-body px-2 py-1"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#collapseFilaments_{{ print.id }}"
+        aria-expanded="false"
+        aria-controls="collapseFilaments_{{ print.id }}"
+        style="font-size: 0.85rem;">
           <span><strong>Filaments ({{ print.filament_usage | length }})</strong></span>
           <span class="d-flex align-items-center gap-1">
             {% for filament in print.filament_usage %}
