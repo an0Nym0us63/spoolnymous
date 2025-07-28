@@ -19,8 +19,8 @@
     <div class="flex-grow-1 d-flex flex-column align-items-center">
       <div class="fw-semibold text-primary text-center small text-wrap" style="word-break: break-word;">
         {{ print.file_name or 'Print #' ~ print.id }}
-		{% if print.status %}
-  <span class="ms-2" style="font-size: 1rem;">
+	{% if print.status %}
+  <span class="ms-2 align-self-center" style="font-size: 0.75rem;vertical-align: middle;">
     {% if print.status == 'SUCCESS' %}🟢
     {% elif print.status == 'IN_PROGRESS' %}🔵
     {% elif print.status == 'PARTIAL' %}🟠
@@ -156,27 +156,31 @@
              alt="Print Image" class="img-fluid rounded" style="max-width:200px; filter: brightness(1.3) contrast(1.1);" />
       </div>
       {% endif %}
-{% if print.original_name %}
-<div class="text-center mb-3">
+{% if print.translated_name or print.original_name or print.status_note %}
+<div class="text-center mb-2 d-flex flex-column align-items-center gap-1">
+  {% if print.translated_name %}
   <span class="badge d-inline-block bg-secondary bg-opacity-10 border rounded-pill px-3 py-1"
         style="font-size: 0.65rem; max-width: 90vw; white-space: normal; word-break: break-word;">
     <span class="text-primary">🌐</span> <span class="text-muted">{{ print.translated_name }}</span>
   </span>
-  <br>
+  {% endif %}
+
+  {% if print.original_name %}
   <span class="badge d-inline-block bg-secondary bg-opacity-10 border rounded-pill px-3 py-1"
         style="font-size: 0.65rem; max-width: 90vw; white-space: normal; word-break: break-word;">
     <span class="text-secondary">🔖</span> <span class="text-muted">{{ print.original_name }}</span>
   </span>
-</div>
-{% endif %}
-{% if print.status_note %}
-<div class="text-center mb-3">
+  {% endif %}
+
+  {% if print.status_note %}
   <span class="badge d-inline-block bg-warning bg-opacity-10 border border-warning rounded-pill px-3 py-1"
         style="font-size: 0.65rem; max-width: 90vw; white-space: normal; word-break: break-word;">
-    <span class="text-warning">🧾</span> <span class="text-muted">{{ print.status_note }}</span>
+    <span class="text-warning">📃</span> <span class="text-muted">{{ print.status_note }}</span>
   </span>
+  {% endif %}
 </div>
 {% endif %}
+
 
       <div class="mb-3">
         <strong>Filaments :</strong>
