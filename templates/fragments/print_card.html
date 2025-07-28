@@ -19,17 +19,18 @@
     <div class="flex-grow-1 d-flex flex-column align-items-center">
   <div class="text-center small text-wrap" style="word-break: break-word;">
     {% set status_colors = {
-      "SUCCESS": "#28a745",
-      "SUCCESS_BUT": "#20c997",
-      "IN_PROGRESS": "#0d6efd",
-      "PARTIAL": "#fd7e14",
-      "FAILED": "#dc3545",
-      "TO_REDO": "#ffc107"
-    } %}
-    <span class="badge rounded-pill px-2 py-1 text-white fw-normal"
-          style="background-color: {{ status_colors.get(print.status, '#6c757d') }}; font-size: 0.75rem;">
-      {{ print.file_name or 'Print #' ~ print.id }}
-    </span>
+    "SUCCESS": "#198754",          # Vert
+    "SUCCESS_BUT": "#0d6efd",      # Bleu
+    "IN_PROGRESS": "#0dcaf0",      # Cyan
+    "PARTIAL": "#fd7e14",          # Orange
+    "FAILED": "#dc3545",           # Rouge
+    "TO_REDO": "#ffc107"           # Jaune
+} %}
+{% set color = status_colors.get(print.status, "#6c757d") %}
+<span class="badge text-white fw-normal d-inline-block text-wrap text-break px-2 py-1"
+      style="background-color: {{ color }}; font-size: 0.75rem; line-height: 1.1; max-width: 90vw;">
+  {{ print.file_name or 'Print #' ~ print.id }}
+</span>
   </div>
   <div>
     <span class="badge bg-secondary bg-opacity-25 text-muted small">
