@@ -110,7 +110,7 @@
                 {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
                   {% for color in filament.spool.filament.multi_color_hexes %}
                     {% if color not in seen_colors %}
-                      {% do seen_colors.append(color) %}
+                      {% set _ = seen_colors.append(color) %}
                       <span class="rounded-circle border border-light"
                             style="width: 14px; height: 14px; background-color: #{{ color }}; box-shadow: 0 0 3px rgba(255,255,255,0.4);"></span>
                     {% endif %}
@@ -118,7 +118,7 @@
                 {% else %}
                   {% set color = filament.spool.filament.color_hex %}
                   {% if color not in seen_colors %}
-                    {% do seen_colors.append(color) %}
+                    {% set _ = seen_colors.append(color) %}
                     <span class="rounded-circle border border-light"
                           style="width: 14px; height: 14px; background-color: #{{ color }}; box-shadow: 0 0 3px rgba(255,255,255,0.4);"></span>
                   {% endif %}
@@ -126,7 +126,7 @@
               {% else %}
                 {% set color = filament.color %}
                 {% if color not in seen_colors %}
-                  {% do seen_colors.append(color) %}
+                  {% set _ = seen_colors.append(color) %}
                   <span class="rounded-circle border border-light"
                         style="width: 14px; height: 14px; background-color: {{ color }}; box-shadow: 0 0 3px rgba(255,255,255,0.4);"></span>
                 {% endif %}
