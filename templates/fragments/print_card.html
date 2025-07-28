@@ -185,51 +185,84 @@
 
 
       <div class="mb-3">
-        <strong>Filaments :</strong>
-        {% for filament in print.filament_usage %}
-          <div class="card my-1">
-            <div class="card-body py-2 d-flex align-items-center gap-2">
-              {% if filament.spool %}
-                <div class="spool-icon small">
-                  {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
-                    {% for color in filament.spool.filament.multi_color_hexes %}
-                      <div style="background-color:#{{ color }};" title="#{{ color }}"></div>
-                    {% endfor %}
-                  {% else %}
-                    <div style="background-color:#{{ filament.spool.filament.color_hex }};"></div>
-                  {% endif %}
-                </div>
-                <div>
-                  <strong>#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</strong><br>
-                  <small>{{ filament.spool.filament.name }} - {{ "%.2f"|format(filament.grams_used) }}g - {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}</small>
-                </div>
+  <div class="accordion" id="filamentAccordion_{{ print.id }}">
+    <div class="accordion-item border-0">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed px-2 py-1 d-flex justify-content-between align-items-center"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapseFilaments_{{ print.id }}"
+                aria-expanded="false"
+                aria-controls="collapseFilaments_{{ print.id }}"
+                style="background-color: #f8f9fa; font-size: 0.9rem;">
+          <span><strong>Filaments ({{ print.filament_usage | length }})</strong></span>
+          <span class="d-flex align-items-center gap-1">
+            {% for filament in print.filament_usage %}
+              {% if filament.spool and filament.spool.filament %}
+                {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
+                  {% for color in filament.spool.filament.multi_color_hexes %}
+                    <span class="rounded-circle border" style="width: 12px; height: 12px; background-color: #{{ color }};"></span>
+                  {% endfor %}
+                {% else %}
+                  <span class="rounded-circle border" style="width: 12px; height: 12px; background-color: #{{ filament.spool.filament.color_hex }};"></span>
+                {% endif %}
               {% else %}
-<div class="spool-info">
-  <a href="{{ url_for('fill',
-                      ams=0,
-                      tray=0,
-                      assign_print_id=print.id,
-                      assign_filament_index=filament.ams_slot,
-                      assign_page=page,
-                      search=search,
-                      assign_search=filament.filament_type) }}"
-     class="nav-link link-body-emphasis" title="Assigner une bobine">
-    <div class="filament-info d-flex align-items-center gap-2">
-      <div class="spool-icon vertical small">
-        <div style="background-color: {{ filament.color }};"></div>
-      </div>
-      <div class="spool-details">
-        <strong>Non assigné - {{ filament.filament_type }}</strong><br>
-        <small>{{ "%.2f"|format(filament.grams_used) }}g</small>
+                <span class="rounded-circle border" style="width: 12px; height: 12px; background-color: {{ filament.color }};"></span>
+              {% endif %}
+            {% endfor %}
+          </span>
+        </button>
+      </h2>
+      <div id="collapseFilaments_{{ print.id }}" class="accordion-collapse collapse">
+        <div class="accordion-body px-2 pt-2">
+          {% for filament in print.filament_usage %}
+            <div class="card my-1">
+              <div class="card-body py-2 d-flex align-items-center gap-2">
+                {% if filament.spool %}
+                  <div class="spool-icon small">
+                    {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
+                      {% for color in filament.spool.filament.multi_color_hexes %}
+                        <div style="background-color:#{{ color }};" title="#{{ color }}"></div>
+                      {% endfor %}
+                    {% else %}
+                      <div style="background-color:#{{ filament.spool.filament.color_hex }};"></div>
+                    {% endif %}
+                  </div>
+                  <div>
+                    <strong>#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</strong><br>
+                    <small>{{ filament.spool.filament.name }} - {{ "%.2f"|format(filament.grams_used) }}g - {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}</small>
+                  </div>
+                {% else %}
+                  <div class="spool-info">
+                    <a href="{{ url_for('fill',
+                                        ams=0,
+                                        tray=0,
+                                        assign_print_id=print.id,
+                                        assign_filament_index=filament.ams_slot,
+                                        assign_page=page,
+                                        search=search,
+                                        assign_search=filament.filament_type) }}"
+                       class="nav-link link-body-emphasis" title="Assigner une bobine">
+                      <div class="filament-info d-flex align-items-center gap-2">
+                        <div class="spool-icon vertical small">
+                          <div style="background-color: {{ filament.color }};"></div>
+                        </div>
+                        <div class="spool-details">
+                          <strong>Non assigné - {{ filament.filament_type }}</strong><br>
+                          <small>{{ "%.2f"|format(filament.grams_used) }}g</small>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
       </div>
     </div>
-  </a>
+  </div>
 </div>
-{% endif %}
-            </div>
-          </div>
-        {% endfor %}
-      </div>
 
       <div class="mb-2">
         <strong>Tags :</strong>
