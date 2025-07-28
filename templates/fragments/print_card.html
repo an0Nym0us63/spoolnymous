@@ -20,7 +20,7 @@
       <div class="fw-semibold text-primary text-center small text-wrap" style="word-break: break-word;">
         {{ print.file_name or 'Print #' ~ print.id }}
 	{% if print.status %}
-  <span class="ms-1 d-inline-block align-middle" style="font-size: 0.7rem; transform: translateY(-3px);">
+	<span class="d-inline-block align-middle" style="font-size: 0.7rem; line-height: 1; margin-left: 0.25em; transform: translateY(-2px);">
     {% if print.status == 'SUCCESS' %}🟢
     {% elif print.status == 'IN_PROGRESS' %}🔵
     {% elif print.status == 'PARTIAL' %}🟠
