@@ -135,7 +135,7 @@
           </div>
           <div class="mb-3">
             <label for="status_note_{{ print.id }}" class="form-label">Note (facultatif)</label>
-            <textarea class="form-control" id="status_note_{{ print.id }}" name="status_note" rows="2">{{ print.status_note }}</textarea>
+            <textarea class="form-control" id="status_note_{{ print.id }}" name="status_note" rows="2">{{ print.status_note or '' }}</textarea>
           </div>
         </div>
         <div class="modal-footer">
