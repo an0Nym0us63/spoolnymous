@@ -92,41 +92,92 @@
             </div>
 
             <div class="mb-3">
-              <strong>Filaments utilisés :</strong>
-              {% for filament in entry.filament_usage.values() %}
-                <div class="card my-1">
-                  <div class="card-body py-2 d-flex align-items-center gap-2">
-                    {% if filament.spool %}
-                      <div class="spool-icon small">
-                        {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
-                          {% for color in filament.spool.filament.multi_color_hexes %}
-                            <div style="background-color:#{{ color }};" title="#{{ color }}"></div>
-                          {% endfor %}
-                        {% else %}
-                          <div style="background-color:#{{ filament.spool.filament.color_hex }};"></div>
-                        {% endif %}
-                      </div>
-                      <div>
-                        <strong>#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</strong><br>
-                        <small>{{ filament.spool.filament.name }} - {{ "%.2f"|format(filament.grams_used) }}g - {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}</small>
-                      </div>
+  <div class="accordion" id="groupFilamentAccordion_{{ entry.id }}">
+    <div class="accordion-item bg-dark text-light border-0">
+      <h2 class="accordion-header">
+        <button class="accordion-button collapsed bg-body-secondary text-body px-2 py-1"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapseGroupFilaments_{{ entry.id }}"
+                aria-expanded="false"
+                aria-controls="collapseGroupFilaments_{{ entry.id }}"
+                style="font-size: 0.85rem;">
+          <span class="me-2">Filaments utilisés ({{ entry.filament_usage | length }})</span>
+          <span class="d-flex align-items-center gap-1 ms-2">
+            {% set seen_colors = [] %}
+            {% for filament in entry.filament_usage.values() %}
+              {% if filament.spool and filament.spool.filament %}
+                {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
+                  {% for color in filament.spool.filament.multi_color_hexes %}
+                    {% if color not in seen_colors %}
+                      {% do seen_colors.append(color) %}
+                      <span class="rounded-circle border border-light"
+                            style="width: 14px; height: 14px; background-color: #{{ color }}; box-shadow: 0 0 3px rgba(255,255,255,0.4);"></span>
+                    {% endif %}
+                  {% endfor %}
+                {% else %}
+                  {% set color = filament.spool.filament.color_hex %}
+                  {% if color not in seen_colors %}
+                    {% do seen_colors.append(color) %}
+                    <span class="rounded-circle border border-light"
+                          style="width: 14px; height: 14px; background-color: #{{ color }}; box-shadow: 0 0 3px rgba(255,255,255,0.4);"></span>
+                  {% endif %}
+                {% endif %}
+              {% else %}
+                {% set color = filament.color %}
+                {% if color not in seen_colors %}
+                  {% do seen_colors.append(color) %}
+                  <span class="rounded-circle border border-light"
+                        style="width: 14px; height: 14px; background-color: {{ color }}; box-shadow: 0 0 3px rgba(255,255,255,0.4);"></span>
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          </span>
+        </button>
+      </h2>
+      <div id="collapseGroupFilaments_{{ entry.id }}" class="accordion-collapse collapse">
+        <div class="accordion-body pt-2">
+          {% for filament in entry.filament_usage.values() %}
+            <div class="card my-1">
+              <div class="card-body py-2 d-flex align-items-center gap-2">
+                {% if filament.spool %}
+                  <div class="spool-icon small">
+                    {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
+                      {% for color in filament.spool.filament.multi_color_hexes %}
+                        <div style="background-color:#{{ color }};" title="#{{ color }}"></div>
+                      {% endfor %}
                     {% else %}
-                      <div>
-                        <strong>Non assigné - {{ filament.filament_type }}</strong><br>
-                        <small>{{ "%.2f"|format(filament.grams_used) }}g</small>
-                      </div>
+                      <div style="background-color:#{{ filament.spool.filament.color_hex }};"></div>
                     {% endif %}
                   </div>
-                </div>
-              {% endfor %}
+                  <div>
+                    <strong>#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</strong><br>
+                    <small>{{ filament.spool.filament.name }} - {{ "%.2f"|format(filament.grams_used) }}g - {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}</small>
+                  </div>
+                {% else %}
+                  <div>
+                    <strong>Non assigné - {{ filament.filament_type }}</strong><br>
+                    <small>{{ "%.2f"|format(filament.grams_used) }}g</small>
+                  </div>
+                {% endif %}
+              </div>
             </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 
             <hr>
 
-            {% for print in entry.prints %}
-              {% set print = print %}
-              {% include 'fragments/print_card.html' %}
-            {% endfor %}
+            <div id="group_accordion_{{ entry.id }}">
+  {% for print in entry.prints %}
+    {% set print = print %}
+    {% include 'fragments/print_card.html' %}
+  {% endfor %}
+</div>
           </div>
         </div>
       </div>
