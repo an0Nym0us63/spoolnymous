@@ -63,7 +63,8 @@
 
         <div id="group_{{ entry.id }}" class="collapse {% if focus_group_id == entry.id|int %}show{% endif %}" data-bs-parent="#printAccordion">
           <div class="card-body small">
-			<div class="dropdown float-end mt-1">
+			<div class="d-flex justify-content-end mt-1">
+			<div class="dropdown">
   <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
     Actions
   </button>
@@ -79,6 +80,7 @@
       </a>
     </li>
   </ul>
+</div>
 </div>
             <div class="row row-cols-2 row-cols-md-5 g-2 mb-2 text-center">
               <div>⏱ {{ entry.total_duration|hm_format }}</div>

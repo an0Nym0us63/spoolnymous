@@ -195,7 +195,7 @@
         aria-expanded="false"
         aria-controls="collapseFilaments_{{ print.id }}"
         style="font-size: 0.85rem;">
-          <span class="me-2"><strong>Filaments ({{ print.filament_usage | length }})</strong></span>
+          <span class="me-2">Filaments ({{ print.filament_usage | length }})</span>
           <span class="d-flex align-items-center gap-1 ms-2">
             {% for filament in print.filament_usage %}
               {% if filament.spool and filament.spool.filament %}
