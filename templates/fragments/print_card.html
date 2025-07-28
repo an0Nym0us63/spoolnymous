@@ -22,15 +22,17 @@
 		{% if print.status %}
   <span class="badge rounded-pill small ms-2
     {% if print.status == 'SUCCESS' %}bg-success
-    {% elif print.status == 'IN_PROGRESS' %}bg-warning text-dark
+    {% elif print.status == 'IN_PROGRESS' %}bg-primary
+    {% elif print.status == 'PARTIAL' %}bg-warning text-dark
     {% elif print.status == 'FAILED' %}bg-danger
-    {% elif print.status == 'PARTIAL' %}bg-info text-dark
+    {% elif print.status == 'TO_REDO' %}bg-warning text-dark
     {% else %}bg-secondary{% endif %}">
-    {% if print.status == 'SUCCESS' %}Succès
-    {% elif print.status == 'IN_PROGRESS' %}En cours
-    {% elif print.status == 'FAILED' %}Échec
-    {% elif print.status == 'PARTIAL' %}Partiel
-    {% else %}Inconnu{% endif %}
+    {% if print.status == 'SUCCESS' %}🟢
+    {% elif print.status == 'IN_PROGRESS' %}🔵
+    {% elif print.status == 'PARTIAL' %}🟠
+    {% elif print.status == 'FAILED' %}🔴
+    {% elif print.status == 'TO_REDO' %}🟡
+    {% else %}❓{% endif %}
   </span>
 {% endif %}
       </div>

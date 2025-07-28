@@ -1170,7 +1170,7 @@ def change_print_status():
     page = request.form.get("page", 1)
     search = request.form.get("search", "")
 
-    if new_status not in {"SUCCESS", "IN_PROGRESS", "FAILED", "PARTIAL"}:
+    if new_status not in {"SUCCESS", "IN_PROGRESS", "FAILED", "PARTIAL", "TO_REDO"}:
         return redirect(url_for("print_history", page=page, search=search, focus_print_id=print_id))
 
     update_print_history_field(print_id, "status", new_status)
