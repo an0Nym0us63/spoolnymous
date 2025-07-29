@@ -88,6 +88,11 @@
     </li>
 	{% endif %}
   {% endif %}
+{% if g.is_webview %}
+  <li class="nav-item">
+    <a href="#" class="nav-link" onclick="openNativeSettings()">📱 Mobile</a>
+  </li>
+{% endif %}
 </ul>
 
       </div>
@@ -126,6 +131,15 @@
     updateTheme()
   }
 })()
+
+function openNativeSettings() {
+    if (window.Android && window.Android.openSettings) {
+      window.Android.openSettings();
+    } else {
+      // fallback : redirection vers la page web classique
+      window.location.href = "{{ url_for('auth.settings') }}";
+    }
+  }
 </script>
 </body>
 </html>
