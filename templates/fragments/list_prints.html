@@ -102,41 +102,43 @@
         aria-expanded="false"
         aria-controls="collapseGroupFilaments_{{ entry.id }}"
         style="font-size: 0.85rem;">
-  <div class="d-flex justify-content-between align-items-start w-100 flex-wrap">
-    <!-- Texte à gauche -->
-    <span class="me-2">Filaments ({{ entry.filament_usage | length }})</span>
+  <div class="d-flex flex-column w-100">
+    <div class="d-flex align-items-start flex-wrap gap-2">
+      <!-- Colonne gauche : texte -->
+      <span style="white-space: nowrap;">Filaments ({{ entry.filament_usage | length }})</span>
 
-    <!-- Pastilles à droite avec wrap -->
-    <span class="d-flex flex-wrap justify-content-end gap-1" style="max-width: 70%; row-gap: 2px;">
-      {% set seen_colors = [] %}
-      {% for filament in entry.filament_usage.values() %}
-        {% if filament.spool and filament.spool.filament %}
-          {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
-            {% for color in filament.spool.filament.multi_color_hexes %}
+      <!-- Colonne droite : pastilles wrap -->
+      <span class="d-flex flex-wrap gap-1" style="flex: 1; min-width: 0;">
+        {% set seen_colors = [] %}
+        {% for filament in entry.filament_usage.values() %}
+          {% if filament.spool and filament.spool.filament %}
+            {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
+              {% for color in filament.spool.filament.multi_color_hexes %}
+                {% if color not in seen_colors %}
+                  {% set _ = seen_colors.append(color) %}
+                  <span class="rounded-circle border border-light"
+                        style="width: 14px; height: 14px; background-color: #{{ color }}; box-shadow: 0 0 3px rgba(255,255,255,0.4);"></span>
+                {% endif %}
+              {% endfor %}
+            {% else %}
+              {% set color = filament.spool.filament.color_hex %}
               {% if color not in seen_colors %}
                 {% set _ = seen_colors.append(color) %}
                 <span class="rounded-circle border border-light"
                       style="width: 14px; height: 14px; background-color: #{{ color }}; box-shadow: 0 0 3px rgba(255,255,255,0.4);"></span>
               {% endif %}
-            {% endfor %}
+            {% endif %}
           {% else %}
-            {% set color = filament.spool.filament.color_hex %}
+            {% set color = filament.color %}
             {% if color not in seen_colors %}
               {% set _ = seen_colors.append(color) %}
               <span class="rounded-circle border border-light"
-                    style="width: 14px; height: 14px; background-color: #{{ color }}; box-shadow: 0 0 3px rgba(255,255,255,0.4);"></span>
+                    style="width: 14px; height: 14px; background-color: {{ color }}; box-shadow: 0 0 3px rgba(255,255,255,0.4);"></span>
             {% endif %}
           {% endif %}
-        {% else %}
-          {% set color = filament.color %}
-          {% if color not in seen_colors %}
-            {% set _ = seen_colors.append(color) %}
-            <span class="rounded-circle border border-light"
-                  style="width: 14px; height: 14px; background-color: {{ color }}; box-shadow: 0 0 3px rgba(255,255,255,0.4);"></span>
-          {% endif %}
-        {% endif %}
-      {% endfor %}
-    </span>
+        {% endfor %}
+      </span>
+    </div>
   </div>
 </button>
 
