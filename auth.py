@@ -5,6 +5,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import json
+import secrets
 
 from config import DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD
 
