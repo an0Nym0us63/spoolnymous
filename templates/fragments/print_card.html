@@ -195,23 +195,28 @@
         aria-expanded="false"
         aria-controls="collapseFilaments_{{ print.id }}"
         style="font-size: 0.85rem;">
-          <span class="me-2">Filaments ({{ print.filament_usage | length }})</span>
-          <span class="d-flex align-items-center gap-1 ms-2">
-            {% for filament in print.filament_usage %}
-              {% if filament.spool and filament.spool.filament %}
-                {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
-                  {% for color in filament.spool.filament.multi_color_hexes %}
-                    <span class="rounded-circle border" style="width: 12px; height: 12px; background-color: #{{ color }};"></span>
-                  {% endfor %}
-                {% else %}
-                  <span class="rounded-circle border" style="width: 12px; height: 12px; background-color: #{{ filament.spool.filament.color_hex }};"></span>
-                {% endif %}
-              {% else %}
-                <span class="rounded-circle border" style="width: 12px; height: 12px; background-color: {{ filament.color }};"></span>
-              {% endif %}
+  <div class="d-flex justify-content-between align-items-start w-100 flex-wrap">
+    <!-- Texte à gauche -->
+    <span class="me-2">Filaments ({{ print.filament_usage | length }})</span>
+
+    <!-- Pastilles à droite avec retour à la ligne si besoin -->
+    <span class="d-flex flex-wrap justify-content-end gap-1" style="max-width: 70%; row-gap: 2px;">
+      {% for filament in print.filament_usage %}
+        {% if filament.spool and filament.spool.filament %}
+          {% if "multi_color_hexes" in filament.spool.filament and filament.spool.filament.multi_color_hexes is iterable and filament.spool.filament.multi_color_hexes is not string %}
+            {% for color in filament.spool.filament.multi_color_hexes %}
+              <span class="rounded-circle border" style="width: 12px; height: 12px; background-color: #{{ color }};"></span>
             {% endfor %}
-          </span>
-        </button>
+          {% else %}
+            <span class="rounded-circle border" style="width: 12px; height: 12px; background-color: #{{ filament.spool.filament.color_hex }};"></span>
+          {% endif %}
+        {% else %}
+          <span class="rounded-circle border" style="width: 12px; height: 12px; background-color: {{ filament.color }};"></span>
+        {% endif %}
+      {% endfor %}
+    </span>
+  </div>
+</button>
       </h2>
       <div id="collapseFilaments_{{ print.id }}" class="accordion-collapse collapse">
         <div class="accordion-body px-2 pt-2">
