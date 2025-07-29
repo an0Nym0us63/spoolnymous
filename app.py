@@ -173,7 +173,7 @@ def detect_webview():
 @app.before_request
 def require_login():
     from flask_login import current_user
-    exempt_routes = {'auth.login', 'auth.logout', 'auth.settings', 'static'}
+    exempt_routes = {'auth.login', 'auth.logout', 'auth.settings', 'auth.autologin_token', 'static'}
     if request.endpoint not in exempt_routes and not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
     
