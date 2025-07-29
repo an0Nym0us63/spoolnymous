@@ -26,10 +26,25 @@ def get_stored_user():
             return json.load(f)
     return None
 
-def save_user(username, password):
+def save_user(username, password, existing_data=None):
     password_hash = generate_password_hash(password)
+    token = secrets.token_urlsafe(32)
+
+    data = existing_data or get_stored_user() or {}
+    data[username] = {
+        "password_hash": password_hash,
+        "token": token
+    }
+
     with open(USERS_FILE, 'w') as f:
-        json.dump({username: {"password_hash": password_hash}}, f)
+        json.dump(data, f)
+    return token
+
+def get_user_token(username):
+    data = get_stored_user()
+    if data and username in data:
+        return data[username].get("token")
+    return None
 
 def validate_credentials(username, password):
     user_data = get_stored_user()
@@ -65,13 +80,39 @@ def logout():
 @login_required
 def settings():
     user_data = get_stored_user()
+
     if request.method == 'POST':
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
-        if new_password != confirm_password:
-            flash("Les mots de passe ne correspondent pas.", "warning")
+        if request.form.get("regen_token") == "1":
+            existing = get_stored_user()
+            password_hash = existing[current_user.id]["password_hash"] if existing and current_user.id in existing else None
+            if password_hash:
+                # Regénérer uniquement le token, garder le même mot de passe
+                token = secrets.token_urlsafe(32)
+                existing[current_user.id]["token"] = token
+                with open(USERS_FILE, 'w') as f:
+                    json.dump(existing, f)
+                flash("Token régénéré avec succès.", "success")
         else:
-            save_user(current_user.id, new_password)
-            flash("Mot de passe mis à jour.", "success")
-            return redirect(url_for('auth.settings'))
-    return render_template('settings.html', user=current_user, using_default=(user_data is None))
+            new_password = request.form.get('new_password')
+            confirm_password = request.form.get('confirm_password')
+            if new_password != confirm_password:
+                flash("Les mots de passe ne correspondent pas.", "warning")
+            else:
+                save_user(current_user.id, new_password)
+                flash("Mot de passe mis à jour.", "success")
+                return redirect(url_for('auth.settings'))
+
+    user_token = get_user_token(current_user.id)
+    return render_template("settings.html", user=current_user, using_default=(user_data is None), token=user_token)
+
+
+@auth_bp.route("/autologin/<token>")
+def autologin_token(token):
+    users = get_stored_user()
+    if users:
+        for username, info in users.items():
+            if info.get("token") == token:
+                user = User(username)
+                login_user(user, remember=True)
+                return redirect(url_for("home"))
+    return "Token invalide ou expiré", 403

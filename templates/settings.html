@@ -23,6 +23,28 @@
     </div>
   {% endif %}
 
+  {% if using_default and not token %}
+    <div class="alert alert-info">
+      Aucun token n’est disponible. Veuillez d’abord définir un mot de passe personnalisé pour activer l’accès mobile.
+    </div>
+  {% endif %}
+
+  {% if token %}
+    <div class="mb-4">
+      <label class="form-label text-light">Token d’auto-connexion</label>
+      <div class="input-group">
+        <input type="text" readonly class="form-control" value="{{ token }}">
+        <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText('{{ token }}')">Copier</button>
+      </div>
+      <small class="text-muted">À utiliser dans l'application mobile pour une connexion automatique.</small>
+
+      <form method="POST" class="mt-2">
+        <input type="hidden" name="regen_token" value="1">
+        <button type="submit" class="btn btn-outline-warning btn-sm">🔄 Régénérer le token</button>
+      </form>
+    </div>
+  {% endif %}
+
   <form method="POST">
     <div class="mb-3">
       <label for="new_password" class="form-label text-light">Nouveau mot de passe</label>
