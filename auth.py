@@ -115,5 +115,5 @@ def autologin_token(token):
             if info.get("token") == token:
                 user = User(username)
                 login_user(user, remember=True)
-                return redirect(f"/?{request.query_string.decode()}")
+                return render_template("redirect_with_theme.html", query=request.query_string.decode())
     return "Token invalide ou expiré", 403
