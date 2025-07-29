@@ -7,6 +7,8 @@ import os
 import re
 from collections import defaultdict
 
+import secrets
+
 from flask_login import LoginManager, login_required
 from auth import auth_bp, User, get_stored_user
 
@@ -150,6 +152,7 @@ def redirect_back(focus_id=None):
 init_mqtt()
 
 app = Flask(__name__)
+app.secret_key = secrets.token_hex(32)
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'  # redirige vers /login si non connecté
 login_manager.init_app(app)
