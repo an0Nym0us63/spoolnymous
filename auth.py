@@ -45,7 +45,7 @@ def login():
         if validate_credentials(username, password):
             user = User(username)
             login_user(user, remember=True)
-            return redirect(url_for('index'))
+            return redirect(url_for('home'))
         else:
             flash('Identifiants incorrects.', 'danger')
     return render_template('login.html')
