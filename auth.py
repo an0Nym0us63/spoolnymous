@@ -104,7 +104,8 @@ def settings():
                 return redirect(url_for('auth.settings'))
 
     user_token = get_user_token(current_user.id)
-    return render_template("settings.html", user=current_user, using_default=(user_data is None), token=user_token)
+    return render_template("settings.html", user=current_user, using_default=(user_data is None), token=user_token,
+        page_title="Settings")
 
 
 @auth_bp.route("/autologin/<token>")
