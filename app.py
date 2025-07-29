@@ -7,6 +7,9 @@ import os
 import re
 from collections import defaultdict
 
+from flask_login import LoginManager, login_required
+from auth import auth_bp, User, get_stored_user
+
 from flask import Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort
 
 from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,LOCATION_MAPPING,AMS_ORDER, COST_BY_HOUR
@@ -147,11 +150,29 @@ def redirect_back(focus_id=None):
 init_mqtt()
 
 app = Flask(__name__)
+login_manager = LoginManager()
+login_manager.login_view = 'auth.login'  # redirige vers /login si non connecté
+login_manager.init_app(app)
 
+@login_manager.user_loader
+def load_user(user_id):
+    data = get_stored_user()
+    if data and user_id in data:
+        return User(user_id)
+    elif user_id == app.config.get("DEFAULT_ADMIN_USERNAME", "admin"):
+        return User(user_id)
+    return None
 
 @app.before_request
 def detect_webview():
     g.is_webview = request.cookies.get('webview') == '1'
+
+@app.before_request
+def require_login():
+    from flask_login import current_user
+    exempt_routes = {'auth.login', 'auth.logout', 'auth.settings', 'static'}
+    if request.endpoint not in exempt_routes and not current_user.is_authenticated:
+        return redirect(url_for('auth.login'))
     
 @app.template_filter('datetimeformat')
 def datetimeformat(value, locale='fr'):
@@ -1177,3 +1198,5 @@ def change_print_status():
     update_print_history_field(print_id, "status_note", note)
 
     return redirect(url_for("print_history", page=page, search=search, focus_print_id=print_id))
+
+app.register_blueprint(auth_bp)

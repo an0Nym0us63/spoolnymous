@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Paramètres - SpoolNymous{% endblock %}
+
+{% block content %}
+<div class="container my-5" style="max-width: 600px;">
+  <h2 class="mb-4 text-light">Paramètres</h2>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% if using_default %}
+    <div class="alert alert-warning">
+      ⚠ Vous utilisez actuellement les identifiants par défaut. Pensez à définir un mot de passe personnalisé pour sécuriser l’accès.
+    </div>
+  {% endif %}
+
+  <form method="POST">
+    <div class="mb-3">
+      <label for="new_password" class="form-label text-light">Nouveau mot de passe</label>
+      <input type="password" name="new_password" id="new_password" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="confirm_password" class="form-label text-light">Confirmation</label>
+      <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
+    </div>
+
+    <button type="submit" class="btn btn-success">🔐 Mettre à jour</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Connexion - SpoolNymous</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <style>
+    body {
+      background-color: #121212;
+      color: #f0f0f0;
+    }
+    .login-container {
+      max-width: 400px;
+      margin: 10vh auto;
+      padding: 2rem;
+      background-color: #1f1f1f;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.7);
+    }
+    .logo {
+      width: 120px;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container text-center">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
+    <h4 class="mb-4">Connexion à SpoolNymous</h4>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+      <div class="form-floating mb-3 text-dark">
+        <input type="text" name="username" id="username" class="form-control" placeholder="Nom d'utilisateur" required>
+        <label for="username">Nom d'utilisateur</label>
+      </div>
+      <div class="form-floating mb-3 text-dark">
+        <input type="password" name="password" id="password" class="form-control" placeholder="Mot de passe" required>
+        <label for="password">Mot de passe</label>
+      </div>
+      <button type="submit" class="btn btn-primary w-100">Se connecter</button>
+    </form>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+</body>
+</html>

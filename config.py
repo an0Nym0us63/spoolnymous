@@ -1,4 +1,6 @@
 import os
+DEFAULT_ADMIN_USERNAME = "admin"
+DEFAULT_ADMIN_PASSWORD = "admin"
 EXTERNAL_SPOOL_AMS_ID = 255 # don't change
 EXTERNAL_SPOOL_ID = 254 #  don't change
 

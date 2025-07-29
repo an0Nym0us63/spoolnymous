@@ -1,0 +1,72 @@
+# auth.py
+
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
+import os
+import json
+
+from config import DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD
+
+auth_bp = Blueprint('auth', __name__)
+USERS_FILE = 'users.json'
+
+class User(UserMixin):
+    def __init__(self, username):
+        self.id = username
+
+def get_stored_user():
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, 'r') as f:
+            return json.load(f)
+    return None
+
+def save_user(username, password):
+    password_hash = generate_password_hash(password)
+    with open(USERS_FILE, 'w') as f:
+        json.dump({username: {"password_hash": password_hash}}, f)
+
+def validate_credentials(username, password):
+    user_data = get_stored_user()
+    if user_data:
+        stored_username = list(user_data.keys())[0]
+        stored_hash = user_data[stored_username]['password_hash']
+        if username == stored_username and check_password_hash(stored_hash, password):
+            return True
+    else:
+        return username == DEFAULT_ADMIN_USERNAME and password == DEFAULT_ADMIN_PASSWORD
+    return False
+
+@auth_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if validate_credentials(username, password):
+            user = User(username)
+            login_user(user, remember=True)
+            return redirect(url_for('index'))
+        else:
+            flash('Identifiants incorrects.', 'danger')
+    return render_template('login.html')
+
+@auth_bp.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('auth.login'))
+
+@auth_bp.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings():
+    user_data = get_stored_user()
+    if request.method == 'POST':
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        if new_password != confirm_password:
+            flash("Les mots de passe ne correspondent pas.", "warning")
+        else:
+            save_user(current_user.id, new_password)
+            flash("Mot de passe mis à jour.", "success")
+            return redirect(url_for('auth.settings'))
+    return render_template('settings.html', user=current_user, using_default=(user_data is None))

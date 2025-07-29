@@ -5,3 +5,4 @@ pyopenssl==24.3.0
 pycurl==7.45.6
 gunicorn==23.0.0
 deep-translator==1.11.4
+flask-login==0.6.3
