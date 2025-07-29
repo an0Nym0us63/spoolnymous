@@ -9,7 +9,12 @@ import json
 from config import DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD
 
 auth_bp = Blueprint('auth', __name__)
-USERS_FILE = 'users.json'
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+USERS_FILE = os.path.join(DATA_DIR, 'users.json')
+
+# Assurer que le dossier data existe
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
 
 class User(UserMixin):
     def __init__(self, username):
