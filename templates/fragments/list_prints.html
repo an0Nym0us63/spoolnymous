@@ -83,11 +83,18 @@
             <div class="row row-cols-2 row-cols-md-5 g-2 mb-2 text-center">
               <div>⏱ {{ entry.total_duration|hm_format }}</div>
 			  <div>⚖️ {{ '%.1f'|format(entry.total_weight) }}g</div>
-              <div>🎯 {{ '%.2f'|format(entry.total_filament_cost) }} {{ currencysymbol }}</div>
+              <div>🎯 {{ '%.2f'|format(entry.total_filament_cost) }} {{ currencysymbol }}
+  <span class="text-muted fst-italic" style="font-size: 0.6em;">
+    ({{ '%.2f'|format(entry.total_filament_normal_cost)}})
+  </span></div>
               <div>⚡ {{ '%.2f'|format(entry.total_electric_cost) }} {{ currencysymbol }}</div>
-              <div>💵 {{ '%.2f'|format(entry.total_cost) }} {{ currencysymbol }}</div>
+              <div>💵 {{ '%.2f'|format(entry.total_cost) }} {{ currencysymbol }}<span class="text-muted fst-italic" style="font-size: 0.6em;">
+    ({{ '%.2f'|format(entry.total_normal_cost)}})
+  </span></div>
 			  {% if entry.number_of_items > 1 %}
-<div>📦 {{ '%.2f'|format(entry.full_cost_by_item) }} {{ currencysymbol }}</div>
+<div>📦 {{ '%.2f'|format(entry.full_cost_by_item) }} {{ currencysymbol }}<span class="text-muted fst-italic" style="font-size: 0.6em;">
+    ({{ '%.2f'|format(entry.full_normal_cost_by_item)}})
+  </span></div>
 {% endif %}
             </div>
 <div style="height: 0.2rem;"></div>
@@ -160,7 +167,10 @@
                   </div>
                   <div>
                     <strong>#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</strong><br>
-                    <small>{{ filament.spool.filament.name }} - {{ "%.2f"|format(filament.grams_used) }}g - {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}</small>
+                    <small>{{ filament.spool.filament.name }} - {{ "%.2f"|format(filament.grams_used) }}g - {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}
+  <span class="text-muted fst-italic" style="font-size: 0.6em;">
+    ({{ '%.2f'|format(filament.normal_cost)}})
+  </span></small>
                   </div>
                 {% else %}
                   <div>
