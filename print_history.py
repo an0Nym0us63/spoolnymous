@@ -423,13 +423,6 @@ def get_prints_with_filament(filters=None, search=None):
         all_colors = [row[0] for row in cursor.fetchall()]
         conn.close()
 
-    if filters.get("status") and any(v.strip() for v in filters["status"]):
-        statuses = [v.strip() for v in filters["status"] if v.strip()]
-        if statuses:
-            placeholders = ",".join("?" for _ in statuses)
-            where_clauses.append(f"p.status IN ({placeholders})")
-            params.extend(statuses)
-
         selected_hexes_by_family = []
         for fam in color_families:
             hexes = [c for c in all_colors if fam in two_closest_families(c)]
@@ -449,6 +442,12 @@ def get_prints_with_filament(filters=None, search=None):
             for hexes in selected_hexes_by_family:
                 params.extend(hexes)
             params.append(len(selected_hexes_by_family))
+    if filters.get("status") and any(v.strip() for v in filters["status"]):
+        statuses = [v.strip() for v in filters["status"] if v.strip()]
+        if statuses:
+            placeholders = ",".join("?" for _ in statuses)
+            where_clauses.append(f"p.status IN ({placeholders})")
+            params.extend(statuses)
 
     if search:
         words = [w.strip().lower() for w in search.split() if w.strip()]
