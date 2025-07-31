@@ -145,17 +145,17 @@
         <div>⏱ {{ print.duration|hm_format }}</div>
         <div>⚖️ {{ '%.1f'|format(print.total_weight) }}g</div>
         <div>💰 {{ '%.2f'|format(print.total_cost) }} {{ currencysymbol }}
-  <span class="text-muted fst-italic">
+  <span class="text-muted fst-italic" style="font-size: 0.6em;">
     ({{ '%.2f'|format(print.total_normal_cost) }} {{ currencysymbol }})
   </span></div>
         <div>⚡ {{ '%.2f'|format(print.electric_cost) }} {{ currencysymbol }}</div>
         <div>💵 {{ '%.2f'|format(print.full_cost) }} {{ currencysymbol }}
-  <span class="text-muted fst-italic">
+  <span class="text-muted fst-italic" style="font-size: 0.6em;">
     ({{ '%.2f'|format(print.full_normal_cost) }} {{ currencysymbol }})
   </span></div>
         {% if print.number_of_items > 1 %}
         <div>📦 {{ '%.2f'|format(print.full_cost_by_item) }} {{ currencysymbol }}
-  <span class="text-muted fst-italic">
+  <span class="text-muted fst-italic" style="font-size: 0.6em;">
     ({{ '%.2f'|format(print.full_normal_cost_by_item) }} {{ currencysymbol }})
   </span></div>
         {% endif %}
@@ -253,7 +253,7 @@
   {{ filament.spool.filament.name }} –
   {{ "%.2f"|format(filament.grams_used) }}g –
   {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}
-  <span class="text-muted fst-italic">
+  <span class="text-muted fst-italic" style="font-size: 0.6em;">
     ({{ '%.2f'|format(filament.normal_cost) }} {{ currencysymbol }})
   </span>
 </small>
