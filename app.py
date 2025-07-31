@@ -141,27 +141,12 @@ def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
 
     return pages
 
-def redirect_back(focus_print_id=None, focus_group_id=None):
-    args = request.form.to_dict(flat=False)
-    args.update(request.args.to_dict(flat=False))
-
-    page = args.get("page", ["1"])[0]
-    search = args.get("search", [""])[0]
-
-    kwargs = {
-        "page": page,
-        "search": search
-    }
-
-    for key in ("filament_type", "color", "filament_id", "status"):
-        if key in args:
-            kwargs[key] = args[key]
-
-    if focus_print_id:
-        kwargs["focus_print_id"] = focus_print_id
-    if focus_group_id:
-        kwargs["focus_group_id"] = focus_group_id
-
+def redirect_back(focus_id=None):
+    args = request.form.to_dict(flat=True)
+    page = args.get("page") or request.args.get("page") or 1
+    kwargs = {"page": page}
+    if focus_id:
+        kwargs["focus_id"] = focus_id
     return redirect(url_for("print_history", **kwargs))
 
 init_mqtt()
@@ -1231,7 +1216,6 @@ def change_print_status():
     return redirect(url_for("print_history", page=page, search=search, focus_print_id=print_id))
 
 @app.route("/set_sold_price", methods=["POST"])
-@flask_login.login_required
 def set_sold_price():
     try:
         item_id = int(request.form.get("id"))
