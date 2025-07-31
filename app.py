@@ -734,10 +734,10 @@ def print_history():
                 is_sold = (p.get("total_price") or 0) > 0 and (p.get("sold_units") or 0) > 0
                 if (sold_filter == "yes" and is_sold) or (sold_filter == "no" and not is_sold):
                     filtered_entries.append(e)
-        entries = {f"group_{e['id']}" if e["type"] == "group" else f"print_{e['print']['id']}": e for e in filtered_entries}
-        entries_list = sorted(entries.values(), key=lambda e: e["max_id"], reverse=True)
-        total_pages = (len(entries_list) + per_page - 1) // per_page
-        paged_entries = entries_list[(page - 1) * per_page : page * per_page]
+    entries = {f"group_{e['id']}" if e["type"] == "group" else f"print_{e['print']['id']}": e for e in filtered_entries}
+    entries_list = sorted(entries.values(), key=lambda e: e["max_id"], reverse=True)
+    total_pages = (len(entries_list) + per_page - 1) // per_page
+    paged_entries = entries_list[(page - 1) * per_page : page * per_page]
 
     if focus_print_id and not focus_group_id:
         for entry in entries_list:
