@@ -28,43 +28,74 @@ $(document).ready(function () {
         }
     }
 
-    function initSelect2() {
-    $('.select2').each(function () {
-        if ($(this).hasClass('select2-hidden-accessible')) {
-            $(this).select2('destroy');
-        }
-        $(this).select2({
-        width: '100%',
-        placeholder: $(this).data('placeholder') || '',
-        allowClear: $(this).prop('multiple') ? false : true
-    }).on('select2:open', applyThemeToDropdown);
-    });
+    function formatStatusOption(state) {
+        if (!state.id) return state.text;
 
-    $('.select2-filament').each(function () {
-    const $parentCanvas = $(this).closest('.offcanvas');  // ou un autre conteneur visible
-    if ($(this).hasClass('select2-hidden-accessible')) {
-        $(this).select2('destroy');
+        const colorMap = {
+            "SUCCESS": "#198754",
+            "TO_REDO": "#ffc107",
+            "PARTIAL": "#fd7e14",
+            "FAILED": "#dc3545",
+            "IN_PROGRESS": "#0dcaf0"
+        };
+        const color = colorMap[state.id] || "#6c757d";
+
+        return $(`
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span style="width:14px;height:14px;border-radius:3px;background:${color};border:1px solid #ccc;"></span>
+                <span>${state.text}</span>
+            </div>
+        `);
     }
-     $(this).select2({
-        width: '100%',
-        dropdownParent: $parentCanvas,
-        placeholder: $(this).data('placeholder') || '',
-        allowClear: true,
-        templateResult: formatFilamentOption,
-        templateSelection: formatFilamentOption,
-        matcher: function(params, data) {
-            if ($.trim(params.term) === '') return data;
-            if (typeof data.text === 'undefined') return null;
-            const terms = params.term.toLowerCase().split(/\s+/);
-            const text = data.text.toLowerCase();
-            return terms.every(t => text.includes(t)) ? data : null;
-        }
-    }).on('select2:open', applyThemeToDropdown);
-});
 
-    enhanceColorSelect();
-    applyColorTags();
-}
+    function initSelect2() {
+        $('.select2').each(function () {
+            if ($(this).hasClass('select2-hidden-accessible')) {
+                $(this).select2('destroy');
+            }
+
+            const config = {
+                width: '100%',
+                placeholder: $(this).data('placeholder') || '',
+                allowClear: $(this).prop('multiple') ? false : true
+            };
+
+            if ($(this).attr('name') === 'status') {
+                Object.assign(config, {
+                    templateResult: formatStatusOption,
+                    templateSelection: formatStatusOption,
+                    escapeMarkup: m => m
+                });
+            }
+
+            $(this).select2(config).on('select2:open', applyThemeToDropdown);
+        });
+
+        $('.select2-filament').each(function () {
+            const $parentCanvas = $(this).closest('.offcanvas');
+            if ($(this).hasClass('select2-hidden-accessible')) {
+                $(this).select2('destroy');
+            }
+            $(this).select2({
+                width: '100%',
+                dropdownParent: $parentCanvas,
+                placeholder: $(this).data('placeholder') || '',
+                allowClear: true,
+                templateResult: formatFilamentOption,
+                templateSelection: formatFilamentOption,
+                matcher: function (params, data) {
+                    if ($.trim(params.term) === '') return data;
+                    if (typeof data.text === 'undefined') return null;
+                    const terms = params.term.toLowerCase().split(/\s+/);
+                    const text = data.text.toLowerCase();
+                    return terms.every(t => text.includes(t)) ? data : null;
+                }
+            }).on('select2:open', applyThemeToDropdown);
+        });
+
+        enhanceColorSelect();
+        applyColorTags();
+    }
 
     function initAjaxSelect2($select) {
         if ($select.hasClass('select2-hidden-accessible')) {
@@ -195,9 +226,9 @@ $(document).ready(function () {
                         const url = isDelete
                             ? `/history/delete/${printId}`
                             : `/history/reajust/${printId}`;
+                        const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
 
-                        const queryString = window.location.search;
-						fetch(baseUrl + queryString, {
+                        fetch(url, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ restock: true, ratios: result.value })
@@ -214,47 +245,48 @@ $(document).ready(function () {
                 });
             });
     }
-	window.confirmAdjustDuration = function (printId) {
-    const hourInput = document.getElementById(`hours_${printId}`).value;
-    const minInput = document.getElementById(`minutes_${printId}`).value;
 
-    const hours = parseFloat(hourInput || "0");
-    const minutes = parseFloat(minInput || "0");
+    window.confirmAdjustDuration = function (printId) {
+        const hourInput = document.getElementById(`hours_${printId}`).value;
+        const minInput = document.getElementById(`minutes_${printId}`).value;
 
-    if ((isNaN(hours) && isNaN(minutes)) || (hours <= 0 && minutes <= 0)) {
-        Swal.fire({
-            title: "Durée vide",
-            text: "Merci de saisir une durée dans au moins un des deux champs.",
-            icon: "warning",
-            confirmButtonText: "OK",
-            customClass: getSwalThemeClasses()
-        });
-        return;
-    }
+        const hours = parseFloat(hourInput || "0");
+        const minutes = parseFloat(minInput || "0");
 
-    const totalMinutes = (isNaN(hours) ? 0 : hours * 60) + (isNaN(minutes) ? 0 : minutes);
-    const hFinal = Math.floor(totalMinutes / 60);
-    const mFinal = Math.round(totalMinutes % 60);
-
-    const msg = `Confirmer l’ajustement de la durée à ${hFinal}h${mFinal > 0 ? ' ' + mFinal + 'min' : ''} ?`;
-
-    Swal.fire({
-        title: "Confirmer l’ajustement",
-        text: msg,
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonText: "Oui",
-        cancelButtonText: "Annuler",
-        customClass: getSwalThemeClasses()
-    }).then(result => {
-        if (result.isConfirmed) {
-            document.querySelector(`#adjustDurationModal_${printId} form`).submit();
+        if ((isNaN(hours) && isNaN(minutes)) || (hours <= 0 && minutes <= 0)) {
+            Swal.fire({
+                title: "Durée vide",
+                text: "Merci de saisir une durée dans au moins un des deux champs.",
+                icon: "warning",
+                confirmButtonText: "OK",
+                customClass: getSwalThemeClasses()
+            });
+            return;
         }
-    });
-};
+
+        const totalMinutes = (isNaN(hours) ? 0 : hours * 60) + (isNaN(minutes) ? 0 : minutes);
+        const hFinal = Math.floor(totalMinutes / 60);
+        const mFinal = Math.round(totalMinutes % 60);
+
+        const msg = `Confirmer l’ajustement de la durée à ${hFinal}h${mFinal > 0 ? ' ' + mFinal + 'min' : ''} ?`;
+
+        Swal.fire({
+            title: "Confirmer l’ajustement",
+            text: msg,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: "Oui",
+            cancelButtonText: "Annuler",
+            customClass: getSwalThemeClasses()
+        }).then(result => {
+            if (result.isConfirmed) {
+                document.querySelector(`#adjustDurationModal_${printId} form`).submit();
+            }
+        });
+    };
+
 });
 
-// Fonctions couleurs
 const COLOR_NAME_MAP = {
     "Black": "Noir", "White": "Blanc", "Grey": "Gris", "Red": "Rouge", "Dark Red": "Rouge foncé",
     "Pink": "Rose", "Magenta": "Magenta", "Brown": "Marron", "Yellow": "Jaune", "Gold": "Doré",
@@ -283,14 +315,15 @@ function enhanceColorSelect() {
             .prop('selected', opt.selected)
             .appendTo($colorSelect);
     }
-$colorSelect.select2({
-    width: '100%',
-    placeholder: "— Filtrer par famille de couleur —",
-    allowClear: true,
-    templateResult: formatColorOption,
-    templateSelection: formatColorOption,
-    escapeMarkup: m => m
-});
+
+    $colorSelect.select2({
+        width: '100%',
+        placeholder: "— Filtrer par famille de couleur —",
+        allowClear: true,
+        templateResult: formatColorOption,
+        templateSelection: formatColorOption,
+        escapeMarkup: m => m
+    });
 
     applyColorTags();
     $colorSelect.on('select2:select select2:unselect', applyColorTags);
@@ -300,11 +333,7 @@ function formatFilamentOption(option) {
     if (!option.id) return option.text;
     const color = $(option.element).data('color');
     const small = `style="font-size: 0.9rem; line-height: 1.2;"`;
-
-    const swatch = color
-        ? `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};margin-right:6px;"></span>`
-        : '';
-
+    const swatch = color ? `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};margin-right:6px;"></span>` : '';
     return $(`<span ${small}>${swatch}${option.text}</span>`);
 }
 
@@ -354,15 +383,11 @@ function applyColorTags() {
 
 document.addEventListener("DOMContentLoaded", () => {
     const accordions = document.querySelectorAll(".card-header[data-bs-toggle='collapse']");
-
-    // Gestion du clic classique sur un header
     accordions.forEach(header => {
         header.addEventListener("click", () => {
             const targetSelector = header.getAttribute("data-bs-target");
             const target = document.querySelector(targetSelector);
-
             if (!target.classList.contains("show")) {
-                // On attend l'ouverture animée avant de scroller
                 setTimeout(() => {
                     const y = header.getBoundingClientRect().top + window.scrollY - 20;
                     window.scrollTo({ top: y, behavior: "smooth" });
@@ -371,10 +396,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // Gestion du focus_id à l'affichage initial
     const focused = document.querySelector(".collapse.show");
     if (focused) {
-        // On cherche le header qui l’a déclenché
         const header = focused.closest(".card").querySelector(".card-header");
         if (header) {
             const y = header.getBoundingClientRect().top + window.scrollY - 20;
