@@ -70,6 +70,39 @@ $(document).ready(function () {
 
             $(this).select2(config).on('select2:open', applyThemeToDropdown);
         });
+		
+		// Appliquer les styles personnalisés manuellement aux statuts déjà sélectionnés
+$('select[name="status"]').each(function () {
+    const $select = $(this);
+    const data = $select.select2('data');
+
+    $select.next('.select2-container').find('.select2-selection__choice').each(function (i) {
+        const state = data[i];
+        if (!state) return;
+        const colorMap = {
+            "SUCCESS": "#198754",
+            "TO_REDO": "#ffc107",
+            "PARTIAL": "#fd7e14",
+            "FAILED": "#dc3545",
+            "IN_PROGRESS": "#0dcaf0"
+        };
+        const color = colorMap[state.id] || "#6c757d";
+
+        $(this).html(`
+            <span class="select2-selection__choice__remove" role="presentation">×</span>
+            <span style="
+                display: inline-block;
+                width: 12px;
+                height: 12px;
+                margin: 0 4px;
+                background: ${color};
+                border: 1px solid #ccc;
+                border-radius: 2px;
+                vertical-align: middle;"></span>
+            <span>${state.text}</span>
+        `);
+    });
+});
 
         $('.select2-filament').each(function () {
             const $parentCanvas = $(this).closest('.offcanvas');
