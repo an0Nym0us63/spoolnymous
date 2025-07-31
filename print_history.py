@@ -424,11 +424,11 @@ def get_prints_with_filament(filters=None, search=None):
         conn.close()
 
     if filters.get("status") and any(v.strip() for v in filters["status"]):
-    statuses = [v.strip() for v in filters["status"] if v.strip()]
-    if statuses:
-        placeholders = ",".join("?" for _ in statuses)
-        where_clauses.append(f"p.status IN ({placeholders})")
-        params.extend(statuses)
+        statuses = [v.strip() for v in filters["status"] if v.strip()]
+        if statuses:
+            placeholders = ",".join("?" for _ in statuses)
+            where_clauses.append(f"p.status IN ({placeholders})")
+            params.extend(statuses)
 
         selected_hexes_by_family = []
         for fam in color_families:
