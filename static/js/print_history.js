@@ -28,107 +28,43 @@ $(document).ready(function () {
         }
     }
 
-    function formatStatusOption(state) {
-        if (!state.id) return state.text;
-
-        const colorMap = {
-            "SUCCESS": "#198754",
-            "TO_REDO": "#ffc107",
-            "PARTIAL": "#fd7e14",
-            "FAILED": "#dc3545",
-            "IN_PROGRESS": "#0dcaf0"
-        };
-        const color = colorMap[state.id] || "#6c757d";
-
-        return $(`
-            <div style="display:flex;align-items:center;gap:8px;">
-                <span style="width:14px;height:14px;border-radius:3px;background:${color};border:1px solid #ccc;"></span>
-                <span>${state.text}</span>
-            </div>
-        `);
-    }
-
     function initSelect2() {
-        $('.select2').each(function () {
-            if ($(this).hasClass('select2-hidden-accessible')) {
-                $(this).select2('destroy');
-            }
+    $('.select2').each(function () {
+        if ($(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2('destroy');
+        }
+        $(this).select2({
+        width: '100%',
+        placeholder: $(this).data('placeholder') || '',
+        allowClear: $(this).prop('multiple') ? false : true
+    }).on('select2:open', applyThemeToDropdown);
+    });
 
-            const config = {
-                width: '100%',
-                placeholder: $(this).data('placeholder') || '',
-                allowClear: $(this).prop('multiple') ? false : true
-            };
-
-            if ($(this).attr('name') === 'status') {
-                Object.assign(config, {
-                    templateResult: formatStatusOption,
-                    templateSelection: formatStatusOption,
-                    escapeMarkup: m => m
-                });
-            }
-
-            $(this).select2(config).on('select2:open', applyThemeToDropdown);
-        });
-
-        // Personnalisation des choix sélectionnés (status coloré)
-        $('select[name="status"]').each(function () {
-            const $select = $(this);
-            const data = $select.select2('data');
-
-            $select.next('.select2-container').find('.select2-selection__choice').each(function (i) {
-                const state = data[i];
-                if (!state) return;
-                const colorMap = {
-                    "SUCCESS": "#198754",
-                    "TO_REDO": "#ffc107",
-                    "PARTIAL": "#fd7e14",
-                    "FAILED": "#dc3545",
-                    "IN_PROGRESS": "#0dcaf0"
-                };
-                const color = colorMap[state.id] || "#6c757d";
-
-                $(this).html(`
-                    <span class="select2-selection__choice__remove" role="presentation">×</span>
-                    <span style="
-                        display: inline-block;
-                        width: 12px;
-                        height: 12px;
-                        margin: 0 4px;
-                        background: ${color};
-                        border: 1px solid #ccc;
-                        border-radius: 2px;
-                        vertical-align: middle;"></span>
-                    <span>${state.text}</span>
-                `);
-            });
-        });
-
-        $('.select2-filament').each(function () {
-            const $parentCanvas = $(this).closest('.offcanvas');
-            if ($(this).hasClass('select2-hidden-accessible')) {
-                $(this).select2('destroy');
-            }
-            $(this).select2({
-                width: '100%',
-                dropdownParent: $parentCanvas,
-                placeholder: $(this).data('placeholder') || '',
-                allowClear: true,
-                templateResult: formatFilamentOption,
-                templateSelection: formatFilamentOption,
-                matcher: function (params, data) {
-                    if ($.trim(params.term) === '') return data;
-                    if (typeof data.text === 'undefined') return null;
-                    const terms = params.term.toLowerCase().split(/\s+/);
-                    const text = data.text.toLowerCase();
-                    return terms.every(t => text.includes(t)) ? data : null;
-                }
-            }).on('select2:open', applyThemeToDropdown);
-        });
-
-        enhanceColorSelect();
-        applyColorTags();
+    $('.select2-filament').each(function () {
+    const $parentCanvas = $(this).closest('.offcanvas');  // ou un autre conteneur visible
+    if ($(this).hasClass('select2-hidden-accessible')) {
+        $(this).select2('destroy');
     }
+     $(this).select2({
+        width: '100%',
+        dropdownParent: $parentCanvas,
+        placeholder: $(this).data('placeholder') || '',
+        allowClear: true,
+        templateResult: formatFilamentOption,
+        templateSelection: formatFilamentOption,
+        matcher: function(params, data) {
+            if ($.trim(params.term) === '') return data;
+            if (typeof data.text === 'undefined') return null;
+            const terms = params.term.toLowerCase().split(/\s+/);
+            const text = data.text.toLowerCase();
+            return terms.every(t => text.includes(t)) ? data : null;
+        }
+    }).on('select2:open', applyThemeToDropdown);
+});
+
+    enhanceColorSelect();
+    applyColorTags();
+}
 
     function initAjaxSelect2($select) {
         if ($select.hasClass('select2-hidden-accessible')) {
@@ -179,10 +115,10 @@ $(document).ready(function () {
         const tag = input.val().trim();
         if (!tag) return;
 
-        $.post(`/history/${printId}/tags/add`, { tag })
+        $.post(/history/${printId}/tags/add, { tag })
             .done(() => {
                 const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
-                window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
+                window.location.href = /print_history?page=${currentPage}&focus_print_id=${printId};
             })
             .fail(() => alert('Erreur lors de l’ajout du tag.'));
     });
@@ -192,10 +128,10 @@ $(document).ready(function () {
         const printId = btn.data('print-id');
         const tag = btn.data('tag');
 
-        $.post(`/history/${printId}/tags/remove`, { tag })
+        $.post(/history/${printId}/tags/remove, { tag })
             .done(() => {
                 const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
-                window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
+                window.location.href = /print_history?page=${currentPage}&focus_print_id=${printId};
             })
             .fail(() => alert('Erreur lors de la suppression du tag.'));
     });
@@ -209,25 +145,25 @@ $(document).ready(function () {
     };
 
     function askRestockRatioPerFilament(printId, isDelete) {
-        fetch(`/history/${printId}/filaments`)
+        fetch(/history/${printId}/filaments)
             .then(resp => resp.json())
             .then(filaments => {
-                const formHtml = `
+                const formHtml = 
                     <div id="ratiosForm">
-                        ${filaments.map(f => `
+                        ${filaments.map(f => 
                             <div style="display:flex;align-items:center;margin-bottom:5px;gap:5px">
                                 <div style="width:15px;height:15px;background:${f.color};border:1px solid #ccc"></div>
                                 <span style="flex:1">${f.name}</span>
                                 <input type="number" min="0" max="100" value="${isDelete ? 100 : 0}" id="ratio_${f.spool_id}" style="width:60px"> %
                             </div>
-                        `).join("")}
+                        ).join("")}
                     </div>
                     <div class="d-flex justify-content-around mt-2">
-                        ${[0, 25, 50, 75, 100].map(val => `
+                        ${[0, 25, 50, 75, 100].map(val => 
                             <button type="button" class="btn btn-sm btn-outline-primary preset-btn" data-value="${val}">${val}%</button>
-                        `).join("")}
+                        ).join("")}
                     </div>
-                `;
+                ;
 
                 Swal.fire({
                     title: isDelete ? "Supprimer + Réajuster" : "Réajuster uniquement",
@@ -241,7 +177,7 @@ $(document).ready(function () {
                             btn.addEventListener('click', () => {
                                 const val = btn.getAttribute('data-value');
                                 filaments.forEach(f => {
-                                    document.getElementById(`ratio_${f.spool_id}`).value = val;
+                                    document.getElementById(ratio_${f.spool_id}).value = val;
                                 });
                             });
                         });
@@ -249,7 +185,7 @@ $(document).ready(function () {
                     preConfirm: () => {
                         const ratios = {};
                         filaments.forEach(f => {
-                            const val = parseInt(document.getElementById(`ratio_${f.spool_id}`).value) || 0;
+                            const val = parseInt(document.getElementById(ratio_${f.spool_id}).value) || 0;
                             ratios[f.spool_id] = val;
                         });
                         return ratios;
@@ -257,8 +193,8 @@ $(document).ready(function () {
                 }).then(result => {
                     if (result.isConfirmed) {
                         const url = isDelete
-                            ? `/history/delete/${printId}`
-                            : `/history/reajust/${printId}`;
+                            ? /history/delete/${printId}
+                            : /history/reajust/${printId};
 
                         const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
 
@@ -270,7 +206,7 @@ $(document).ready(function () {
                             .then(resp => resp.json())
                             .then(data => {
                                 if (data.status?.toLowerCase() === "ok") {
-                                    window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
+                                    window.location.href = /print_history?page=${currentPage}&focus_print_id=${printId};
                                 } else {
                                     Swal.fire("Erreur", data.error || "Échec de l’opération", "error");
                                 }
@@ -279,75 +215,47 @@ $(document).ready(function () {
                 });
             });
     }
+	window.confirmAdjustDuration = function (printId) {
+    const hourInput = document.getElementById(hours_${printId}).value;
+    const minInput = document.getElementById(minutes_${printId}).value;
 
-    window.confirmAdjustDuration = function (printId) {
-        const hourInput = document.getElementById(`hours_${printId}`).value;
-        const minInput = document.getElementById(`minutes_${printId}`).value;
+    const hours = parseFloat(hourInput || "0");
+    const minutes = parseFloat(minInput || "0");
 
-        const hours = parseFloat(hourInput || "0");
-        const minutes = parseFloat(minInput || "0");
-
-        if ((isNaN(hours) && isNaN(minutes)) || (hours <= 0 && minutes <= 0)) {
-            Swal.fire({
-                title: "Durée vide",
-                text: "Merci de saisir une durée dans au moins un des deux champs.",
-                icon: "warning",
-                confirmButtonText: "OK",
-                customClass: getSwalThemeClasses()
-            });
-            return;
-        }
-
-        const totalMinutes = (isNaN(hours) ? 0 : hours * 60) + (isNaN(minutes) ? 0 : minutes);
-        const hFinal = Math.floor(totalMinutes / 60);
-        const mFinal = Math.round(totalMinutes % 60);
-
-        const msg = `Confirmer l’ajustement de la durée à ${hFinal}h${mFinal > 0 ? ' ' + mFinal + 'min' : ''} ?`;
-
+    if ((isNaN(hours) && isNaN(minutes)) || (hours <= 0 && minutes <= 0)) {
         Swal.fire({
-            title: "Confirmer l’ajustement",
-            text: msg,
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonText: "Oui",
-            cancelButtonText: "Annuler",
+            title: "Durée vide",
+            text: "Merci de saisir une durée dans au moins un des deux champs.",
+            icon: "warning",
+            confirmButtonText: "OK",
             customClass: getSwalThemeClasses()
-        }).then(result => {
-            if (result.isConfirmed) {
-                document.querySelector(`#adjustDurationModal_${printId} form`).submit();
-            }
         });
-    };
+        return;
+    }
 
-    document.addEventListener("DOMContentLoaded", () => {
-        const accordions = document.querySelectorAll(".card-header[data-bs-toggle='collapse']");
-        accordions.forEach(header => {
-            header.addEventListener("click", () => {
-                const targetSelector = header.getAttribute("data-bs-target");
-                const target = document.querySelector(targetSelector);
-                if (!target.classList.contains("show")) {
-                    setTimeout(() => {
-                        const y = header.getBoundingClientRect().top + window.scrollY - 20;
-                        window.scrollTo({ top: y, behavior: "smooth" });
-                    }, 350);
-                }
-            });
-        });
+    const totalMinutes = (isNaN(hours) ? 0 : hours * 60) + (isNaN(minutes) ? 0 : minutes);
+    const hFinal = Math.floor(totalMinutes / 60);
+    const mFinal = Math.round(totalMinutes % 60);
 
-        const focused = document.querySelector(".collapse.show");
-        if (focused) {
-            const header = focused.closest(".card").querySelector(".card-header");
-            if (header) {
-                const y = header.getBoundingClientRect().top + window.scrollY - 20;
-                window.scrollTo({ top: y, behavior: "smooth" });
-            }
+    const msg = Confirmer l’ajustement de la durée à ${hFinal}h${mFinal > 0 ? ' ' + mFinal + 'min' : ''} ?;
+
+    Swal.fire({
+        title: "Confirmer l’ajustement",
+        text: msg,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Oui",
+        cancelButtonText: "Annuler",
+        customClass: getSwalThemeClasses()
+    }).then(result => {
+        if (result.isConfirmed) {
+            document.querySelector(#adjustDurationModal_${printId} form).submit();
         }
     });
-
+};
 });
 
-// --- Couleurs ---
-
+// Fonctions couleurs
 const COLOR_NAME_MAP = {
     "Black": "Noir", "White": "Blanc", "Grey": "Gris", "Red": "Rouge", "Dark Red": "Rouge foncé",
     "Pink": "Rose", "Magenta": "Magenta", "Brown": "Marron", "Yellow": "Jaune", "Gold": "Doré",
@@ -355,38 +263,6 @@ const COLOR_NAME_MAP = {
     "Blue": "Bleu", "Navy": "Bleu marine", "Cyan": "Cyan", "Lavender": "Lavande",
     "Purple": "Violet", "Dark Purple": "Violet foncé"
 };
-
-function getFamilyHex(name) {
-    const map = {
-        "Black": "#000000", "White": "#FFFFFF", "Grey": "#A0A0A0", "Red": "#DC143C",
-        "Dark Red": "#8B0000", "Pink": "#FFB6C1", "Magenta": "#FF00FF", "Brown": "#964B00",
-        "Yellow": "#FFDC00", "Gold": "#D4AF37", "Orange": "#FF8C00", "Green": "#50C878",
-        "Dark Green": "#006400", "Lime": "#BFFF00", "Teal": "#008080", "Blue": "#6496FF",
-        "Navy": "#000080", "Cyan": "#00FFFF", "Lavender": "#E6E6FA", "Purple": "#A020F0",
-        "Dark Purple": "#5A3C78"
-    };
-    return map[name] || "#CCCCCC";
-}
-
-function formatColorOption(state) {
-    if (!state.id) return state.text;
-    const colorHex = getFamilyHex(state.id);
-    return $(`
-        <div style="display:flex;align-items:center;gap:8px;">
-            <span style="width:14px;height:14px;border-radius:3px;background:${colorHex};border:1px solid #ccc"></span>
-            <span>${state.text}</span>
-        </div>
-    `);
-}
-
-function formatFilamentOption(option) {
-    if (!option.id) return option.text;
-    const color = $(option.element).data('color');
-    const swatch = color
-        ? `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};margin-right:6px;"></span>`
-        : '';
-    return $(`<span style="font-size: 0.9rem; line-height: 1.2;">${swatch}${option.text}</span>`);
-}
 
 function enhanceColorSelect() {
     const $colorSelect = $('select[name="color"]');
@@ -408,18 +284,52 @@ function enhanceColorSelect() {
             .prop('selected', opt.selected)
             .appendTo($colorSelect);
     }
-
-    $colorSelect.select2({
-        width: '100%',
-        placeholder: "— Filtrer par famille de couleur —",
-        allowClear: true,
-        templateResult: formatColorOption,
-        templateSelection: formatColorOption,
-        escapeMarkup: m => m
-    });
+$colorSelect.select2({
+    width: '100%',
+    placeholder: "— Filtrer par famille de couleur —",
+    allowClear: true,
+    templateResult: formatColorOption,
+    templateSelection: formatColorOption,
+    escapeMarkup: m => m
+});
 
     applyColorTags();
     $colorSelect.on('select2:select select2:unselect', applyColorTags);
+}
+
+function formatFilamentOption(option) {
+    if (!option.id) return option.text;
+    const color = $(option.element).data('color');
+    const small = style="font-size: 0.9rem; line-height: 1.2;";
+
+    const swatch = color
+        ? <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};margin-right:6px;"></span>
+        : '';
+
+    return $(<span ${small}>${swatch}${option.text}</span>);
+}
+
+function formatColorOption(state) {
+    if (!state.id) return state.text;
+    const colorHex = getFamilyHex(state.id);
+    return $(
+        <div style="display:flex;align-items:center;gap:8px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:${colorHex};border:1px solid #ccc"></span>
+            <span>${state.text}</span>
+        </div>
+    );
+}
+
+function getFamilyHex(name) {
+    const map = {
+        "Black": "#000000", "White": "#FFFFFF", "Grey": "#A0A0A0", "Red": "#DC143C",
+        "Dark Red": "#8B0000", "Pink": "#FFB6C1", "Magenta": "#FF00FF", "Brown": "#964B00",
+        "Yellow": "#FFDC00", "Gold": "#D4AF37", "Orange": "#FF8C00", "Green": "#50C878",
+        "Dark Green": "#006400", "Lime": "#BFFF00", "Teal": "#008080", "Blue": "#6496FF",
+        "Navy": "#000080", "Cyan": "#00FFFF", "Lavender": "#E6E6FA", "Purple": "#A020F0",
+        "Dark Purple": "#5A3C78"
+    };
+    return map[name] || "#CCCCCC";
 }
 
 function applyColorTags() {
@@ -427,7 +337,7 @@ function applyColorTags() {
         const val = $(this).attr('title');
         const enName = Object.keys(COLOR_NAME_MAP).find(k => COLOR_NAME_MAP[k] === val) || val;
         const hex = getFamilyHex(enName);
-        $(this).html(`
+        $(this).html(
             <span class="select2-selection__choice__remove" role="presentation">×</span>
             <span style="
                 display: inline-block;
@@ -439,6 +349,37 @@ function applyColorTags() {
                 border-radius: 2px;
                 vertical-align: middle;"></span>
             <span>${val}</span>
-        `);
+        );
     });
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+    const accordions = document.querySelectorAll(".card-header[data-bs-toggle='collapse']");
+
+    // Gestion du clic classique sur un header
+    accordions.forEach(header => {
+        header.addEventListener("click", () => {
+            const targetSelector = header.getAttribute("data-bs-target");
+            const target = document.querySelector(targetSelector);
+
+            if (!target.classList.contains("show")) {
+                // On attend l'ouverture animée avant de scroller
+                setTimeout(() => {
+                    const y = header.getBoundingClientRect().top + window.scrollY - 20;
+                    window.scrollTo({ top: y, behavior: "smooth" });
+                }, 350);
+            }
+        });
+    });
+
+    // Gestion du focus_id à l'affichage initial
+    const focused = document.querySelector(".collapse.show");
+    if (focused) {
+        // On cherche le header qui l’a déclenché
+        const header = focused.closest(".card").querySelector(".card-header");
+        if (header) {
+            const y = header.getBoundingClientRect().top + window.scrollY - 20;
+            window.scrollTo({ top: y, behavior: "smooth" });
+        }
+    }
+});
