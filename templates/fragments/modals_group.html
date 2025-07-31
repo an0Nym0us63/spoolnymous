@@ -51,3 +51,38 @@
     </div>
   </div>
 </div>
+
+
+<div class="modal fade" id="soldGroupModal_{{ entry.id }}" tabindex="-1" aria-labelledby="soldGroupModalLabel_{{ entry.id }}" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="post" action="{{ url_for('set_sold_price') }}">
+      <input type="hidden" name="id" value="{{ entry.id }}">
+      <input type="hidden" name="is_group" value="1">
+      {% for k, vlist in args.items() %}
+        {% for v in vlist %}
+          <input type="hidden" name="{{ k }}" value="{{ v }}">
+        {% endfor %}
+      {% endfor %}
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="soldGroupModalLabel_{{ entry.id }}">💸 Marquer comme vendu (Groupe #{{ entry.id }})</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="unit_price_group_{{ entry.id }}" class="form-label">Prix unitaire de vente ({{ currencysymbol }})</label>
+            <input type="number" class="form-control" name="unit_price" id="unit_price_group_{{ entry.id }}" step="0.01" min="0" required>
+          </div>
+          <div class="mb-3">
+            <label for="sold_units_group_{{ entry.id }}" class="form-label">Nombre d’unités vendues</label>
+            <input type="number" class="form-control" name="sold_units" id="sold_units_group_{{ entry.id }}" min="1" value="{{ entry.number_of_items or 1 }}" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">✅ Enregistrer</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

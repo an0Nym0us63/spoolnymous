@@ -91,6 +91,8 @@ def create_database() -> None:
                 translated_name TEXT,
                 status TEXT DEFAULT 'SUCCESS',
                 status_note TEXT,
+                sold_units INTEGER DEFAULT 0,
+                sold_price_total REAL DEFAULT NULL
                 FOREIGN KEY (group_id) REFERENCES print_groups(id)
             )
         ''')
@@ -123,6 +125,8 @@ def create_database() -> None:
                 name TEXT NOT NULL,
                 number_of_items INTEGER DEFAULT 1,
                 created_at TEXT,
+                sold_units INTEGER DEFAULT 0,
+                sold_price_total REAL DEFAULT NULL
                 primary_print_id INTEGER
             )
         ''')
@@ -156,6 +160,10 @@ def create_database() -> None:
             cursor.execute("UPDATE prints SET status = 'SUCCESS' WHERE status IS NULL")
         if "status_note" not in columns:
             cursor.execute("ALTER TABLE prints ADD COLUMN status_note TEXT")
+        if "sold_units" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN sold_units INTEGER DEFAULT 0")
+        if "sold_price_total" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN sold_price_total REAL DEFAULT NULL")
 
         cursor.execute("PRAGMA table_info(print_groups)")
         group_columns = [row[1] for row in cursor.fetchall()]
@@ -163,9 +171,6 @@ def create_database() -> None:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN number_of_items INTEGER DEFAULT 1")
         if "created_at" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN created_at TEXT")
-        if "primary_print_id" not in group_columns:
-            cursor.execute("ALTER TABLE print_groups ADD COLUMN primary_print_id INTEGER")
-
             # initialiser created_at pour les groupes existants
             cursor.execute("SELECT id FROM print_groups")
             for row in cursor.fetchall():
@@ -184,6 +189,12 @@ def create_database() -> None:
                     cursor.execute("""
                         UPDATE print_groups SET created_at = DATETIME('now') WHERE id = ?
                     """, (gid,))
+        if "primary_print_id" not in group_columns:
+            cursor.execute("ALTER TABLE print_groups ADD COLUMN primary_print_id INTEGER")
+        if "sold_units" not in group_columns:
+            cursor.execute("ALTER TABLE print_groups ADD COLUMN sold_units INTEGER DEFAULT 0")
+        if "sold_price_total" not in group_columns:
+            cursor.execute("ALTER TABLE print_groups ADD COLUMN sold_price_total REAL DEFAULT NULL")
 
         conn.commit()
         conn.close()
@@ -916,6 +927,31 @@ def set_group_primary_print(group_id: int, print_id: int):
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
     cursor.execute("UPDATE print_groups SET primary_print_id = ? WHERE id = ?", (print_id, group_id))
+    conn.commit()
+    conn.close()
+
+def set_sold_info(print_id: int, is_group: bool, unit_price: float, sold_units: int) -> None:
+    """
+    Met à jour le nombre d’unités vendues et le total vendu pour un print ou un groupe.
+    """
+    total_price = round(unit_price * sold_units, 2) if unit_price and sold_units else None
+
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+
+    if is_group:
+        cursor.execute("""
+            UPDATE print_groups
+            SET sold_units = ?, sold_price_total = ?
+            WHERE id = ?
+        """, (sold_units, total_price, print_id))
+    else:
+        cursor.execute("""
+            UPDATE prints
+            SET sold_units = ?, sold_price_total = ?
+            WHERE id = ?
+        """, (sold_units, total_price, print_id))
+
     conn.commit()
     conn.close()
 

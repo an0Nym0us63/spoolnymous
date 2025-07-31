@@ -21,7 +21,7 @@ from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool, archive_spool, reajust_spool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info
 
 
 COLOR_FAMILIES = {
@@ -141,12 +141,27 @@ def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
 
     return pages
 
-def redirect_back(focus_id=None):
-    args = request.form.to_dict(flat=True)
-    page = args.get("page") or request.args.get("page") or 1
-    kwargs = {"page": page}
-    if focus_id:
-        kwargs["focus_id"] = focus_id
+def redirect_back(focus_print_id=None, focus_group_id=None):
+    args = request.form.to_dict(flat=False)
+    args.update(request.args.to_dict(flat=False))
+
+    page = args.get("page", ["1"])[0]
+    search = args.get("search", [""])[0]
+
+    kwargs = {
+        "page": page,
+        "search": search
+    }
+
+    for key in ("filament_type", "color", "filament_id", "status"):
+        if key in args:
+            kwargs[key] = args[key]
+
+    if focus_print_id:
+        kwargs["focus_print_id"] = focus_print_id
+    if focus_group_id:
+        kwargs["focus_group_id"] = focus_group_id
+
     return redirect(url_for("print_history", **kwargs))
 
 init_mqtt()
@@ -1214,5 +1229,32 @@ def change_print_status():
     update_print_history_field(print_id, "status_note", note)
 
     return redirect(url_for("print_history", page=page, search=search, focus_print_id=print_id))
+
+@app.route("/set_sold_price", methods=["POST"])
+@flask_login.login_required
+def set_sold_price():
+    try:
+        item_id = int(request.form.get("id"))
+        is_group = bool(request.form.get("is_group"))
+        unit_price = float(request.form.get("unit_price") or 0)
+        sold_units = int(request.form.get("sold_units") or 0)
+
+        if item_id <= 0 or unit_price < 0 or sold_units < 0:
+            return redirect(request.referrer or url_for("print_history"))
+
+        # Appliquer les changements
+        set_sold_info(print_id=item_id, is_group=is_group, unit_price=unit_price, sold_units=sold_units)
+
+        # Générer dynamiquement les paramètres à préserver
+        preserved_args = {
+            key: request.form.getlist(key)
+            for key in request.form
+            if key not in {"id", "is_group", "unit_price", "sold_units"}
+        }
+
+        return redirect(url_for("print_history", **preserved_args, focus_group_id=item_id if is_group else None, focus_print_id=item_id if not is_group else None))
+
+    except Exception as e:
+        return redirect(request.referrer or url_for("print_history"))
 
 app.register_blueprint(auth_bp)

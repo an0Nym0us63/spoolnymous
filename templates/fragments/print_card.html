@@ -29,6 +29,9 @@
 {% set color = status_colors.get(print.status, "#6c757d") %}
 <span class="badge text-white fw-normal d-inline-block text-wrap text-break px-2 py-1"
       style="background-color: {{ color }}; font-size: 0.75rem; line-height: 1.1; max-width: 90vw;">
+{% if print.unit_price > 0 and print.sold_units > 0 %}
+  💰
+{% endif %}
   {{ print.file_name or 'Print #' ~ print.id }}
 </span>
   </div>
@@ -87,6 +90,11 @@
 <li>
   <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#changeStatusModal_{{ print.id }}">
     🧾 Changer statut
+  </a>
+</li>
+<li>
+  <a class="dropdown-item text-success" href="#" data-bs-toggle="modal" data-bs-target="#soldModal_{{ print.id }}">
+    💸 Marquer comme vendu
   </a>
 </li>
           {% if not print.group_id %}
