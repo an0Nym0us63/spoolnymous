@@ -29,15 +29,15 @@
 </div>
 
 <div class="flex-grow-1 d-flex flex-column align-items-center">
-  <div class="text-center small text-wrap" style="word-break: break-word;">
-<span class="badge text-white fw-normal d-inline-block text-wrap text-break px-2 py-1"
-      style="background-color: #198754; font-size: 0.75rem; line-height: 1.1; max-width: 90vw;">
-{% if (entry.total_price or 0) > 0 and (entry.sold_units or 0) > 0 %}
-  💰
-{% endif %}
-  {{ entry.name }}
-</span>
-  </div>
+<div class="text-center small text-wrap" style="word-break: break-word;">
+  {% if (entry.total_price or 0) > 0 and (entry.sold_units or 0) > 0 %}
+    <span class="me-1" title="Vendu">💰</span>
+  {% endif %}
+  <span class="badge text-white fw-normal d-inline-block text-wrap text-break px-2 py-1"
+        style="background-color: #198754; font-size: 0.75rem; line-height: 1.1; max-width: 90vw;">
+    {{ entry.name }}
+  </span>
+</div>
   <div>
     <span class="badge bg-secondary bg-opacity-25 text-muted small">
       {{ entry.latest_date | datetimeformat('fr') }}
@@ -83,7 +83,7 @@
     </li>
 	<li>
   <a class="dropdown-item text-success" href="#" data-bs-toggle="modal" data-bs-target="#soldGroupModal_{{ entry.id }}">
-    💸 Marquer comme vendu
+    💸 Vendu
   </a>
 </li>
   </ul>

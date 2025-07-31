@@ -1234,7 +1234,7 @@ def set_sold_price():
         total_price = float(request.form.get("total_price") or 0)
         sold_units = int(request.form.get("sold_units") or 0)
 
-        if item_id <= 0 or total_price < 0 or sold_units < 0:
+        if item_id <= 0:
             return redirect(request.referrer or url_for("print_history"))
 
         set_sold_info(print_id=item_id, is_group=is_group, total_price=total_price, sold_units=sold_units)
