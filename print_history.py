@@ -917,68 +917,6 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         stats_data["color_family_pie"]["colors"][stats_data["color_family_pie"]["labels"].index(fam)]
         for fam in ordered_families
     ]
-    filters_clause = f" AND {date_clause}" if date_clause else ""
-    params_filters = list(params)
-    
-    # Prints vendus
-    cursor.execute(f"""
-        SELECT 
-            p.id AS item_id,
-            p.sold_price_total AS total_price,
-            p.sold_units,
-            p.number_of_items,
-            p.duration,
-            COALESCE(SUM(f.grams_used * s.cost_per_gram), 0) AS filament_cost
-        FROM prints p
-        LEFT JOIN filament_usage f ON f.print_id = p.id
-        LEFT JOIN spools s ON f.spool_id = s.id
-        WHERE p.sold_price_total > 0 AND p.sold_units > 0 {filters_clause}
-        GROUP BY p.id
-    """, params_filters)
-    sold_prints = cursor.fetchall()
-    
-    # Groupes vendus
-    cursor.execute(f"""
-        SELECT 
-            pg.id AS item_id,
-            pg.sold_price_total AS total_price,
-            pg.sold_units,
-            pg.number_of_items,
-            COALESCE(SUM(p.duration), 0) AS duration,
-            COALESCE(SUM(f.grams_used * s.cost_per_gram), 0) AS filament_cost
-        FROM print_groups pg
-        JOIN prints p ON p.group_id = pg.id
-        LEFT JOIN filament_usage f ON f.print_id = p.id
-        LEFT JOIN spools s ON f.spool_id = s.id
-        WHERE pg.sold_price_total > 0 AND pg.sold_units > 0 {filters_clause}
-        GROUP BY pg.id
-    """, params_filters)
-    sold_groups = cursor.fetchall()
-    
-    # Calculs
-    total_revenue = 0.0
-    total_units = 0
-    total_margin = 0.0
-    
-    for row in sold_prints + sold_groups:
-        total_price = row["total_price"] or 0
-        sold_units = row["sold_units"] or 0
-        number_of_items = row["number_of_items"] or 1
-        filament_cost = row["filament_cost"] or 0
-        duration = row["duration"] or 0
-        cost_per_item = (filament_cost + duration * float(COST_BY_HOUR)) / number_of_items
-        total_cost = cost_per_item * sold_units
-        margin = total_price - total_cost
-    
-        total_revenue += total_price
-        total_units += sold_units
-        total_margin += margin
-    
-    stats_data.update({
-        "sold_revenue": total_revenue,
-        "sold_units": total_units,
-        "sold_margin": total_margin
-    })
     conn.close()
     
     return stats_data
