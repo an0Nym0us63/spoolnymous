@@ -51,83 +51,74 @@ $(document).ready(function () {
 
     function initSelect2() {
     $('.select2').each(function () {
-    if ($(this).hasClass('select2-hidden-accessible')) {
-        $(this).select2('destroy');
-    }
-
-    const config = {
-        width: '100%',
-        placeholder: $(this).data('placeholder') || '',
-        allowClear: $(this).prop('multiple') ? false : true
-    };
-
-    if ($(this).attr('name') === 'status') {
-        Object.assign(config, {
-            templateResult: formatStatusOption,
-            templateSelection: formatStatusOption,
-            escapeMarkup: m => m
-        });
-    }
-
-    $(this).select2(config).on('select2:open', applyThemeToDropdown);
-});
-
-    $('.select2-filament').each(function () {
-    const $parentCanvas = $(this).closest('.offcanvas');  // ou un autre conteneur visible
-    if ($(this).hasClass('select2-hidden-accessible')) {
-        $(this).select2('destroy');
-    }
-     $(this).select2({
-        width: '100%',
-        dropdownParent: $parentCanvas,
-        placeholder: $(this).data('placeholder') || '',
-        allowClear: true,
-        templateResult: formatFilamentOption,
-        templateSelection: formatFilamentOption,
-        matcher: function(params, data) {
-            if ($.trim(params.term) === '') return data;
-            if (typeof data.text === 'undefined') return null;
-            const terms = params.term.toLowerCase().split(/\s+/);
-            const text = data.text.toLowerCase();
-            return terms.every(t => text.includes(t)) ? data : null;
+        if ($(this).hasClass('select2-hidden-accessible')) {
+            $(this).select2('destroy');
         }
-    }).on('select2:open', applyThemeToDropdown);
-});
-$('select[name="status"]').each(function () {
-    const $select = $(this);
-    const data = $select.select2('data');
 
-    $select.next('.select2-container').find('.select2-selection__choice').each(function (i) {
-        const state = data[i];
-        if (!state) return;
-
-        const colorMap = {
-            "SUCCESS": "#198754",
-            "TO_REDO": "#ffc107",
-            "PARTIAL": "#fd7e14",
-            "FAILED": "#dc3545",
-            "IN_PROGRESS": "#0dcaf0"
+        const config = {
+            width: '100%',
+            placeholder: $(this).data('placeholder') || '',
+            allowClear: $(this).prop('multiple') ? false : true
         };
-        const color = colorMap[state.id?.toUpperCase()] || "#6c757d";
 
-        $(this).html(`
-            <span class="select2-selection__choice__remove" role="presentation">×</span>
-            <span style="
-                display: inline-block;
-                width: 12px;
-                height: 12px;
-                margin: 0 4px;
-                background: ${color};
-                border: 1px solid #ccc;
-                border-radius: 2px;
-                vertical-align: middle;"></span>
-            <span>${state.text}</span>
-        `);
+        // Statuts avec pastille colorée
+        if ($(this).attr('name') === 'status') {
+            Object.assign(config, {
+                templateResult: formatStatusOption,
+                templateSelection: formatStatusOption,
+                escapeMarkup: m => m
+            });
+        }
+
+        // Famille de couleurs (filtre)
+        if ($(this).attr('name') === 'color') {
+            Object.assign(config, {
+                templateResult: formatColorOption,
+                templateSelection: formatColorOption,
+                escapeMarkup: m => m
+            });
+        }
+
+        $(this).select2(config).on('select2:open', applyThemeToDropdown);
     });
-});
-    enhanceColorSelect();
-    applyColorTags();
+
+    // Styles couleurs sélectionnées pour status
+    $('select[name="status"]').each(function () {
+        const $select = $(this);
+        const data = $select.select2('data');
+
+        $select.next('.select2-container').find('.select2-selection__choice').each(function (i) {
+            const state = data[i];
+            if (!state) return;
+            const colorMap = {
+                "SUCCESS": "#198754",
+                "TO_REDO": "#ffc107",
+                "PARTIAL": "#fd7e14",
+                "FAILED": "#dc3545",
+                "IN_PROGRESS": "#0dcaf0"
+            };
+            const color = colorMap[state.id?.toUpperCase()] || "#6c757d";
+
+            $(this).html(`
+                <span class="select2-selection__choice__remove" role="presentation">×</span>
+                <span style="
+                    display: inline-block;
+                    width: 12px;
+                    height: 12px;
+                    margin: 0 4px;
+                    background: ${color};
+                    border: 1px solid #ccc;
+                    border-radius: 2px;
+                    vertical-align: middle;"></span>
+                <span>${state.text}</span>
+            `);
+        });
+    });
+
+    enhanceColorSelect(); // remplit et trie les options couleur
+    applyColorTags();     // applique les pastilles couleur déjà sélectionnées
 }
+
 
     function initAjaxSelect2($select) {
         if ($select.hasClass('select2-hidden-accessible')) {
