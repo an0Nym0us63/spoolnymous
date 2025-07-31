@@ -51,16 +51,18 @@ $(document).ready(function () {
 
     function initSelect2() {
     $('.select2').each(function () {
-        if ($(this).hasClass('select2-hidden-accessible')) {
-            $(this).select2('destroy');
-        }
-
         const $select = $(this);
         const name = $select.attr('name');
+
+        // Supprime proprement si déjà instancié
+        if ($select.hasClass('select2-hidden-accessible')) {
+            $select.select2('destroy');
+        }
+
         const config = {
             width: '100%',
             placeholder: $select.data('placeholder') || '',
-            allowClear: $select.prop('multiple') ? false : true
+            allowClear: !$select.prop('multiple')
         };
 
         if (name === 'status') {
@@ -83,7 +85,11 @@ $(document).ready(function () {
             Object.assign(config, {
                 tags: true,
                 dropdownParent: $select.closest('.modal'),
+                placeholder: "Tapez pour rechercher ou créer…",
                 minimumInputLength: 1,
+                language: {
+                    inputTooShort: () => "Commencez à taper pour chercher ou créer…"
+                },
                 ajax: {
                     url: '/api/groups/search',
                     dataType: 'json',
@@ -93,9 +99,6 @@ $(document).ready(function () {
                         results: (data.results || []).map(g => ({ id: g.id, text: g.text }))
                     }),
                     cache: true
-                },
-                language: {
-                    inputTooShort: () => "Commencez à taper pour chercher ou créer…"
                 }
             });
         }
@@ -103,7 +106,7 @@ $(document).ready(function () {
         $select.select2(config).on('select2:open', applyThemeToDropdown);
     });
 
-    // pastilles status sélectionnés
+    // Applique les pastilles aux statuts déjà sélectionnés
     $('select[name="status"]').each(function () {
         const $select = $(this);
         const data = $select.select2('data');
@@ -136,8 +139,8 @@ $(document).ready(function () {
         });
     });
 
-    enhanceColorSelect();
-    applyColorTags();
+    enhanceColorSelect();  // pour l’ordre des familles
+    applyColorTags();      // pour les pastilles couleurs
 }
 
 
