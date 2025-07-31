@@ -32,7 +32,7 @@
   <div class="text-center small text-wrap" style="word-break: break-word;">
 <span class="badge text-white fw-normal d-inline-block text-wrap text-break px-2 py-1"
       style="background-color: #198754; font-size: 0.75rem; line-height: 1.1; max-width: 90vw;">
-  {% if entry.total_price > 0 and entry.sold_units > 0 %}
+  {% if entry.group_sold_price_total > 0 and entry.group_sold_units > 0 %}
   💰
 {% endif %}
   {{ entry.name }}
