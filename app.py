@@ -587,7 +587,8 @@ def print_history():
     filters = {
         "filament_type": request.args.getlist("filament_type"),
         "color": request.args.getlist("color"),
-        "filament_id": request.args.getlist("filament_id")
+        "filament_id": request.args.getlist("filament_id"),
+        "status": request.args.getlist("status")
     }
     filters["filament_id"] = [v for v in filters["filament_id"] if v.strip()]
     search = request.args.get("search", "").strip()
@@ -734,7 +735,7 @@ def print_history():
     pagination_pages = compute_pagination_pages(page, total_pages)
 
     filters["filament_id"] = [fid for group in filters["filament_id"] for fid in group.split(',') if fid]
-
+    status_values = sorted(set(p.get("status") for p in raw_prints if p.get("status")))
     return render_template(
         'print_history.html',
         entries=paged_entries,
@@ -749,6 +750,7 @@ def print_history():
         pagination_pages=pagination_pages,
         focus_print_id=focus_print_id,
         focus_group_id=focus_group_id,
+        status_values=status_values,
         page_title="History"
     )
 
