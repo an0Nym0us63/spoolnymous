@@ -103,6 +103,30 @@
 <div>📦 {{ '%.2f'|format(entry.full_cost_by_item) }} {{ currencysymbol }}<span class="text-muted fst-italic" style="font-size: 0.6em;">
     ({{ '%.2f'|format(entry.full_normal_cost_by_item)}})
   </span></div>
+  {% if (entry.total_price or 0) > 0 and (entry.sold_units or 0) > 0 %}
+  {% set total_cost = entry.total_cost or 0 %}
+  {% if entry.number_of_items > 1 %}
+    {% set cost_total = (entry.full_cost_by_item or 0) * (entry.sold_units or 0) %}
+  {% else %}
+    {% set cost_total = total_cost %}
+  {% endif %}
+  {% set margin = (entry.total_price or 0) - cost_total %}
+  <div>
+    💸 {{ '%.2f'|format(entry.total_price) }} {{ currencysymbol }}
+    <span class="text-muted fst-italic" style="font-size: 0.6em;">
+      vendu
+    </span>
+  </div>
+  {% if entry.number_of_items > 1 %}
+  <div>
+    🧾 {{ entry.sold_units }} unités
+  </div>
+  {% endif %}
+  <div>
+    📈 {{ '%.2f'|format(margin) }} {{ currencysymbol }}
+    <span class="text-muted fst-italic" style="font-size: 0.6em;">marge</span>
+  </div>
+{% endif %}
 {% endif %}
             </div>
 <div style="height: 0.2rem;"></div>
