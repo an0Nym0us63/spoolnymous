@@ -115,10 +115,10 @@ $(document).ready(function () {
         const tag = input.val().trim();
         if (!tag) return;
 
-        $.post(/history/${printId}/tags/add, { tag })
+        $.post(`/history/${printId}/tags/add`, { tag })
             .done(() => {
                 const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
-                window.location.href = /print_history?page=${currentPage}&focus_print_id=${printId};
+                window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
             })
             .fail(() => alert('Erreur lors de l’ajout du tag.'));
     });
@@ -128,10 +128,10 @@ $(document).ready(function () {
         const printId = btn.data('print-id');
         const tag = btn.data('tag');
 
-        $.post(/history/${printId}/tags/remove, { tag })
+        $.post(`/history/${printId}/tags/remove`, { tag })
             .done(() => {
                 const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
-                window.location.href = /print_history?page=${currentPage}&focus_print_id=${printId};
+                window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
             })
             .fail(() => alert('Erreur lors de la suppression du tag.'));
     });
@@ -145,25 +145,25 @@ $(document).ready(function () {
     };
 
     function askRestockRatioPerFilament(printId, isDelete) {
-        fetch(/history/${printId}/filaments)
+        fetch(`/history/${printId}/filaments`)
             .then(resp => resp.json())
             .then(filaments => {
-                const formHtml = 
+                const formHtml = `
                     <div id="ratiosForm">
-                        ${filaments.map(f => 
+                        ${filaments.map(f => `
                             <div style="display:flex;align-items:center;margin-bottom:5px;gap:5px">
                                 <div style="width:15px;height:15px;background:${f.color};border:1px solid #ccc"></div>
                                 <span style="flex:1">${f.name}</span>
                                 <input type="number" min="0" max="100" value="${isDelete ? 100 : 0}" id="ratio_${f.spool_id}" style="width:60px"> %
                             </div>
-                        ).join("")}
+                        `).join("")}
                     </div>
                     <div class="d-flex justify-content-around mt-2">
-                        ${[0, 25, 50, 75, 100].map(val => 
+                        ${[0, 25, 50, 75, 100].map(val => `
                             <button type="button" class="btn btn-sm btn-outline-primary preset-btn" data-value="${val}">${val}%</button>
-                        ).join("")}
+                        `).join("")}
                     </div>
-                ;
+                `;
 
                 Swal.fire({
                     title: isDelete ? "Supprimer + Réajuster" : "Réajuster uniquement",
@@ -177,7 +177,7 @@ $(document).ready(function () {
                             btn.addEventListener('click', () => {
                                 const val = btn.getAttribute('data-value');
                                 filaments.forEach(f => {
-                                    document.getElementById(ratio_${f.spool_id}).value = val;
+                                    document.getElementById(`ratio_${f.spool_id}`).value = val;
                                 });
                             });
                         });
@@ -185,7 +185,7 @@ $(document).ready(function () {
                     preConfirm: () => {
                         const ratios = {};
                         filaments.forEach(f => {
-                            const val = parseInt(document.getElementById(ratio_${f.spool_id}).value) || 0;
+                            const val = parseInt(document.getElementById(`ratio_${f.spool_id}`).value) || 0;
                             ratios[f.spool_id] = val;
                         });
                         return ratios;
@@ -193,8 +193,8 @@ $(document).ready(function () {
                 }).then(result => {
                     if (result.isConfirmed) {
                         const url = isDelete
-                            ? /history/delete/${printId}
-                            : /history/reajust/${printId};
+                            ? `/history/delete/${printId}`
+                            : `/history/reajust/${printId}`;
 
                         const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
 
@@ -206,7 +206,7 @@ $(document).ready(function () {
                             .then(resp => resp.json())
                             .then(data => {
                                 if (data.status?.toLowerCase() === "ok") {
-                                    window.location.href = /print_history?page=${currentPage}&focus_print_id=${printId};
+                                    window.location.href = `/print_history?page=${currentPage}&focus_print_id=${printId}`;
                                 } else {
                                     Swal.fire("Erreur", data.error || "Échec de l’opération", "error");
                                 }
@@ -216,8 +216,8 @@ $(document).ready(function () {
             });
     }
 	window.confirmAdjustDuration = function (printId) {
-    const hourInput = document.getElementById(hours_${printId}).value;
-    const minInput = document.getElementById(minutes_${printId}).value;
+    const hourInput = document.getElementById(`hours_${printId}`).value;
+    const minInput = document.getElementById(`minutes_${printId}`).value;
 
     const hours = parseFloat(hourInput || "0");
     const minutes = parseFloat(minInput || "0");
@@ -237,7 +237,7 @@ $(document).ready(function () {
     const hFinal = Math.floor(totalMinutes / 60);
     const mFinal = Math.round(totalMinutes % 60);
 
-    const msg = Confirmer l’ajustement de la durée à ${hFinal}h${mFinal > 0 ? ' ' + mFinal + 'min' : ''} ?;
+    const msg = `Confirmer l’ajustement de la durée à ${hFinal}h${mFinal > 0 ? ' ' + mFinal + 'min' : ''} ?`;
 
     Swal.fire({
         title: "Confirmer l’ajustement",
@@ -249,7 +249,7 @@ $(document).ready(function () {
         customClass: getSwalThemeClasses()
     }).then(result => {
         if (result.isConfirmed) {
-            document.querySelector(#adjustDurationModal_${printId} form).submit();
+            document.querySelector(`#adjustDurationModal_${printId} form`).submit();
         }
     });
 };
@@ -300,24 +300,24 @@ $colorSelect.select2({
 function formatFilamentOption(option) {
     if (!option.id) return option.text;
     const color = $(option.element).data('color');
-    const small = style="font-size: 0.9rem; line-height: 1.2;";
+    const small = `style="font-size: 0.9rem; line-height: 1.2;"`;
 
     const swatch = color
-        ? <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};margin-right:6px;"></span>
+        ? `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};margin-right:6px;"></span>`
         : '';
 
-    return $(<span ${small}>${swatch}${option.text}</span>);
+    return $(`<span ${small}>${swatch}${option.text}</span>`);
 }
 
 function formatColorOption(state) {
     if (!state.id) return state.text;
     const colorHex = getFamilyHex(state.id);
-    return $(
+    return $(`
         <div style="display:flex;align-items:center;gap:8px;">
             <span style="width:14px;height:14px;border-radius:3px;background:${colorHex};border:1px solid #ccc"></span>
             <span>${state.text}</span>
         </div>
-    );
+    `);
 }
 
 function getFamilyHex(name) {
@@ -337,7 +337,7 @@ function applyColorTags() {
         const val = $(this).attr('title');
         const enName = Object.keys(COLOR_NAME_MAP).find(k => COLOR_NAME_MAP[k] === val) || val;
         const hex = getFamilyHex(enName);
-        $(this).html(
+        $(this).html(`
             <span class="select2-selection__choice__remove" role="presentation">×</span>
             <span style="
                 display: inline-block;
@@ -349,7 +349,7 @@ function applyColorTags() {
                 border-radius: 2px;
                 vertical-align: middle;"></span>
             <span>${val}</span>
-        );
+        `);
     });
 }
 
