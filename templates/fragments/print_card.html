@@ -173,6 +173,28 @@
     ({{ '%.2f'|format(print.full_normal_cost_by_item)}})
   </span></div>
         {% endif %}
+		{% if (print.total_price or 0) > 0 and (print.sold_units or 0) > 0 %}
+  {% set total_cost = print.total_cost or 0 %}
+  {% if print.number_of_items > 1 %}
+    {% set cost_total = (print.full_cost_by_item or 0) * (print.sold_units or 0) %}
+  {% else %}
+    {% set cost_total = total_cost %}
+  {% endif %}
+  {% set margin = (print.total_price or 0) - cost_total %}
+  <div>
+    💸 {{ '%.2f'|format(print.total_price) }} {{ currencysymbol }}
+    <span class="text-muted fst-italic" style="font-size: 0.6em;">vendu</span>
+  </div>
+  {% if print.number_of_items > 1 %}
+  <div>
+    🧾 {{ print.sold_units }} unités
+  </div>
+  {% endif %}
+  <div>
+    📈 {{ '%.2f'|format(margin) }} {{ currencysymbol }}
+    <span class="text-muted fst-italic" style="font-size: 0.6em;">marge</span>
+  </div>
+{% endif %}
       </div>
 
       {% if print.image_file %}
