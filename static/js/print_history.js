@@ -196,9 +196,8 @@ $(document).ready(function () {
                             ? `/history/delete/${printId}`
                             : `/history/reajust/${printId}`;
 
-                        const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
-
-                        fetch(url, {
+                        const queryString = window.location.search;
+						fetch(baseUrl + queryString, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ restock: true, ratios: result.value })

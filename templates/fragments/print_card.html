@@ -99,20 +99,24 @@
 		  <li>
   <form method="post" action="{{ url_for('set_group_primary') }}">
     <input type="hidden" name="print_id" value="{{ print.id }}">
-    <input type="hidden" name="group_id" value="{{ print.group_id }}">
-    <input type="hidden" name="page" value="{{ page }}">
-    <input type="hidden" name="search" value="{{ search }}">
+	{% for k, vlist in args.items() %}
+  {% for v in vlist %}
+    <input type="hidden" name="{{ k }}" value="{{ v }}">
+  {% endfor %}
+{% endfor %}
     <button type="submit" class="dropdown-item text-info">
       🌟 Référence du groupe
     </button>
   </form>
 </li>
           <li>
-            <form method="post" action="{{ url_for('remove_from_group') }}?page={{ page }}&focus_print_id={{ print.id }}" class="m-0 p-0">
+            <form method="post" action="{{ url_for('remove_from_group') }}?focus_print_id={{ print.id }}" class="m-0 p-0">
               <input type="hidden" name="print_id" value="{{ print.id }}">
-				<input type="hidden" name="page" value="{{ page }}">
-				
-				<input type="hidden" name="search" value="{{ search }}">
+			  {% for k, vlist in args.items() %}
+  {% for v in vlist %}
+    <input type="hidden" name="{{ k }}" value="{{ v }}">
+  {% endfor %}
+{% endfor %}
               <button type="submit" class="dropdown-item text-danger">
                 ❌ Retirer du groupe
               </button>
