@@ -240,7 +240,14 @@
                   </div>
                   <div>
                     <strong>#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</strong><br>
-                    <small>{{ filament.spool.filament.name }} - {{ "%.2f"|format(filament.grams_used) }}g - {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}</small>
+                    <small>
+  {{ filament.spool.filament.name }} –
+  {{ "%.2f"|format(filament.grams_used) }}g –
+  {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}
+  <span class="text-muted fst-italic">
+    ({{ '%.2f'|format(filament.grams_used * filament.spool.filament.filament_cost_per_gram) }} {{ currencysymbol }})
+  </span>
+</small>
                   </div>
                 {% else %}
                   <div class="spool-info">
