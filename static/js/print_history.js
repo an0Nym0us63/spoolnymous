@@ -104,6 +104,9 @@ $(document).ready(function () {
         }
 
         $select.select2(config).on('select2:open', applyThemeToDropdown);
+		if (name === 'status') {
+    $select.val($select.val()).trigger('change');
+}
     });    
 
     enhanceColorSelect();  // pour l’ordre des familles
