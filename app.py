@@ -1230,7 +1230,7 @@ def change_print_status():
 def set_sold_price():
     try:
         item_id = int(request.form.get("id"))
-        is_group = bool(request.form.get("is_group"))
+        is_group = bool(int(request.form.get("is_group", 0)))
         total_price = float(request.form.get("total_price") or 0)
         sold_units = int(request.form.get("sold_units") or 0)
 
