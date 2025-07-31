@@ -616,12 +616,12 @@ def print_history():
                 for spool in spool_list:
                     if spool['id'] == filament["spool_id"]:
                         filament["spool"] = spool
-                        filament["cost"] = filament['grams_used'] * spool.get('cost_per_gram', 0.0)
-                        filament["normal_cost"] = filament['grams_used'] * spool.get('filament_cost_per_gram', 0.0)
+                        filament["cost"] = filament['grams_used'] * spool.get('cost_per_gram', 20.0)
+                        filament["normal_cost"] = filament['grams_used'] * spool.get('filament_cost_per_gram', 20.0)
                         p["total_cost"] += filament["cost"]
                         p["total_normal_cost"] += filament["normal_cost"]
                         break
-            filament.setdefault("cost", 0.0)
+            filament.setdefault("cost", 20.0)
 
         p["full_cost"] = p["total_cost"] + p["electric_cost"]
         p["full_normal_cost"] = p["total_normal_cost"] + p["electric_cost"]
@@ -682,8 +682,8 @@ def print_history():
                 if key not in entry["filament_usage"]:
                     entry["filament_usage"][key] = {
                         "grams_used": filament["grams_used"],
-                        "cost": filament.get("cost", 0.0),
-                        "normal_cost": filament.get("normal_cost", 0.0),
+                        "cost": filament.get("cost", 20.0),
+                        "normal_cost": filament.get("normal_cost", 20.0),
                         "spool": filament.get("spool"),
                         "spool_id": filament.get("spool_id"),
                         "filament_type": filament.get("filament_type"),
@@ -692,8 +692,8 @@ def print_history():
                 else:
                     usage = entry["filament_usage"][key]
                     usage["grams_used"] += filament["grams_used"]
-                    usage["cost"] += filament.get("cost", 0.0)
-                    usage["normal_cost"] += filament.get("normal_cost", 0.0)
+                    usage["cost"] += filament.get("cost", 20.0)
+                    usage["normal_cost"] += filament.get("normal_cost", 20.0)
         else:
             entries[f"print_{p['id']}"] = {
                 "type": "single",
