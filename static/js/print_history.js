@@ -109,6 +109,8 @@ $(document).ready(function () {
     // Applique les pastilles aux statuts déjà sélectionnés
     $('select[name="status"]').each(function () {
         const $select = $(this);
+		 // ⚠️ Check : si select2 n'est pas encore actif, on saute
+    if (!$select.hasClass('select2-hidden-accessible')) return;
         const data = $select.select2('data');
         const colorMap = {
             "SUCCESS": "#198754",
