@@ -245,7 +245,7 @@
   {{ "%.2f"|format(filament.grams_used) }}g –
   {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}
   <span class="text-muted fst-italic">
-    ({{ '%.2f'|format(filament.grams_used * filament.spool.filament.filament_cost_per_gram) }} {{ currencysymbol }})
+    ({{ '%.2f'|format(filament.filament_cost) }} {{ currencysymbol }})
   </span>
 </small>
                   </div>

@@ -616,6 +616,7 @@ def print_history():
                     if spool['id'] == filament["spool_id"]:
                         filament["spool"] = spool
                         filament["cost"] = filament['grams_used'] * spool.get('cost_per_gram', 0.0)
+                        filament["filament_cost"] = filament['grams_used'] * spool.get('filament_cost_per_gram', 0.0)
                         p["total_cost"] += filament["cost"]
                         break
             filament.setdefault("cost", 0.0)
