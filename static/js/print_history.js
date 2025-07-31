@@ -70,39 +70,39 @@ $(document).ready(function () {
 
             $(this).select2(config).on('select2:open', applyThemeToDropdown);
         });
-		
-		// Appliquer les styles personnalisés manuellement aux statuts déjà sélectionnés
-$('select[name="status"]').each(function () {
-    const $select = $(this);
-    const data = $select.select2('data');
 
-    $select.next('.select2-container').find('.select2-selection__choice').each(function (i) {
-        const state = data[i];
-        if (!state) return;
-        const colorMap = {
-            "SUCCESS": "#198754",
-            "TO_REDO": "#ffc107",
-            "PARTIAL": "#fd7e14",
-            "FAILED": "#dc3545",
-            "IN_PROGRESS": "#0dcaf0"
-        };
-        const color = colorMap[state.id] || "#6c757d";
+        // Personnalisation des choix sélectionnés (status coloré)
+        $('select[name="status"]').each(function () {
+            const $select = $(this);
+            const data = $select.select2('data');
 
-        $(this).html(`
-            <span class="select2-selection__choice__remove" role="presentation">×</span>
-            <span style="
-                display: inline-block;
-                width: 12px;
-                height: 12px;
-                margin: 0 4px;
-                background: ${color};
-                border: 1px solid #ccc;
-                border-radius: 2px;
-                vertical-align: middle;"></span>
-            <span>${state.text}</span>
-        `);
-    });
-});
+            $select.next('.select2-container').find('.select2-selection__choice').each(function (i) {
+                const state = data[i];
+                if (!state) return;
+                const colorMap = {
+                    "SUCCESS": "#198754",
+                    "TO_REDO": "#ffc107",
+                    "PARTIAL": "#fd7e14",
+                    "FAILED": "#dc3545",
+                    "IN_PROGRESS": "#0dcaf0"
+                };
+                const color = colorMap[state.id] || "#6c757d";
+
+                $(this).html(`
+                    <span class="select2-selection__choice__remove" role="presentation">×</span>
+                    <span style="
+                        display: inline-block;
+                        width: 12px;
+                        height: 12px;
+                        margin: 0 4px;
+                        background: ${color};
+                        border: 1px solid #ccc;
+                        border-radius: 2px;
+                        vertical-align: middle;"></span>
+                    <span>${state.text}</span>
+                `);
+            });
+        });
 
         $('.select2-filament').each(function () {
             const $parentCanvas = $(this).closest('.offcanvas');
@@ -259,6 +259,7 @@ $('select[name="status"]').each(function () {
                         const url = isDelete
                             ? `/history/delete/${printId}`
                             : `/history/reajust/${printId}`;
+
                         const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
 
                         fetch(url, {
@@ -318,7 +319,34 @@ $('select[name="status"]').each(function () {
         });
     };
 
+    document.addEventListener("DOMContentLoaded", () => {
+        const accordions = document.querySelectorAll(".card-header[data-bs-toggle='collapse']");
+        accordions.forEach(header => {
+            header.addEventListener("click", () => {
+                const targetSelector = header.getAttribute("data-bs-target");
+                const target = document.querySelector(targetSelector);
+                if (!target.classList.contains("show")) {
+                    setTimeout(() => {
+                        const y = header.getBoundingClientRect().top + window.scrollY - 20;
+                        window.scrollTo({ top: y, behavior: "smooth" });
+                    }, 350);
+                }
+            });
+        });
+
+        const focused = document.querySelector(".collapse.show");
+        if (focused) {
+            const header = focused.closest(".card").querySelector(".card-header");
+            if (header) {
+                const y = header.getBoundingClientRect().top + window.scrollY - 20;
+                window.scrollTo({ top: y, behavior: "smooth" });
+            }
+        }
+    });
+
 });
+
+// --- Couleurs ---
 
 const COLOR_NAME_MAP = {
     "Black": "Noir", "White": "Blanc", "Grey": "Gris", "Red": "Rouge", "Dark Red": "Rouge foncé",
@@ -327,6 +355,38 @@ const COLOR_NAME_MAP = {
     "Blue": "Bleu", "Navy": "Bleu marine", "Cyan": "Cyan", "Lavender": "Lavande",
     "Purple": "Violet", "Dark Purple": "Violet foncé"
 };
+
+function getFamilyHex(name) {
+    const map = {
+        "Black": "#000000", "White": "#FFFFFF", "Grey": "#A0A0A0", "Red": "#DC143C",
+        "Dark Red": "#8B0000", "Pink": "#FFB6C1", "Magenta": "#FF00FF", "Brown": "#964B00",
+        "Yellow": "#FFDC00", "Gold": "#D4AF37", "Orange": "#FF8C00", "Green": "#50C878",
+        "Dark Green": "#006400", "Lime": "#BFFF00", "Teal": "#008080", "Blue": "#6496FF",
+        "Navy": "#000080", "Cyan": "#00FFFF", "Lavender": "#E6E6FA", "Purple": "#A020F0",
+        "Dark Purple": "#5A3C78"
+    };
+    return map[name] || "#CCCCCC";
+}
+
+function formatColorOption(state) {
+    if (!state.id) return state.text;
+    const colorHex = getFamilyHex(state.id);
+    return $(`
+        <div style="display:flex;align-items:center;gap:8px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:${colorHex};border:1px solid #ccc"></span>
+            <span>${state.text}</span>
+        </div>
+    `);
+}
+
+function formatFilamentOption(option) {
+    if (!option.id) return option.text;
+    const color = $(option.element).data('color');
+    const swatch = color
+        ? `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};margin-right:6px;"></span>`
+        : '';
+    return $(`<span style="font-size: 0.9rem; line-height: 1.2;">${swatch}${option.text}</span>`);
+}
 
 function enhanceColorSelect() {
     const $colorSelect = $('select[name="color"]');
@@ -362,37 +422,6 @@ function enhanceColorSelect() {
     $colorSelect.on('select2:select select2:unselect', applyColorTags);
 }
 
-function formatFilamentOption(option) {
-    if (!option.id) return option.text;
-    const color = $(option.element).data('color');
-    const small = `style="font-size: 0.9rem; line-height: 1.2;"`;
-    const swatch = color ? `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};margin-right:6px;"></span>` : '';
-    return $(`<span ${small}>${swatch}${option.text}</span>`);
-}
-
-function formatColorOption(state) {
-    if (!state.id) return state.text;
-    const colorHex = getFamilyHex(state.id);
-    return $(`
-        <div style="display:flex;align-items:center;gap:8px;">
-            <span style="width:14px;height:14px;border-radius:3px;background:${colorHex};border:1px solid #ccc"></span>
-            <span>${state.text}</span>
-        </div>
-    `);
-}
-
-function getFamilyHex(name) {
-    const map = {
-        "Black": "#000000", "White": "#FFFFFF", "Grey": "#A0A0A0", "Red": "#DC143C",
-        "Dark Red": "#8B0000", "Pink": "#FFB6C1", "Magenta": "#FF00FF", "Brown": "#964B00",
-        "Yellow": "#FFDC00", "Gold": "#D4AF37", "Orange": "#FF8C00", "Green": "#50C878",
-        "Dark Green": "#006400", "Lime": "#BFFF00", "Teal": "#008080", "Blue": "#6496FF",
-        "Navy": "#000080", "Cyan": "#00FFFF", "Lavender": "#E6E6FA", "Purple": "#A020F0",
-        "Dark Purple": "#5A3C78"
-    };
-    return map[name] || "#CCCCCC";
-}
-
 function applyColorTags() {
     $('.select2-selection__choice').each(function () {
         const val = $(this).attr('title');
@@ -413,28 +442,3 @@ function applyColorTags() {
         `);
     });
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-    const accordions = document.querySelectorAll(".card-header[data-bs-toggle='collapse']");
-    accordions.forEach(header => {
-        header.addEventListener("click", () => {
-            const targetSelector = header.getAttribute("data-bs-target");
-            const target = document.querySelector(targetSelector);
-            if (!target.classList.contains("show")) {
-                setTimeout(() => {
-                    const y = header.getBoundingClientRect().top + window.scrollY - 20;
-                    window.scrollTo({ top: y, behavior: "smooth" });
-                }, 350);
-            }
-        });
-    });
-
-    const focused = document.querySelector(".collapse.show");
-    if (focused) {
-        const header = focused.closest(".card").querySelector(".card-header");
-        if (header) {
-            const y = header.getBoundingClientRect().top + window.scrollY - 20;
-            window.scrollTo({ top: y, behavior: "smooth" });
-        }
-    }
-});
