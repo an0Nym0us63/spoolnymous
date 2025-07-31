@@ -55,14 +55,17 @@ $(document).ready(function () {
             $(this).select2('destroy');
         }
 
+        const $select = $(this);
         const config = {
             width: '100%',
-            placeholder: $(this).data('placeholder') || '',
-            allowClear: $(this).prop('multiple') ? false : true
+            placeholder: $select.data('placeholder') || '',
+            allowClear: $select.prop('multiple') ? false : true
         };
 
+        const name = $select.attr('name');
+
         // Statuts avec pastille colorée
-        if ($(this).attr('name') === 'status') {
+        if (name === 'status') {
             Object.assign(config, {
                 templateResult: formatStatusOption,
                 templateSelection: formatStatusOption,
@@ -70,8 +73,8 @@ $(document).ready(function () {
             });
         }
 
-        // Famille de couleurs (filtre)
-        if ($(this).attr('name') === 'color') {
+        // Famille de couleurs
+        if (name === 'color') {
             Object.assign(config, {
                 templateResult: formatColorOption,
                 templateSelection: formatColorOption,
@@ -79,10 +82,32 @@ $(document).ready(function () {
             });
         }
 
-        $(this).select2(config).on('select2:open', applyThemeToDropdown);
+        // Sélecteur de groupes (AJAX)
+        if (name === 'group_id_or_name') {
+            Object.assign(config, {
+                tags: true,
+                dropdownParent: $select.closest('.modal'),
+                minimumInputLength: 1,
+                ajax: {
+                    url: '/api/groups/search',
+                    dataType: 'json',
+                    delay: 250,
+                    data: params => ({ q: params.term }),
+                    processResults: data => ({
+                        results: (data.results || []).map(g => ({ id: g.id, text: g.text }))
+                    }),
+                    cache: true
+                },
+                language: {
+                    inputTooShort: () => "Commencez à taper pour chercher ou créer…"
+                }
+            });
+        }
+
+        $select.select2(config).on('select2:open', applyThemeToDropdown);
     });
 
-    // Styles couleurs sélectionnées pour status
+    // Ajoute les pastilles de couleurs aux statuts déjà sélectionnés
     $('select[name="status"]').each(function () {
         const $select = $(this);
         const data = $select.select2('data');
@@ -115,8 +140,8 @@ $(document).ready(function () {
         });
     });
 
-    enhanceColorSelect(); // remplit et trie les options couleur
-    applyColorTags();     // applique les pastilles couleur déjà sélectionnées
+    enhanceColorSelect();
+    applyColorTags();
 }
 
 
