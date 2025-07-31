@@ -56,15 +56,13 @@ $(document).ready(function () {
         }
 
         const $select = $(this);
+        const name = $select.attr('name');
         const config = {
             width: '100%',
             placeholder: $select.data('placeholder') || '',
             allowClear: $select.prop('multiple') ? false : true
         };
 
-        const name = $select.attr('name');
-
-        // Statuts avec pastille colorée
         if (name === 'status') {
             Object.assign(config, {
                 templateResult: formatStatusOption,
@@ -73,7 +71,6 @@ $(document).ready(function () {
             });
         }
 
-        // Famille de couleurs
         if (name === 'color') {
             Object.assign(config, {
                 templateResult: formatColorOption,
@@ -82,7 +79,6 @@ $(document).ready(function () {
             });
         }
 
-        // Sélecteur de groupes (AJAX)
         if (name === 'group_id_or_name') {
             Object.assign(config, {
                 tags: true,
@@ -107,21 +103,21 @@ $(document).ready(function () {
         $select.select2(config).on('select2:open', applyThemeToDropdown);
     });
 
-    // Ajoute les pastilles de couleurs aux statuts déjà sélectionnés
+    // pastilles status sélectionnés
     $('select[name="status"]').each(function () {
         const $select = $(this);
         const data = $select.select2('data');
+        const colorMap = {
+            "SUCCESS": "#198754",
+            "TO_REDO": "#ffc107",
+            "PARTIAL": "#fd7e14",
+            "FAILED": "#dc3545",
+            "IN_PROGRESS": "#0dcaf0"
+        };
 
         $select.next('.select2-container').find('.select2-selection__choice').each(function (i) {
             const state = data[i];
             if (!state) return;
-            const colorMap = {
-                "SUCCESS": "#198754",
-                "TO_REDO": "#ffc107",
-                "PARTIAL": "#fd7e14",
-                "FAILED": "#dc3545",
-                "IN_PROGRESS": "#0dcaf0"
-            };
             const color = colorMap[state.id?.toUpperCase()] || "#6c757d";
 
             $(this).html(`
