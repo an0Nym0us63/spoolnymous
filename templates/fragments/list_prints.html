@@ -120,7 +120,7 @@
   </div>
   {% if entry.number_of_items > 1 %}
   <div>
-    🧾 {{ entry.sold_units }} unités
+    🧾 {{ entry.sold_units }} unité{{ 's' if entry.sold_units > 1 else '' }}
   </div>
   {% endif %}
   <div>

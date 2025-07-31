@@ -107,6 +107,14 @@
           <label for="search" class="form-label">Texte</label>
           <input type="text" name="search" id="search" class="form-control" value="{{ search or '' }}">
         </div>
+		<div class="col">
+  <label for="sold_filter">État de vente</label>
+  <select name="sold_filter" id="sold_filter" class="form-select">
+    <option value="">— Tous —</option>
+    <option value="yes" {% if request.args.get('sold_filter') == 'yes' %}selected{% endif %}>Vendus uniquement</option>
+    <option value="no" {% if request.args.get('sold_filter') == 'no' %}selected{% endif %}>Non vendus uniquement</option>
+  </select>
+</div>
 
         <div class="col text-end align-self-end">
           <button type="submit" class="btn btn-primary">Appliquer</button>

@@ -719,10 +719,25 @@ def print_history():
             entry["total_filament_normal_cost"] = entry["total_normal_cost"] - entry["total_electric_cost"]
             entry["full_cost_by_item"] = entry["total_cost"] / entry["number_of_items"]
             entry["full_normal_cost_by_item"] = entry["total_normal_cost"] / entry["number_of_items"]
+    
+    sold_filter = request.args.get("sold_filter")
 
-    entries_list = sorted(entries.values(), key=lambda e: e["max_id"], reverse=True)
-    total_pages = (len(entries_list) + per_page - 1) // per_page
-    paged_entries = entries_list[(page - 1) * per_page : page * per_page]
+    if sold_filter in {"yes", "no"}:
+        filtered_entries = []
+        for e in entries.values():
+            if e["type"] == "group":
+                is_sold = (e.get("total_price") or 0) > 0 and (e.get("sold_units") or 0) > 0
+                if (sold_filter == "yes" and is_sold) or (sold_filter == "no" and not is_sold):
+                    filtered_entries.append(e)
+            elif e["type"] == "single":
+                p = e.get("print", {})
+                is_sold = (p.get("total_price") or 0) > 0 and (p.get("sold_units") or 0) > 0
+                if (sold_filter == "yes" and is_sold) or (sold_filter == "no" and not is_sold):
+                    filtered_entries.append(e)
+        entries = {f"group_{e['id']}" if e["type"] == "group" else f"print_{e['print']['id']}": e for e in filtered_entries}
+        entries_list = sorted(entries.values(), key=lambda e: e["max_id"], reverse=True)
+        total_pages = (len(entries_list) + per_page - 1) // per_page
+        paged_entries = entries_list[(page - 1) * per_page : page * per_page]
 
     if focus_print_id and not focus_group_id:
         for entry in entries_list:

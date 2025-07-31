@@ -187,7 +187,7 @@
   </div>
   {% if print.number_of_items > 1 %}
   <div>
-    🧾 {{ print.sold_units }} unités
+    🧾 {{ print.sold_units }} unité{{ 's' if print.sold_units > 1 else '' }}
   </div>
   {% endif %}
   <div>
