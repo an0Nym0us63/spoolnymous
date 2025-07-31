@@ -796,7 +796,6 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         WHERE print_id IN ({','.join('?' for _ in print_ids)})
     """, print_ids)
     usage = cursor.fetchall()
-    conn.close()
     
     if filters.get("color"):
         selected_families = set(filters["color"])
@@ -980,6 +979,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         "sold_units": total_units,
         "sold_margin": total_margin
     })
+    conn.close()
     
     return stats_data
 
