@@ -606,6 +606,7 @@ def print_history():
         p["electric_cost"] = p["duration"] * float(COST_BY_HOUR)
         p["filament_usage"] = json.loads(p["filament_info"])
         p["total_cost"] = 0
+        p["total_normal_cost"] = 0
         p["tags"] = get_tags_for_print(p["id"])
         p["total_weight"] = sum(f["grams_used"] for f in p["filament_usage"])
         p["translated_name"] = p.get("translated_name", "")
@@ -616,16 +617,19 @@ def print_history():
                     if spool['id'] == filament["spool_id"]:
                         filament["spool"] = spool
                         filament["cost"] = filament['grams_used'] * spool.get('cost_per_gram', 0.0)
-                        filament["filament_cost"] = filament['grams_used'] * spool.get('filament_cost_per_gram', 0.0)
+                        filament["normal_cost"] = filament['grams_used'] * spool.get('filament_cost_per_gram', 0.0)
                         p["total_cost"] += filament["cost"]
+                        p["total_normal_cost"] += filament["normal_cost"]
                         break
             filament.setdefault("cost", 0.0)
 
         p["full_cost"] = p["total_cost"] + p["electric_cost"]
+        p["full_normal_cost"] = p["total_normal_cost"] + p["electric_cost"]
 
         if not p.get("number_of_items"):
             p["number_of_items"] = 1
         p["full_cost_by_item"] = p["full_cost"] / p["number_of_items"]
+        p["full_normal_cost_by_item"] = p["full_normal_cost"] / p["number_of_items"]
         if p.get("image_file") and p["image_file"].endswith(".png"):
             model_file = p["image_file"].replace(".png", ".3mf")
             model_path = os.path.join(app.static_folder, 'prints', model_file)
@@ -645,6 +649,7 @@ def print_history():
                     "prints": [],
                     "total_duration": 0,
                     "total_cost": 0,
+                    "total_normal_cost": 0,
                     "total_weight": 0,
                     "max_id": 0,
                     "latest_date": p["print_date"],
@@ -658,6 +663,7 @@ def print_history():
             entry["prints"].append(p)
             entry["total_duration"] += p["duration"]
             entry["total_cost"] += p["full_cost"]
+            entry["total_normal_cost"] += p["full_normal_cost"]
             entry["total_weight"] += p["total_weight"]
         
             if p["id"] > entry["max_id"]:
@@ -677,6 +683,7 @@ def print_history():
                     entry["filament_usage"][key] = {
                         "grams_used": filament["grams_used"],
                         "cost": filament.get("cost", 0.0),
+                        "normal_cost": filament.get("normal_cost", 0.0),
                         "spool": filament.get("spool"),
                         "spool_id": filament.get("spool_id"),
                         "filament_type": filament.get("filament_type"),
@@ -686,6 +693,7 @@ def print_history():
                     usage = entry["filament_usage"][key]
                     usage["grams_used"] += filament["grams_used"]
                     usage["cost"] += filament.get("cost", 0.0)
+                    usage["normal_cost"] += filament.get("normal_cost", 0.0)
         else:
             entries[f"print_{p['id']}"] = {
                 "type": "single",
@@ -697,7 +705,9 @@ def print_history():
         if entry["type"] == "group":
             entry["total_electric_cost"] = entry["total_duration"] * float(COST_BY_HOUR)
             entry["total_filament_cost"] = entry["total_cost"] - entry["total_electric_cost"]
+            entry["total_filament_normal_cost"] = entry["total_normal_cost"] - entry["total_electric_cost"]
             entry["full_cost_by_item"] = entry["total_cost"] / entry["number_of_items"]
+            entry["full_normal_cost_by_item"] = entry["total_normal_cost"] / entry["number_of_items"]
 
     entries_list = sorted(entries.values(), key=lambda e: e["max_id"], reverse=True)
     total_pages = (len(entries_list) + per_page - 1) // per_page
