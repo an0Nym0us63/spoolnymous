@@ -500,13 +500,13 @@ def get_prints_with_filament(filters=None, search=None):
             p.image_file,
             p.duration,
             p.number_of_items,
-            p.unit_price,
+            p.sold_price_total,
             p.sold_units,
             pg.id AS group_id,
             pg.name AS group_name,
             pg.number_of_items AS group_number_of_items,
             pg.primary_print_id AS group_primary_print_id,
-            pg.unit_price AS group_unit_price,
+            pg.sold_price_total AS group_sold_price_total,
             pg.sold_units AS group_sold_units,
             (
                 SELECT json_group_array(json_object(
@@ -934,12 +934,10 @@ def set_group_primary_print(group_id: int, print_id: int):
     conn.commit()
     conn.close()
 
-def set_sold_info(print_id: int, is_group: bool, unit_price: float, sold_units: int) -> None:
+def set_sold_info(print_id: int, is_group: bool, total_price: float, sold_units: int) -> None:
     """
     Met à jour le nombre d’unités vendues et le total vendu pour un print ou un groupe.
     """
-    total_price = round(unit_price * sold_units, 2) if unit_price and sold_units else None
-
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
 

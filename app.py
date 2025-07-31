@@ -1220,20 +1220,20 @@ def set_sold_price():
     try:
         item_id = int(request.form.get("id"))
         is_group = bool(request.form.get("is_group"))
-        unit_price = float(request.form.get("unit_price") or 0)
+        total_price = float(request.form.get("total_price") or 0)
         sold_units = int(request.form.get("sold_units") or 0)
 
-        if item_id <= 0 or unit_price < 0 or sold_units < 0:
+        if item_id <= 0 or total_price < 0 or sold_units < 0:
             return redirect(request.referrer or url_for("print_history"))
 
         # Appliquer les changements
-        set_sold_info(print_id=item_id, is_group=is_group, unit_price=unit_price, sold_units=sold_units)
+        set_sold_info(print_id=item_id, is_group=is_group, total_price=total_price, sold_units=sold_units)
 
         # Générer dynamiquement les paramètres à préserver
         preserved_args = {
             key: request.form.getlist(key)
             for key in request.form
-            if key not in {"id", "is_group", "unit_price", "sold_units"}
+            if key not in {"id", "is_group", "total_price", "sold_units"}
         }
 
         return redirect(url_for("print_history", **preserved_args, focus_group_id=item_id if is_group else None, focus_print_id=item_id if not is_group else None))
