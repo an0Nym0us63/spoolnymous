@@ -1166,6 +1166,11 @@ def stats():
 @app.route("/adjust_duration", methods=["POST"])
 def adjust_duration():
     print_id = int(request.form["print_id"])
+    preserved_args = {
+            key: request.form.getlist(key)
+            for key in request.form
+            if key not in {"id", "print_id", "hours","minutes"}
+        }
     try:
         hours = float(request.form.get("hours", 0) or 0)
         minutes = float(request.form.get("minutes", 0) or 0)
@@ -1179,7 +1184,7 @@ def adjust_duration():
     except Exception as e:
         pass
 
-    return redirect(url_for("print_history", page=request.args.get("page"), search=request.args.get("search",''),focus_print_id=print_id))
+    return redirect(url_for("print_history", **preserved_args, focus_print_id=print_id))
 
 @app.route("/set_group_primary", methods=["POST"])
 def set_group_primary():
@@ -1199,28 +1204,36 @@ def assign_spool_to_print():
     spool_id = int(request.form['spool_id'])
     print_id = int(request.form['print_id'])
     filament_index = int(request.form['filament_index'])  # correspond à ams_slot dans ta BDD
-    page = request.form.get('page', 1)
-    search = request.form.get('search', '')
+    
+    preserved_args = {
+            key: request.form.getlist(key)
+            for key in request.form
+            if key not in {"id", "print_id", "spool_id","filament_index"}
+        }
 
     update_filament_spool(print_id=print_id, filament_id=filament_index, spool_id=spool_id)
 
-    return redirect(url_for('print_history', page=page, focus_print_id=print_id, search=search))
+    return redirect(url_for("print_history", **preserved_args, focus_print_id=print_id))
 
 @app.route("/change_print_status", methods=["POST"])
 def change_print_status():
     print_id = int(request.form.get("print_id"))
     new_status = request.form.get("status", "SUCCESS").strip()
     note = request.form.get("status_note", "").strip()
-    page = request.form.get("page", 1)
-    search = request.form.get("search", "")
+    
+    preserved_args = {
+            key: request.form.getlist(key)
+            for key in request.form
+            if key not in {"id", "note", "new_status","print_id"}
+        }
 
     if new_status not in {"SUCCESS", "IN_PROGRESS", "FAILED", "PARTIAL", "TO_REDO"}:
-        return redirect(url_for("print_history", page=page, search=search, focus_print_id=print_id))
+        return redirect(url_for("print_history", **preserved_args, focus_print_id=print_id))
 
     update_print_history_field(print_id, "status", new_status)
     update_print_history_field(print_id, "status_note", note)
 
-    return redirect(url_for("print_history", page=page, search=search, focus_print_id=print_id))
+    return redirect(url_for("print_history", **preserved_args, focus_print_id=print_id))
 
 @app.route("/set_sold_price", methods=["POST"])
 def set_sold_price():
