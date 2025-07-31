@@ -1186,9 +1186,13 @@ def set_group_primary():
     print_id = int(request.form["print_id"])
     group_id = int(request.form["group_id"])
     set_group_primary_print(group_id, print_id)
-    page = request.form.get("page", 1)
-    search = request.form.get("search", "")
-    return redirect(url_for("print_history", page=page, search=search, focus_group_id=group_id))
+    preserved_args = {
+            key: request.form.getlist(key)
+            for key in request.form
+            if key not in {"id", "print_id", "group_id"}
+        }
+
+    return redirect(url_for("print_history", **preserved_args, focus_group_id=group_id))
 
 @app.route('/assign_spool_to_print', methods=['POST'])
 def assign_spool_to_print():
