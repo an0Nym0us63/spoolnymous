@@ -4,6 +4,27 @@ $(document).ready(function () {
         const theme = document.documentElement.getAttribute("data-bs-theme") || "light";
         return theme === "dark" ? "select2-dark" : "select2-light";
     }
+	
+	function formatStatusOption(state) {
+    if (!state.id) return state.text;
+
+    const colorMap = {
+        "SUCCESS": "#198754",
+        "TO_REDO": "#ffc107",
+        "PARTIAL": "#fd7e14",
+        "FAILED": "#dc3545",
+        "IN_PROGRESS": "#0dcaf0"
+    };
+    const id = state.id.toUpperCase(); // Sécurité
+    const color = colorMap[id] || "#6c757d";
+
+    return $(`
+        <div style="display:flex;align-items:center;gap:8px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:${color};border:1px solid #ccc;"></span>
+            <span>${state.text}</span>
+        </div>
+    `);
+}
 
     function applyThemeToDropdown() {
         const theme = detectThemeClass();
@@ -30,15 +51,26 @@ $(document).ready(function () {
 
     function initSelect2() {
     $('.select2').each(function () {
-        if ($(this).hasClass('select2-hidden-accessible')) {
-            $(this).select2('destroy');
-        }
-        $(this).select2({
+    if ($(this).hasClass('select2-hidden-accessible')) {
+        $(this).select2('destroy');
+    }
+
+    const config = {
         width: '100%',
         placeholder: $(this).data('placeholder') || '',
         allowClear: $(this).prop('multiple') ? false : true
-    }).on('select2:open', applyThemeToDropdown);
-    });
+    };
+
+    if ($(this).attr('name') === 'status') {
+        Object.assign(config, {
+            templateResult: formatStatusOption,
+            templateSelection: formatStatusOption,
+            escapeMarkup: m => m
+        });
+    }
+
+    $(this).select2(config).on('select2:open', applyThemeToDropdown);
+});
 
     $('.select2-filament').each(function () {
     const $parentCanvas = $(this).closest('.offcanvas');  // ou un autre conteneur visible
@@ -61,7 +93,38 @@ $(document).ready(function () {
         }
     }).on('select2:open', applyThemeToDropdown);
 });
+$('select[name="status"]').each(function () {
+    const $select = $(this);
+    const data = $select.select2('data');
 
+    $select.next('.select2-container').find('.select2-selection__choice').each(function (i) {
+        const state = data[i];
+        if (!state) return;
+
+        const colorMap = {
+            "SUCCESS": "#198754",
+            "TO_REDO": "#ffc107",
+            "PARTIAL": "#fd7e14",
+            "FAILED": "#dc3545",
+            "IN_PROGRESS": "#0dcaf0"
+        };
+        const color = colorMap[state.id?.toUpperCase()] || "#6c757d";
+
+        $(this).html(`
+            <span class="select2-selection__choice__remove" role="presentation">×</span>
+            <span style="
+                display: inline-block;
+                width: 12px;
+                height: 12px;
+                margin: 0 4px;
+                background: ${color};
+                border: 1px solid #ccc;
+                border-radius: 2px;
+                vertical-align: middle;"></span>
+            <span>${state.text}</span>
+        `);
+    });
+});
     enhanceColorSelect();
     applyColorTags();
 }
