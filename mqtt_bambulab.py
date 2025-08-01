@@ -196,18 +196,17 @@ def processMessage(data):
 
 def insert_manual_print(local_path, custom_datetime):
     """
-    Traite un fichier .3mf localement uploadé manuellement, extrait les métadonnées
-    et insère un enregistrement de print dans la base.
+    Traite un fichier .3mf local uploadé manuellement, extrait les métadonnées
+    et insère un print et ses filaments dans la base.
 
     Args:
-        local_path (str): Chemin local du fichier .3mf
-        custom_datetime (datetime.datetime): Date et heure fournies manuellement
+        local_path (str): Chemin local vers le fichier .3mf
+        custom_datetime (datetime.datetime): Date de l'impression définie manuellement
 
     Returns:
         dict: Résultat avec print_id ou message d'erreur
     """
     try:
-        # Appelle l'extraction des métadonnées avec l'URL spéciale "local:"
         metadata = getMetaDataFrom3mf(f"local:{local_path}", "manual_task")
 
         if not metadata:
@@ -219,28 +218,23 @@ def insert_manual_print(local_path, custom_datetime):
         if metadata.get("plateID") != '1':
             name += f" - {metadata['plateID']}"
 
-        # Insertion du print
         print_id = insert_print(
-            name=name,
-            print_type="manual",
-            image_path=metadata.get("image"),
-            start_time=custom_datetime,
-            duration=int(metadata.get("duration", 0)),
-            title=metadata.get("title", "")
+            name,
+            "manual",
+            metadata.get("image"),
+            custom_datetime.isoformat(),
+            float(metadata.get("duration", 0))
         )
 
-        metadata["ams_mapping"] = []
-        metadata["filamentChanges"] = []
-        metadata["complete"] = False
         metadata["print_id"] = print_id
 
-        # Insertion des usages de filaments
-        for id, filament in metadata.get("filaments", {}).items():
+        for extruder_id, filament in metadata.get("filaments", {}).items():
             insert_filament_usage(
-                print_id=print_id,
-                type=filament["type"],
-                color=filament["color"],
-                used_g=filament["used_g"]
+                print_id,
+                filament["type"],
+                filament["color"],
+                float(filament["used_g"]),
+                extruder_id
             )
 
         return {"success": True, "print_id": print_id}
@@ -248,6 +242,7 @@ def insert_manual_print(local_path, custom_datetime):
     except Exception as e:
         traceback.print_exc()
         return {"error": str(e)}
+
 
 def publish(client, msg):
   result = client.publish(f"device/{PRINTER_ID}/request", json.dumps(msg))
