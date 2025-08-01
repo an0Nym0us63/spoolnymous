@@ -1009,7 +1009,8 @@ def edit_print_name():
         update_print_filename(print_id, new_filename)
 
     preserved_args = extract_preserved_args({"file_name", "print_id"})
-    return redirect(url_for("print_history", **preserved_args, focus_print_id=print_id))
+    preserved_args["focus_print_id"]=print_id
+    return redirect(url_for("print_history", **preserved_args))
 
 
 @app.route("/edit_print_items", methods=["POST"])
@@ -1024,7 +1025,8 @@ def edit_print_items():
 
     update_print_history_field(print_id, "number_of_items", number_of_items)
     preserved_args = extract_preserved_args({"print_id", "number_of_items"})
-    return redirect(url_for("print_history", **preserved_args, focus_print_id=print_id))
+    preserved_args["focus_print_id"]=print_id
+    return redirect(url_for("print_history", **preserved_args))
 
 
 @app.route("/create_group", methods=["POST"])
@@ -1038,8 +1040,9 @@ def create_group():
         update_print_history_field(print_id, "group_id", group_id)
         update_group_created_at(group_id)
         return redirect(url_for("print_history", **preserved_args, focus_group_id=group_id))
+    preserved_args["focus_print_id"]=print_id
 
-    return redirect(url_for("print_history", **preserved_args, focus_print_id=print_id))
+    return redirect(url_for("print_history", **preserved_args))
 
 
 @app.route("/assign_to_group", methods=["POST"])
@@ -1055,8 +1058,10 @@ def assign_to_group():
 
     update_print_history_field(print_id, "group_id", group_id)
     update_group_created_at(group_id)
+    preserved_args["focus_print_id"]=print_id
+    preserved_args["focus_group_id"]=group_id
 
-    return redirect(url_for("print_history", **preserved_args, focus_group_id=group_id, focus_print_id=print_id))
+    return redirect(url_for("print_history", **preserved_args))
 
 
 @app.route("/remove_from_group", methods=["POST"])
@@ -1068,8 +1073,9 @@ def remove_from_group():
     update_print_history_field(print_id, "group_id", None)
     if group_id:
         update_group_created_at(group_id)
+    preserved_args["focus_print_id"]=print_id
 
-    return redirect(url_for("print_history", **preserved_args, focus_print_id=print_id))
+    return redirect(url_for("print_history", **preserved_args))
 
 
 @app.route("/rename_group", methods=["POST"])
@@ -1080,8 +1086,9 @@ def rename_group():
 
     if group_name:
         update_print_group_field(group_id, "name", group_name)
+    preserved_args["focus_group_id"]=group_id
 
-    return redirect(url_for("print_history", **preserved_args, focus_group_id=group_id))
+    return redirect(url_for("print_history", **preserved_args))
 
 
 @app.route("/edit_group_items", methods=["POST"])
@@ -1096,8 +1103,9 @@ def edit_group_items():
 
     preserved_args = extract_preserved_args({"group_id", "number_of_items"})
     update_print_group_field(group_id, "number_of_items", number_of_items)
+    preserved_args["focus_group_id"]=group_id
 
-    return redirect(url_for("print_history", **preserved_args, focus_group_id=group_id))
+    return redirect(url_for("print_history", **preserved_args))
 
 
 from datetime import datetime
@@ -1200,8 +1208,9 @@ def adjust_duration():
         adjustDuration(print_id, total_seconds)
     except Exception:
         pass
-
-    return redirect(url_for("print_history", **preserved_args, focus_print_id=print_id))
+    
+    preserved_args["focus_print_id"]=print_id
+    return redirect(url_for("print_history", **preserved_args))
 
 
 @app.route("/set_group_primary", methods=["POST"])
@@ -1211,7 +1220,9 @@ def set_group_primary():
     set_group_primary_print(group_id, print_id)
 
     preserved_args = extract_preserved_args({"id", "print_id", "group_id"})
-    return redirect(url_for("print_history", **preserved_args, focus_group_id=group_id))
+    
+    preserved_args["focus_group_id"]=group_id
+    return redirect(url_for("print_history", **preserved_args))
 
 @app.route('/assign_spool_to_print', methods=['POST'])
 def assign_spool_to_print():
@@ -1221,8 +1232,9 @@ def assign_spool_to_print():
 
     preserved_args = extract_preserved_args({"id", "print_id", "spool_id", "filament_index"})
     update_filament_spool(print_id=print_id, filament_id=filament_index, spool_id=spool_id)
-
-    return redirect(url_for("print_history", **preserved_args, focus_print_id=print_id))
+    
+    preserved_args["focus_print_id"]=print_id
+    return redirect(url_for("print_history", **preserved_args))
 
 
 @app.route("/change_print_status", methods=["POST"])
@@ -1232,14 +1244,14 @@ def change_print_status():
     note = request.form.get("status_note", "").strip()
 
     preserved_args = extract_preserved_args({"id", "note", "new_status", "print_id"})
+    preserved_args["focus_print_id"]=print_id
 
     if new_status not in {"SUCCESS", "IN_PROGRESS", "FAILED", "PARTIAL", "TO_REDO"}:
-        return redirect(url_for("print_history", **preserved_args, focus_print_id=print_id))
+        return redirect(url_for("print_history", **preserved_args))
 
     update_print_history_field(print_id, "status", new_status)
     update_print_history_field(print_id, "status_note", note)
-
-    return redirect(url_for("print_history", **preserved_args, focus_print_id=print_id))
+    return redirect(url_for("print_history", **preserved_args))
 
 @app.route("/set_sold_price", methods=["POST"])
 def set_sold_price():
@@ -1255,12 +1267,17 @@ def set_sold_price():
         set_sold_info(print_id=item_id, is_group=is_group, total_price=total_price, sold_units=sold_units)
 
         preserved_args = extract_preserved_args({"id", "is_group", "total_price", "sold_units"})
-
+        
+        if is_group:
+            preserved_args["focus_group_id"]=item_id
+            preserved_args["focus_print_id"]=None
+        else:
+            preserved_args["focus_group_id"]=None
+            preserved_args["focus_print_id"]=item_id
+            
         return redirect(url_for(
             "print_history",
-            **preserved_args,
-            focus_group_id=item_id if is_group else None,
-            focus_print_id=item_id if not is_group else None
+            **preserved_args
         ))
 
     except Exception:
