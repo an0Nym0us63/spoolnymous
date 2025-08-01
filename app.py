@@ -1107,9 +1107,6 @@ def edit_group_items():
 
     return redirect(url_for("print_history", **preserved_args))
 
-
-from datetime import datetime
-
 @app.route("/api/groups/search")
 def api_groups_search():
     q = request.args.get("q", "").strip()
@@ -1119,7 +1116,7 @@ def api_groups_search():
         if q.lower() in group["name"].lower():
             created_at_str = group.get("created_at")
             try:
-                created_at = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
+                created_at = datetime.datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
                 created_at_fmt = created_at.strftime('%d/%m/%Y %H:%M')
             except Exception:
                 created_at_fmt = created_at_str or "?"
