@@ -289,7 +289,8 @@ def fill():
     search = request.args.get("search", "").lower()
     sort = request.args.get("sort", "default")
 
-    all_filaments = fetchSpools() or []
+    include_archived = request.args.get("include_archived") == "1"
+    all_filaments = fetchSpools(False,include_archived) or []
 
     # filtre nom / couleur
     if search:
@@ -377,7 +378,8 @@ def fill():
         assign_filament_index=assign_filament_index,
         assign_page=assign_page,
         assign_search=assign_search,
-        is_assign_mode=is_assign_mode
+        is_assign_mode=is_assign_mode,
+        include_archived=include_archived,
     )
 
 @app.route("/spool_info")
@@ -1245,7 +1247,9 @@ def assign_spool_to_print():
 
     preserved_args = extract_preserved_args({"id", "print_id", "spool_id", "filament_index"})
     update_filament_spool(print_id=print_id, filament_id=filament_index, spool_id=spool_id)
-    
+    skip_usage = request.args.get("skip_usage") == "1"
+    if not skip_usage:
+        consumeSpool(spool_id, float(request.form.get("filament_usage") or 0))
     preserved_args["focus_print_id"]=print_id
     return redirect(url_for("print_history", **preserved_args))
 
@@ -1294,10 +1298,7 @@ def set_sold_price():
         ))
 
     except Exception:
-        return redirect(url_for(
-            "print_history",
-            **preserved_args
-        ))
+        return redirect(request.referrer or url_for("print_history"))
 
 @app.route("/admin/manual_print", methods=["POST"])
 def admin_manual_print():

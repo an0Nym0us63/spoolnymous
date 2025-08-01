@@ -53,6 +53,13 @@
           </option>
         </select>
       </div>
+	  <div class="form-check">
+  <input class="form-check-input" type="checkbox" name="include_archived" value="1" id="includeArchived"
+         {% if request.args.get("include_archived") == "1" %}checked{% endif %}>
+  <label class="form-check-label" for="includeArchived">
+    Inclure les bobines archivées
+  </label>
+</div>
       <div class="col-md-1 text-end">
         <button type="submit" class="btn btn-primary">Appliquer</button>
       </div>
@@ -92,7 +99,7 @@
 
 <div class="accordion" id="filamentsAccordion">
   {% for spool in filaments %}
-    <div class="accordion-item">
+    <div class="accordion-item {% if spool.archived %}opacity-50{% endif %}">
       <h2 class="accordion-header d-flex justify-content-between align-items-center" id="heading{{ spool.id }}">
   <div class="flex-grow-1">
     <button class="accordion-button collapsed py-2 w-100 text-start" type="button"
@@ -134,7 +141,9 @@
     <input type="hidden" name="focus_id" value="{{ assign_print_id }}">
     <input type="hidden" name="page" value="{{ assign_page }}">
     <input type="hidden" name="search" value="{{ search }}">
+    <input type="hidden" name="filament_usage" value="{{ filament_usage }}">
     <button type="submit"
+			onclick="return confirmUsagePrompt(this.form);"
             class="btn btn-sm btn-success rounded-circle d-inline-flex justify-content-center align-items-center"
             style="width: 30px; height: 30px;"
             title="Assigner cette bobine">
@@ -209,4 +218,18 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="{{ url_for('static', filename='js/print_history.js') }}"></script>
+<script>
+function confirmUsagePrompt(form) {
+  const shouldTrack = confirm("Souhaitez-vous décompter l'usage de filament ?");
+  if (!shouldTrack) {
+    // Ajoute un champ caché pour ignorer le décompte
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "skip_usage";
+    input.value = "1";
+    form.appendChild(input);
+  }
+  return true; // soumettre quand même
+}
+</script>
 {% endblock %}
