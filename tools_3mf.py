@@ -8,6 +8,7 @@ import os
 import shutil
 import re
 import time
+import uuid
 from datetime import datetime, timezone
 from config import PRINTER_ID, PRINTER_CODE, PRINTER_IP
 from urllib.parse import urlparse, unquote
@@ -285,7 +286,7 @@ def getMetaDataFrom3mf(url,taskname):
         else:
           print(f"File '{slice_info_path}' not found in the archive.")
           return {}
-        filename = time.strftime('%Y%m%d%H%M%S')
+        filename = time.strftime('%Y%m%d%H%M%S') + "_" + str(uuid.uuid4())[:8]
         metadata["image"] = filename + ".png"
         metadata["model"] = filename + ".3mf"
 
