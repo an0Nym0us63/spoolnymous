@@ -1248,7 +1248,7 @@ def assign_spool_to_print():
 
     preserved_args = extract_preserved_args({"id", "print_id", "spool_id", "filament_index"})
     update_filament_spool(print_id=print_id, filament_id=filament_index, spool_id=spool_id)
-    skip_usage = request.args.get("skip_usage") == "1"
+    skip_usage = request.form.get("skip_usage") == "1"
     if not skip_usage:
         consumeSpool(spool_id, float(request.form.get("filament_usage") or 0))
     preserved_args["focus_print_id"]=print_id
