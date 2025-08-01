@@ -140,8 +140,13 @@
     <input type="hidden" name="filament_index" value="{{ assign_filament_index }}">
     <input type="hidden" name="focus_id" value="{{ assign_print_id }}">
     <input type="hidden" name="page" value="{{ assign_page }}">
+    <input type="hidden" name="ams" value="{{ ams }}">
+    <input type="hidden" name="tray" value="{{ tray }}">
     <input type="hidden" name="search" value="{{ search }}">
     <input type="hidden" name="filament_usage" value="{{ filament_usage }}">
+    <input type="hidden" name="include_archived" value="{{ include_archived }}">
+    <input type="hidden" name="sort" value="{{ sort }}">
+	
     <button type="submit"
 			onclick="return confirmUsagePrompt(this.form);"
             class="btn btn-sm btn-success rounded-circle d-inline-flex justify-content-center align-items-center"
