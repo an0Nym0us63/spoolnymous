@@ -147,14 +147,12 @@
     <input type="hidden" name="focus_id" value="{{ assign_print_id }}">
     <input type="hidden" name="page" value="{{ assign_page }}">
     <input type="hidden" name="filament_usage" value="{{ filament_usage }}">
-	
-    <button type="submit"
-			onclick="return confirmUsagePrompt(this.form);"
-            class="btn btn-sm btn-success rounded-circle d-inline-flex justify-content-center align-items-center"
-            style="width: 30px; height: 30px;"
-            title="Assigner cette bobine">
-      ✅
-    </button>
+	<button type="button"
+        class="btn btn-sm btn-success rounded-circle d-inline-flex justify-content-center align-items-center trigger-assign-modal"
+        style="width: 30px; height: 30px;"
+        title="Assigner cette bobine">
+  ✅
+</button>
   </form>
 {% else %}
   <a href="{{ url_for('fill', spool_id=spool.id, ams=ams_id, tray=tray_id) }}"
@@ -218,6 +216,23 @@
   {% endfor %}
 </div>
 <div style="height: 4rem;"></div>
+<div class="modal fade" id="confirmAssignModal" tabindex="-1" aria-labelledby="confirmAssignModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Décompte du filament</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        Souhaitez-vous décompter l'usage de filament pour cette bobine ?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-action="no" data-bs-dismiss="modal">Non</button>
+        <button type="button" class="btn btn-primary" data-action="yes">Oui</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -225,17 +240,34 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="{{ url_for('static', filename='js/print_history.js') }}"></script>
 <script>
-function confirmUsagePrompt(form) {
-  const shouldTrack = confirm("Souhaitez-vous décompter l'usage de filament ?");
-  if (!shouldTrack) {
-    // Ajoute un champ caché pour ignorer le décompte
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = "skip_usage";
-    input.value = "1";
-    form.appendChild(input);
-  }
-  return true; // soumettre quand même
-}
+document.addEventListener("DOMContentLoaded", function () {
+  let pendingForm = null;
+
+  document.querySelectorAll(".trigger-assign-modal").forEach(button => {
+    button.addEventListener("click", function () {
+      pendingForm = this.closest("form");
+      const modal = new bootstrap.Modal(document.getElementById('confirmAssignModal'));
+      modal.show();
+    });
+  });
+
+  document.querySelectorAll("#confirmAssignModal .btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+      if (!pendingForm) return;
+      const action = this.getAttribute("data-action");
+
+      if (action === "no") {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "skip_usage";
+        input.value = "1";
+        pendingForm.appendChild(input);
+      }
+
+      pendingForm.submit();
+      pendingForm = null;
+    });
+  });
+});
 </script>
 {% endblock %}
