@@ -380,7 +380,7 @@ def fill():
         assign_search=assign_search,
         is_assign_mode=is_assign_mode,
         include_archived=include_archived,
-        filament_usage=request.args.get("assign_search",'0')
+        filament_usage=request.args.get("filament_usage",'0')
     )
 
 @app.route("/spool_info")
