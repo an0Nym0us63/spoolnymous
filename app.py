@@ -1294,7 +1294,10 @@ def set_sold_price():
         ))
 
     except Exception:
-        return redirect(request.referrer or url_for("print_history"))
+        return redirect(url_for(
+            "print_history",
+            **preserved_args
+        ))
 
 @app.route("/admin/manual_print", methods=["POST"])
 def admin_manual_print():
