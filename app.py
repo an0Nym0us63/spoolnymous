@@ -143,11 +143,19 @@ def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
     return pages
 
 def extract_preserved_args(exclude: set[str]) -> dict:
-    return {
-        key: request.args.getlist(key)
-        for key in request.form
-        if key not in exclude
-    }
+    preserved = {}
+
+    # Préserver les paramètres GET (URL)
+    for key in request.args:
+        if key not in exclude:
+            preserved[key] = request.args.getlist(key)
+
+    # Ajouter certains paramètres POST (s'ils ne sont pas exclus ni déjà présents)
+    for key in request.form:
+        if key not in exclude and key not in preserved:
+            preserved[key] = request.form.getlist(key)
+
+    return preserved
 
 def redirect_back(focus_id=None):
     args = request.form.to_dict(flat=True)
@@ -206,7 +214,9 @@ def hm_format(hours: float):
 def frontend_utilities():
     def url_with_args(**kwargs):
         query = request.args.to_dict(flat=False)
-        query.pop('page', None)
+        if "page" not in kwargs:
+            # Si l'appelant ne précise pas une nouvelle page, on garde l'actuelle
+            query["page"] = request.args.getlist("page")
         query.update({k: [str(v)] if not isinstance(v, list) else v for k, v in kwargs.items()})
         return url_for(request.endpoint, **query)
     return dict(
