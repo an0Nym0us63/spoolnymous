@@ -2,7 +2,7 @@ import json
 import traceback
 import uuid
 import math
-import datetime
+from datetime import datetime
 import os
 import re
 from collections import defaultdict
@@ -193,7 +193,6 @@ def require_login():
     
 @app.template_filter('datetimeformat')
 def datetimeformat(value, locale='fr'):
-    from datetime import datetime
     dt = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
     return dt.strftime("%d/%m/%Y %H:%M")
     
@@ -1123,7 +1122,7 @@ def api_groups_search():
         if q.lower() in group["name"].lower():
             created_at_str = group.get("created_at")
             try:
-                created_at = datetime.datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
+                created_at = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
                 created_at_fmt = created_at.strftime('%d/%m/%Y %H:%M')
             except Exception:
                 created_at_fmt = created_at_str or "?"
@@ -1300,9 +1299,9 @@ def admin_manual_print():
         # Validation de la date
         try:
             try:
-                custom_datetime = datetime.datetime.strptime(print_datetime, "%Y-%m-%dT%H:%M:%S")
+                custom_datetime = datetime.strptime(print_datetime, "%Y-%m-%dT%H:%M:%S")
             except ValueError:
-                custom_datetime = datetime.datetime.strptime(print_datetime, "%Y-%m-%dT%H:%M")
+                custom_datetime = datetime.strptime(print_datetime, "%Y-%m-%dT%H:%M")
         except Exception:
             flash("Format de date invalide.", "danger")
             return redirect(url_for("auth.settings"))
