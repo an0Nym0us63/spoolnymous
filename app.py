@@ -144,7 +144,7 @@ def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
 
 def extract_preserved_args(exclude: set[str]) -> dict:
     return {
-        key: request.form.getlist(key)
+        key: request.args.getlist(key)
         for key in request.form
         if key not in exclude
     }
@@ -1342,8 +1342,5 @@ def admin_manual_print():
         traceback.print_exc()
         flash(f"Erreur serveur : {str(e)}", "danger")
         return redirect(url_for("auth.settings"))
-
-
-
 
 app.register_blueprint(auth_bp)
