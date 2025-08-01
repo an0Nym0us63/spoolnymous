@@ -58,5 +58,24 @@
 
     <button type="submit" class="btn btn-success">🔐 Mettre à jour</button>
   </form>
+  <hr class="my-5">
+
+<div class="container my-5" style="max-width: 600px;">
+  <h3 class="mb-4 text-light">Administration</h3>
+
+  <form action="{{ url_for('admin_manual_print') }}" method="POST" enctype="multipart/form-data">
+    <div class="mb-3">
+      <label for="file" class="form-label text-light">Fichier .3MF</label>
+      <input type="file" class="form-control" id="file" name="file" accept=".3mf" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="datetime" class="form-label text-light">Date et heure de l'impression</label>
+      <input type="datetime-local" class="form-control" id="datetime" name="datetime" required>
+    </div>
+
+    <button type="submit" class="btn btn-primary">📤 Ajouter un print manuel</button>
+  </form>
+</div>
 </div>
 {% endblock %}

@@ -13,12 +13,12 @@ from flask_login import LoginManager, login_required
 from auth import auth_bp, User, get_stored_user
 
 from flask import Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort
-
+from werkzeug.utils import secure_filename
 from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,LOCATION_MAPPING,AMS_ORDER, COST_BY_HOUR
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
-from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
+from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel,insert_manual_print
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool, archive_spool, reajust_spool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
 from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info
@@ -1282,5 +1282,42 @@ def set_sold_price():
 
     except Exception:
         return redirect(request.referrer or url_for("print_history"))
+
+from werkzeug.utils import secure_filename
+
+@app.route("/admin/manual_print", methods=["POST"])
+def admin_manual_print():
+    try:
+        file = request.files.get("file")
+        print_datetime = request.form.get("datetime")
+
+        if not file or not file.filename.lower().endswith(".3mf"):
+            return jsonify({"error": "Fichier .3mf requis."}), 400
+
+        try:
+            custom_datetime = datetime.datetime.fromisoformat(print_datetime)
+        except Exception:
+            return jsonify({"error": "Format datetime invalide."}), 400
+
+        filename = secure_filename(file.filename)
+        temp_path = os.path.join("temp_uploads", filename)
+        os.makedirs("temp_uploads", exist_ok=True)
+        file.save(temp_path)
+
+        result = insert_manual_print(temp_path, custom_datetime)
+
+        if "error" in result:
+            return jsonify(result), 500
+
+        return jsonify({
+            "message": "Impression manuelle enregistrée.",
+            "print_id": result["print_id"]
+        })
+
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 
 app.register_blueprint(auth_bp)

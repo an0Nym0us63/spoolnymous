@@ -194,6 +194,61 @@ def processMessage(data):
   
     PRINTER_STATE_LAST = copy.deepcopy(PRINTER_STATE)
 
+def insert_manual_print(local_path, custom_datetime):
+    """
+    Traite un fichier .3mf localement uploadé manuellement, extrait les métadonnées
+    et insère un enregistrement de print dans la base.
+
+    Args:
+        local_path (str): Chemin local du fichier .3mf
+        custom_datetime (datetime.datetime): Date et heure fournies manuellement
+
+    Returns:
+        dict: Résultat avec print_id ou message d'erreur
+    """
+    try:
+        # Appelle l'extraction des métadonnées avec l'URL spéciale "local:"
+        metadata = getMetaDataFrom3mf(f"local:{local_path}", "manual_task")
+
+        if not metadata:
+            return {"error": "Échec de l'extraction des métadonnées."}
+
+        name = metadata.get("file", "print")
+        if metadata.get("title"):
+            name = metadata["title"]
+        if metadata.get("plateID") != '1':
+            name += f" - {metadata['plateID']}"
+
+        # Insertion du print
+        print_id = insert_print(
+            name=name,
+            print_type="manual",
+            image_path=metadata.get("image"),
+            start_time=custom_datetime,
+            duration=int(metadata.get("duration", 0)),
+            title=metadata.get("title", "")
+        )
+
+        metadata["ams_mapping"] = []
+        metadata["filamentChanges"] = []
+        metadata["complete"] = False
+        metadata["print_id"] = print_id
+
+        # Insertion des usages de filaments
+        for id, filament in metadata.get("filaments", {}).items():
+            insert_filament_usage(
+                print_id=print_id,
+                type=filament["type"],
+                color=filament["color"],
+                used_g=filament["used_g"]
+            )
+
+        return {"success": True, "print_id": print_id}
+
+    except Exception as e:
+        traceback.print_exc()
+        return {"error": str(e)}
+
 def publish(client, msg):
   result = client.publish(f"device/{PRINTER_ID}/request", json.dumps(msg))
   status = result[0]
