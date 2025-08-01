@@ -222,7 +222,7 @@ def insert_manual_print(local_path, custom_datetime):
             name,
             "manual",
             metadata.get("image"),
-            custom_datetime.isoformat(),
+            custom_datetime.strftime("%Y-%m-%d %H:%M:%S"),
             float(metadata.get("duration", 0))
         )
 

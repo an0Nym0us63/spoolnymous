@@ -195,6 +195,17 @@ def create_database() -> None:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN sold_units INTEGER DEFAULT 0")
         if "sold_price_total" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN sold_price_total REAL DEFAULT NULL")
+        # Corrige le format de date des prints récents au format ISO
+        cursor.execute("SELECT id, print_date FROM prints ORDER BY id DESC LIMIT 10")
+        for pid, date_str in cursor.fetchall():
+            if date_str and "T" in date_str:
+                try:
+                    # Convertir ISO → format attendu
+                    corrected = datetime.datetime.fromisoformat(date_str).strftime("%Y-%m-%d %H:%M:%S")
+                    cursor.execute("UPDATE prints SET print_date = ? WHERE id = ?", (corrected, pid))
+                except:
+                    pass  # ignorer si date invalide
+
 
         conn.commit()
         conn.close()
