@@ -1295,9 +1295,14 @@ def admin_manual_print():
             return jsonify({"error": "Fichier .3mf requis."}), 400
 
         try:
-            custom_datetime = datetime.datetime.fromisoformat(print_datetime)
-        except Exception:
-            return jsonify({"error": "Format datetime invalide."}), 400
+            # Tenter avec secondes d'abord
+            custom_datetime = datetime.datetime.strptime(print_datetime, "%Y-%m-%dT%H:%M:%S")
+        except ValueError:
+            try:
+                # Tenter sans les secondes
+                custom_datetime = datetime.datetime.strptime(print_datetime, "%Y-%m-%dT%H:%M")
+            except ValueError:
+                return jsonify({"error": "Format datetime invalide."}), 400
 
         filename = secure_filename(file.filename)
         temp_path = os.path.join("temp_uploads", filename)
