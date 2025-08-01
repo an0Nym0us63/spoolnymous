@@ -12,8 +12,9 @@ import secrets
 from flask_login import LoginManager, login_required
 from auth import auth_bp, User, get_stored_user
 
-from flask import Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort
+from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort
 from werkzeug.utils import secure_filename
+
 from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,LOCATION_MAPPING,AMS_ORDER, COST_BY_HOUR
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
@@ -1280,8 +1281,6 @@ def set_sold_price():
     except Exception:
         return redirect(request.referrer or url_for("print_history"))
 
-from werkzeug.utils import secure_filename
-
 @app.route("/admin/manual_print", methods=["POST"])
 def admin_manual_print():
     try:
@@ -1289,17 +1288,17 @@ def admin_manual_print():
         print_datetime = request.form.get("datetime")
 
         if not file or not file.filename.lower().endswith(".3mf"):
-            return jsonify({"error": "Fichier .3mf requis."}), 400
+            flash("Fichier .3MF requis.", "danger")
+            return redirect(url_for("settings"))
 
         try:
-            # Tenter avec secondes d'abord
-            custom_datetime = datetime.datetime.strptime(print_datetime, "%Y-%m-%dT%H:%M:%S")
-        except ValueError:
             try:
-                # Tenter sans les secondes
-                custom_datetime = datetime.datetime.strptime(print_datetime, "%Y-%m-%dT%H:%M")
+                custom_datetime = datetime.datetime.strptime(print_datetime, "%Y-%m-%dT%H:%M:%S")
             except ValueError:
-                return jsonify({"error": "Format datetime invalide."}), 400
+                custom_datetime = datetime.datetime.strptime(print_datetime, "%Y-%m-%dT%H:%M")
+        except Exception:
+            flash("Format de date invalide.", "danger")
+            return redirect(url_for("settings"))
 
         filename = secure_filename(file.filename)
         temp_path = os.path.join("temp_uploads", filename)
@@ -1307,19 +1306,18 @@ def admin_manual_print():
         file.save(temp_path)
 
         result = insert_manual_print(temp_path, custom_datetime)
-
         if "error" in result:
-            return jsonify(result), 500
+            flash(f"Erreur lors de l'ajout : {result['error']}", "danger")
+        else:
+            flash(f"Print manuel ajouté (ID #{result['print_id']})", "success")
 
-        return jsonify({
-            "message": "Impression manuelle enregistrée.",
-            "print_id": result["print_id"]
-        })
-
+        return redirect(url_for("settings"))
 
     except Exception as e:
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        flash(f"Erreur serveur : {str(e)}", "danger")
+        return redirect(url_for("settings"))
+
 
 
 app.register_blueprint(auth_bp)
