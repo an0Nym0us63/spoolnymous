@@ -1284,13 +1284,14 @@ def set_sold_price():
 @app.route("/admin/manual_print", methods=["POST"])
 def admin_manual_print():
     try:
-        file = request.files.get("file")
+        files = request.files.getlist("file[]")
         print_datetime = request.form.get("datetime")
 
-        if not file or not file.filename.lower().endswith(".3mf"):
-            flash("Fichier .3MF requis.", "danger")
+        if not files or all(f.filename == "" for f in files):
+            flash("Veuillez sélectionner au moins un fichier .3MF.", "danger")
             return redirect(url_for("settings"))
 
+        # Validation de la date
         try:
             try:
                 custom_datetime = datetime.datetime.strptime(print_datetime, "%Y-%m-%dT%H:%M:%S")
@@ -1300,16 +1301,35 @@ def admin_manual_print():
             flash("Format de date invalide.", "danger")
             return redirect(url_for("settings"))
 
-        filename = secure_filename(file.filename)
-        temp_path = os.path.join("temp_uploads", filename)
         os.makedirs("temp_uploads", exist_ok=True)
-        file.save(temp_path)
 
-        result = insert_manual_print(temp_path, custom_datetime)
-        if "error" in result:
-            flash(f"Erreur lors de l'ajout : {result['error']}", "danger")
-        else:
-            flash(f"Print manuel ajouté (ID #{result['print_id']})", "success")
+        successes = []
+        errors = []
+
+        for file in files:
+            if not file or not file.filename.lower().endswith(".3mf"):
+                errors.append(f"{file.filename} : format invalide")
+                continue
+
+            try:
+                filename = secure_filename(file.filename)
+                temp_path = os.path.join("temp_uploads", filename)
+                file.save(temp_path)
+
+                result = insert_manual_print(temp_path, custom_datetime)
+                if "error" in result:
+                    errors.append(f"{filename} : {result['error']}")
+                else:
+                    successes.append(f"{filename} (ID #{result['print_id']})")
+
+            except Exception as e:
+                traceback.print_exc()
+                errors.append(f"{file.filename} : {str(e)}")
+
+        if successes:
+            flash(f"{len(successes)} impression(s) ajoutée(s) : " + ", ".join(successes), "success")
+        if errors:
+            flash(f"⚠ Erreurs : " + "; ".join(errors), "danger")
 
         return redirect(url_for("settings"))
 
@@ -1317,6 +1337,7 @@ def admin_manual_print():
         traceback.print_exc()
         flash(f"Erreur serveur : {str(e)}", "danger")
         return redirect(url_for("settings"))
+
 
 
 
