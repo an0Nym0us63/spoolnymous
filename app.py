@@ -157,6 +157,12 @@ def redirect_back(focus_id=None):
         kwargs["focus_id"] = focus_id
     return redirect(url_for("print_history", **kwargs))
 
+def parse_print_date(date_str):
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+    except:
+        return datetime.min  # en cas de date invalide, met tout en bas
+
 init_mqtt()
 
 app = Flask(__name__)
@@ -736,7 +742,7 @@ def print_history():
                 if (sold_filter == "yes" and is_sold) or (sold_filter == "no" and not is_sold):
                     filtered_entries.append(e)
         entries = {f"group_{e['id']}" if e["type"] == "group" else f"print_{e['print']['id']}": e for e in filtered_entries}
-    entries_list = sorted(entries.values(), key=lambda e: e["max_id"], reverse=True)
+    entries_list = sorted(entries.values(), key=lambda e: parse_print_date(e["latest_date"] if e["type"] == "group" else e["print"]["print_date"]), reverse=True)
     total_pages = (len(entries_list) + per_page - 1) // per_page
     paged_entries = entries_list[(page - 1) * per_page : page * per_page]
 
