@@ -1289,7 +1289,7 @@ def admin_manual_print():
 
         if not files or all(f.filename == "" for f in files):
             flash("Veuillez sélectionner au moins un fichier .3MF.", "danger")
-            return redirect(url_for("settings"))
+            return redirect(url_for("auth_settings"))
 
         # Validation de la date
         try:
@@ -1299,7 +1299,7 @@ def admin_manual_print():
                 custom_datetime = datetime.datetime.strptime(print_datetime, "%Y-%m-%dT%H:%M")
         except Exception:
             flash("Format de date invalide.", "danger")
-            return redirect(url_for("settings"))
+            return redirect(url_for("auth_settings"))
 
         os.makedirs("temp_uploads", exist_ok=True)
 
@@ -1331,12 +1331,12 @@ def admin_manual_print():
         if errors:
             flash(f"⚠ Erreurs : " + "; ".join(errors), "danger")
 
-        return redirect(url_for("settings"))
+        return redirect(url_for("auth_settings"))
 
     except Exception as e:
         traceback.print_exc()
         flash(f"Erreur serveur : {str(e)}", "danger")
-        return redirect(url_for("settings"))
+        return redirect(url_for("auth_settings"))
 
 
 
