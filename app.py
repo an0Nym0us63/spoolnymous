@@ -7,6 +7,7 @@ import time
 import os
 import re
 from collections import defaultdict
+from urllib.parse import urlencode
 
 import secrets
 
@@ -141,29 +142,63 @@ def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
         pages.append(total_pages)
 
     return pages
+    
+def _merge_context_args(keep=None, drop=None, **new_args):
+    """
+    Fusionne les arguments GET et POST de la requête avec des nouveaux paramètres,
+    en appliquant des règles d'inclusion/exclusion.
 
-def extract_preserved_args(exclude: set[str]) -> dict:
-    preserved = {}
+    Args:
+        keep (list[str], optional): liste blanche des clés à garder (en plus de DEFAULT_KEEP_KEYS).
+        drop (list[str], optional): liste noire à exclure si keep est None.
+        **new_args: arguments à ajouter ou écraser.
 
-    # Préserver les paramètres GET (URL)
-    for key in request.args:
-        if key not in exclude:
-            preserved[key] = request.args.getlist(key)
+    Returns:
+        dict: tous les arguments à inclure dans l'URL.
+    """
+    DEFAULT_KEEP_KEYS = [
+        "page", "filament_type", "color",
+        "filament_id", "status", "search", "sold_filter"
+    ]
+    current_args = {}
+    for k in request.args:
+        values = request.args.getlist(k)
+        current_args[k] = values if len(values) > 1 else values[0]
 
-    # Ajouter certains paramètres POST (s'ils ne sont pas exclus ni déjà présents)
-    for key in request.form:
-        if key not in exclude and key not in preserved:
-            preserved[key] = request.form.getlist(key)
+    if request.method == 'POST':
+        for k in request.form:
+            if k not in current_args:
+                values = request.form.getlist(k)
+                current_args[k] = values if len(values) > 1 else values[0]
 
-    return preserved
+    effective_keep = set(DEFAULT_KEEP_KEYS)
+    if keep is not None:
+        effective_keep.update(keep)
 
-def redirect_back(focus_id=None):
-    args = request.form.to_dict(flat=True)
-    page = args.get("page") or request.args.get("page") or 1
-    kwargs = {"page": page}
-    if focus_id:
-        kwargs["focus_id"] = focus_id
-    return redirect(url_for("print_history", **kwargs))
+    current_args = {k: v for k, v in current_args.items() if k in effective_keep} if keep is not None else (
+        {k: v for k, v in current_args.items() if k not in drop} if drop is not None else current_args
+    )
+
+    return {**current_args, **new_args}
+
+
+def redirect_with_context(endpoint, keep=None, drop=None, **new_args):
+    """
+    Redirige vers une route en conservant certains arguments (GET ou POST).
+
+    Args:
+        endpoint (str): nom de la route Flask.
+        keep (list[str], optional): liste blanche des clés à ajouter aux paramètres conservés par défaut.
+        drop (list[str], optional): liste noire des clés à exclure. Ignoré si keep est fourni.
+        **new_args: clés/valeurs à injecter ou à écraser explicitement.
+
+    Returns:
+        werkzeug.wrappers.Response: redirection HTTP propre avec les bons paramètres.
+    """
+    combined_args = _merge_context_args(keep=keep, drop=drop, **new_args)
+    query = urlencode(combined_args, doseq=True)
+    return redirect(url_for(endpoint) + ('?' + query if query else ''))
+
 
 def parse_print_date(date_str):
     try:
@@ -213,12 +248,9 @@ def hm_format(hours: float):
 @app.context_processor
 def frontend_utilities():
     def url_with_args(**kwargs):
-        query = request.args.to_dict(flat=False)
-        if "page" not in kwargs:
-            # Si l'appelant ne précise pas une nouvelle page, on garde l'actuelle
-            query["page"] = request.args.getlist("page")
-        query.update({k: [str(v)] if not isinstance(v, list) else v for k, v in kwargs.items()})
-        return url_for(request.endpoint, **query)
+        args = _merge_context_args(**kwargs)
+        return url_for(request.endpoint) + ('?' + urlencode(args, doseq=True) if args else '')
+    
     return dict(
         SPOOLMAN_BASE_URL=SPOOLMAN_BASE_URL,
         AUTO_SPEND=AUTO_SPEND,
@@ -230,6 +262,7 @@ def frontend_utilities():
         PRINTER_NAME=PRINTER_NAME,
         url_with_args=url_with_args
     )
+
 
 @app.route("/issue")
 def issue():
@@ -1031,10 +1064,7 @@ def edit_print_name():
 
     if new_filename:
         update_print_filename(print_id, new_filename)
-
-    preserved_args = extract_preserved_args({"file_name", "print_id"})
-    preserved_args["focus_print_id"]=print_id
-    return redirect(url_for("print_history", **preserved_args))
+    return redirect_with_context("print_history", focus_id=print_id)
 
 
 @app.route("/edit_print_items", methods=["POST"])
@@ -1048,32 +1078,31 @@ def edit_print_items():
         number_of_items = 1
 
     update_print_history_field(print_id, "number_of_items", number_of_items)
-    preserved_args = extract_preserved_args({"print_id", "number_of_items"})
-    preserved_args["focus_print_id"]=print_id
-    return redirect(url_for("print_history", **preserved_args))
+    return redirect_with_context("print_history", focus_id=print_id)
 
 
 @app.route("/create_group", methods=["POST"])
 def create_group():
     print_id = int(request.form["print_id"])
     group_name = request.form["group_name"].strip()
-    preserved_args = extract_preserved_args({"print_id", "group_name"})
 
     if group_name:
         group_id = create_print_group(group_name)
         update_print_history_field(print_id, "group_id", group_id)
         update_group_created_at(group_id)
-        return redirect(url_for("print_history", **preserved_args, focus_group_id=group_id))
-    preserved_args["focus_print_id"]=print_id
+        return redirect_with_context(
+            "print_history",
+            focus_id=print_id,
+            focus_group_id=group_id
+        )
 
-    return redirect(url_for("print_history", **preserved_args))
+    return redirect_with_context("print_history", focus_id=print_id)
 
 
 @app.route("/assign_to_group", methods=["POST"])
 def assign_to_group():
     group_id_or_name = request.form["group_id_or_name"]
     print_id = int(request.form["print_id"])
-    preserved_args = extract_preserved_args({"group_id_or_name", "print_id"})
 
     if group_id_or_name.isdigit():
         group_id = int(group_id_or_name)
@@ -1082,37 +1111,38 @@ def assign_to_group():
 
     update_print_history_field(print_id, "group_id", group_id)
     update_group_created_at(group_id)
-    preserved_args["focus_print_id"]=print_id
-    preserved_args["focus_group_id"]=group_id
 
-    return redirect(url_for("print_history", **preserved_args))
+    return redirect_with_context(
+        "print_history",
+        focus_id=print_id,
+        focus_group_id=group_id
+    )
 
 
 @app.route("/remove_from_group", methods=["POST"])
 def remove_from_group():
     print_id = int(request.form["print_id"])
-    preserved_args = extract_preserved_args({"print_id"})
     group_id = get_group_id_of_print(print_id)
 
     update_print_history_field(print_id, "group_id", None)
     if group_id:
         update_group_created_at(group_id)
-    preserved_args["focus_print_id"]=print_id
 
-    return redirect(url_for("print_history", **preserved_args))
+    return redirect_with_context(
+        "print_history",
+        focus_id=print_id
+    )
 
 
 @app.route("/rename_group", methods=["POST"])
 def rename_group():
     group_id = int(request.form["group_id"])
     group_name = request.form["group_name"].strip()
-    preserved_args = extract_preserved_args({"group_id", "group_name"})
 
     if group_name:
         update_print_group_field(group_id, "name", group_name)
-    preserved_args["focus_group_id"]=group_id
-
-    return redirect(url_for("print_history", **preserved_args))
+    
+    return redirect_with_context("print_history",focus_group_id=group_id)
 
 
 @app.route("/edit_group_items", methods=["POST"])
@@ -1125,11 +1155,9 @@ def edit_group_items():
     except (ValueError, TypeError):
         number_of_items = 1
 
-    preserved_args = extract_preserved_args({"group_id", "number_of_items"})
     update_print_group_field(group_id, "number_of_items", number_of_items)
-    preserved_args["focus_group_id"]=group_id
 
-    return redirect(url_for("print_history", **preserved_args))
+    return redirect_with_context("print_history",focus_group_id=group_id)
 
 @app.route("/api/groups/search")
 def api_groups_search():
@@ -1220,7 +1248,6 @@ def stats():
 @app.route("/adjust_duration", methods=["POST"])
 def adjust_duration():
     print_id = int(request.form["print_id"])
-    preserved_args = extract_preserved_args({"id", "print_id", "hours", "minutes"})
 
     try:
         hours = float(request.form.get("hours", 0) or 0)
@@ -1230,8 +1257,7 @@ def adjust_duration():
     except Exception:
         pass
     
-    preserved_args["focus_print_id"]=print_id
-    return redirect(url_for("print_history", **preserved_args))
+    return redirect_with_context("print_history",focus_id=print_id)
 
 
 @app.route("/set_group_primary", methods=["POST"])
@@ -1239,25 +1265,19 @@ def set_group_primary():
     print_id = int(request.form["print_id"])
     group_id = int(request.form["group_id"])
     set_group_primary_print(group_id, print_id)
-
-    preserved_args = extract_preserved_args({"id", "print_id", "group_id"})
-    
-    preserved_args["focus_group_id"]=group_id
-    return redirect(url_for("print_history", **preserved_args))
+    return redirect_with_context("print_history",focus_id=print_id,focus_group_id=group_id)
 
 @app.route('/assign_spool_to_print', methods=['POST'])
 def assign_spool_to_print():
     spool_id = int(request.form['spool_id'])
     print_id = int(request.form['print_id'])
     filament_index = int(request.form['filament_index'])
-
-    preserved_args = extract_preserved_args({"id", "print_id", "spool_id", "filament_index"})
     update_filament_spool(print_id=print_id, filament_id=filament_index, spool_id=spool_id)
     skip_usage = request.form.get("skip_usage") == "1"
     if not skip_usage:
         consumeSpool(spool_id, float(request.form.get("filament_usage") or 0))
-    preserved_args["focus_print_id"]=print_id
-    return redirect(url_for("print_history", **preserved_args))
+        
+    return redirect_with_context("print_history",focus_id=print_id)
 
 
 @app.route("/change_print_status", methods=["POST"])
@@ -1266,15 +1286,12 @@ def change_print_status():
     new_status = request.form.get("status", "SUCCESS").strip()
     note = request.form.get("status_note", "").strip()
 
-    preserved_args = extract_preserved_args({"id", "note", "new_status", "print_id"})
-    preserved_args["focus_print_id"]=print_id
-
     if new_status not in {"SUCCESS", "IN_PROGRESS", "FAILED", "PARTIAL", "TO_REDO"}:
-        return redirect(url_for("print_history", **preserved_args))
+        return redirect_with_context("print_history",focus_id=print_id)
 
     update_print_history_field(print_id, "status", new_status)
     update_print_history_field(print_id, "status_note", note)
-    return redirect(url_for("print_history", **preserved_args))
+    return redirect_with_context("print_history",focus_id=print_id)
 
 @app.route("/set_sold_price", methods=["POST"])
 def set_sold_price():
@@ -1289,20 +1306,10 @@ def set_sold_price():
 
         set_sold_info(print_id=item_id, is_group=is_group, total_price=total_price, sold_units=sold_units)
 
-        preserved_args = extract_preserved_args({"id", "is_group", "total_price", "sold_units"})
-        
         if is_group:
-            preserved_args["focus_group_id"]=item_id
-            preserved_args["focus_print_id"]=None
+            return redirect_with_context("print_history",focus_group_id=group_id)
         else:
-            preserved_args["focus_group_id"]=None
-            preserved_args["focus_print_id"]=item_id
-            
-        return redirect(url_for(
-            "print_history",
-            **preserved_args
-        ))
-
+            return redirect_with_context("print_history",focus_id=print_id)
     except Exception:
         return redirect(request.referrer or url_for("print_history"))
 
