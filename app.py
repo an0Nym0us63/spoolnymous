@@ -1323,9 +1323,9 @@ def set_sold_price():
     set_sold_info(print_id=item_id, is_group=is_group, total_price=total_price, sold_units=sold_units)
 
     if is_group:
-        return redirect_with_context("print_history",focus_group_id=group_id)
+        return redirect_with_context("print_history",focus_group_id=item_id)
     else:
-        return redirect_with_context("print_history",focus_print_id=print_id)
+        return redirect_with_context("print_history",focus_print_id=item_id)
 
 @app.route("/admin/manual_print", methods=["POST"])
 def admin_manual_print():
