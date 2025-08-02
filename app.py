@@ -1301,7 +1301,7 @@ def assign_spool_to_print():
 @app.route("/change_print_status", methods=["POST"])
 def change_print_status():
     print_id = int(request.form.get("print_id"))
-    new_status = request.form.get("status", "SUCCESS").strip()
+    new_status = request.form.get("new_status", "SUCCESS").strip()
     note = request.form.get("status_note", "").strip()
 
     if new_status not in {"SUCCESS", "IN_PROGRESS", "FAILED", "PARTIAL", "TO_REDO"}:

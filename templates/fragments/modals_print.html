@@ -140,7 +140,7 @@
         <div class="modal-body">
           <div class="mb-3">
             <label for="status_{{ print.id }}" class="form-label">Statut</label>
-            <select class="form-select" id="status_{{ print.id }}" name="status" required>
+            <select class="form-select" id="status_{{ print.id }}" name="new_status" required>
   <option value="SUCCESS" {% if print.status == 'SUCCESS' %}selected{% endif %}>🟢 Succès</option>
   <option value="TO_REDO" {% if print.status == 'TO_REDO' %}selected{% endif %}>🟡 À refaire</option>
   <option value="PARTIAL" {% if print.status == 'PARTIAL' %}selected{% endif %}>🟠 Partiel</option>
