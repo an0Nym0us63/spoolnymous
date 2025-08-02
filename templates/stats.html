@@ -72,7 +72,7 @@
         <div class="card-body text-center">
           <h6 class="card-title small text-muted">{{ label }}</h6>
           <p class="card-text fs-5 fw-bold">
-          {% if '💰' in label or '⚡' in label or '💵' or '📈' in label %}
+          {% if '💰' in label or '⚡' in label or '💵' in label or '📈' in label %}
             {{ value }} {{ currencysymbol }}
           {% elif '⚖️' in label or '📦' in label %}
             {% if value >= 1000 %}
