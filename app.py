@@ -143,14 +143,10 @@ def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
 
     return pages
 
-DEFAULT_KEEP_KEYS = [
-    "page", "filament_type", "color",
-    "filament_id", "status", "search", "sold_filter"
-]
 def _merge_context_args(keep=None, drop=None, **new_args):
     """
     Fusionne les arguments GET et certains POST explicitement autorisés
-    avec des nouveaux paramètres.
+    avec des nouveaux paramètres, en nettoyant les clés vides.
 
     Args:
         keep (list[str], optional): liste blanche des clés à garder (en plus de DEFAULT_KEEP_KEYS).
@@ -166,20 +162,30 @@ def _merge_context_args(keep=None, drop=None, **new_args):
     if keep is not None:
         effective_keep.update(keep)
 
+    def is_meaningful(val):
+        return val not in [None, "", [], {}]
+
     # GET args
     for k in request.args:
         if k in effective_keep:
             values = request.args.getlist(k)
-            current_args[k] = values if len(values) > 1 else values[0]
+            value = values if len(values) > 1 else values[0]
+            if is_meaningful(value):
+                current_args[k] = value
 
     # POST args (seulement ceux explicitement listés)
     if request.method == 'POST':
         for k in request.form:
             if k in effective_keep:
                 values = request.form.getlist(k)
-                current_args[k] = values if len(values) > 1 else values[0]
+                value = values if len(values) > 1 else values[0]
+                if is_meaningful(value):
+                    current_args[k] = value
 
-    return {**current_args, **new_args}
+    # new_args peut écraser les valeurs, donc on ne filtre que les non-significatifs
+    cleaned_new_args = {k: v for k, v in new_args.items() if is_meaningful(v)}
+
+    return {**current_args, **cleaned_new_args}
 
 
 def redirect_with_context(endpoint, keep=None, drop=None, **new_args):
