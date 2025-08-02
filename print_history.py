@@ -327,6 +327,7 @@ def insert_filament_usage(print_id: int, filament_type: str, color: str, grams_u
     ''', (print_id, filament_type, color, grams_used, ams_slot))
     conn.commit()
     conn.close()
+    trigger_cost_recalculation(print_id)
 
 def update_filament_usage(print_id, spool_id, new_grams_used):
     conn = sqlite3.connect(db_config["db_path"])
@@ -338,6 +339,7 @@ def update_filament_usage(print_id, spool_id, new_grams_used):
     """, (new_grams_used, print_id, spool_id))
     conn.commit()
     conn.close()
+    trigger_cost_recalculation(print_id)
 
 def update_filament_spool(print_id: int, filament_id: int, spool_id: int) -> None:
     conn = sqlite3.connect(db_config["db_path"])
@@ -349,6 +351,7 @@ def update_filament_spool(print_id: int, filament_id: int, spool_id: int) -> Non
     ''', (spool_id, filament_id, print_id))
     conn.commit()
     conn.close()
+    trigger_cost_recalculation(print_id)
 
 def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
     hex_color = hex_color.lstrip('#')[:6]
@@ -560,9 +563,18 @@ def get_filament_for_print(print_id: int):
 def delete_print(print_id: int):
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM prints WHERE id = ?', (print_id,))
+    cursor.execute("SELECT group_id FROM prints WHERE id = ?", (print_id,))
+    result = cursor.fetchone()
+    group_id = result[0] if result else None
+
+    # Suppression du print
+    cursor.execute("DELETE FROM prints WHERE id = ?", (print_id,))
     conn.commit()
     conn.close()
+
+    # Recalcul éventuel du groupe
+    if group_id is not None:
+        trigger_cost_recalculation(group_id, is_group=True)
     
 def get_tags_for_print(print_id: int):
     conn = sqlite3.connect(db_config["db_path"])
@@ -596,6 +608,7 @@ def update_print_history_field(print_id: int, field: str, value) -> None:
     cursor.execute(query, (value, print_id))
     conn.commit()
     conn.close()
+    trigger_cost_recalculation(print_id)
 
 def create_print_group(name: str) -> int:
     """
@@ -638,6 +651,7 @@ def update_print_group_field(group_id: int, field: str, value) -> None:
     cursor.execute(query, (value, group_id))
     conn.commit()
     conn.close()
+    trigger_cost_recalculation(group_id, is_group=True)
 
 def update_group_created_at(group_id: int) -> None:
     """
@@ -945,6 +959,7 @@ def set_sold_info(print_id: int, is_group: bool, total_price: float, sold_units:
 
     conn.commit()
     conn.close()
+    trigger_cost_recalculation(print_id, is_group)
 
 def recalculate_filament_usage(usage_id: int, spools_by_id: dict) -> dict:
     """
@@ -1147,5 +1162,29 @@ def cleanup_orphan_data() -> None:
 
     conn.commit()
     conn.close()
+
+def trigger_cost_recalculation(target_id: int, is_group: bool = False) -> None:
+    """
+    Déclenche un recalcul du coût pour un print ou un groupe donné.
+    """
+
+    spools_by_id = {spool["id"]: spool for spool in fetchSpools(archived=True)}
+
+    if is_group:
+        recalculate_group_data(target_id, spools_by_id)
+    else:
+        # Vérifie si le print appartient à un groupe
+        conn = sqlite3.connect(db_config["db_path"])
+        cursor = conn.cursor()
+        cursor.execute("SELECT group_id FROM prints WHERE id = ?", (target_id,))
+        result = cursor.fetchone()
+        conn.close()
+
+        group_id = result[0] if result else None
+
+        if group_id is not None:
+            recalculate_group_data(group_id, spools_by_id)
+        else:
+            recalculate_print_data(target_id, spools_by_id)
 
 create_database()
