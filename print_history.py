@@ -478,16 +478,16 @@ def get_prints_with_filament(filters=None, search=None) -> list:
     query_filters = []
     values = []
 
-    if "filament_id" in filters:
+    if filters.get("filament_id"):
         query_filters.append("f.spool_id = ?")
         values.append(filters["filament_id"][0])
-    if "filament_type" in filters:
+    if filters.get("filament_type"):
         query_filters.append("f.filament_type = ?")
         values.append(filters["filament_type"][0])
-    if "family_color" in filters:
+    if filters.get("family_color"):
         query_filters.append("f.color LIKE ?")
         values.append(f"{filters['family_color']}%")
-    if "status" in filters:
+    if filters.get("status"):
         query_filters.append("p.status = ?")
         values.append(filters["status"][0])
 
@@ -517,8 +517,6 @@ def get_prints_with_filament(filters=None, search=None) -> list:
 
     conn.close()
     return prints
-
-
 
 def get_filament_for_slot(print_id: int, ams_slot: int):
     conn = sqlite3.connect(db_config["db_path"])
