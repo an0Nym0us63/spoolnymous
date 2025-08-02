@@ -469,130 +469,51 @@ def get_distinct_values():
         "filaments": filaments
     }
 
-def get_prints_with_filament(filters=None, search=None):
+def get_prints_with_filament(filters=None, search=None) -> list:
     filters = filters or {}
-    where_clauses = []
-    params = []
-    
-    if filters.get("filament_id") and any(v.strip() for v in filters["filament_id"]):
-        ids = []
-        for val in filters["filament_id"]:
-            ids.extend(val.split(','))
-        ids = list(set(i for i in ids if i.strip()))
-        if ids:
-            placeholders = ",".join("?" for _ in ids)
-            where_clauses.append(f"f.spool_id IN ({placeholders})")
-            params.extend(ids)
-
-    if filters.get("filament_type") and any(v.strip() for v in filters["filament_type"]):
-        types = [v.strip() for v in filters["filament_type"] if v.strip()]
-        if types:
-            placeholders = ",".join("?" for _ in types)
-            where_clauses.append(f"f.filament_type IN ({placeholders})")
-            params.extend(types)
-
-    if filters.get("color") and any(v.strip() for v in filters["color"]):
-        color_families = [v.strip() for v in filters["color"] if v.strip()]
-        conn = sqlite3.connect(db_config["db_path"])
-        cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
-        all_colors = [row[0] for row in cursor.fetchall()]
-        conn.close()
-
-        selected_hexes_by_family = []
-        for fam in color_families:
-            hexes = [c for c in all_colors if fam in two_closest_families(c)]
-            if hexes:
-                selected_hexes_by_family.append(hexes)
-
-        if selected_hexes_by_family:
-            where_clauses.append(f"""
-                p.id IN (
-                    SELECT fu.print_id
-                    FROM filament_usage fu
-                    WHERE {" OR ".join(["fu.color IN (" + ",".join("?" for _ in hexes) + ")" for hexes in selected_hexes_by_family])}
-                    GROUP BY fu.print_id
-                    HAVING COUNT(DISTINCT fu.color) >= ?
-                )
-            """)
-            for hexes in selected_hexes_by_family:
-                params.extend(hexes)
-            params.append(len(selected_hexes_by_family))
-    if filters.get("status") and any(v.strip() for v in filters["status"]):
-        statuses = [v.strip() for v in filters["status"] if v.strip()]
-        if statuses:
-            placeholders = ",".join("?" for _ in statuses)
-            where_clauses.append(f"p.status IN ({placeholders})")
-            params.extend(statuses)
-
-    if search:
-        words = [w.strip().lower() for w in search.split() if w.strip()]
-        word_clauses = []
-        for w in words:
-            word_clauses.append("""
-                LOWER(p.file_name) LIKE ?
-                OR LOWER(p.translated_name) LIKE ?
-                OR EXISTS (
-                    SELECT 1 FROM print_tags pt
-                    WHERE pt.print_id = p.id AND LOWER(pt.tag) LIKE ?
-                )
-                OR EXISTS (
-                    SELECT 1 FROM print_groups pg
-                    WHERE pg.id = p.group_id AND LOWER(pg.name) LIKE ?
-                )
-            """)
-            params.extend([f"%{w}%"] * 4)
-    
-        if word_clauses:
-            where_clauses.append(f"( {' OR '.join(word_clauses)} )")
-
-
-    where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
-
     conn = sqlite3.connect(db_config["db_path"])
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    query = f'''
-        SELECT DISTINCT p.id AS id,
-            p.print_date,
-            p.file_name,
-            p.original_name,
-            p.translated_name,
-            p.status,
-            p.status_note,
-            p.print_type,
-            p.image_file,
-            p.duration,
-            p.number_of_items,
-            p.sold_price_total,
-            p.sold_units,
-            pg.id AS group_id,
-            pg.name AS group_name,
-            pg.number_of_items AS group_number_of_items,
-            pg.primary_print_id AS group_primary_print_id,
-            pg.sold_price_total AS group_sold_price_total,
-            pg.sold_units AS group_sold_units,
-            (
-                SELECT json_group_array(json_object(
-                    'spool_id', f2.spool_id,
-                    'filament_type', f2.filament_type,
-                    'color', f2.color,
-                    'grams_used', f2.grams_used,
-                    'ams_slot', f2.ams_slot
-                )) FROM filament_usage f2 WHERE f2.print_id = p.id
-            ) AS filament_info
-        FROM prints p
-        LEFT JOIN filament_usage f ON f.print_id = p.id
-        LEFT JOIN print_groups pg ON pg.id = p.group_id
-        {where_sql}
-        ORDER BY p.print_date DESC
-    '''
-    cursor.execute(query, params)
-    prints = [dict(row) for row in cursor.fetchall()]
-    conn.close()
+    query_filters = []
+    values = []
 
+    if "filament_id" in filters:
+        query_filters.append("f.spool_id = ?")
+        values.append(filters["filament_id"])
+    if "filament_type" in filters:
+        query_filters.append("f.filament_type = ?")
+        values.append(filters["filament_type"])
+    if "family_color" in filters:
+        query_filters.append("f.color LIKE ?")
+        values.append(f"{filters['family_color']}%")
+    if "status" in filters:
+        query_filters.append("p.status = ?")
+        values.append(filters["status"])
+
+    if search:
+        query_filters.append("(p.file_name LIKE ? OR p.translated_name LIKE ? OR pg.name LIKE ?)")
+        values.extend([f"%{search}%"] * 3)
+
+    where_clause = "WHERE " + " AND ".join(query_filters) if query_filters else ""
+
+    query = f"""
+        SELECT p.*, pg.name as group_name, pg.number_of_items as group_number_of_items
+        FROM prints p
+        LEFT JOIN print_groups pg ON p.group_id = pg.id
+        {where_clause}
+        ORDER BY p.print_date DESC
+    """
+    cursor.execute(query, values)
+    prints = [dict(row) for row in cursor.fetchall()]
+
+    for p in prints:
+        cursor.execute("SELECT * FROM filament_usage WHERE print_id = ?", (p["id"],))
+        p["filament_usage"] = [dict(u) for u in cursor.fetchall()]
+
+    conn.close()
     return prints
+
 
 def get_filament_for_slot(print_id: int, ams_slot: int):
     conn = sqlite3.connect(db_config["db_path"])

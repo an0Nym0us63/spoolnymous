@@ -624,46 +624,30 @@ def print_history():
 
     raw_prints = get_prints_with_filament(filters=filters, search=search)
     spool_list = fetchSpools(False, True)
+    spools_by_id = {spool["id"]: spool for spool in spool_list}
     entries = {}
 
     for p in raw_prints:
-        if p["duration"] is None:
-            p["duration"] = 0
-        p["duration"] /= 3600
-        p["electric_cost"] = p["duration"] * float(COST_BY_HOUR)
-        p["filament_usage"] = json.loads(p["filament_info"])
-        p["total_cost"] = 0
-        p["total_normal_cost"] = 0
+        p["duration"] = float(p.get("duration") or 0.0) / 3600  # pour compatibilité templates
+        p["electric_cost"] = p.get("electric_cost", 0.0)
         p["tags"] = get_tags_for_print(p["id"])
-        p["total_weight"] = sum(f["grams_used"] for f in p["filament_usage"])
         p["translated_name"] = p.get("translated_name", "")
         p["total_price"] = p.get("sold_price_total", 0)
+        p["number_of_items"] = p.get("number_of_items", 1)
+        p["model_file"] = None
 
+        # Injecter les spools dans filament_usage
         for filament in p["filament_usage"]:
-            if filament["spool_id"]:
-                for spool in spool_list:
-                    if spool['id'] == filament["spool_id"]:
-                        filament["spool"] = spool
-                        filament["cost"] = filament['grams_used'] * spool.get('cost_per_gram', 20.0)
-                        filament["normal_cost"] = filament['grams_used'] * spool.get('filament_cost_per_gram', 20.0)
-                        p["total_cost"] += filament["cost"]
-                        p["total_normal_cost"] += filament["normal_cost"]
-                        break
-            filament.setdefault("cost", 20.0)
+            if filament.get("spool_id"):
+                filament["spool"] = spools_by_id.get(filament["spool_id"])
+            filament.setdefault("cost", 0.0)
+            filament.setdefault("normal_cost", 0.0)
 
-        p["full_cost"] = p["total_cost"] + p["electric_cost"]
-        p["full_normal_cost"] = p["total_normal_cost"] + p["electric_cost"]
-
-        if not p.get("number_of_items"):
-            p["number_of_items"] = 1
-        p["full_cost_by_item"] = p["full_cost"] / p["number_of_items"]
-        p["full_normal_cost_by_item"] = p["full_normal_cost"] / p["number_of_items"]
-        if p.get("image_file") and p["image_file"].endswith(".png"):
+        if p.get("image_file", "").endswith(".png"):
             model_file = p["image_file"].replace(".png", ".3mf")
             model_path = os.path.join(app.static_folder, 'prints', model_file)
-            p["model_file"] = model_file if os.path.isfile(model_path) else None
-        else:
-            p["model_file"] = None
+            if os.path.isfile(model_path):
+                p["model_file"] = model_file
 
         if p.get("group_id"):
             gid = p["group_id"]
@@ -676,44 +660,45 @@ def print_history():
                     "name": p.get("group_name", f"Groupe {gid}"),
                     "prints": [],
                     "total_duration": 0,
-                    "total_cost": 0,
-                    "total_normal_cost": 0,
-                    "total_weight": 0,
                     "max_id": 0,
                     "latest_date": p["print_date"],
-                    "thumbnail": None,  # sera défini plus bas
+                    "thumbnail": None,
                     "filament_usage": {},
                     "number_of_items": p.get("group_number_of_items") or 1,
                     "primary_print_id": p.get("group_primary_print_id"),
+                    "total_cost": 0,
+                    "total_normal_cost": 0,
+                    "total_weight": 0,
+                    "total_price": p.get("group_sold_price_total", 0),
+                    "sold_units": p.get("group_sold_units", 0),
+                    "full_cost_by_item": p.get("full_cost_by_item", 0),
+                    "full_normal_cost_by_item": p.get("full_normal_cost_by_item", 0),
                 }
                 entries[entry_key] = entry
-        
+
             entry["prints"].append(p)
             entry["total_duration"] += p["duration"]
-            entry["total_cost"] += p["full_cost"]
-            entry["total_normal_cost"] += p["full_normal_cost"]
-            entry["total_weight"] += p["total_weight"]
-            entry["total_price"] = p.get("group_sold_price_total", 0)
-            entry["sold_units"] = p.get("group_sold_units", 0)
-        
+            entry["total_cost"] += p.get("full_cost", 0)
+            entry["total_normal_cost"] += p.get("full_normal_cost", 0)
+            entry["total_weight"] += p.get("total_weight", 0)
+
             if p["id"] > entry["max_id"]:
                 entry["max_id"] = p["id"]
                 entry["latest_date"] = p["print_date"]
-        
-            # Définir la miniature en fonction du primary_print_id s’il est défini
+
             if entry.get("primary_print_id"):
                 if p["id"] == entry["primary_print_id"]:
                     entry["thumbnail"] = p["image_file"]
             elif not entry.get("thumbnail"):
                 entry["thumbnail"] = p["image_file"]
-        
+
             for filament in p["filament_usage"]:
                 key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
                 if key not in entry["filament_usage"]:
                     entry["filament_usage"][key] = {
                         "grams_used": filament["grams_used"],
-                        "cost": filament.get("cost", 20.0),
-                        "normal_cost": filament.get("normal_cost", 20.0),
+                        "cost": filament.get("cost", 0.0),
+                        "normal_cost": filament.get("normal_cost", 0.0),
                         "spool": filament.get("spool"),
                         "spool_id": filament.get("spool_id"),
                         "filament_type": filament.get("filament_type"),
@@ -722,8 +707,8 @@ def print_history():
                 else:
                     usage = entry["filament_usage"][key]
                     usage["grams_used"] += filament["grams_used"]
-                    usage["cost"] += filament.get("cost", 20.0)
-                    usage["normal_cost"] += filament.get("normal_cost", 20.0)
+                    usage["cost"] += filament.get("cost", 0.0)
+                    usage["normal_cost"] += filament.get("normal_cost", 0.0)
         else:
             entries[f"print_{p['id']}"] = {
                 "type": "single",
@@ -731,29 +716,20 @@ def print_history():
                 "max_id": p["id"]
             }
 
-    for entry in entries.values():
-        if entry["type"] == "group":
-            entry["total_electric_cost"] = entry["total_duration"] * float(COST_BY_HOUR)
-            entry["total_filament_cost"] = entry["total_cost"] - entry["total_electric_cost"]
-            entry["total_filament_normal_cost"] = entry["total_normal_cost"] - entry["total_electric_cost"]
-            entry["full_cost_by_item"] = entry["total_cost"] / entry["number_of_items"]
-            entry["full_normal_cost_by_item"] = entry["total_normal_cost"] / entry["number_of_items"]
-    
     sold_filter = request.args.get("sold_filter")
-
     if sold_filter in {"yes", "no"}:
         filtered_entries = []
         for e in entries.values():
             if e["type"] == "group":
                 is_sold = (e.get("total_price") or 0) > 0 and (e.get("sold_units") or 0) > 0
-                if (sold_filter == "yes" and is_sold) or (sold_filter == "no" and not is_sold):
-                    filtered_entries.append(e)
-            elif e["type"] == "single":
+            else:
                 p = e.get("print", {})
                 is_sold = (p.get("total_price") or 0) > 0 and (p.get("sold_units") or 0) > 0
-                if (sold_filter == "yes" and is_sold) or (sold_filter == "no" and not is_sold):
-                    filtered_entries.append(e)
+
+            if (sold_filter == "yes" and is_sold) or (sold_filter == "no" and not is_sold):
+                filtered_entries.append(e)
         entries = {f"group_{e['id']}" if e["type"] == "group" else f"print_{e['print']['id']}": e for e in filtered_entries}
+
     entries_list = sorted(entries.values(), key=lambda e: parse_print_date(e["latest_date"] if e["type"] == "group" else e["print"]["print_date"]), reverse=True)
     total_pages = (len(entries_list) + per_page - 1) // per_page
     paged_entries = entries_list[(page - 1) * per_page : page * per_page]
@@ -780,6 +756,7 @@ def print_history():
 
     filters["filament_id"] = [fid for group in filters["filament_id"] for fid in group.split(',') if fid]
     status_values = sorted(set(p.get("status") for p in raw_prints if p.get("status")))
+
     return render_template(
         'print_history.html',
         entries=paged_entries,
@@ -797,6 +774,7 @@ def print_history():
         status_values=status_values,
         page_title="History"
     )
+
 
 @app.route("/print_select_spool")
 def print_select_spool():
