@@ -667,6 +667,7 @@ def print_history():
                     "number_of_items": p.get("group_number_of_items") or 1,
                     "primary_print_id": p.get("group_primary_print_id"),
                     "total_cost": 0,
+                    "electric_cost": p.get("electric_cost", 0),
                     "total_normal_cost": 0,
                     "total_weight": 0,
                     "total_price": p.get("group_sold_price_total", 0),
