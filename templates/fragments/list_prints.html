@@ -91,9 +91,9 @@
             <div class="row row-cols-2 row-cols-md-5 g-2 mb-2 text-center">
               <div>⏱ {{ entry.total_duration|hm_format }}</div>
 			  <div>⚖️ {{ '%.1f'|format(entry.total_weight) }}g</div>
-              <div>🎯 {{ '%.2f'|format(entry.total_filament_cost) }} {{ currencysymbol }}
+              <div>🎯 {{ '%.2f'|format(entry.total_cost) }} {{ currencysymbol }}
   <span class="text-muted fst-italic" style="font-size: 0.6em;">
-    ({{ '%.2f'|format(entry.total_filament_normal_cost)}})
+    ({{ '%.2f'|format(entry.total_normal_cost)}})
   </span></div>
               <div>⚡ {{ '%.2f'|format(entry.total_electric_cost) }} {{ currencysymbol }}</div>
               <div>💵 {{ '%.2f'|format(entry.total_cost) }} {{ currencysymbol }}<span class="text-muted fst-italic" style="font-size: 0.6em;">
