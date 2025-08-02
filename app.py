@@ -675,7 +675,7 @@ def print_history():
                     "prints": [],
                     "total_duration": 0,
                     "latest_date": p["print_date"],
-                    "thumbnail": group_data.get("thumbnail"),  # Image référence groupe si dispo
+                    "thumbnail": group_data.get("thumbnail"),  # image de référence groupe
                     "filament_usage": {},
                     "number_of_items": group_data.get("number_of_items", 1),
                     "primary_print_id": group_data.get("primary_print_id"),
@@ -688,6 +688,7 @@ def print_history():
                     "full_cost_by_item": group_data.get("full_cost_by_item", 0),
                     "full_normal_cost_by_item": group_data.get("full_normal_cost_by_item", 0),
                     "margin": group_data.get("margin", 0),
+                    "max_print_id": 0,  # initialisation pour le max print
                 }
                 entries[entry_key] = entry
         
@@ -697,8 +698,11 @@ def print_history():
             if parse_print_date(p["print_date"]) > parse_print_date(entry["latest_date"]):
                 entry["latest_date"] = p["print_date"]
         
+            # Gestion thumbnail : si pas d'image groupe, on prend celle du print max
             if not entry.get("thumbnail") and p.get("image_file"):
-                entry["thumbnail"] = p["image_file"]
+                if p["id"] > entry.get("max_print_id", 0):
+                    entry["max_print_id"] = p["id"]
+                    entry["thumbnail"] = p["image_file"]
         
             for filament in p["filament_usage"]:
                 key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
@@ -717,6 +721,7 @@ def print_history():
                     usage["grams_used"] += filament["grams_used"]
                     usage["cost"] += filament.get("cost", 0.0)
                     usage["normal_cost"] += filament.get("normal_cost", 0.0)
+
 
         else:
             entries[f"print_{p['id']}"] = {

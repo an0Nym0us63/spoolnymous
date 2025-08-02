@@ -25,7 +25,7 @@
       </span>
     </span>
   </span>
-  <span class="badge bg-dark bg-opacity-75 text-light small">#{{ entry.max_id }}</span>
+  <span class="badge bg-dark bg-opacity-75 text-light small">#{{ entry.id }}</span>
 </div>
 
 <div class="flex-grow-1 d-flex flex-column align-items-center">
@@ -96,8 +96,8 @@
     ({{ '%.2f'|format(entry.total_normal_cost)}})
   </span></div>
               <div>⚡ {{ '%.2f'|format(entry.electric_cost) }} {{ currencysymbol }}</div>
-              <div>💵 {{ '%.2f'|format(entry.total_cost) }} {{ currencysymbol }}<span class="text-muted fst-italic" style="font-size: 0.6em;">
-    ({{ '%.2f'|format(entry.total_normal_cost)}})
+              <div>💵 {{ '%.2f'|format(entry.full_cost) }} {{ currencysymbol }}<span class="text-muted fst-italic" style="font-size: 0.6em;">
+    ({{ '%.2f'|format(entry.full_normal_cost)}})
   </span></div>
 			  {% if entry.number_of_items > 1 %}
 <div>📦 {{ '%.2f'|format(entry.full_cost_by_item) }} {{ currencysymbol }}<span class="text-muted fst-italic" style="font-size: 0.6em;">
