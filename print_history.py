@@ -242,23 +242,23 @@ def create_database() -> None:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN sold_units INTEGER DEFAULT 0")
         if "sold_price_total" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN sold_price_total REAL DEFAULT NULL")
-        if "total_weight" not in columns:
+        if "total_weight" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN total_weight REAL DEFAULT 0.0")
-        if "total_cost" not in columns:
+        if "total_cost" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN total_cost REAL DEFAULT 0.0")
-        if "total_normal_cost" not in columns:
+        if "total_normal_cost" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN total_normal_cost REAL DEFAULT 0.0")
-        if "electric_cost" not in columns:
+        if "electric_cost" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN electric_cost REAL DEFAULT 0.0")
-        if "full_cost" not in columns:
+        if "full_cost" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN full_cost REAL DEFAULT 0.0")
-        if "full_normal_cost" not in columns:
+        if "full_normal_cost" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN full_normal_cost REAL DEFAULT 0.0")
-        if "full_cost_by_item" not in columns:
+        if "full_cost_by_item" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN full_cost_by_item REAL DEFAULT 0.0")
-        if "full_normal_cost_by_item" not in columns:
+        if "full_normal_cost_by_item" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN full_normal_cost_by_item REAL DEFAULT 0.0")
-        if "margin" not in columns:
+        if "margin" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN margin REAL DEFAULT 0.0")
 
         conn.commit()
