@@ -3,10 +3,11 @@ import sqlite3
 from datetime import datetime, timedelta
 import math
 from collections import defaultdict
-from config import COST_BY_HOUR
 import operator
 from deep_translator import GoogleTranslator
 import re
+from config import COST_BY_HOUR as RAW_COST
+COST_BY_HOUR = float(RAW_COST)
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
@@ -1104,7 +1105,6 @@ def recalculate_print_data(print_id: int, spools_by_id: dict) -> None:
         total_weight += result.get("grams_used", 0.0)
 
     # Calculs électricité
-    from config import COST_BY_HOUR
     electric_cost = (duration / 3600.0) * COST_BY_HOUR if duration else 0.0
 
     full_cost = total_cost + electric_cost
