@@ -1092,6 +1092,7 @@ def recalculate_print_data(print_id: int, spools_by_id: dict) -> None:
     duration = print_row["duration"] or 0.0
     number_of_items = print_row["number_of_items"] or 1
     sold_price_total = print_row["sold_price_total"] or 0.0
+    sold_units = print_row["sold_units"] or 0
 
     # Récupérer les usages de filament
     cursor.execute("SELECT * FROM filament_usage WHERE print_id = ?", (print_id,))
@@ -1150,6 +1151,7 @@ def recalculate_group_data(group_id: int, spools_by_id: dict) -> None:
 
     number_of_items = group["number_of_items"] or 1
     sold_price_total = group["sold_price_total"] or 0.0
+    sold_units = group["sold_units"] or 0
 
     # Récupérer tous les prints liés
     cursor.execute("SELECT id FROM prints WHERE group_id = ?", (group_id,))
@@ -1172,7 +1174,7 @@ def recalculate_group_data(group_id: int, spools_by_id: dict) -> None:
 
     full_cost_by_item = full_cost / number_of_items if number_of_items else 0.0
     full_normal_cost_by_item = full_normal_cost / number_of_items if number_of_items else 0.0
-    margin = sold_price_total - (number_of_items * full_cost_by_item)
+    margin = sold_price_total - (sold_units * full_cost_by_item)
 
     # Mise à jour de la table print_groups
     cursor.execute("""
