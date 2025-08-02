@@ -142,7 +142,11 @@ def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
         pages.append(total_pages)
 
     return pages
-    
+
+DEFAULT_KEEP_KEYS = [
+    "page", "filament_type", "color",
+    "filament_id", "status", "search", "sold_filter"
+]
 def _merge_context_args(keep=None, drop=None, **new_args):
     """
     Fusionne les arguments GET et certains POST explicitement autorisés
