@@ -7,6 +7,7 @@ import operator
 from deep_translator import GoogleTranslator
 import re
 from config import COST_BY_HOUR as RAW_COST
+from spoolman_service import fetchSpools
 COST_BY_HOUR = float(RAW_COST)
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
