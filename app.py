@@ -685,6 +685,8 @@ def print_history():
                     "total_weight": group_data.get("total_weight", 0),
                     "total_price": group_data.get("sold_price_total", 0),
                     "sold_units": group_data.get("sold_units", 0),
+                    "full_cost": group_data.get("full_cost", 0),
+                    "full_normal_cost": group_data.get("full_normal_cost", 0),
                     "full_cost_by_item": group_data.get("full_cost_by_item", 0),
                     "full_normal_cost_by_item": group_data.get("full_normal_cost_by_item", 0),
                     "margin": group_data.get("margin", 0),
