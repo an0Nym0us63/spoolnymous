@@ -627,6 +627,19 @@ def print_history():
     spools_by_id = {spool["id"]: spool for spool in spool_list}
     entries = {}
 
+    # Début ajout pour totaux cohérents avec filtre
+    total_prints = len(raw_prints)
+    total_duration_seconds = 0
+    total_weight = 0
+    total_cost = 0
+
+    for p in raw_prints:
+        duration_hours = float(p.get("duration") or 0.0) / 3600  # pour compatibilité templates
+        total_duration_seconds += (duration_hours * 3600)
+        total_weight += p.get("total_weight", 0)
+        total_cost += p.get("full_cost", 0) or p.get("full_cost_by_item", 0) or 0
+    # Fin ajout
+
     for p in raw_prints:
         p["duration"] = float(p.get("duration") or 0.0) / 3600  # pour compatibilité templates
         p["electric_cost"] = p.get("electric_cost", 0.0)
@@ -755,8 +768,12 @@ def print_history():
     groups_list = get_print_groups()
     pagination_pages = compute_pagination_pages(page, total_pages)
 
-    filters["filament_id"] = [fid for group in filters["filament_id"] for fid in group.split(',') if fid]
     status_values = sorted(set(p.get("status") for p in raw_prints if p.get("status")))
+
+    # Formatage durée total en h m
+    hours = int(total_duration_seconds // 3600)
+    minutes = int((total_duration_seconds % 3600) // 60)
+    total_duration_formatted = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
 
     return render_template(
         'print_history.html',
@@ -773,8 +790,13 @@ def print_history():
         focus_print_id=focus_print_id,
         focus_group_id=focus_group_id,
         status_values=status_values,
-        page_title="History"
+        page_title="History",
+        total_prints=total_prints,
+        total_duration_formatted=total_duration_formatted,
+        total_weight=total_weight,
+        total_cost=total_cost
     )
+
 
 
 @app.route("/print_select_spool")

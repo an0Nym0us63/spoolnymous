@@ -123,6 +123,51 @@
     </form>
   </div>
 </div>
+<!-- Statistiques print_history responsive -->
+<div class="row row-cols-4 g-2 mb-3 text-center align-items-stretch">
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">🖨️</div>
+        <div class="small fw-bold">{{ total_prints }}</div>
+        <div class="small text-muted">Impressions</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">⏱️</div>
+        <div class="small fw-bold">{{ total_duration_formatted }}</div>
+        <div class="small text-muted">Durée totale</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">⚖️</div>
+        <div class="small fw-bold">
+          {% if total_weight >= 1000 %}
+            {{ (total_weight / 1000) | round(2) }} kg
+          {% else %}
+            {{ total_weight | round(1) }} g
+          {% endif %}
+        </div>
+        <div class="small text-muted">Poids total</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">💰</div>
+        <div class="small fw-bold">{{ total_cost | round(2) }} €</div>
+        <div class="small text-muted">Coût total</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 {% include 'fragments/list_prints.html' %}
 <div style="height: 4rem;"></div>
