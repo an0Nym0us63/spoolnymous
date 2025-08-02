@@ -63,7 +63,8 @@
       ('⚖️', stats.total_weight | default(0) | round(1)),
       ('💰', stats.filament_cost | default(0) | round(2)),
       ('⚡', stats.electric_cost | default(0) | round(2)),
-      ('💵', stats.total_cost | default(0) | round(2))
+      ('💵', stats.total_cost | default(0) | round(2)),
+    ('📈', stats.total_margin | default(0) | round(2)) 
     ] %}
     {% for label, value in cards %}
     <div class="col-6 col-md-4 col-lg-3">
@@ -71,7 +72,7 @@
         <div class="card-body text-center">
           <h6 class="card-title small text-muted">{{ label }}</h6>
           <p class="card-text fs-5 fw-bold">
-          {% if '💰' in label or '⚡' in label or '💵' in label %}
+          {% if '💰' in label or '⚡' in label or '💵' or '📈' in label %}
             {{ value }} {{ currencysymbol }}
           {% elif '⚖️' in label or '📦' in label %}
             {% if value >= 1000 %}

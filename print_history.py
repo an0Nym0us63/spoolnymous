@@ -788,6 +788,31 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
             "color_family_pie": {"labels": [], "values": [], "colors": []},
             "top_filaments": {"labels": [], "values": []}
         }
+    # Somme des marges des prints filtrés
+    cursor.execute(f"""
+        SELECT COALESCE(SUM(margin), 0) AS margin_sum
+        FROM prints p
+        {where_sql}
+    """, params)
+    print_margin = cursor.fetchone()["margin_sum"] or 0
+    
+    # Récupérer les group_ids distincts des prints filtrés
+    cursor.execute(f"""
+        SELECT DISTINCT group_id FROM prints p
+        {where_sql} AND group_id IS NOT NULL
+    """, params)
+    group_ids = [row["group_id"] for row in cursor.fetchall() if row["group_id"] is not None]
+    
+    group_margin = 0
+    if group_ids:
+        placeholders = ",".join("?" for _ in group_ids)
+        cursor.execute(f"""
+            SELECT COALESCE(SUM(margin), 0) AS margin_sum FROM print_groups
+            WHERE id IN ({placeholders})
+        """, group_ids)
+        group_margin = cursor.fetchone()["margin_sum"] or 0
+    
+    total_margin = print_margin + group_margin
 
     # Durée totale
     total_duration = sum(p["duration"] or 0 for p in prints)
@@ -907,7 +932,8 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         "duration_histogram": duration_histogram,
         "filament_type_pie": filament_type_pie,
         "color_family_pie": color_family_pie,
-        "top_filaments": top_filaments
+        "top_filaments": top_filaments,
+        "total_margin": total_margin
     }
     
     # Et maintenant que stats_data existe, tu peux faire tes tris :
