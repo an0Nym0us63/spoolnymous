@@ -1376,7 +1376,7 @@ def recalculate_all_costs():
 
     duration = time.time() - start_time
     flash(f"✅ Tous les coûts ont été recalculés en {duration:.2f} secondes.")
-    return redirect(url_for("settings"))
+    return redirect(url_for("auth.settings"))
 
 
 app.register_blueprint(auth_bp)
