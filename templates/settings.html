@@ -58,6 +58,12 @@
 
     <button type="submit" class="btn btn-success">🔐 Mettre à jour</button>
   </form>
+  <hr class="my-4">
+<form action="{{ url_for('recalculate_all_costs') }}" method="post">
+  <button type="submit" class="btn btn-warning w-100">
+    🔄 Recalculer tous les coûts (filaments, impressions, groupes)
+  </button>
+</form>
   <hr class="my-5">
 
 <div class="container my-5" style="max-width: 600px;">

@@ -92,7 +92,16 @@ def create_database() -> None:
                 status TEXT DEFAULT 'SUCCESS',
                 status_note TEXT,
                 sold_units INTEGER DEFAULT 0,
-                sold_price_total REAL DEFAULT NULL
+                sold_price_total REAL DEFAULT NULL,
+                total_weight REAL DEFAULT 0.0,
+                total_cost REAL DEFAULT 0.0,
+                total_normal_cost REAL DEFAULT 0.0,
+                electric_cost REAL DEFAULT 0.0,
+                full_cost REAL DEFAULT 0.0,
+                full_normal_cost REAL DEFAULT 0.0,
+                full_cost_by_item REAL DEFAULT 0.0,
+                full_normal_cost_by_item REAL DEFAULT 0.0,
+                margin REAL DEFAULT 0.0,
                 FOREIGN KEY (group_id) REFERENCES print_groups(id)
             )
         ''')
@@ -106,6 +115,8 @@ def create_database() -> None:
                 color TEXT NOT NULL,
                 grams_used REAL NOT NULL,
                 ams_slot INTEGER NOT NULL,
+                cost REAL DEFAULT 0.0,
+                normal_cost REAL DEFAULT 0.0,
                 FOREIGN KEY (print_id) REFERENCES prints (id) ON DELETE CASCADE
             )
         ''')
@@ -127,7 +138,16 @@ def create_database() -> None:
                 created_at TEXT,
                 sold_units INTEGER DEFAULT 0,
                 sold_price_total REAL DEFAULT NULL
-                primary_print_id INTEGER
+                primary_print_id INTEGER,
+                total_weight REAL DEFAULT 0.0,
+                total_cost REAL DEFAULT 0.0,
+                total_normal_cost REAL DEFAULT 0.0,
+                electric_cost REAL DEFAULT 0.0,
+                full_cost REAL DEFAULT 0.0,
+                full_normal_cost REAL DEFAULT 0.0,
+                full_cost_by_item REAL DEFAULT 0.0,
+                full_normal_cost_by_item REAL DEFAULT 0.0,
+                margin REAL DEFAULT 0.0
             )
         ''')
 
@@ -164,7 +184,33 @@ def create_database() -> None:
             cursor.execute("ALTER TABLE prints ADD COLUMN sold_units INTEGER DEFAULT 0")
         if "sold_price_total" not in columns:
             cursor.execute("ALTER TABLE prints ADD COLUMN sold_price_total REAL DEFAULT NULL")
+        if "total_weight" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN total_weight REAL DEFAULT 0.0")
+        if "total_cost" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN total_cost REAL DEFAULT 0.0")
+        if "total_normal_cost" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN total_normal_cost REAL DEFAULT 0.0")
+        if "electric_cost" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN electric_cost REAL DEFAULT 0.0")
+        if "full_cost" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN full_cost REAL DEFAULT 0.0")
+        if "full_normal_cost" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN full_normal_cost REAL DEFAULT 0.0")
+        if "full_cost_by_item" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN full_cost_by_item REAL DEFAULT 0.0")
+        if "full_normal_cost_by_item" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN full_normal_cost_by_item REAL DEFAULT 0.0")
+        if "margin" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN margin REAL DEFAULT 0.0")
+        
+        cursor.execute("PRAGMA table_info(filament_usage)")
+        columns = [col[1] for col in cursor.fetchall()]
 
+        if "cost" not in columns:
+            cursor.execute("ALTER TABLE filament_usage ADD COLUMN cost REAL DEFAULT 0.0")
+        if "normal_cost" not in columns:
+            cursor.execute("ALTER TABLE filament_usage ADD COLUMN normal_cost REAL DEFAULT 0.0")
+            
         cursor.execute("PRAGMA table_info(print_groups)")
         group_columns = [row[1] for row in cursor.fetchall()]
         if "number_of_items" not in group_columns:
@@ -195,6 +241,24 @@ def create_database() -> None:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN sold_units INTEGER DEFAULT 0")
         if "sold_price_total" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN sold_price_total REAL DEFAULT NULL")
+        if "total_weight" not in columns:
+            cursor.execute("ALTER TABLE print_groups ADD COLUMN total_weight REAL DEFAULT 0.0")
+        if "total_cost" not in columns:
+            cursor.execute("ALTER TABLE print_groups ADD COLUMN total_cost REAL DEFAULT 0.0")
+        if "total_normal_cost" not in columns:
+            cursor.execute("ALTER TABLE print_groups ADD COLUMN total_normal_cost REAL DEFAULT 0.0")
+        if "electric_cost" not in columns:
+            cursor.execute("ALTER TABLE print_groups ADD COLUMN electric_cost REAL DEFAULT 0.0")
+        if "full_cost" not in columns:
+            cursor.execute("ALTER TABLE print_groups ADD COLUMN full_cost REAL DEFAULT 0.0")
+        if "full_normal_cost" not in columns:
+            cursor.execute("ALTER TABLE print_groups ADD COLUMN full_normal_cost REAL DEFAULT 0.0")
+        if "full_cost_by_item" not in columns:
+            cursor.execute("ALTER TABLE print_groups ADD COLUMN full_cost_by_item REAL DEFAULT 0.0")
+        if "full_normal_cost_by_item" not in columns:
+            cursor.execute("ALTER TABLE print_groups ADD COLUMN full_normal_cost_by_item REAL DEFAULT 0.0")
+        if "margin" not in columns:
+            cursor.execute("ALTER TABLE print_groups ADD COLUMN margin REAL DEFAULT 0.0")
 
         conn.commit()
         conn.close()
@@ -953,6 +1017,176 @@ def set_sold_info(print_id: int, is_group: bool, total_price: float, sold_units:
             SET sold_units = ?, sold_price_total = ?
             WHERE id = ?
         """, (sold_units, total_price, print_id))
+
+    conn.commit()
+    conn.close()
+
+def recalculate_filament_usage(usage_id: int, spools_by_id: dict) -> dict:
+    """
+    Recalcule et met à jour le coût réel et standardisé d'un filament_usage.
+
+    :param usage_id: ID de l'entrée dans filament_usage
+    :param spools_by_id: dictionnaire {spool_id: spool_data}, avec les clés:
+                         - "cost_per_gram"
+                         - "filament_cost_per_gram"
+    :return: dict avec les valeurs recalculées {cost, normal_cost, grams_used}
+    """
+    conn = sqlite3.connect(db_config["db_path"])
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM filament_usage WHERE id = ?", (usage_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return {}
+
+    grams_used = row["grams_used"]
+    spool_id = row["spool_id"]
+    spool = spools_by_id.get(spool_id)
+
+    if not spool:
+        conn.close()
+        return {}
+
+    cost_per_gram = spool.get("cost_per_gram", 0.0)
+    normal_cost_per_gram = spool.get("filament_cost_per_gram", 0.0)
+
+    cost = grams_used * cost_per_gram
+    normal_cost = grams_used * normal_cost_per_gram
+
+    cursor.execute("""
+        UPDATE filament_usage
+        SET cost = ?, normal_cost = ?
+        WHERE id = ?
+    """, (cost, normal_cost, usage_id))
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "cost": cost,
+        "normal_cost": normal_cost,
+        "grams_used": grams_used
+    }
+
+def recalculate_print_data(print_id: int, spools_by_id: dict) -> None:
+    """
+    Recalcule et met à jour tous les champs de coûts pour un print donné.
+
+    :param print_id: ID du print à recalculer
+    :param spools_by_id: dictionnaire {spool_id: spool_data} venant de fetchSpools()
+    """
+    conn = sqlite3.connect(db_config["db_path"])
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    # Récupérer le print
+    cursor.execute("SELECT * FROM prints WHERE id = ?", (print_id,))
+    print_row = cursor.fetchone()
+    if not print_row:
+        conn.close()
+        return
+
+    duration = print_row["duration"] or 0.0
+    number_of_items = print_row["number_of_items"] or 1
+    sold_price_total = print_row["sold_price_total"] or 0.0
+
+    # Récupérer les usages de filament
+    cursor.execute("SELECT * FROM filament_usage WHERE print_id = ?", (print_id,))
+    usages = cursor.fetchall()
+
+    total_cost = total_normal_cost = total_weight = 0.0
+    for usage in usages:
+        result = recalculate_filament_usage(usage["id"], spools_by_id)
+        total_cost += result.get("cost", 0.0)
+        total_normal_cost += result.get("normal_cost", 0.0)
+        total_weight += result.get("grams_used", 0.0)
+
+    # Calculs électricité
+    from config import COST_BY_HOUR
+    electric_cost = (duration / 3600.0) * COST_BY_HOUR if duration else 0.0
+
+    full_cost = total_cost + electric_cost
+    full_normal_cost = total_normal_cost + electric_cost
+    full_cost_by_item = full_cost / number_of_items if number_of_items else 0.0
+    full_normal_cost_by_item = full_normal_cost / number_of_items if number_of_items else 0.0
+    margin = sold_price_total - (sold_units * full_cost_by_item)
+
+    # Mise à jour dans prints
+    cursor.execute("""
+        UPDATE prints SET
+            total_weight = ?, total_cost = ?, total_normal_cost = ?,
+            electric_cost = ?, full_cost = ?, full_normal_cost = ?,
+            full_cost_by_item = ?, full_normal_cost_by_item = ?, margin = ?
+        WHERE id = ?
+    """, (
+        total_weight, total_cost, total_normal_cost,
+        electric_cost, full_cost, full_normal_cost,
+        full_cost_by_item, full_normal_cost_by_item, margin,
+        print_id
+    ))
+
+    conn.commit()
+    conn.close()
+
+def recalculate_group_data(group_id: int, spools_by_id: dict) -> None:
+    """
+    Recalcule et met à jour tous les champs de coûts pour un groupe donné.
+
+    :param group_id: ID du groupe
+    :param spools_by_id: dictionnaire {spool_id: spool_data} venant de fetchSpools()
+    """
+    conn = sqlite3.connect(db_config["db_path"])
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    # Récupérer le groupe
+    cursor.execute("SELECT * FROM print_groups WHERE id = ?", (group_id,))
+    group = cursor.fetchone()
+    if not group:
+        conn.close()
+        return
+
+    number_of_items = group["number_of_items"] or 1
+    sold_price_total = group["sold_price_total"] or 0.0
+
+    # Récupérer tous les prints liés
+    cursor.execute("SELECT id FROM prints WHERE group_id = ?", (group_id,))
+    prints = cursor.fetchall()
+
+    total_cost = total_normal_cost = total_weight = 0.0
+    electric_cost = full_cost = full_normal_cost = 0.0
+
+    for p in prints:
+        recalculate_print_data(p["id"], spools_by_id)
+        cursor.execute("SELECT * FROM prints WHERE id = ?", (p["id"],))
+        print_row = cursor.fetchone()
+
+        total_cost += print_row["total_cost"]
+        total_normal_cost += print_row["total_normal_cost"]
+        total_weight += print_row["total_weight"]
+        electric_cost += print_row["electric_cost"]
+        full_cost += print_row["full_cost"]
+        full_normal_cost += print_row["full_normal_cost"]
+
+    full_cost_by_item = full_cost / number_of_items if number_of_items else 0.0
+    full_normal_cost_by_item = full_normal_cost / number_of_items if number_of_items else 0.0
+    margin = sold_price_total - (number_of_items * full_cost_by_item)
+
+    # Mise à jour de la table print_groups
+    cursor.execute("""
+        UPDATE print_groups SET
+            total_weight = ?, total_cost = ?, total_normal_cost = ?,
+            electric_cost = ?, full_cost = ?, full_normal_cost = ?,
+            full_cost_by_item = ?, full_normal_cost_by_item = ?, margin = ?
+        WHERE id = ?
+    """, (
+        total_weight, total_cost, total_normal_cost,
+        electric_cost, full_cost, full_normal_cost,
+        full_cost_by_item, full_normal_cost_by_item, margin,
+        group_id
+    ))
 
     conn.commit()
     conn.close()
