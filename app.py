@@ -838,6 +838,7 @@ def print_history():
         "total_pages": total_pages,
         "filters": filters,
         "distinct_values": distinct_values,
+        "page": page,
         "args": filtered_args_for_template(),
         "pagination_pages": pagination_pages,
         "focus_print_id": focus_print_id,
