@@ -637,7 +637,7 @@ def print_history():
         duration_hours = float(p.get("duration") or 0.0) / 3600  # pour compatibilité templates
         total_duration_seconds += (duration_hours * 3600)
         total_weight += p.get("total_weight", 0)
-        total_cost += p.get("full_cost", 0) or p.get("full_cost_by_item", 0) or 0
+        total_cost += p.get("full_cost", 0)
     # Fin ajout
 
     for p in raw_prints:
