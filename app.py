@@ -1064,7 +1064,7 @@ def edit_print_name():
 
     if new_filename:
         update_print_filename(print_id, new_filename)
-    return redirect_with_context("print_history", focus_id=print_id)
+    return redirect_with_context("print_history", focus_print_id=print_id)
 
 
 @app.route("/edit_print_items", methods=["POST"])
@@ -1078,7 +1078,7 @@ def edit_print_items():
         number_of_items = 1
 
     update_print_history_field(print_id, "number_of_items", number_of_items)
-    return redirect_with_context("print_history", focus_id=print_id)
+    return redirect_with_context("print_history", focus_print_id=print_id)
 
 
 @app.route("/create_group", methods=["POST"])
@@ -1092,11 +1092,11 @@ def create_group():
         update_group_created_at(group_id)
         return redirect_with_context(
             "print_history",
-            focus_id=print_id,
+            focus_print_id=print_id,
             focus_group_id=group_id
         )
 
-    return redirect_with_context("print_history", focus_id=print_id)
+    return redirect_with_context("print_history", focus_print_id=print_id)
 
 
 @app.route("/assign_to_group", methods=["POST"])
@@ -1114,7 +1114,7 @@ def assign_to_group():
 
     return redirect_with_context(
         "print_history",
-        focus_id=print_id,
+        focus_print_id=print_id,
         focus_group_id=group_id
     )
 
@@ -1130,7 +1130,7 @@ def remove_from_group():
 
     return redirect_with_context(
         "print_history",
-        focus_id=print_id
+        focus_print_id=print_id
     )
 
 
@@ -1257,7 +1257,7 @@ def adjust_duration():
     except Exception:
         pass
     
-    return redirect_with_context("print_history",focus_id=print_id)
+    return redirect_with_context("print_history",focus_print_id=print_id)
 
 
 @app.route("/set_group_primary", methods=["POST"])
@@ -1265,7 +1265,7 @@ def set_group_primary():
     print_id = int(request.form["print_id"])
     group_id = int(request.form["group_id"])
     set_group_primary_print(group_id, print_id)
-    return redirect_with_context("print_history",focus_id=print_id,focus_group_id=group_id)
+    return redirect_with_context("print_history",focus_print_id=print_id,focus_group_id=group_id)
 
 @app.route('/assign_spool_to_print', methods=['POST'])
 def assign_spool_to_print():
@@ -1277,7 +1277,7 @@ def assign_spool_to_print():
     if not skip_usage:
         consumeSpool(spool_id, float(request.form.get("filament_usage") or 0))
         
-    return redirect_with_context("print_history",focus_id=print_id)
+    return redirect_with_context("print_history",focus_print_id=print_id)
 
 
 @app.route("/change_print_status", methods=["POST"])
@@ -1287,11 +1287,11 @@ def change_print_status():
     note = request.form.get("status_note", "").strip()
 
     if new_status not in {"SUCCESS", "IN_PROGRESS", "FAILED", "PARTIAL", "TO_REDO"}:
-        return redirect_with_context("print_history",focus_id=print_id)
+        return redirect_with_context("print_history",focus_print_id=print_id)
 
     update_print_history_field(print_id, "status", new_status)
     update_print_history_field(print_id, "status_note", note)
-    return redirect_with_context("print_history",focus_id=print_id)
+    return redirect_with_context("print_history",focus_print_id=print_id)
 
 @app.route("/set_sold_price", methods=["POST"])
 def set_sold_price():
@@ -1309,7 +1309,7 @@ def set_sold_price():
         if is_group:
             return redirect_with_context("print_history",focus_group_id=group_id)
         else:
-            return redirect_with_context("print_history",focus_id=print_id)
+            return redirect_with_context("print_history",focus_print_id=print_id)
     except Exception:
         return redirect(request.referrer or url_for("print_history"))
 
