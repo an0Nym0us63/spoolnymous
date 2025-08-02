@@ -480,16 +480,16 @@ def get_prints_with_filament(filters=None, search=None) -> list:
 
     if "filament_id" in filters:
         query_filters.append("f.spool_id = ?")
-        values.append(filters["filament_id"])
+        values.append(filters["filament_id"][0])
     if "filament_type" in filters:
         query_filters.append("f.filament_type = ?")
-        values.append(filters["filament_type"])
+        values.append(filters["filament_type"][0])
     if "family_color" in filters:
         query_filters.append("f.color LIKE ?")
         values.append(f"{filters['family_color']}%")
     if "status" in filters:
         query_filters.append("p.status = ?")
-        values.append(filters["status"])
+        values.append(filters["status"][0])
 
     if search:
         query_filters.append("(p.file_name LIKE ? OR p.translated_name LIKE ? OR pg.name LIKE ?)")
@@ -498,9 +498,13 @@ def get_prints_with_filament(filters=None, search=None) -> list:
     where_clause = "WHERE " + " AND ".join(query_filters) if query_filters else ""
 
     query = f"""
-        SELECT p.*, pg.name as group_name, pg.number_of_items as group_number_of_items
+        SELECT DISTINCT p.*, pg.name as group_name, pg.number_of_items as group_number_of_items,
+                        pg.primary_print_id as group_primary_print_id,
+                        pg.sold_units as group_sold_units,
+                        pg.sold_price_total as group_sold_price_total
         FROM prints p
         LEFT JOIN print_groups pg ON p.group_id = pg.id
+        LEFT JOIN filament_usage f ON p.id = f.print_id
         {where_clause}
         ORDER BY p.print_date DESC
     """
@@ -513,6 +517,7 @@ def get_prints_with_filament(filters=None, search=None) -> list:
 
     conn.close()
     return prints
+
 
 
 def get_filament_for_slot(print_id: int, ams_slot: int):
