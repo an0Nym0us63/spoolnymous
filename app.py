@@ -121,11 +121,6 @@ def two_closest_families(hex_color: str, threshold: float = 60.0) -> list[str]:
         result.append(sorted_families[1][0])
     return result
 
-DEFAULT_KEEP_KEYS = [
-    "page", "filament_type", "color",
-    "filament_id", "status", "search", "sold_filter"
-]
-
 def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
     pages = []
     if total_pages <= max_buttons:
@@ -148,6 +143,11 @@ def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
 
     return pages
 
+DEFAULT_KEEP_KEYS = [
+    "page", "filament_type", "color",
+    "filament_id", "status", "search", "sold_filter"
+]
+
 def _merge_context_args(keep=None, drop=None, **new_args):
     """
     Fusionne les arguments GET et certains POST explicitement autorisés
@@ -168,27 +168,32 @@ def _merge_context_args(keep=None, drop=None, **new_args):
         effective_keep.update(keep)
 
     def is_meaningful(val):
-        return val not in [None, "", [], {}]
+        if isinstance(val, list):
+            val = [v for v in val if v not in [None, ""]]
+            return val if val else None
+        return val if val not in [None, ""] else None
 
     # GET args
     for k in request.args:
         if k in effective_keep:
             values = request.args.getlist(k)
-            value = values if len(values) > 1 else values[0]
-            if is_meaningful(value):
-                current_args[k] = value
+            cleaned = is_meaningful(values if len(values) > 1 else values[0])
+            if cleaned is not None:
+                current_args[k] = cleaned
 
     # POST args (seulement ceux explicitement listés)
     if request.method == 'POST':
         for k in request.form:
             if k in effective_keep:
                 values = request.form.getlist(k)
-                value = values if len(values) > 1 else values[0]
-                if is_meaningful(value):
-                    current_args[k] = value
+                cleaned = is_meaningful(values if len(values) > 1 else values[0])
+                if cleaned is not None:
+                    current_args[k] = cleaned
 
     # new_args peut écraser les valeurs, donc on ne filtre que les non-significatifs
-    cleaned_new_args = {k: v for k, v in new_args.items() if is_meaningful(v)}
+    cleaned_new_args = {
+        k: v for k, v in new_args.items() if is_meaningful(v) is not None
+    }
 
     return {**current_args, **cleaned_new_args}
 
@@ -209,6 +214,7 @@ def redirect_with_context(endpoint, keep=None, drop=None, **new_args):
     combined_args = _merge_context_args(keep=keep, drop=drop, **new_args)
     query = urlencode(combined_args, doseq=True)
     return redirect(url_for(endpoint) + ('?' + query if query else ''))
+
 
 
 def parse_print_date(date_str):
@@ -1306,23 +1312,20 @@ def change_print_status():
 
 @app.route("/set_sold_price", methods=["POST"])
 def set_sold_price():
-    try:
-        item_id = int(request.form.get("id"))
-        is_group = bool(int(request.form.get("is_group", 0)))
-        total_price = float(request.form.get("total_price") or 0)
-        sold_units = int(request.form.get("sold_units") or 0)
+    item_id = int(request.form.get("id"))
+    is_group = bool(int(request.form.get("is_group", 0)))
+    total_price = float(request.form.get("total_price") or 0)
+    sold_units = int(request.form.get("sold_units") or 0)
 
-        if item_id <= 0:
-            return redirect(request.referrer or url_for("print_history"))
-
-        set_sold_info(print_id=item_id, is_group=is_group, total_price=total_price, sold_units=sold_units)
-
-        if is_group:
-            return redirect_with_context("print_history",focus_group_id=group_id)
-        else:
-            return redirect_with_context("print_history",focus_print_id=print_id)
-    except Exception:
+    if item_id <= 0:
         return redirect(request.referrer or url_for("print_history"))
+
+    set_sold_info(print_id=item_id, is_group=is_group, total_price=total_price, sold_units=sold_units)
+
+    if is_group:
+        return redirect_with_context("print_history",focus_group_id=group_id)
+    else:
+        return redirect_with_context("print_history",focus_print_id=print_id)
 
 @app.route("/admin/manual_print", methods=["POST"])
 def admin_manual_print():
