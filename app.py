@@ -608,7 +608,7 @@ def print_history():
     spoolman_settings = getSettings()
 
     page = int(request.args.get("page", 1))
-    per_page = int(request.args.get("per_page", 50))
+    per_page = int(request.args.get("per_page", 30))
 
     filters = {
         "filament_type": request.args.getlist("filament_type"),
