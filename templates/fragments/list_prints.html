@@ -104,6 +104,7 @@
     ({{ '%.2f'|format(entry.full_normal_cost_by_item)}})
   </span></div>
 {% endif %}
+{% if (entry.total_price or 0) > 0 and (entry.sold_units or 0) > 0 %}
   <div>
     💸 {{ '%.2f'|format(entry.total_price) }} {{ currencysymbol }}
     <span class="text-muted fst-italic" style="font-size: 0.6em;">
