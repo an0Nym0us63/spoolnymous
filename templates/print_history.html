@@ -171,4 +171,17 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/print_history.js') }}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll("form[method='get']").forEach(form => {
+    form.addEventListener("submit", () => {
+      form.querySelectorAll("input, select").forEach(el => {
+        if (!el.value) {
+          el.disabled = true;
+        }
+      });
+    });
+  });
+});
+</script>
 {% endblock %}
