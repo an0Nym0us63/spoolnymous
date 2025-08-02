@@ -796,10 +796,11 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
     """, params)
     print_margin = cursor.fetchone()["margin_sum"] or 0
     
-    # Récupérer les group_ids distincts des prints filtrés
+    group_id_clause = f"{where_sql} AND group_id IS NOT NULL" if where_sql else "WHERE group_id IS NOT NULL"
+
     cursor.execute(f"""
         SELECT DISTINCT group_id FROM prints p
-        {where_sql} AND group_id IS NOT NULL
+        {group_id_clause}
     """, params)
     group_ids = [row["group_id"] for row in cursor.fetchall() if row["group_id"] is not None]
     
