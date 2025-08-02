@@ -675,7 +675,7 @@ def print_history():
                     "prints": [],
                     "total_duration": 0,
                     "latest_date": p["print_date"],
-                    "thumbnail": group_data.get("thumbnail"),  # image de référence groupe
+                    "thumbnail": None,  # image de référence groupe
                     "filament_usage": {},
                     "number_of_items": group_data.get("number_of_items", 1),
                     "primary_print_id": group_data.get("primary_print_id"),
@@ -700,8 +700,10 @@ def print_history():
             if parse_print_date(p["print_date"]) > parse_print_date(entry["latest_date"]):
                 entry["latest_date"] = p["print_date"]
         
-            # Gestion thumbnail : si pas d'image groupe, on prend celle du print max
-            if not entry.get("thumbnail") and p.get("image_file"):
+            # Gestion thumbnail selon primary_print_id
+            if entry.get("primary_print_id") == p["id"]:
+                entry["thumbnail"] = p.get("image_file")
+            elif not entry.get("thumbnail") and p.get("image_file"):
                 if p["id"] > entry.get("max_print_id", 0):
                     entry["max_print_id"] = p["id"]
                     entry["thumbnail"] = p["image_file"]
