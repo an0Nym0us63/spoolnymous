@@ -1193,4 +1193,35 @@ def recalculate_group_data(group_id: int, spools_by_id: dict) -> None:
     conn.commit()
     conn.close()
 
+def cleanup_orphan_data() -> None:
+    """
+    Supprime les données orphelines :
+    - filament_usage sans print associé
+    - print_tags sans print associé
+    - print_groups sans print (optionnel)
+    """
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+
+    # Filaments sans print
+    cursor.execute("""
+        DELETE FROM filament_usage
+        WHERE print_id NOT IN (SELECT id FROM prints)
+    """)
+
+    # Tags sans print
+    cursor.execute("""
+        DELETE FROM print_tags
+        WHERE print_id NOT IN (SELECT id FROM prints)
+    """)
+
+    # Groupes sans aucun print (optionnel)
+    cursor.execute("""
+        DELETE FROM print_groups
+        WHERE id NOT IN (SELECT DISTINCT group_id FROM prints WHERE group_id IS NOT NULL)
+    """)
+
+    conn.commit()
+    conn.close()
+
 create_database()

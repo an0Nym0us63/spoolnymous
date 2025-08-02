@@ -64,6 +64,12 @@
     🔄 Recalculer tous les coûts (filaments, impressions, groupes)
   </button>
 </form>
+<hr class="my-4">
+<form action="{{ url_for('cleanup_orphans') }}" method="post">
+  <button type="submit" class="btn btn-danger w-100">
+    🧹 Nettoyer les données orphelines (usages, tags, groupes)
+  </button>
+</form>
   <hr class="my-5">
 
 <div class="container my-5" style="max-width: 600px;">
