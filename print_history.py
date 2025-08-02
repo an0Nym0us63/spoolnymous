@@ -73,196 +73,220 @@ def sort_pie_data(pie):
         result["colors"] = list(sorted_colors)
     return result
 
-def create_database() -> None:
-    if not os.path.exists(db_config["db_path"]):
-        conn = sqlite3.connect(db_config["db_path"])
-        cursor = conn.cursor()
+def get_statistics(period: str = "all", filters: dict = None, search: str = None) -> dict:
+    from spoolman_service import fetchSpools
+    filters = filters or {}
 
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS prints (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                print_date TEXT NOT NULL,
-                file_name TEXT NOT NULL,
-                print_type TEXT NOT NULL,
-                image_file TEXT,
-                duration REAL,
-                number_of_items INTEGER DEFAULT 1,
-                group_id INTEGER,
-                original_name TEXT,
-                translated_name TEXT,
-                status TEXT DEFAULT 'SUCCESS',
-                status_note TEXT,
-                sold_units INTEGER DEFAULT 0,
-                sold_price_total REAL DEFAULT NULL,
-                total_weight REAL DEFAULT 0.0,
-                total_cost REAL DEFAULT 0.0,
-                total_normal_cost REAL DEFAULT 0.0,
-                electric_cost REAL DEFAULT 0.0,
-                full_cost REAL DEFAULT 0.0,
-                full_normal_cost REAL DEFAULT 0.0,
-                full_cost_by_item REAL DEFAULT 0.0,
-                full_normal_cost_by_item REAL DEFAULT 0.0,
-                margin REAL DEFAULT 0.0,
-                FOREIGN KEY (group_id) REFERENCES print_groups(id)
-            )
-        ''')
+    conn = sqlite3.connect(db_config["db_path"])
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
 
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS filament_usage (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                print_id INTEGER NOT NULL,
-                spool_id INTEGER,
-                filament_type TEXT NOT NULL,
-                color TEXT NOT NULL,
-                grams_used REAL NOT NULL,
-                ams_slot INTEGER NOT NULL,
-                cost REAL DEFAULT 0.0,
-                normal_cost REAL DEFAULT 0.0,
-                FOREIGN KEY (print_id) REFERENCES prints (id) ON DELETE CASCADE
-            )
-        ''')
+    date_clause = ""
+    params = []
+    now = datetime.now()
 
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS print_tags (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                print_id INTEGER NOT NULL,
-                tag TEXT NOT NULL,
-                FOREIGN KEY (print_id) REFERENCES prints(id) ON DELETE CASCADE
-            )
-        ''')
-
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS print_groups (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                number_of_items INTEGER DEFAULT 1,
-                created_at TEXT,
-                sold_units INTEGER DEFAULT 0,
-                sold_price_total REAL DEFAULT NULL
-                primary_print_id INTEGER,
-                total_weight REAL DEFAULT 0.0,
-                total_cost REAL DEFAULT 0.0,
-                total_normal_cost REAL DEFAULT 0.0,
-                electric_cost REAL DEFAULT 0.0,
-                full_cost REAL DEFAULT 0.0,
-                full_normal_cost REAL DEFAULT 0.0,
-                full_cost_by_item REAL DEFAULT 0.0,
-                full_normal_cost_by_item REAL DEFAULT 0.0,
-                margin REAL DEFAULT 0.0
-            )
-        ''')
-
-        conn.commit()
-        conn.close()
-
+    if period == "day":
+        since = now - timedelta(days=1)
+    elif period == "7d":
+        since = now - timedelta(days=7)
+    elif period == "1m":
+        since = now - timedelta(days=30)
+    elif period == "1y":
+        since = now - timedelta(days=365)
     else:
-        conn = sqlite3.connect(db_config["db_path"])
-        cursor = conn.cursor()
+        since = None
 
-        cursor.execute("PRAGMA table_info(prints)")
-        columns = [row[1] for row in cursor.fetchall()]
-        if "number_of_items" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN number_of_items INTEGER DEFAULT 1")
-        if "duration" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN duration REAL")
-        if "group_id" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN group_id INTEGER REFERENCES print_groups(id)")
-        if "original_name" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN original_name TEXT")
-            cursor.execute("UPDATE prints SET original_name = file_name WHERE original_name IS NULL OR original_name = ''")
-        if "translated_name" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN translated_name TEXT")
-            cursor.execute("SELECT id, file_name FROM prints")
-            for pid, fname in cursor.fetchall():
-                translated = update_translated_name(fname)
-                cursor.execute("UPDATE prints SET translated_name = ? WHERE id = ?", (translated, pid))
-        if "status" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN status TEXT DEFAULT 'SUCCESS'")
-            cursor.execute("UPDATE prints SET status = 'SUCCESS' WHERE status IS NULL")
-        if "status_note" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN status_note TEXT")
-        if "sold_units" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN sold_units INTEGER DEFAULT 0")
-        if "sold_price_total" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN sold_price_total REAL DEFAULT NULL")
-        if "total_weight" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN total_weight REAL DEFAULT 0.0")
-        if "total_cost" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN total_cost REAL DEFAULT 0.0")
-        if "total_normal_cost" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN total_normal_cost REAL DEFAULT 0.0")
-        if "electric_cost" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN electric_cost REAL DEFAULT 0.0")
-        if "full_cost" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN full_cost REAL DEFAULT 0.0")
-        if "full_normal_cost" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN full_normal_cost REAL DEFAULT 0.0")
-        if "full_cost_by_item" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN full_cost_by_item REAL DEFAULT 0.0")
-        if "full_normal_cost_by_item" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN full_normal_cost_by_item REAL DEFAULT 0.0")
-        if "margin" not in columns:
-            cursor.execute("ALTER TABLE prints ADD COLUMN margin REAL DEFAULT 0.0")
-        
-        cursor.execute("PRAGMA table_info(filament_usage)")
-        columns = [col[1] for col in cursor.fetchall()]
+    if since:
+        date_clause = "p.print_date >= ?"
+        params.append(since.strftime("%Y-%m-%d %H:%M:%S"))
 
-        if "cost" not in columns:
-            cursor.execute("ALTER TABLE filament_usage ADD COLUMN cost REAL DEFAULT 0.0")
-        if "normal_cost" not in columns:
-            cursor.execute("ALTER TABLE filament_usage ADD COLUMN normal_cost REAL DEFAULT 0.0")
-            
-        cursor.execute("PRAGMA table_info(print_groups)")
-        group_columns = [row[1] for row in cursor.fetchall()]
-        if "number_of_items" not in group_columns:
-            cursor.execute("ALTER TABLE print_groups ADD COLUMN number_of_items INTEGER DEFAULT 1")
-        if "created_at" not in group_columns:
-            cursor.execute("ALTER TABLE print_groups ADD COLUMN created_at TEXT")
-            # initialiser created_at pour les groupes existants
-            cursor.execute("SELECT id FROM print_groups")
-            for row in cursor.fetchall():
-                gid = row[0]
-                cursor.execute("""
-                    SELECT print_date FROM prints
-                    WHERE group_id = ?
-                    ORDER BY id DESC LIMIT 1
-                """, (gid,))
-                result = cursor.fetchone()
-                if result and result[0]:
-                    cursor.execute("""
-                        UPDATE print_groups SET created_at = ? WHERE id = ?
-                    """, (result[0], gid))
-                else:
-                    cursor.execute("""
-                        UPDATE print_groups SET created_at = DATETIME('now') WHERE id = ?
-                    """, (gid,))
-        if "primary_print_id" not in group_columns:
-            cursor.execute("ALTER TABLE print_groups ADD COLUMN primary_print_id INTEGER")
-        if "sold_units" not in group_columns:
-            cursor.execute("ALTER TABLE print_groups ADD COLUMN sold_units INTEGER DEFAULT 0")
-        if "sold_price_total" not in group_columns:
-            cursor.execute("ALTER TABLE print_groups ADD COLUMN sold_price_total REAL DEFAULT NULL")
-        if "total_weight" not in group_columns:
-            cursor.execute("ALTER TABLE print_groups ADD COLUMN total_weight REAL DEFAULT 0.0")
-        if "total_cost" not in group_columns:
-            cursor.execute("ALTER TABLE print_groups ADD COLUMN total_cost REAL DEFAULT 0.0")
-        if "total_normal_cost" not in group_columns:
-            cursor.execute("ALTER TABLE print_groups ADD COLUMN total_normal_cost REAL DEFAULT 0.0")
-        if "electric_cost" not in group_columns:
-            cursor.execute("ALTER TABLE print_groups ADD COLUMN electric_cost REAL DEFAULT 0.0")
-        if "full_cost" not in group_columns:
-            cursor.execute("ALTER TABLE print_groups ADD COLUMN full_cost REAL DEFAULT 0.0")
-        if "full_normal_cost" not in group_columns:
-            cursor.execute("ALTER TABLE print_groups ADD COLUMN full_normal_cost REAL DEFAULT 0.0")
-        if "full_cost_by_item" not in group_columns:
-            cursor.execute("ALTER TABLE print_groups ADD COLUMN full_cost_by_item REAL DEFAULT 0.0")
-        if "full_normal_cost_by_item" not in group_columns:
-            cursor.execute("ALTER TABLE print_groups ADD COLUMN full_normal_cost_by_item REAL DEFAULT 0.0")
-        if "margin" not in group_columns:
-            cursor.execute("ALTER TABLE print_groups ADD COLUMN margin REAL DEFAULT 0.0")
+    if filters.get("filament_type"):
+        placeholders = ",".join("?" for _ in filters["filament_type"])
+        clause = f"f.filament_type IN ({placeholders})"
+        params.extend(filters["filament_type"])
+        date_clause = f"{date_clause} AND {clause}" if date_clause else clause
 
-        conn.commit()
+    if filters.get("color"):
+        cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
+        all_colors = [row[0] for row in cursor.fetchall()]
+        selected_hexes_by_family = []
+        for fam in filters["color"]:
+            hexes = [c for c in all_colors if fam in two_closest_families(c)]
+            if hexes:
+                selected_hexes_by_family.append(hexes)
+
+        if selected_hexes_by_family:
+            color_subclause = " OR ".join(
+                ["f.color IN (" + ",".join("?" for _ in hexes) + ")" for hexes in selected_hexes_by_family]
+            )
+            date_clause = f"{date_clause} AND ({color_subclause})" if date_clause else f"({color_subclause})"
+            for hexes in selected_hexes_by_family:
+                params.extend(hexes)
+
+    if search:
+        words = [w.strip().lower() for w in search.split() if w.strip()]
+        for w in words:
+            search_clause = f"""(
+                LOWER(p.file_name) LIKE ?
+                OR EXISTS (
+                    SELECT 1 FROM print_tags pt WHERE pt.print_id = p.id AND LOWER(pt.tag) LIKE ?
+                )
+            )"""
+            if date_clause:
+                date_clause += f" AND {search_clause}"
+            else:
+                date_clause = search_clause
+            params.extend([f"%{w}%"] * 2)
+
+    where_sql = f"WHERE {date_clause}" if date_clause else ""
+
+    cursor.execute(f"""
+        SELECT
+            COUNT(DISTINCT p.id) AS total_prints,
+            COALESCE(SUM(p.duration), 0) AS total_duration,
+            COALESCE(SUM(p.total_weight), 0) AS total_weight,
+            COALESCE(SUM(p.full_cost), 0) AS total_cost,
+            COALESCE(SUM(p.electric_cost), 0) AS electric_cost,
+            COALESCE(SUM(p.total_cost), 0) - COALESCE(SUM(p.electric_cost), 0) AS filament_cost
+        FROM prints p
+        LEFT JOIN filament_usage f ON f.print_id = p.id
+        {where_sql}
+    """, params)
+
+    stats = cursor.fetchone()
+    if not stats or stats["total_prints"] == 0:
         conn.close()
+        return {
+            "total_prints": 0,
+            "total_duration": 0.0,
+            "total_weight": 0.0,
+            "filament_cost": 0.0,
+            "electric_cost": 0.0,
+            "total_cost": 0.0,
+            "vendor_pie": {"labels": [], "values": []},
+            "duration_histogram": {"labels": [], "values": []},
+            "filament_type_pie": {"labels": [], "values": []},
+            "color_family_pie": {"labels": [], "values": [], "colors": []},
+            "top_filaments": {"labels": [], "values": []}
+        }
+
+    spools_by_id = {spool["id"]: spool for spool in fetchSpools(False, True)}
+
+    vendor_counts = {}
+    for u in spools_by_id.values():
+        vendor = u.get("filament", {}).get("vendor", {}).get("name")
+        if vendor:
+            vendor_counts[vendor] = vendor_counts.get(vendor, 0) + u.get("grams_used", 0)
+
+    vendor_pie = {
+        "labels": list(vendor_counts.keys()),
+        "values": list(vendor_counts.values())
+    }
+
+    duration_bins = [0] * 11
+    cursor.execute(f"""
+        SELECT duration FROM prints p {where_sql}
+    """, params)
+    durations = cursor.fetchall()
+    for d in durations:
+        duration = d["duration"]
+        if not duration or duration <= 0:
+            continue
+        h = duration / 3600
+        index = min(int(h), 10)
+        duration_bins[index] += 1
+
+    duration_histogram = {
+        "labels": [f"{i}–{i+1}h" for i in range(10)] + ["≥10h"],
+        "values": duration_bins
+    }
+
+    filament_type_counts = {}
+    cursor.execute(f"""
+        SELECT filament_type, SUM(grams_used) as total_grams FROM filament_usage fu
+        JOIN prints p ON fu.print_id = p.id
+        {where_sql}
+        GROUP BY filament_type
+    """, params)
+    filament_types = cursor.fetchall()
+    for f in filament_types:
+        ftype = f["filament_type"]
+        if ftype:
+            filament_type_counts[ftype] = filament_type_counts.get(ftype, 0) + f["total_grams"]
+
+    filament_type_pie = {
+        "labels": list(filament_type_counts.keys()),
+        "values": list(filament_type_counts.values())
+    }
+
+    color_family_counts = {}
+    color_family_colors = {}
+    cursor.execute(f"""
+        SELECT color, SUM(grams_used) as total_grams FROM filament_usage fu
+        JOIN prints p ON fu.print_id = p.id
+        {where_sql}
+        GROUP BY color
+    """, params)
+    colors = cursor.fetchall()
+    for c in colors:
+        hex_color = c["color"]
+        grams = c["total_grams"]
+        if not hex_color:
+            continue
+        family = closest_family(hex_color)
+        if family:
+            color_family_counts[family] = color_family_counts.get(family, 0) + grams
+            if family not in color_family_colors:
+                rgb = MAIN_COLOR_FAMILIES[family]
+                color_family_colors[family] = '#{:02X}{:02X}{:02X}'.format(*rgb)
+
+    color_family_pie = {
+        "labels": list(color_family_counts.keys()),
+        "values": list(color_family_counts.values()),
+        "colors": [color_family_colors[f] for f in color_family_counts.keys()]
+    }
+
+    filament_totals = {}
+    cursor.execute(f"""
+        SELECT fu.spool_id, SUM(fu.grams_used) as total_grams FROM filament_usage fu
+        JOIN prints p ON fu.print_id = p.id
+        {where_sql}
+        GROUP BY spool_id
+        ORDER BY total_grams DESC
+        LIMIT 15
+    """, params)
+    spools = cursor.fetchall()
+    for u in spools:
+        spool = spools_by_id.get(u["spool_id"])
+        if spool:
+            vendor = spool.get("filament", {}).get("vendor", {}).get("name", "Inconnu")
+            type_ = spool.get("filament_type", "Inconnu")
+            name = spool.get("filament", {}).get("name", "Sans nom")
+            key = f"{vendor} - {type_} - {name}"
+            filament_totals[key] = filament_totals.get(key, 0.0) + u["total_grams"]
+
+    sorted_filaments = sorted(filament_totals.items(), key=lambda x: x[1], reverse=True)[:15]
+    top_filaments = {
+        "labels": [label for label, _ in sorted_filaments],
+        "values": [val for _, val in sorted_filaments]
+    }
+
+    conn.close()
+
+    return {
+        "total_prints": stats["total_prints"],
+        "total_duration": stats["total_duration"],
+        "total_weight": stats["total_weight"],
+        "filament_cost": stats["filament_cost"],
+        "electric_cost": stats["electric_cost"],
+        "total_cost": stats["total_cost"],
+        "vendor_pie": vendor_pie,
+        "duration_histogram": duration_histogram,
+        "filament_type_pie": filament_type_pie,
+        "color_family_pie": color_family_pie,
+        "top_filaments": top_filaments
+    }
+
 
 def update_translated_name(name):
     source = "en"
