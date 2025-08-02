@@ -170,7 +170,7 @@ def _merge_context_args(keep=None, drop=None, **new_args):
 
     def is_meaningful(val):
         if isinstance(val, list):
-            val = [v for v in val if v not in [None, ""]]
+            val = list(dict.fromkeys(v for v in val if v not in [None, ""]))  # dédupliqué
             return val if val else None
         return val if val not in [None, ""] else None
 
