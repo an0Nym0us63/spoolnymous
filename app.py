@@ -162,44 +162,45 @@ def _merge_context_args(keep=None, drop=None, **new_args):
     Returns:
         dict: tous les arguments à inclure dans l'URL.
     """
-    current_args = {}
-
-    effective_keep = set(DEFAULT_KEEP_KEYS)
-    if keep is not None:
-        effective_keep.update(keep)
-
     def is_meaningful(val):
         if isinstance(val, list):
             val = list(dict.fromkeys(v for v in val if v not in [None, ""]))  # dédupliqué
             return val if val else None
         return val if val not in [None, ""] else None
 
+    current_args = {}
+    effective_keep = set(DEFAULT_KEEP_KEYS)
+    if keep is not None:
+        effective_keep.update(keep)
+
     # GET args (prioritaires)
     for k in request.args:
         if k in effective_keep:
-            values = request.args.getlist(k)
-            cleaned = is_meaningful(values if len(values) > 1 else values[0])
+            raw = request.args.getlist(k)
+            cleaned = is_meaningful(raw if len(raw) > 1 else raw[0])
             if cleaned is not None:
                 current_args[k] = cleaned
 
-    # POST args (n'ajoute que si la clé n'existe pas déjà)
+    # POST args (si non déjà présents)
     if request.method == 'POST':
         for k in request.form:
             if k in effective_keep and k not in current_args:
-                values = request.form.getlist(k)
-                cleaned = is_meaningful(values if len(values) > 1 else values[0])
+                raw = request.form.getlist(k)
+                cleaned = is_meaningful(raw if len(raw) > 1 else raw[0])
                 if cleaned is not None:
                     current_args[k] = cleaned
 
-    # new_args peut écraser les valeurs, donc on ne filtre que les non-significatifs
+    # new_args nettoyés
     cleaned_new_args = {
         k: v for k, v in new_args.items() if is_meaningful(v) is not None
     }
 
     merged = {**current_args, **cleaned_new_args}
 
-    # Nettoyage final des doublons ou valeurs vides restantes (sécurité)
-    final_args = {k: v for k, v in merged.items() if is_meaningful(v) is not None}
+    # Nettoyage final de sécurité (valeurs encore vides)
+    final_args = {
+        k: v for k, v in merged.items() if is_meaningful(v) is not None
+    }
 
     return final_args
 
