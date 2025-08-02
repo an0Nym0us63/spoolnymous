@@ -674,9 +674,8 @@ def print_history():
                     "name": group_data.get("name", f"Groupe {gid}"),
                     "prints": [],
                     "total_duration": 0,
-                    "max_id": 0,
                     "latest_date": p["print_date"],
-                    "thumbnail": None,
+                    "thumbnail": group_data.get("thumbnail"),  # Image référence groupe si dispo
                     "filament_usage": {},
                     "number_of_items": group_data.get("number_of_items", 1),
                     "primary_print_id": group_data.get("primary_print_id"),
@@ -691,13 +690,16 @@ def print_history():
                     "margin": group_data.get("margin", 0),
                 }
                 entries[entry_key] = entry
-
+        
             entry["prints"].append(p)
             entry["total_duration"] += p["duration"]
-
-            # Pas besoin de sommer electric_cost, total_cost, etc. ici
-            # On prend directement la valeur du groupe stockée en base
-
+        
+            if parse_print_date(p["print_date"]) > parse_print_date(entry["latest_date"]):
+                entry["latest_date"] = p["print_date"]
+        
+            if not entry.get("thumbnail") and p.get("image_file"):
+                entry["thumbnail"] = p["image_file"]
+        
             for filament in p["filament_usage"]:
                 key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
                 if key not in entry["filament_usage"]:
@@ -715,6 +717,7 @@ def print_history():
                     usage["grams_used"] += filament["grams_used"]
                     usage["cost"] += filament.get("cost", 0.0)
                     usage["normal_cost"] += filament.get("normal_cost", 0.0)
+
         else:
             entries[f"print_{p['id']}"] = {
                 "type": "single",
