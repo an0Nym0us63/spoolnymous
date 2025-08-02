@@ -145,8 +145,8 @@ def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
     
 def _merge_context_args(keep=None, drop=None, **new_args):
     """
-    Fusionne les arguments GET et POST de la requête avec des nouveaux paramètres,
-    en appliquant des règles d'inclusion/exclusion.
+    Fusionne les arguments GET et certains POST explicitement autorisés
+    avec des nouveaux paramètres.
 
     Args:
         keep (list[str], optional): liste blanche des clés à garder (en plus de DEFAULT_KEEP_KEYS).
@@ -156,39 +156,35 @@ def _merge_context_args(keep=None, drop=None, **new_args):
     Returns:
         dict: tous les arguments à inclure dans l'URL.
     """
-    DEFAULT_KEEP_KEYS = [
-        "page", "filament_type", "color",
-        "filament_id", "status", "search", "sold_filter"
-    ]
     current_args = {}
-    for k in request.args:
-        values = request.args.getlist(k)
-        current_args[k] = values if len(values) > 1 else values[0]
-
-    if request.method == 'POST':
-        for k in request.form:
-            if k not in current_args:
-                values = request.form.getlist(k)
-                current_args[k] = values if len(values) > 1 else values[0]
 
     effective_keep = set(DEFAULT_KEEP_KEYS)
     if keep is not None:
         effective_keep.update(keep)
 
-    current_args = {k: v for k, v in current_args.items() if k in effective_keep} if keep is not None else (
-        {k: v for k, v in current_args.items() if k not in drop} if drop is not None else current_args
-    )
+    # GET args
+    for k in request.args:
+        if k in effective_keep:
+            values = request.args.getlist(k)
+            current_args[k] = values if len(values) > 1 else values[0]
+
+    # POST args (seulement ceux explicitement listés)
+    if request.method == 'POST':
+        for k in request.form:
+            if k in effective_keep:
+                values = request.form.getlist(k)
+                current_args[k] = values if len(values) > 1 else values[0]
 
     return {**current_args, **new_args}
 
 
 def redirect_with_context(endpoint, keep=None, drop=None, **new_args):
     """
-    Redirige vers une route en conservant certains arguments (GET ou POST).
+    Redirige vers une route en conservant certains arguments (GET et POST filtrés).
 
     Args:
         endpoint (str): nom de la route Flask.
-        keep (list[str], optional): liste blanche des clés à ajouter aux paramètres conservés par défaut.
+        keep (list[str], optional): clés supplémentaires à conserver en plus de DEFAULT_KEEP_KEYS.
         drop (list[str], optional): liste noire des clés à exclure. Ignoré si keep est fourni.
         **new_args: clés/valeurs à injecter ou à écraser explicitement.
 
