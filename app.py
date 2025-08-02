@@ -627,7 +627,9 @@ def print_history():
     spools_by_id = {spool["id"]: spool for spool in spool_list}
     entries = {}
 
-    # Début ajout pour totaux cohérents avec filtre
+    groups_list = get_print_groups()
+    groups_by_id = {g['id']: g for g in groups_list}
+
     total_prints = len(raw_prints)
     total_duration_seconds = 0
     total_weight = 0
@@ -638,7 +640,6 @@ def print_history():
         total_duration_seconds += (duration_hours * 3600)
         total_weight += p.get("total_weight", 0)
         total_cost += p.get("full_cost", 0)
-    # Fin ajout
 
     for p in raw_prints:
         p["duration"] = float(p.get("duration") or 0.0) / 3600  # pour compatibilité templates
@@ -649,7 +650,6 @@ def print_history():
         p["number_of_items"] = p.get("number_of_items", 1)
         p["model_file"] = None
 
-        # Injecter les spools dans filament_usage
         for filament in p["filament_usage"]:
             if filament.get("spool_id"):
                 filament["spool"] = spools_by_id.get(filament["spool_id"])
@@ -667,44 +667,36 @@ def print_history():
             entry_key = f"group_{gid}"
             entry = entries.get(entry_key)
             if not entry or entry.get("type") != "group":
+                group_data = groups_by_id.get(gid, {})
                 entry = {
                     "type": "group",
                     "id": gid,
-                    "name": p.get("group_name", f"Groupe {gid}"),
+                    "name": group_data.get("name", f"Groupe {gid}"),
                     "prints": [],
                     "total_duration": 0,
                     "max_id": 0,
                     "latest_date": p["print_date"],
                     "thumbnail": None,
                     "filament_usage": {},
-                    "number_of_items": p.get("group_number_of_items") or 1,
-                    "primary_print_id": p.get("group_primary_print_id"),
-                    "total_cost": 0,
-                    "electric_cost": p.get("electric_cost", 0),
-                    "total_normal_cost": 0,
-                    "total_weight": 0,
-                    "total_price": p.get("group_sold_price_total", 0),
-                    "sold_units": p.get("group_sold_units", 0),
-                    "full_cost_by_item": p.get("full_cost_by_item", 0),
-                    "full_normal_cost_by_item": p.get("full_normal_cost_by_item", 0),
+                    "number_of_items": group_data.get("number_of_items", 1),
+                    "primary_print_id": group_data.get("primary_print_id"),
+                    "total_cost": group_data.get("total_cost", 0),
+                    "electric_cost": group_data.get("electric_cost", 0),
+                    "total_normal_cost": group_data.get("total_normal_cost", 0),
+                    "total_weight": group_data.get("total_weight", 0),
+                    "total_price": group_data.get("sold_price_total", 0),
+                    "sold_units": group_data.get("sold_units", 0),
+                    "full_cost_by_item": group_data.get("full_cost_by_item", 0),
+                    "full_normal_cost_by_item": group_data.get("full_normal_cost_by_item", 0),
+                    "margin": group_data.get("margin", 0),
                 }
                 entries[entry_key] = entry
 
             entry["prints"].append(p)
             entry["total_duration"] += p["duration"]
-            entry["total_cost"] += p.get("full_cost", 0)
-            entry["total_normal_cost"] += p.get("full_normal_cost", 0)
-            entry["total_weight"] += p.get("total_weight", 0)
 
-            if p["id"] > entry["max_id"]:
-                entry["max_id"] = p["id"]
-                entry["latest_date"] = p["print_date"]
-
-            if entry.get("primary_print_id"):
-                if p["id"] == entry["primary_print_id"]:
-                    entry["thumbnail"] = p["image_file"]
-            elif not entry.get("thumbnail"):
-                entry["thumbnail"] = p["image_file"]
+            # Pas besoin de sommer electric_cost, total_cost, etc. ici
+            # On prend directement la valeur du groupe stockée en base
 
             for filament in p["filament_usage"]:
                 key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
@@ -770,7 +762,6 @@ def print_history():
 
     status_values = sorted(set(p.get("status") for p in raw_prints if p.get("status")))
 
-    # Formatage durée total en h m
     hours = int(total_duration_seconds // 3600)
     minutes = int((total_duration_seconds % 3600) // 60)
     total_duration_formatted = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
@@ -796,6 +787,7 @@ def print_history():
         total_weight=total_weight,
         total_cost=total_cost
     )
+
 
 
 

@@ -627,14 +627,14 @@ def create_print_group(name: str) -> int:
 
 def get_print_groups() -> list[dict]:
     """
-    Retourne la liste des groupes existants.
+    Retourne la liste complète des groupes existants avec tous leurs champs.
     """
     conn = sqlite3.connect(db_config["db_path"])
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT id, name, created_at 
-        FROM print_groups 
+        SELECT *
+        FROM print_groups
         ORDER BY created_at DESC
     """)
     groups = [dict(row) for row in cursor.fetchall()]
