@@ -121,6 +121,11 @@ def two_closest_families(hex_color: str, threshold: float = 60.0) -> list[str]:
         result.append(sorted_families[1][0])
     return result
 
+DEFAULT_KEEP_KEYS = [
+    "page", "filament_type", "color",
+    "filament_id", "status", "search", "sold_filter"
+]
+
 def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
     pages = []
     if total_pages <= max_buttons:
