@@ -152,6 +152,7 @@ def _merge_context_args(keep=None, drop=None, **new_args):
     """
     Fusionne les arguments GET et certains POST explicitement autorisés
     avec des nouveaux paramètres, en nettoyant les clés vides.
+    Les arguments GET ont priorité sur les POST en cas de doublon.
 
     Args:
         keep (list[str], optional): liste blanche des clés à garder (en plus de DEFAULT_KEEP_KEYS).
@@ -173,7 +174,7 @@ def _merge_context_args(keep=None, drop=None, **new_args):
             return val if val else None
         return val if val not in [None, ""] else None
 
-    # GET args
+    # GET args (prioritaires)
     for k in request.args:
         if k in effective_keep:
             values = request.args.getlist(k)
@@ -181,10 +182,10 @@ def _merge_context_args(keep=None, drop=None, **new_args):
             if cleaned is not None:
                 current_args[k] = cleaned
 
-    # POST args (seulement ceux explicitement listés)
+    # POST args (n'ajoute que si la clé n'existe pas déjà)
     if request.method == 'POST':
         for k in request.form:
-            if k in effective_keep:
+            if k in effective_keep and k not in current_args:
                 values = request.form.getlist(k)
                 cleaned = is_meaningful(values if len(values) > 1 else values[0])
                 if cleaned is not None:
