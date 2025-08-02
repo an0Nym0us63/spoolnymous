@@ -216,6 +216,8 @@ def redirect_with_context(endpoint, keep=None, drop=None, **new_args):
     query = urlencode(combined_args, doseq=True)
     return redirect(url_for(endpoint) + ('?' + query if query else ''))
 
+def filtered_args_for_template(keep=None, drop=None, **overrides):
+    return _merge_context_args(keep=keep, drop=drop, **overrides)
 
 
 def parse_print_date(date_str):
@@ -829,27 +831,29 @@ def print_history():
     minutes = int((total_duration_seconds % 3600) // 60)
     total_duration_formatted = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
 
-    return render_template(
-        'print_history.html',
-        entries=paged_entries,
-        groups_list=groups_list,
-        currencysymbol=spoolman_settings["currency_symbol"],
-        page=page,
-        total_pages=total_pages,
-        filters=filters,
-        distinct_values=distinct_values,
-        args=args,
-        search=search,
-        pagination_pages=pagination_pages,
-        focus_print_id=focus_print_id,
-        focus_group_id=focus_group_id,
-        status_values=status_values,
-        page_title="History",
-        total_prints=total_prints,
-        total_duration_formatted=total_duration_formatted,
-        total_weight=total_weight,
-        total_cost=total_cost
-    )
+    context = {
+        "entries": paged_entries,
+        "groups_list": groups_list,
+        "currencysymbol": spoolman_settings["currency_symbol"],
+        "total_pages": total_pages,
+        "filters": filters,
+        "distinct_values": distinct_values,
+        "args": filtered_args_for_template(),
+        "pagination_pages": pagination_pages,
+        "focus_print_id": focus_print_id,
+        "focus_group_id": focus_group_id,
+        "status_values": status_values,
+        "page_title": "History",
+        "total_prints": total_prints,
+        "total_duration_formatted": total_duration_formatted,
+        "total_weight": total_weight,
+        "total_cost": total_cost
+    }
+    
+    if search:
+        context["search"] = search
+    
+    return render_template("print_history.html", **context)
 
 
 
