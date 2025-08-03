@@ -109,11 +109,7 @@
   <form method="post" action="{{ url_for('set_group_primary') }}">
     <input type="hidden" name="print_id" value="{{ print.id }}">
     <input type="hidden" name="group_id" value="{{ print.group_id }}">
-	{% for k, vlist in args.items() %}
-  {% for v in vlist %}
-    <input type="hidden" name="{{ k }}" value="{{ v }}">
-  {% endfor %}
-{% endfor %}
+{{ macros.render_hidden_args(args) }}
     <button type="submit" class="dropdown-item text-info">
       🌟 Référence du groupe
     </button>
@@ -122,11 +118,7 @@
           <li>
             <form method="post" action="{{ url_for('remove_from_group') }}?focus_print_id={{ print.id }}" class="m-0 p-0">
               <input type="hidden" name="print_id" value="{{ print.id }}">
-			  {% for k, vlist in args.items() %}
-  {% for v in vlist %}
-    <input type="hidden" name="{{ k }}" value="{{ v }}">
-  {% endfor %}
-{% endfor %}
+{{ macros.render_hidden_args(args) }}
               <button type="submit" class="dropdown-item text-danger">
                 ❌ Retirer du groupe
               </button>
