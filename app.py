@@ -196,12 +196,7 @@ def _merge_context_args(keep=None, drop=None, **new_args):
         k: v for k, v in new_args.items() if is_meaningful(v) is not None
     }
 
-    merged = {**current_args, **cleaned_new_args}
-
-    # Nettoyage final des doublons ou valeurs vides restantes (sécurité)
-    final_args = {k: v for k, v in merged.items() if is_meaningful(v) is not None}
-
-    return final_args
+    return {**current_args, **cleaned_new_args}
 
 
 def redirect_with_context(endpoint, keep=None, drop=None, **new_args):
@@ -221,12 +216,7 @@ def redirect_with_context(endpoint, keep=None, drop=None, **new_args):
     query = urlencode(combined_args, doseq=True)
     return redirect(url_for(endpoint) + ('?' + query if query else ''))
 
-
 def filtered_args_for_template(keep=None, drop=None, **overrides):
-    """
-    Génère un dictionnaire de paramètres filtrés (comme pour redirection)
-    à utiliser dans render_template(..., args=...)
-    """
     return _merge_context_args(keep=keep, drop=drop, **overrides)
 
 def parse_print_date(date_str):
