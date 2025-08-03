@@ -936,11 +936,12 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         "top_filaments": top_filaments,
         "total_margin": total_margin
     }
+    duration_condition = f"{where_sql} AND duration IS NOT NULL" if where_sql else "WHERE duration IS NOT NULL"
     # Top 15 combiné durée (prints + groupes)
     cursor.execute(f"""
         SELECT id, file_name AS name, duration, NULL AS group_name, 0 AS is_group
         FROM prints
-        {where_sql}
+        {duration_condition}
         AND duration IS NOT NULL
     """, params)
     durations_prints = [
@@ -960,12 +961,13 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
     
     all_durations = sorted(durations_prints + durations_groups, key=lambda x: x["duration"], reverse=True)[:15]
     
+    weight_condition = where_sql if where_sql else ""
     # Top 15 combiné poids (prints + groupes)
     cursor.execute(f"""
         SELECT p.id, p.file_name AS name, SUM(fu.grams_used) AS total_grams, 0 AS is_group
         FROM prints p
         LEFT JOIN filament_usage fu ON fu.print_id = p.id
-        {where_sql}
+        {weight_condition}
         GROUP BY p.id
     """, params)
     weights_prints = [
