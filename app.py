@@ -412,7 +412,7 @@ def fill():
     assign_search = request.args.get("assign_search")
     is_assign_mode = all([assign_print_id, assign_filament_index])
     return render_template(
-        "fill.html",
+        "filaments.html",
         filaments=filaments_page,
         page=page,
         total_pages=total_pages,

@@ -1,6 +1,13 @@
 {% extends 'base.html' %}
 
 {% block content %}
+{% if assign_mode %}
+  <h2>Assigner une bobine au print #{{ assign_print_id }}</h2>
+{% elif ams_id and tray_id %}
+  <h2>AMS: {{ ams_id }}, Tray: {{ tray_id }}</h2>
+{% else %}
+  <h2>Bobines disponibles</h2>
+{% endif %}
 
 <!-- Bouton flottant pagination -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
@@ -117,34 +124,59 @@
 <div class="accordion" id="filamentsAccordion">
   {% for spool in filaments %}
     <div class="accordion-item">
-      <h2 class="accordion-header" id="heading{{ spool.id }}">
-        <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse"
-                data-bs-target="#collapse{{ spool.id }}" aria-expanded="false"
-                aria-controls="collapse{{ spool.id }}">
-          <div class="d-flex w-100 align-items-stretch">
-            <div class="me-3 d-flex align-items-stretch">
-              {% if spool.filament.multi_color_hexes %}
-                {% set colors =
-                    spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
-                    else spool.filament.multi_color_hexes %}
-                <span style="width:12px;min-height:100%;background:linear-gradient(90deg{% for c in colors %}, #{{c.strip()}}{% endfor %});border-radius:2px;border:1px solid #888;display:inline-block;"></span>
-              {% else %}
-                <span style="width:12px;min-height:100%;background-color:#{{ spool.filament.color_hex }};border-radius:2px;border:1px solid #888;display:inline-block;"></span>
-              {% endif %}
-            </div>
-            <div class="flex-grow-1 text-start">
-              <div><strong>{{ spool.filament.material }}</strong> / {{ spool.filament.name }}</div>
-              <div>{{ spool.filament.vendor.name }}</div>
-            </div>
-            <div class="d-flex flex-column justify-content-center align-items-end ms-2 text-end">
-              {% if spool.location %}
-                <div class="small text-muted">{{ spool.location }}</div>
-              {% endif %}
-              <strong>{{ spool.remaining_weight|round|int }} g</strong>
-            </div>
-          </div>
-        </button>
-      </h2>
+      <h2 class="accordion-header d-flex justify-content-between align-items-center" id="heading{{ spool.id }}">
+  <div class="flex-grow-1">
+    <button class="accordion-button collapsed py-2 w-100 text-start" type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#collapse{{ spool.id }}"
+            aria-expanded="false"
+            aria-controls="collapse{{ spool.id }}">
+      <div class="d-flex w-100 align-items-stretch">
+        <div class="me-3 d-flex align-items-stretch">
+          {% if spool.filament.multi_color_hexes %}
+            {% set colors =
+                spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
+                else spool.filament.multi_color_hexes %}
+            <span style="width:12px;min-height:100%;background:linear-gradient(90deg{% for c in colors %}, #{{c.strip()}}{% endfor %});border-radius:2px;border:1px solid #888;display:inline-block;"></span>
+          {% else %}
+            <span style="width:12px;min-height:100%;background-color:#{{ spool.filament.color_hex }};border-radius:2px;border:1px solid #888;display:inline-block;"></span>
+          {% endif %}
+        </div>
+        <div class="flex-grow-1 text-start">
+          <div><strong>{{ spool.filament.material }}</strong> / {{ spool.filament.name }}</div>
+          <div>{{ spool.filament.vendor.name }}</div>
+        </div>
+        <div class="d-flex flex-column justify-content-center align-items-end ms-2 text-end">
+          {% if spool.location %}
+            <div class="small text-muted">{{ spool.location }}</div>
+          {% endif %}
+          <strong>{{ spool.remaining_weight|round|int }} g</strong>
+        </div>
+      </div>
+    </button>
+  </div>
+
+  <div class="ms-2 me-3 d-flex align-items-center">
+    {% if assign_mode %}
+      <form method="post" action="{{ url_for('assign_spool_to_print') }}">
+        <input type="hidden" name="spool_id" value="{{ spool.id }}">
+        <input type="hidden" name="print_id" value="{{ assign_print_id }}">
+        <input type="hidden" name="filament_index" value="{{ assign_filament_index }}">
+        <input type="hidden" name="focus_id" value="{{ assign_print_id }}">
+        <input type="hidden" name="page" value="{{ assign_page }}">
+        <input type="hidden" name="filament_usage" value="{{ filament_usage }}">
+        <button type="button"
+                class="btn btn-sm btn-success rounded-circle trigger-assign-modal"
+                title="Assigner cette bobine">✅</button>
+      </form>
+    {% elif ams_id and tray_id %}
+      <a href="{{ url_for('fill', spool_id=spool.id, ams=ams_id, tray=tray_id) }}"
+         class="btn btn-sm btn-primary rounded-circle"
+         title="Remplir"><i class="bi bi-plus"></i></a>
+    {% endif %}
+  </div>
+</h2>
+
 
       <div id="collapse{{ spool.id }}" class="accordion-collapse collapse"
            aria-labelledby="heading{{ spool.id }}" data-bs-parent="#filamentsAccordion">
@@ -257,6 +289,9 @@
   {% endfor %}
 </div>
 <div style="height: 4rem;"></div>
+{% if assign_mode %}
+  {% include 'fragments/modals_confirm_assign.html' %}
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
