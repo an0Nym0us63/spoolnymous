@@ -695,9 +695,12 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    date_clause = ""
-    params = []
     now = datetime.now()
+    since = None
+    base_clauses = []
+    usage_clauses = []
+    params = []
+    usage_params = []
 
     if period == "day":
         since = now - timedelta(days=1)
@@ -707,18 +710,26 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         since = now - timedelta(days=30)
     elif period == "1y":
         since = now - timedelta(days=365)
-    else:
-        since = None
 
     if since:
-        date_clause = "p.print_date >= ?"
+        base_clauses.append("p.print_date >= ?")
         params.append(since.strftime("%Y-%m-%d %H:%M:%S"))
+
+    if search:
+        words = [w.strip().lower() for w in search.split() if w.strip()]
+        for w in words:
+            base_clauses.append("""(
+                LOWER(p.file_name) LIKE ?
+                OR EXISTS (
+                    SELECT 1 FROM print_tags pt WHERE pt.print_id = p.id AND LOWER(pt.tag) LIKE ?
+                )
+            )""")
+            params.extend([f"%{w}%"] * 2)
 
     if filters.get("filament_type"):
         placeholders = ",".join("?" for _ in filters["filament_type"])
-        clause = f"f.filament_type IN ({placeholders})"
-        params.extend(filters["filament_type"])
-        date_clause = f"{date_clause} AND {clause}" if date_clause else clause
+        usage_clauses.append(f"f.filament_type IN ({placeholders})")
+        usage_params.extend(filters["filament_type"])
 
     if filters.get("color"):
         cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
@@ -733,33 +744,20 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
             color_subclause = " OR ".join([
                 "f.color IN (" + ",".join("?" for _ in hexes) + ")" for hexes in selected_hexes_by_family
             ])
-            date_clause = f"{date_clause} AND ({color_subclause})" if date_clause else f"({color_subclause})"
+            usage_clauses.append(f"({color_subclause})")
             for hexes in selected_hexes_by_family:
-                params.extend(hexes)
+                usage_params.extend(hexes)
 
-    if search:
-        words = [w.strip().lower() for w in search.split() if w.strip()]
-        for w in words:
-            search_clause = f"""(
-                LOWER(p.file_name) LIKE ?
-                OR EXISTS (
-                    SELECT 1 FROM print_tags pt WHERE pt.print_id = p.id AND LOWER(pt.tag) LIKE ?
-                )
-            )"""
-            if date_clause:
-                date_clause += f" AND {search_clause}"
-            else:
-                date_clause = search_clause
-            params.extend([f"%{w}%"] * 2)
-
-    where_sql = f"WHERE {date_clause}" if date_clause else ""
+    base_where = f"WHERE {' AND '.join(base_clauses)}" if base_clauses else ""
+    usage_where = f"WHERE {' AND '.join(base_clauses + usage_clauses)}" if base_clauses or usage_clauses else ""
+    full_params = params + usage_params
 
     cursor.execute(f"""
         SELECT DISTINCT p.id, p.file_name, p.duration, p.group_id
         FROM prints p
         LEFT JOIN filament_usage f ON f.print_id = p.id
-        {where_sql}
-    """, params)
+        {usage_where}
+    """, full_params)
     prints = cursor.fetchall()
     print_ids = [p["id"] for p in prints]
 
@@ -784,11 +782,11 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
     cursor.execute(f"""
         SELECT COALESCE(SUM(margin), 0) AS margin_sum
         FROM prints p
-        {where_sql}
+        {base_where}
     """, params)
     print_margin = cursor.fetchone()["margin_sum"] or 0
 
-    group_id_clause = f"{where_sql} AND group_id IS NOT NULL" if where_sql else "WHERE group_id IS NOT NULL"
+    group_id_clause = f"{base_where} AND group_id IS NOT NULL" if base_where else "WHERE group_id IS NOT NULL"
     cursor.execute(f"""
         SELECT DISTINCT group_id FROM prints p
         {group_id_clause}
@@ -978,6 +976,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
 
     conn.close()
     return stats_data
+
 
 
 def adjustDuration(print_id: int, duration_seconds: int) -> None:
