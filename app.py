@@ -291,8 +291,22 @@ def hm_format(hours: float):
 def frontend_utilities():
     def url_with_args(**kwargs):
         args = _merge_context_args(**kwargs)
-        return url_for(request.endpoint) + ('?' + urlencode(args, doseq=True) if args else '')
-    
+
+        # 🔒 Protection : transforme toute str en valeur atomique non itérable
+        safe_args = {}
+        for k, v in args.items():
+            if isinstance(v, str):
+                safe_args[k] = v
+            elif isinstance(v, list):
+                if len(v) == 1 and isinstance(v[0], str) and len(v[0]) > 1:
+                    safe_args[k] = v[0]  # aplatissement sécurisé
+                else:
+                    safe_args[k] = v
+            else:
+                safe_args[k] = v
+
+        return url_for(request.endpoint) + ('?' + urlencode(safe_args, doseq=True) if safe_args else '')
+
     return dict(
         SPOOLMAN_BASE_URL=SPOOLMAN_BASE_URL,
         AUTO_SPEND=AUTO_SPEND,
