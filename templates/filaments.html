@@ -298,4 +298,35 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="{{ url_for('static', filename='js/print_history.js') }}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  let pendingForm = null;
+
+  document.querySelectorAll(".trigger-assign-modal").forEach(button => {
+    button.addEventListener("click", function () {
+      pendingForm = this.closest("form");
+      const modal = new bootstrap.Modal(document.getElementById('confirmAssignModal'));
+      modal.show();
+    });
+  });
+
+  document.querySelectorAll("#confirmAssignModal .btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+      if (!pendingForm) return;
+      const action = this.getAttribute("data-action");
+
+      if (action === "no") {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "skip_usage";
+        input.value = "1";
+        pendingForm.appendChild(input);
+      }
+
+      pendingForm.submit();
+      pendingForm = null;
+    });
+  });
+});
+</script>
 {% endblock %}
