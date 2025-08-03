@@ -133,7 +133,7 @@
       {% endif %}
       {% if not pick_tray %}
         <a class="btn btn-primary"
-           href="{{ url_for('fill', ams=ams_id, tray=tray_id, search=tray_data.tray_type) }}">Fill</a>
+           href="{{ url_for('filaments', ams=ams_id, tray=tray_id, search=tray_data.tray_type) }}">Fill</a>
       {% endif %}
     </div>
   </div>
