@@ -177,7 +177,8 @@ def _merge_context_args(keep=None, drop=None, **new_args):
 
     if request.method == 'POST':
         for k in request.form:
-            if k in effective_keep and k not in current_args:
+            if k in effective_keep:
+                # Autorise le POST à écraser les clés déjà présentes si elles sont vides ou absentes
                 values = request.form.getlist(k)
                 cleaned = is_meaningful(values if len(values) > 1 else values[0])
                 if cleaned is not None:
