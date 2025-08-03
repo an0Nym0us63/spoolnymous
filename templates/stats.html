@@ -164,7 +164,7 @@
            {% for row in stats.top_longest_prints %}
 <tr>
   <td>{{ loop.index }}</td>
-              <td>{% if row.is_group %}🧺{% else %}🖨{% endif %} {{ row.name }}</td>
+              <td>{% if row.is_group %}📁{% else %}🖨{% endif %} {{ row.name }}</td>
               <td>{{ row.duration | round(2) }} h</td>
             </tr>
             {% endfor %}
@@ -178,7 +178,7 @@
            {% for row in stats.top_heaviest_prints %}
 <tr>
   <td>{{ loop.index }}</td>
-              <td>{% if row.is_group %}🧺{% else %}🖨{% endif %} {{ row.name }}</td>
+              <td>{% if row.is_group %}📁{% else %}🖨{% endif %} {{ row.name }}</td>
               <td>
                 {% if row.weight >= 1000 %}
                   {{ (row.weight / 1000) | round(2) }} kg
