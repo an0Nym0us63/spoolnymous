@@ -155,17 +155,16 @@ def _merge_context_args(keep=None, drop=None, **new_args):
     Les arguments GET ont priorité sur les POST en cas de doublon.
     """
     def normalize(val):
-        # Nettoyage + dédoublonnage
-        if isinstance(val, list):
-            # Si liste avec une unique string longue, on aplanit
-            if len(val) == 1 and isinstance(val[0], str) and len(val[0]) > 1:
-                val = val[0]
-            else:
-                val = list(dict.fromkeys(v for v in val if v not in [None, ""]))
-                if not val:
-                    return None
-                return val
-        return val if val not in [None, ""] else None
+    if isinstance(val, list):
+        # Erreur classique : liste d'une chaîne "SUCCESS" => ["S", "U", ...]
+        if len(val) == 1 and isinstance(val[0], str) and len(val[0]) > 1:
+            val = val[0]  # on aplatit proprement
+        else:
+            val = list(dict.fromkeys(v for v in val if v not in [None, ""]))
+            if not val:
+                return None
+            return val
+    return val if val not in [None, ""] else None
 
     current_args = {}
     effective_keep = set(DEFAULT_KEEP_KEYS)
