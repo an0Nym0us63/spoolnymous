@@ -195,11 +195,21 @@ def _merge_context_args(keep=None, drop=None, **new_args):
 
     merged = {**current_args, **cleaned_new_args}
 
-    # Nettoyage final
-    final_args = {
-        k: normalize(v) for k, v in merged.items() if normalize(v) is not None
-    }
-
+    final_args = {}
+    for k, v in merged.items():
+        val = normalize(v)
+        if val is not None:
+            # 🔒 protection ABSOLUE : une string doit rester une string
+            if isinstance(val, str):
+                final_args[k] = val
+            elif isinstance(val, list):
+                if len(val) == 1 and isinstance(val[0], str) and len(val[0]) > 1:
+                    final_args[k] = val[0]  # aplatit les ["SUCCESS"]
+                else:
+                    final_args[k] = val
+            else:
+                final_args[k] = val
+    
     return final_args
 
 
