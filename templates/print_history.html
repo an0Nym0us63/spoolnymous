@@ -1,15 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
-{% set query = [] %}
-{% for k, vlist in args.items() %}
-  {% for v in vlist %}
-    {% set _ = query.append(k ~ '=' ~ v) %}
-  {% endfor %}
-{% endfor %}
-{% set base_query = '&'.join(query) %}
-
+{% import 'macros/hidden_args.jinja2' as macros %}
 <!-- Bouton flottant pagination -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
   <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#paginationOffcanvas" aria-controls="paginationOffcanvas">

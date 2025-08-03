@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
+{% import 'macros/hidden_args.jinja2' as macros %}
 {% if is_assign_mode %}
   <h2>Assigner une bobine au print #{{ assign_print_id }}</h2>
 {% elif ams_id and tray_id %}
@@ -130,7 +131,7 @@
 </div>
 <div class="accordion" id="filamentsAccordion">
   {% for spool in filaments %}
-    <div class="accordion-item">
+    <div class="accordion-item {% if spool.archived %}opacity-50{% endif %}">
       <h2 class="accordion-header d-flex justify-content-between align-items-center" id="heading{{ spool.id }}">
   <div class="flex-grow-1">
     <button class="accordion-button collapsed py-2 w-100 text-start" type="button"

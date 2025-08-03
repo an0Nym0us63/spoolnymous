@@ -143,10 +143,12 @@ def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
 
     return pages
 
-DEFAULT_KEEP_KEYS = [
-    "page", "filament_type", "color",
-    "filament_id", "status", "search", "sold_filter"
-]
+DEFAULT_KEEP_KEYS = {
+    'print_history': ["page", "filament_type", "color", "filament_id", "status", "search", "sold_filter"],
+    'filaments': ["page", "search", "color", "sort", "include_archived",
+                  "assign_print_id", "assign_filament_index", "assign_page", "assign_search", "filament_usage",
+                  "ams", "tray","is_assign_mode"],
+}
 
 def _merge_context_args(keep=None, drop=None, **new_args):
     """
@@ -162,7 +164,7 @@ def _merge_context_args(keep=None, drop=None, **new_args):
         return val if val not in [None, ""] else None
 
     current_args = {}
-    effective_keep = set(DEFAULT_KEEP_KEYS)
+    effective_keep = set(DEFAULT_KEEP_KEYS.get(request.endpoint, []))
     if keep is not None:
         effective_keep.update(keep)
 
