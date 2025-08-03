@@ -695,7 +695,6 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # Filtrage temporel
     date_clause = ""
     params = []
     now = datetime.now()
@@ -756,7 +755,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
     where_sql = f"WHERE {date_clause}" if date_clause else ""
 
     cursor.execute(f"""
-        SELECT DISTINCT p.id, p.duration, p.group_id
+        SELECT DISTINCT p.id, p.file_name, p.duration, p.group_id
         FROM prints p
         LEFT JOIN filament_usage f ON f.print_id = p.id
         {where_sql}
@@ -913,7 +912,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
     }
 
     durations_prints = [
-        {"id": p["id"], "name": p["id"], "duration": (p["duration"] or 0) / 3600, "is_group": False}
+        {"id": p["id"], "name": p["file_name"], "duration": (p["duration"] or 0) / 3600, "is_group": False}
         for p in prints if p["duration"]
     ]
 
@@ -930,14 +929,14 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
     ]
 
     cursor.execute(f"""
-        SELECT p.id, SUM(fu.grams_used) AS total_grams
+        SELECT p.id, p.file_name, SUM(fu.grams_used) AS total_grams
         FROM filament_usage fu
         JOIN prints p ON fu.print_id = p.id
         WHERE p.id IN ({','.join('?' for _ in print_ids)})
         GROUP BY p.id
     """, print_ids)
     weights_prints = [
-        {"id": r["id"], "name": r["id"], "weight": r["total_grams"], "is_group": False}
+        {"id": r["id"], "name": r["file_name"], "weight": r["total_grams"], "is_group": False}
         for r in cursor.fetchall()
     ]
 
