@@ -936,6 +936,58 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         "top_filaments": top_filaments,
         "total_margin": total_margin
     }
+    # Top 15 combiné durée (prints + groupes)
+    cursor.execute(f"""
+        SELECT id, file_name AS name, duration, NULL AS group_name, 0 AS is_group
+        FROM prints
+        {where_sql}
+        AND duration IS NOT NULL
+    """, params)
+    durations_prints = [
+        {"id": row["id"], "name": row["name"], "duration": row["duration"] / 3600, "is_group": False}
+        for row in cursor.fetchall()
+    ]
+    
+    cursor.execute(f"""
+        SELECT id, name, total_duration, 1 AS is_group
+        FROM print_groups
+        WHERE total_duration IS NOT NULL
+    """)
+    durations_groups = [
+        {"id": row["id"], "name": row["name"], "duration": row["total_duration"] / 3600, "is_group": True}
+        for row in cursor.fetchall()
+    ]
+    
+    all_durations = sorted(durations_prints + durations_groups, key=lambda x: x["duration"], reverse=True)[:15]
+    
+    # Top 15 combiné poids (prints + groupes)
+    cursor.execute(f"""
+        SELECT p.id, p.file_name AS name, SUM(fu.grams_used) AS total_grams, 0 AS is_group
+        FROM prints p
+        LEFT JOIN filament_usage fu ON fu.print_id = p.id
+        {where_sql}
+        GROUP BY p.id
+    """, params)
+    weights_prints = [
+        {"id": row["id"], "name": row["name"], "weight": row["total_grams"], "is_group": False}
+        for row in cursor.fetchall()
+        if row["total_grams"]
+    ]
+    
+    cursor.execute("""
+        SELECT pg.id, pg.name, pg.total_weight, 1 AS is_group
+        FROM print_groups pg
+        WHERE pg.total_weight IS NOT NULL
+    """)
+    weights_groups = [
+        {"id": row["id"], "name": row["name"], "weight": row["total_weight"], "is_group": True}
+        for row in cursor.fetchall()
+    ]
+    
+    all_weights = sorted(weights_prints + weights_groups, key=lambda x: x["weight"], reverse=True)[:15]
+    
+    stats_data["top_longest_prints"] = all_durations
+    stats_data["top_heaviest_prints"] = all_weights
     
     # Et maintenant que stats_data existe, tu peux faire tes tris :
     stats_data["vendor_pie"] = sort_pie_data(stats_data["vendor_pie"])

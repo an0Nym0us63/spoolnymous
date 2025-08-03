@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container my-4">
+
   <!-- Bouton flottant filtres -->
   <div class="position-fixed bottom-0 start-0 m-3" style="z-index:1030;">
     <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#filtersOffcanvas" aria-controls="filtersOffcanvas">
@@ -20,9 +21,7 @@
           <div class="col">
             <label for="period">Période</label>
             <select name="period" id="period" class="form-select">
-              {% for key, label in {
-                'all': 'Tout', 'day': '24h', '7d': '7j', '1m': '1m', '1y': '1a'
-              }.items() %}
+              {% for key, label in {'all': 'Tout', 'day': '24h', '7d': '7j', '1m': '1m', '1y': '1a'}.items() %}
                 <option value="{{ key }}" {% if selected_period == key %}selected{% endif %}>{{ label }}</option>
               {% endfor %}
             </select>
@@ -64,7 +63,7 @@
       ('💰', stats.filament_cost | default(0) | round(2)),
       ('⚡', stats.electric_cost | default(0) | round(2)),
       ('💵', stats.total_cost | default(0) | round(2)),
-    ('📈', stats.total_margin | default(0) | round(2)) 
+      ('📈', stats.total_margin | default(0) | round(2))
     ] %}
     {% for label, value in cards %}
     <div class="col-6 col-md-4 col-lg-3">
@@ -74,7 +73,7 @@
           <p class="card-text fs-5 fw-bold">
           {% if '💰' in label or '⚡' in label or '💵' in label or '📈' in label %}
             {{ value }} {{ currencysymbol }}
-          {% elif '⚖️' in label or '📦' in label %}
+          {% elif '⚖️' in label %}
             {% if value >= 1000 %}
               {{ (value / 1000) | round(2) }} kg
             {% else %}
@@ -148,6 +147,53 @@
     {% endfor %}
   </div>
 
+  <!-- Top prints/groups -->
+  <div class="card shadow-sm my-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Top 15 impressions/groupes</h5>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" role="switch" id="switchTopPrints">
+          <label class="form-check-label" for="switchTopPrints">Par poids</label>
+        </div>
+      </div>
+      <div id="topDurationTable" class="table-responsive">
+        <table class="table table-sm table-bordered text-center align-middle">
+          <thead><tr><th>#</th><th>Nom</th><th>Durée</th></tr></thead>
+          <tbody>
+            {% for i, row in enumerate(stats.top_longest_prints) %}
+            <tr>
+              <td>{{ i + 1 }}</td>
+              <td>{% if row.is_group %}🧺{% else %}🖨{% endif %} {{ row.name }}</td>
+              <td>{{ row.duration | round(2) }} h</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div id="topWeightTable" class="table-responsive visually-hidden">
+        <table class="table table-sm table-bordered text-center align-middle">
+          <thead><tr><th>#</th><th>Nom</th><th>Poids</th></tr></thead>
+          <tbody>
+            {% for i, row in enumerate(stats.top_heaviest_prints) %}
+            <tr>
+              <td>{{ i + 1 }}</td>
+              <td>{% if row.is_group %}🧺{% else %}🖨{% endif %} {{ row.name }}</td>
+              <td>
+                {% if row.weight >= 1000 %}
+                  {{ (row.weight / 1000) | round(2) }} kg
+                {% else %}
+                  {{ row.weight | round(1) }} g
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </div>
 <div style="height: 4rem;"></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -158,6 +204,11 @@
       document.getElementById(id + "ChartContainer").classList.toggle("visually-hidden");
       document.getElementById(id + "TableContainer").classList.toggle("visually-hidden");
     });
+  });
+
+  document.getElementById('switchTopPrints').addEventListener('change', function () {
+    document.getElementById('topDurationTable').classList.toggle('visually-hidden');
+    document.getElementById('topWeightTable').classList.toggle('visually-hidden');
   });
 
   const ctxVendor = document.getElementById('vendorPieChart').getContext('2d');
