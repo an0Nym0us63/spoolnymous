@@ -5,7 +5,7 @@
     <div class="modal-content">
       <form method="post" action="{{ url_for('rename_group', page=page, focus_group_id=entry.id) }}">
         <input type="hidden" name="group_id" value="{{ entry.id }}">
-{{ macros.render_hidden_args(args) }}
+{{ macros.render_filtered_args(args) }}
         <div class="modal-header">
           <h5 class="modal-title" id="editGroupModalLabel_{{ entry.id }}">Renommer (Groupe #{{ entry.id }})</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
@@ -28,7 +28,7 @@
     <div class="modal-content">
       <form method="post" action="{{ url_for('edit_group_items', page=page, focus_group_id=entry.id) }}">
         <input type="hidden" name="group_id" value="{{ entry.id }}">
-{{ macros.render_hidden_args(args) }}
+{{ macros.render_filtered_args(args) }}
         <div class="modal-header">
           <h5 class="modal-title" id="editGroupItemsModalLabel_{{ entry.id }}">Nombre d’éléments (Groupe #{{ entry.id }})</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
@@ -51,7 +51,7 @@
     <form method="post" action="{{ url_for('set_sold_price') }}">
       <input type="hidden" name="id" value="{{ entry.id }}">
       <input type="hidden" name="is_group" value="1">
-{{ macros.render_hidden_args(args) }}
+{{ macros.render_filtered_args(args) }}
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="soldGroupModalLabel_{{ entry.id }}">💸 Marquer comme vendu (Groupe #{{ entry.id }})</h5>
