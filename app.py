@@ -1203,7 +1203,18 @@ def assign_spool_to_print():
     if not skip_usage:
         consumeSpool(spool_id, float(request.form.get("filament_usage") or 0))
         
-    return redirect_with_context("print_history",focus_print_id=print_id)
+    return return redirect_with_context(
+       "print_history",
+        focus_print_id=print_id,
+        search=request.form.get("search"),
+        status=request.form.get("status"),
+        filament_type=request.form.get("filament_type"),
+        filament_id=request.form.get("filament_id"),
+        sold_filter=request.form.get("sold_filter"),
+        page=request.form.get("page"),
+        color=request.form.get("color"),
+        sort=request.form.get("sort")
+    )
 
 
 @app.route("/change_print_status", methods=["POST"])
