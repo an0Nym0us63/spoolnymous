@@ -161,9 +161,9 @@
         <table class="table table-sm table-bordered text-center align-middle">
           <thead><tr><th>#</th><th>Nom</th><th>Durée</th></tr></thead>
           <tbody>
-            {% for i, row in enumerate(stats.top_longest_prints) %}
-            <tr>
-              <td>{{ i + 1 }}</td>
+           {% for row in stats.top_longest_prints %}
+<tr>
+  <td>{{ loop.index }}</td>
               <td>{% if row.is_group %}🧺{% else %}🖨{% endif %} {{ row.name }}</td>
               <td>{{ row.duration | round(2) }} h</td>
             </tr>
@@ -175,9 +175,9 @@
         <table class="table table-sm table-bordered text-center align-middle">
           <thead><tr><th>#</th><th>Nom</th><th>Poids</th></tr></thead>
           <tbody>
-            {% for i, row in enumerate(stats.top_heaviest_prints) %}
-            <tr>
-              <td>{{ i + 1 }}</td>
+           {% for row in stats.top_heaviest_prints %}
+<tr>
+  <td>{{ loop.index }}</td>
               <td>{% if row.is_group %}🧺{% else %}🖨{% endif %} {{ row.name }}</td>
               <td>
                 {% if row.weight >= 1000 %}
