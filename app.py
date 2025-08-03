@@ -1202,7 +1202,7 @@ def assign_spool_to_print():
     if not skip_usage:
         consumeSpool(spool_id, float(request.form.get("filament_usage") or 0))
         
-    return return redirect_with_context(
+    return redirect_with_context(
        "print_history",
         focus_print_id=print_id,
         search=request.form.get("search"),
