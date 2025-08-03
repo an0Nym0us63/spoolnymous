@@ -892,7 +892,7 @@ def filaments():
     is_assign_mode = all([assign_print_id, assign_filament_index])
     is_fill_mode = all([ams_id, tray_id])
 
-    all_filaments = fetchSpools(False, include_archived) if is_fill_mode else fetchSpools() or []
+    all_filaments = fetchSpools(False, include_archived) or []
 
     if search:
         search_terms = search.split()
