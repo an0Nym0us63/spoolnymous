@@ -153,19 +153,18 @@ def _merge_context_args(keep=None, drop=None, **new_args):
     Fusionne les arguments GET et certains POST explicitement autorisés
     avec des nouveaux paramètres, en nettoyant les clés vides.
     Les arguments GET ont priorité sur les POST en cas de doublon.
-
-    Args:
-        keep (list[str], optional): liste blanche des clés à garder (en plus de DEFAULT_KEEP_KEYS).
-        drop (list[str], optional): liste noire à exclure si keep est None.
-        **new_args: arguments à ajouter ou écraser.
-
-    Returns:
-        dict: tous les arguments à inclure dans l'URL.
     """
-    def is_meaningful(val):
+    def normalize(val):
+        # Nettoyage + dédoublonnage
         if isinstance(val, list):
-            val = list(dict.fromkeys(v for v in val if v not in [None, ""]))  # dédupliqué
-            return val if val else None
+            # Si liste avec une unique string longue, on aplanit
+            if len(val) == 1 and isinstance(val[0], str) and len(val[0]) > 1:
+                val = val[0]
+            else:
+                val = list(dict.fromkeys(v for v in val if v not in [None, ""]))
+                if not val:
+                    return None
+                return val
         return val if val not in [None, ""] else None
 
     current_args = {}
@@ -177,7 +176,7 @@ def _merge_context_args(keep=None, drop=None, **new_args):
     for k in request.args:
         if k in effective_keep:
             raw = request.args.getlist(k)
-            cleaned = is_meaningful(raw if len(raw) > 1 else raw[0])
+            cleaned = normalize(raw if len(raw) > 1 else raw[0])
             if cleaned is not None:
                 current_args[k] = cleaned
 
@@ -186,23 +185,24 @@ def _merge_context_args(keep=None, drop=None, **new_args):
         for k in request.form:
             if k in effective_keep and k not in current_args:
                 raw = request.form.getlist(k)
-                cleaned = is_meaningful(raw if len(raw) > 1 else raw[0])
+                cleaned = normalize(raw if len(raw) > 1 else raw[0])
                 if cleaned is not None:
                     current_args[k] = cleaned
 
-    # new_args nettoyés
+    # new_args nettoyés et normalisés
     cleaned_new_args = {
-        k: v for k, v in new_args.items() if is_meaningful(v) is not None
+        k: normalize(v) for k, v in new_args.items() if normalize(v) is not None
     }
 
     merged = {**current_args, **cleaned_new_args}
 
-    # Nettoyage final de sécurité (valeurs encore vides)
+    # Nettoyage final
     final_args = {
-        k: v for k, v in merged.items() if is_meaningful(v) is not None
+        k: normalize(v) for k, v in merged.items() if normalize(v) is not None
     }
 
     return final_args
+
 
 
 def redirect_with_context(endpoint, keep=None, drop=None, **new_args):
