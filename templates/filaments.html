@@ -170,7 +170,7 @@
                 title="Assigner cette bobine">✅</button>
       </form>
     {% elif ams_id and tray_id %}
-      <a href="{{ url_for('fill', spool_id=spool.id, ams=ams_id, tray=tray_id) }}"
+      <a href="{{ url_for('filaments', spool_id=spool.id, ams=ams_id, tray=tray_id) }}"
          class="btn btn-sm btn-primary rounded-circle"
          title="Remplir"><i class="bi bi-plus"></i></a>
     {% endif %}
