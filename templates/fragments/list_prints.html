@@ -1,3 +1,4 @@
+{% import 'macros/hidden_args.jinja2' as macros %}
 <div class="print-history" id="printAccordion">
   {% for entry in entries %}
     {% if entry.type == "group" %}
