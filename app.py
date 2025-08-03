@@ -977,7 +977,8 @@ def filaments():
         total_filaments=total,
         total_vendors=total_vendors,
         total_remaining=total_remaining,
-        page_title="Filaments"
+        page_title="Filaments",
+        args=_merge_context_args()
     )
 
 
