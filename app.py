@@ -150,7 +150,7 @@ DEFAULT_KEEP_KEYS = {
                   "ams", "tray","is_assign_mode"],
 }
 
-def _merge_context_args(keep=None, drop=None, **new_args):
+def _merge_context_args(keep=None, drop=None, endpoint=None, **new_args):
     """
     Fusionne les arguments GET et certains POST explicitement autorisés
     avec des nouveaux paramètres, en nettoyant les clés vides.
@@ -164,7 +164,8 @@ def _merge_context_args(keep=None, drop=None, **new_args):
         return val if val not in [None, ""] else None
 
     current_args = {}
-    effective_keep = set(DEFAULT_KEEP_KEYS.get(request.endpoint, []))
+    route = endpoint or request.endpoint
+    effective_keep = set(DEFAULT_KEEP_KEYS.get(route, []))
     if keep is not None:
         effective_keep.update(keep)
 
@@ -177,7 +178,7 @@ def _merge_context_args(keep=None, drop=None, **new_args):
 
     if request.method == 'POST':
         for k in request.form:
-            if k in effective_keep and k not in current_args:
+            if k in effective_keep:
                 values = request.form.getlist(k)
                 cleaned = is_meaningful(values if len(values) > 1 else values[0])
                 if cleaned is not None:
@@ -207,7 +208,7 @@ def redirect_with_context(endpoint, keep=None, drop=None, **new_args):
     Returns:
         werkzeug.wrappers.Response: redirection HTTP propre avec les bons paramètres.
     """
-    combined_args = _merge_context_args(keep=keep, drop=drop, **new_args)
+    combined_args = _merge_context_args(keep=keep, drop=drop, endpoint=endpoint, **new_args)
     query = urlencode(combined_args, doseq=True)
     return redirect(url_for(endpoint) + ('?' + query if query else ''))
 
