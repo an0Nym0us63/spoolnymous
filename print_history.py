@@ -949,14 +949,17 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         for row in cursor.fetchall()
     ]
     
-    cursor.execute(f"""
-        SELECT id, name, total_duration, 1 AS is_group
-        FROM print_groups
-        WHERE total_duration IS NOT NULL
+    cursor.execute("""
+        SELECT pg.id, pg.name, SUM(p.duration) AS duration
+        FROM print_groups pg
+        LEFT JOIN prints p ON p.group_id = pg.id
+        WHERE p.duration IS NOT NULL
+        GROUP BY pg.id
     """)
     durations_groups = [
-        {"id": row["id"], "name": row["name"], "duration": row["total_duration"] / 3600, "is_group": True}
+        {"id": row["id"], "name": row["name"], "duration": row["duration"] / 3600, "is_group": True}
         for row in cursor.fetchall()
+        if row["duration"]
     ]
     
     all_durations = sorted(durations_prints + durations_groups, key=lambda x: x["duration"], reverse=True)[:15]
