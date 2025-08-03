@@ -316,122 +316,6 @@ def issue():
 
   return render_template('issue.html', fix_ams=fix_ams, active_spool=active_spool)
 
-@app.route("/fill")
-def fill():
-  if not isMqttClientConnected():
-    return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
-    
-  ams_id = request.args.get("ams")
-  tray_id = request.args.get("tray")
-  if not all([ams_id, tray_id]):
-    return render_template('error.html', exception="Missing AMS ID, or Tray ID.")
-
-  spool_id = request.args.get("spool_id")
-  if spool_id:
-    spool_data = getSpoolById(spool_id)
-    setActiveTray(spool_id, spool_data["extra"], ams_id, tray_id)
-    setActiveSpool(ams_id, tray_id, spool_data)
-    return redirect(url_for('home', success_message=f"Updated Spool ID {spool_id} to AMS {ams_id}, Tray {tray_id}."))
-  else:
-    page = int(request.args.get("page", 1))
-    per_page = 25
-    search = request.args.get("search", "").lower()
-    sort = request.args.get("sort", "default")
-
-    include_archived = request.args.get("include_archived") == "1"
-    all_filaments = fetchSpools(False,include_archived) or []
-
-    # filtre nom / couleur
-    if search:
-        search_terms = search.split()
-
-        def matches(f):
-            filament = f.get("filament", {})
-            vendor = filament.get("vendor", {})
-            fields = [
-                filament.get("name", "").lower(),
-                filament.get("material", "").lower(),
-                vendor.get("name", "").lower(),
-                f.get("location", "").lower(),
-            ]
-            # Chaque terme doit être présent dans au moins un des champs
-            return all(
-                any(term in field for field in fields)
-                for term in search_terms
-            )
-
-        all_filaments = [f for f in all_filaments if matches(f)]
-
-    def sort_key(f):
-        filament = f.get("filament", {})
-        vendor = filament.get("vendor", {})
-        return (
-            f.get("location", "").lower(),
-            filament.get("material", "").lower(),
-            vendor.get("name", "").lower(),
-            filament.get("name", "").lower()
-        )
-    if sort == "remaining":
-        all_filaments.sort(key=lambda f: f.get("remaining_weight") or 0)
-    else:
-        all_filaments.sort(key=sort_key)
-    all_families_in_page = set()
-
-    for spool in all_filaments:
-        filament = spool.get("filament", {})
-        hexes = []
-
-        if filament.get("multi_color_hexes"):
-            if isinstance(filament["multi_color_hexes"], str):
-                hexes = filament["multi_color_hexes"].split(",")
-            elif isinstance(filament["multi_color_hexes"], list):
-                hexes = filament["multi_color_hexes"]
-        elif filament.get("color_hex"):
-            hexes = [filament["color_hex"]]
-
-    
-        families = set()
-        for hx in hexes:
-            fams = two_closest_families(hx, threshold=60)
-            families.update(fams)
-    
-        spool["color_families"] = sorted(families)
-        all_families_in_page.update(families)
-    selected_family = request.args.get("color")
-    if selected_family:
-        all_filaments = [
-            f for f in all_filaments
-            if selected_family in f.get("color_families", [])
-        ]
-    total = len(all_filaments)
-    total_pages = math.ceil(total / per_page)
-    filaments_page = all_filaments[(page-1)*per_page : page*per_page]
-    assign_print_id = request.args.get("assign_print_id")
-    assign_filament_index = request.args.get("assign_filament_index")
-    assign_page = request.args.get("assign_page")
-    assign_search = request.args.get("assign_search")
-    is_assign_mode = all([assign_print_id, assign_filament_index])
-    return render_template(
-        "filaments.html",
-        filaments=filaments_page,
-        page=page,
-        total_pages=total_pages,
-        search=search,
-        sort=sort,
-        all_families=sorted(all_families_in_page),
-        selected_family=selected_family,
-        page_title="Fill",
-        ams_id=ams_id, 
-        tray_id=tray_id,
-        assign_print_id=assign_print_id,
-        assign_filament_index=assign_filament_index,
-        assign_page=assign_page,
-        assign_search=assign_search,
-        is_assign_mode=is_assign_mode,
-        include_archived=include_archived,
-        filament_usage=request.args.get("filament_usage",'0')
-    )
-
 @app.route("/spool_info")
 def spool_info():
   if not isMqttClientConnected():
@@ -977,17 +861,41 @@ def remove_tag(print_id):
     
 @app.route("/filaments")
 def filaments():
+    if not isMqttClientConnected():
+        return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
+
+    ams_id = request.args.get("ams")
+    tray_id = request.args.get("tray")
+    spool_id = request.args.get("spool_id")
+
+    # 🎯 Si un spool est sélectionné en mode fill : action directe
+    if spool_id and ams_id and tray_id:
+        spool_data = getSpoolById(spool_id)
+        setActiveTray(spool_id, spool_data["extra"], ams_id, tray_id)
+        setActiveSpool(ams_id, tray_id, spool_data)
+        return redirect(url_for('home', success_message=f"Updated Spool ID {spool_id} to AMS {ams_id}, Tray {tray_id}."))
+
+    # 🔁 Sinon, affichage des bobines filtrées/paginées
     page = int(request.args.get("page", 1))
     per_page = 25
     search = request.args.get("search", "").lower()
     sort = request.args.get("sort", "default")
+    selected_family = request.args.get("color")
+    include_archived = request.args.get("include_archived") == "1"
 
-    all_filaments = fetchSpools() or []
+    assign_print_id = request.args.get("assign_print_id")
+    assign_filament_index = request.args.get("assign_filament_index")
+    assign_page = request.args.get("assign_page")
+    assign_search = request.args.get("assign_search")
+    filament_usage = request.args.get("filament_usage", '0')
 
-    # filtre nom / couleur
+    is_assign_mode = all([assign_print_id, assign_filament_index])
+    is_fill_mode = all([ams_id, tray_id])
+
+    all_filaments = fetchSpools(False, include_archived) if is_fill_mode else fetchSpools() or []
+
     if search:
         search_terms = search.split()
-
         def matches(f):
             filament = f.get("filament", {})
             vendor = filament.get("vendor", {})
@@ -997,12 +905,28 @@ def filaments():
                 vendor.get("name", "").lower(),
                 f.get("location", "").lower(),
             ]
-            return all(
-                any(term in field for field in fields)
-                for term in search_terms
-            )
-
+            return all(any(term in field for field in fields) for term in search_terms)
         all_filaments = [f for f in all_filaments if matches(f)]
+
+    all_families_in_page = set()
+    for spool in all_filaments:
+        filament = spool.get("filament", {})
+        hexes = []
+        if filament.get("multi_color_hexes"):
+            hexes = filament["multi_color_hexes"].split(",") if isinstance(filament["multi_color_hexes"], str) else filament["multi_color_hexes"]
+        elif filament.get("color_hex"):
+            hexes = [filament["color_hex"]]
+        families = set()
+        for hx in hexes:
+            fams = two_closest_families(hx, threshold=60)
+            families.update(fams)
+        spool["color_families"] = sorted(families)
+        all_families_in_page.update(families)
+
+    if selected_family:
+        all_filaments = [
+            f for f in all_filaments if selected_family in f.get("color_families", [])
+        ]
 
     def sort_key(f):
         filament = f.get("filament", {})
@@ -1019,47 +943,16 @@ def filaments():
     else:
         all_filaments.sort(key=sort_key)
 
-    all_families_in_page = set()
-
-    for spool in all_filaments:
-        filament = spool.get("filament", {})
-        hexes = []
-
-        if filament.get("multi_color_hexes"):
-            if isinstance(filament["multi_color_hexes"], str):
-                hexes = filament["multi_color_hexes"].split(",")
-            elif isinstance(filament["multi_color_hexes"], list):
-                hexes = filament["multi_color_hexes"]
-        elif filament.get("color_hex"):
-            hexes = [filament["color_hex"]]
-
-        families = set()
-        for hx in hexes:
-            fams = two_closest_families(hx, threshold=60)
-            families.update(fams)
-
-        spool["color_families"] = sorted(families)
-        all_families_in_page.update(families)
-
-    selected_family = request.args.get("color")
-    if selected_family:
-        all_filaments = [
-            f for f in all_filaments
-            if selected_family in f.get("color_families", [])
-        ]
-
     total = len(all_filaments)
     total_pages = math.ceil(total / per_page)
-    filaments_page = all_filaments[(page-1)*per_page : page*per_page]
+    filaments_page = all_filaments[(page - 1) * per_page: page * per_page]
 
-    # ==== Statistiques ====
+    total_remaining = sum(f.get("remaining_weight") or 0 for f in all_filaments)
     vendor_names = {
         f.get("filament", {}).get("vendor", {}).get("name", "")
-        for f in all_filaments
-        if f.get("filament", {}).get("vendor")
+        for f in all_filaments if f.get("filament", {}).get("vendor")
     }
     total_vendors = len(vendor_names)
-    total_remaining = sum(f.get("remaining_weight") or 0 for f in all_filaments)
 
     return render_template(
         "filaments.html",
@@ -1070,11 +963,21 @@ def filaments():
         sort=sort,
         all_families=sorted(all_families_in_page),
         selected_family=selected_family,
-        page_title="Filaments",
+        include_archived=include_archived,
+        assign_print_id=assign_print_id,
+        assign_filament_index=assign_filament_index,
+        assign_page=assign_page,
+        assign_search=assign_search,
+        is_assign_mode=is_assign_mode,
+        ams_id=ams_id,
+        tray_id=tray_id,
+        filament_usage=filament_usage,
         total_filaments=total,
         total_vendors=total_vendors,
-        total_remaining=total_remaining
+        total_remaining=total_remaining,
+        page_title="Filaments"
     )
+
 
 @app.route("/edit_print_name", methods=["POST"])
 def edit_print_name():
