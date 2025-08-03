@@ -687,12 +687,6 @@ def get_group_id_of_print(print_id: int) -> int | None:
     return result[0] if result else None
 
 def get_statistics(period: str = "all", filters: dict = None, search: str = None) -> dict:
-    """
-    Récupère des statistiques globales sur les impressions avec filtres optionnels.
-    :param period: "all", "7d", "1m", "1y"
-    :param filters: dictionnaire avec 'filament_type' et 'color' (valeurs multiples)
-    :param search: chaîne libre (tag, nom de fichier ou groupe)
-    """
     from spoolman_service import fetchSpools
 
     filters = filters or {}
@@ -721,14 +715,12 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         date_clause = "p.print_date >= ?"
         params.append(since.strftime("%Y-%m-%d %H:%M:%S"))
 
-    # Filtres filament_type
     if filters.get("filament_type"):
         placeholders = ",".join("?" for _ in filters["filament_type"])
         clause = f"f.filament_type IN ({placeholders})"
         params.extend(filters["filament_type"])
         date_clause = f"{date_clause} AND {clause}" if date_clause else clause
 
-    # Filtres color (via familles)
     if filters.get("color"):
         cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
         all_colors = [row[0] for row in cursor.fetchall()]
@@ -739,14 +731,13 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
                 selected_hexes_by_family.append(hexes)
 
         if selected_hexes_by_family:
-            color_subclause = " OR ".join(
-                ["f.color IN (" + ",".join("?" for _ in hexes) + ")" for hexes in selected_hexes_by_family]
-            )
+            color_subclause = " OR ".join([
+                "f.color IN (" + ",".join("?" for _ in hexes) + ")" for hexes in selected_hexes_by_family
+            ])
             date_clause = f"{date_clause} AND ({color_subclause})" if date_clause else f"({color_subclause})"
             for hexes in selected_hexes_by_family:
                 params.extend(hexes)
 
-    # Filtres recherche texte libre
     if search:
         words = [w.strip().lower() for w in search.split() if w.strip()]
         for w in words:
@@ -764,9 +755,8 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
 
     where_sql = f"WHERE {date_clause}" if date_clause else ""
 
-    # Charger les impressions
     cursor.execute(f"""
-        SELECT DISTINCT p.id, p.duration
+        SELECT DISTINCT p.id, p.duration, p.group_id
         FROM prints p
         LEFT JOIN filament_usage f ON f.print_id = p.id
         {where_sql}
@@ -786,24 +776,26 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
             "duration_histogram": {"labels": [], "values": []},
             "filament_type_pie": {"labels": [], "values": []},
             "color_family_pie": {"labels": [], "values": [], "colors": []},
-            "top_filaments": {"labels": [], "values": []}
+            "top_filaments": {"labels": [], "values": []},
+            "top_longest_prints": [],
+            "top_heaviest_prints": [],
+            "total_margin": 0.0
         }
-    # Somme des marges des prints filtrés
+
     cursor.execute(f"""
         SELECT COALESCE(SUM(margin), 0) AS margin_sum
         FROM prints p
         {where_sql}
     """, params)
     print_margin = cursor.fetchone()["margin_sum"] or 0
-    
-    group_id_clause = f"{where_sql} AND group_id IS NOT NULL" if where_sql else "WHERE group_id IS NOT NULL"
 
+    group_id_clause = f"{where_sql} AND group_id IS NOT NULL" if where_sql else "WHERE group_id IS NOT NULL"
     cursor.execute(f"""
         SELECT DISTINCT group_id FROM prints p
         {group_id_clause}
     """, params)
     group_ids = [row["group_id"] for row in cursor.fetchall() if row["group_id"] is not None]
-    
+
     group_margin = 0
     if group_ids:
         placeholders = ",".join("?" for _ in group_ids)
@@ -812,20 +804,18 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
             WHERE id IN ({placeholders})
         """, group_ids)
         group_margin = cursor.fetchone()["margin_sum"] or 0
-    
+
     total_margin = print_margin + group_margin
 
-    # Durée totale
     total_duration = sum(p["duration"] or 0 for p in prints)
 
-    # Charger l’usage de filament
     cursor.execute(f"""
         SELECT print_id, spool_id, grams_used, filament_type, color
         FROM filament_usage
         WHERE print_id IN ({','.join('?' for _ in print_ids)})
     """, print_ids)
     usage = cursor.fetchall()
-    
+
     if filters.get("color"):
         selected_families = set(filters["color"])
         usage = [
@@ -871,7 +861,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         duration_bins[index] += 1
 
     duration_histogram = {
-        "labels": [f"{i}–{i+1}h" for i in range(10)] + ["≥10h"],
+        "labels": [f"{i}–{i+1}h" for i in range(10)] + ["\u226510h"],
         "values": duration_bins
     }
 
@@ -905,7 +895,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         "values": list(color_family_counts.values()),
         "colors": [color_family_colors[f] for f in color_family_counts.keys()]
     }
-    
+
     filament_totals = {}
     for u in usage:
         spool = spools_by_id.get(u["spool_id"])
@@ -915,13 +905,55 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
             name = spool.get("filament", {}).get("name", "Sans nom")
             key = f"{vendor} - {type_} - {name}"
             filament_totals[key] = filament_totals.get(key, 0.0) + u["grams_used"]
-    
+
     sorted_filaments = sorted(filament_totals.items(), key=lambda x: x[1], reverse=True)[:15]
     top_filaments = {
         "labels": [label for label, _ in sorted_filaments],
         "values": [val for _, val in sorted_filaments]
     }
-    
+
+    durations_prints = [
+        {"id": p["id"], "name": p["id"], "duration": (p["duration"] or 0) / 3600, "is_group": False}
+        for p in prints if p["duration"]
+    ]
+
+    cursor.execute(f"""
+        SELECT p.group_id AS id, MIN(pg.name) AS name, SUM(p.duration) AS duration
+        FROM prints p
+        JOIN print_groups pg ON p.group_id = pg.id
+        WHERE p.id IN ({','.join('?' for _ in print_ids)}) AND p.group_id IS NOT NULL
+        GROUP BY p.group_id
+    """, print_ids)
+    durations_groups = [
+        {"id": r["id"], "name": r["name"], "duration": r["duration"] / 3600, "is_group": True}
+        for r in cursor.fetchall() if r["duration"]
+    ]
+
+    cursor.execute(f"""
+        SELECT p.id, SUM(fu.grams_used) AS total_grams
+        FROM filament_usage fu
+        JOIN prints p ON fu.print_id = p.id
+        WHERE p.id IN ({','.join('?' for _ in print_ids)})
+        GROUP BY p.id
+    """, print_ids)
+    weights_prints = [
+        {"id": r["id"], "name": r["id"], "weight": r["total_grams"], "is_group": False}
+        for r in cursor.fetchall()
+    ]
+
+    cursor.execute(f"""
+        SELECT p.group_id AS id, MIN(pg.name) AS name, SUM(fu.grams_used) AS total_weight
+        FROM prints p
+        JOIN print_groups pg ON p.group_id = pg.id
+        JOIN filament_usage fu ON fu.print_id = p.id
+        WHERE p.id IN ({','.join('?' for _ in print_ids)}) AND p.group_id IS NOT NULL
+        GROUP BY p.group_id
+    """, print_ids)
+    weights_groups = [
+        {"id": r["id"], "name": r["name"], "weight": r["total_weight"], "is_group": True}
+        for r in cursor.fetchall()
+    ]
+
     stats_data = {
         "total_prints": len(print_ids),
         "total_duration": duration_hours,
@@ -929,84 +961,25 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         "filament_cost": filament_cost,
         "electric_cost": electric_cost,
         "total_cost": filament_cost + electric_cost,
-        "vendor_pie": vendor_pie,
+        "vendor_pie": sort_pie_data(vendor_pie),
         "duration_histogram": duration_histogram,
-        "filament_type_pie": filament_type_pie,
-        "color_family_pie": color_family_pie,
+        "filament_type_pie": sort_pie_data(filament_type_pie),
+        "color_family_pie": sort_pie_data(color_family_pie),
         "top_filaments": top_filaments,
-        "total_margin": total_margin
+        "total_margin": total_margin,
+        "top_longest_prints": sorted(durations_prints + durations_groups, key=lambda x: x["duration"], reverse=True)[:15],
+        "top_heaviest_prints": sorted(weights_prints + weights_groups, key=lambda x: x["weight"], reverse=True)[:15]
     }
-    duration_condition = f"{where_sql} AND duration IS NOT NULL" if where_sql else "WHERE duration IS NOT NULL"
-    # Top 15 combiné durée (prints + groupes)
-    cursor.execute(f"""
-        SELECT id, file_name AS name, duration, NULL AS group_name, 0 AS is_group
-        FROM prints
-        {duration_condition}
-        AND duration IS NOT NULL
-    """, params)
-    durations_prints = [
-        {"id": row["id"], "name": row["name"], "duration": row["duration"] / 3600, "is_group": False}
-        for row in cursor.fetchall()
-    ]
-    
-    cursor.execute("""
-        SELECT pg.id, pg.name, SUM(p.duration) AS duration
-        FROM print_groups pg
-        LEFT JOIN prints p ON p.group_id = pg.id
-        WHERE p.duration IS NOT NULL
-        GROUP BY pg.id
-    """)
-    durations_groups = [
-        {"id": row["id"], "name": row["name"], "duration": row["duration"] / 3600, "is_group": True}
-        for row in cursor.fetchall()
-        if row["duration"]
-    ]
-    
-    all_durations = sorted(durations_prints + durations_groups, key=lambda x: x["duration"], reverse=True)[:15]
-    
-    weight_condition = where_sql if where_sql else ""
-    # Top 15 combiné poids (prints + groupes)
-    cursor.execute(f"""
-        SELECT p.id, p.file_name AS name, SUM(fu.grams_used) AS total_grams, 0 AS is_group
-        FROM prints p
-        LEFT JOIN filament_usage fu ON fu.print_id = p.id
-        {weight_condition}
-        GROUP BY p.id
-    """, params)
-    weights_prints = [
-        {"id": row["id"], "name": row["name"], "weight": row["total_grams"], "is_group": False}
-        for row in cursor.fetchall()
-        if row["total_grams"]
-    ]
-    
-    cursor.execute("""
-        SELECT pg.id, pg.name, pg.total_weight, 1 AS is_group
-        FROM print_groups pg
-        WHERE pg.total_weight IS NOT NULL
-    """)
-    weights_groups = [
-        {"id": row["id"], "name": row["name"], "weight": row["total_weight"], "is_group": True}
-        for row in cursor.fetchall()
-    ]
-    
-    all_weights = sorted(weights_prints + weights_groups, key=lambda x: x["weight"], reverse=True)[:15]
-    
-    stats_data["top_longest_prints"] = all_durations
-    stats_data["top_heaviest_prints"] = all_weights
-    
-    # Et maintenant que stats_data existe, tu peux faire tes tris :
-    stats_data["vendor_pie"] = sort_pie_data(stats_data["vendor_pie"])
-    stats_data["filament_type_pie"] = sort_pie_data(stats_data["filament_type_pie"])
-    stats_data["color_family_pie"] = sort_pie_data(stats_data["color_family_pie"])
-    # Réordonner les couleurs
+
     ordered_families = stats_data["color_family_pie"]["labels"]
     stats_data["color_family_pie"]["colors"] = [
         stats_data["color_family_pie"]["colors"][stats_data["color_family_pie"]["labels"].index(fam)]
         for fam in ordered_families
     ]
+
     conn.close()
-    
     return stats_data
+
 
 def adjustDuration(print_id: int, duration_seconds: int) -> None:
     """
