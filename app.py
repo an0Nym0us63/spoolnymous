@@ -153,65 +153,55 @@ def _merge_context_args(keep=None, drop=None, **new_args):
     Fusionne les arguments GET et certains POST explicitement autorisés
     avec des nouveaux paramètres, en nettoyant les clés vides.
     Les arguments GET ont priorité sur les POST en cas de doublon.
-    """
-    def normalize(val):
-        if isinstance(val, list):
-            # Erreur classique : liste d'une chaîne "SUCCESS" => ["S", "U", ...]
-            if len(val) == 1 and isinstance(val[0], str) and len(val[0]) > 1:
-                val = val[0]  # on aplatit proprement
-            else:
-                val = list(dict.fromkeys(v for v in val if v not in [None, ""]))
-                if not val:
-                    return None
-                return val
-        return val if val not in [None, ""] else None
 
+    Args:
+        keep (list[str], optional): liste blanche des clés à garder (en plus de DEFAULT_KEEP_KEYS).
+        drop (list[str], optional): liste noire à exclure si keep est None.
+        **new_args: arguments à ajouter ou écraser.
+
+    Returns:
+        dict: tous les arguments à inclure dans l'URL.
+    """
     current_args = {}
+
     effective_keep = set(DEFAULT_KEEP_KEYS)
     if keep is not None:
         effective_keep.update(keep)
 
+    def is_meaningful(val):
+        if isinstance(val, list):
+            val = list(dict.fromkeys(v for v in val if v not in [None, ""]))  # dédupliqué
+            return val if val else None
+        return val if val not in [None, ""] else None
+
     # GET args (prioritaires)
     for k in request.args:
         if k in effective_keep:
-            raw = request.args.getlist(k)
-            cleaned = normalize(raw if len(raw) > 1 else raw[0])
+            values = request.args.getlist(k)
+            cleaned = is_meaningful(values if len(values) > 1 else values[0])
             if cleaned is not None:
                 current_args[k] = cleaned
 
-    # POST args (si non déjà présents)
+    # POST args (n'ajoute que si la clé n'existe pas déjà)
     if request.method == 'POST':
         for k in request.form:
             if k in effective_keep and k not in current_args:
-                raw = request.form.getlist(k)
-                cleaned = normalize(raw if len(raw) > 1 else raw[0])
+                values = request.form.getlist(k)
+                cleaned = is_meaningful(values if len(values) > 1 else values[0])
                 if cleaned is not None:
                     current_args[k] = cleaned
 
-    # new_args nettoyés et normalisés
+    # new_args peut écraser les valeurs, donc on ne filtre que les non-significatifs
     cleaned_new_args = {
-        k: normalize(v) for k, v in new_args.items() if normalize(v) is not None
+        k: v for k, v in new_args.items() if is_meaningful(v) is not None
     }
 
     merged = {**current_args, **cleaned_new_args}
 
-    final_args = {}
-    for k, v in merged.items():
-        val = normalize(v)
-        if val is not None:
-            # 🔒 protection ABSOLUE : une string doit rester une string
-            if isinstance(val, str):
-                final_args[k] = val
-            elif isinstance(val, list):
-                if len(val) == 1 and isinstance(val[0], str) and len(val[0]) > 1:
-                    final_args[k] = val[0]  # aplatit les ["SUCCESS"]
-                else:
-                    final_args[k] = val
-            else:
-                final_args[k] = val
-    
-    return final_args
+    # Nettoyage final des doublons ou valeurs vides restantes (sécurité)
+    final_args = {k: v for k, v in merged.items() if is_meaningful(v) is not None}
 
+    return final_args
 
 
 def redirect_with_context(endpoint, keep=None, drop=None, **new_args):
