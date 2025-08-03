@@ -31,6 +31,7 @@
   </div>
   <div class="offcanvas-body">
     <form method="get" class="row g-2 align-items-end">
+	{{ macros.render_hidden_args(args) }}
       <div class="col-md-4">
         <input type="text" name="search" class="form-control" placeholder="Recherche nom, matériau ou vendor" value="{{ search }}">
       </div>
@@ -82,6 +83,7 @@
       {% endif %}
 
       <form method="get" class="d-inline-flex align-items-center mx-2">
+	  {{ macros.render_hidden_args(args) }}
         <label for="gotoPage" class="me-1 mb-0"></label>
         <input type="number" min="1" max="{{ total_pages }}" id="gotoPage" name="page" value="{{ page }}" class="form-control form-control-sm" style="width: 40px;">
         <button type="submit" class="btn btn-sm btn-primary ms-1">Aller</button>

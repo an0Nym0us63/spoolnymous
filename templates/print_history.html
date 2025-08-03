@@ -29,6 +29,7 @@
       {% endif %}
 
       <form method="get" class="d-inline-flex align-items-center mx-2">
+	  {{ macros.render_hidden_args(args) }}
         <label for="gotoPage" class="me-1 mb-0"></label>
         <input type="number" min="1" max="{{ total_pages }}" id="gotoPage" name="page" value="{{ page }}" class="form-control form-control-sm" style="width: 40px;">
         <button type="submit" class="btn btn-sm btn-primary ms-1">Aller</button>
@@ -52,6 +53,7 @@
   </div>
   <div class="offcanvas-body">
     <form method="get">
+	{{ macros.render_hidden_args(args) }}
       <div class="row row-cols-1 row-cols-md-2 g-3">
 <div class="col">
   <label for="status">Statut</label>
