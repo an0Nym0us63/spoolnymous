@@ -1,7 +1,13 @@
 {% macro render_filtered_args(args, exclude=[]) %}
   {% for k, vlist in args.items() if k not in exclude %}
-    {% for v in vlist %}
-      <input type="hidden" name="{{ k }}" value="{{ v }}">
-    {% endfor %}
+    {% if vlist is string %}
+      <input type="hidden" name="{{ k }}" value="{{ vlist }}">
+    {% elif vlist is iterable %}
+      {% for v in vlist %}
+        <input type="hidden" name="{{ k }}" value="{{ v }}">
+      {% endfor %}
+    {% else %}
+      <input type="hidden" name="{{ k }}" value="{{ vlist }}">
+    {% endif %}
   {% endfor %}
 {% endmacro %}
