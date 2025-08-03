@@ -151,7 +151,8 @@ DEFAULT_KEEP_KEYS = [
 def _merge_context_args(keep=None, drop=None, **new_args):
     """
     Fusionne les arguments GET et certains POST explicitement autorisés
-    avec des nouveaux paramètres.
+    avec des nouveaux paramètres, en nettoyant les clés vides.
+    Les arguments GET ont priorité sur les POST en cas de doublon.
 
     Args:
         keep (list[str], optional): liste blanche des clés à garder (en plus de DEFAULT_KEEP_KEYS).
@@ -161,26 +162,60 @@ def _merge_context_args(keep=None, drop=None, **new_args):
     Returns:
         dict: tous les arguments à inclure dans l'URL.
     """
-    current_args = {}
+    def is_meaningful(val):
+        if isinstance(val, list):
+            # Cas classique d'erreur : ['SUCCESS'] ou ['grid'] → on aplatit
+            if len(val) == 1 and isinstance(val[0], str) and len(val[0]) > 1:
+                return val[0]
+            val = list(dict.fromkeys(v for v in val if v not in [None, ""]))
+            return val if val else None
+        return val if val not in [None, ""] else None
 
+    current_args = {}
     effective_keep = set(DEFAULT_KEEP_KEYS)
     if keep is not None:
         effective_keep.update(keep)
 
-    # GET args
+    # GET args (prioritaires)
     for k in request.args:
         if k in effective_keep:
             values = request.args.getlist(k)
-            current_args[k] = values if len(values) > 1 else values[0]
+            cleaned = is_meaningful(values if len(values) > 1 else values[0])
+            if cleaned is not None:
+                current_args[k] = cleaned
 
-    # POST args (seulement ceux explicitement listés)
+    # POST args (n'ajoute que si la clé n'existe pas déjà)
     if request.method == 'POST':
         for k in request.form:
-            if k in effective_keep:
+            if k in effective_keep and k not in current_args:
                 values = request.form.getlist(k)
-                current_args[k] = values if len(values) > 1 else values[0]
+                cleaned = is_meaningful(values if len(values) > 1 else values[0])
+                if cleaned is not None:
+                    current_args[k] = cleaned
 
-    return {**current_args, **new_args}
+    # new_args peut écraser les valeurs, donc on ne filtre que les non-significatifs
+    cleaned_new_args = {
+        k: v for k, v in new_args.items() if is_meaningful(v) is not None
+    }
+
+    merged = {**current_args, **cleaned_new_args}
+
+    # Nettoyage final sécurisé pour éviter l'explosion de strings
+    final_args = {}
+    for k, v in merged.items():
+        val = is_meaningful(v)
+        if val is not None:
+            if isinstance(val, str):
+                final_args[k] = val
+            elif isinstance(val, list):
+                if len(val) == 1 and isinstance(val[0], str) and len(val[0]) > 1:
+                    final_args[k] = val[0]
+                else:
+                    final_args[k] = val
+            else:
+                final_args[k] = val
+
+    return final_args
 
 
 def redirect_with_context(endpoint, keep=None, drop=None, **new_args):
@@ -201,6 +236,10 @@ def redirect_with_context(endpoint, keep=None, drop=None, **new_args):
     return redirect(url_for(endpoint) + ('?' + query if query else ''))
 
 def filtered_args_for_template(keep=None, drop=None, **overrides):
+    """
+    Génère un dictionnaire de paramètres filtrés (comme pour redirection)
+    à utiliser dans render_template(..., args=...)
+    """
     return _merge_context_args(keep=keep, drop=drop, **overrides)
 
 def parse_print_date(date_str):
