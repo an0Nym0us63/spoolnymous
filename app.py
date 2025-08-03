@@ -153,20 +153,10 @@ def _merge_context_args(keep=None, drop=None, **new_args):
     Fusionne les arguments GET et certains POST explicitement autorisés
     avec des nouveaux paramètres, en nettoyant les clés vides.
     Les arguments GET ont priorité sur les POST en cas de doublon.
-
-    Args:
-        keep (list[str], optional): liste blanche des clés à garder (en plus de DEFAULT_KEEP_KEYS).
-        drop (list[str], optional): liste noire à exclure si keep est None.
-        **new_args: arguments à ajouter ou écraser.
-
-    Returns:
-        dict: tous les arguments à inclure dans l'URL.
     """
+
     def is_meaningful(val):
         if isinstance(val, list):
-            # Cas classique d'erreur : ['SUCCESS'] ou ['grid'] → on aplatit
-            if len(val) == 1 and isinstance(val[0], str) and len(val[0]) > 1:
-                return val[0]
             val = list(dict.fromkeys(v for v in val if v not in [None, ""]))
             return val if val else None
         return val if val not in [None, ""] else None
@@ -176,7 +166,6 @@ def _merge_context_args(keep=None, drop=None, **new_args):
     if keep is not None:
         effective_keep.update(keep)
 
-    # GET args (prioritaires)
     for k in request.args:
         if k in effective_keep:
             values = request.args.getlist(k)
@@ -184,7 +173,6 @@ def _merge_context_args(keep=None, drop=None, **new_args):
             if cleaned is not None:
                 current_args[k] = cleaned
 
-    # POST args (n'ajoute que si la clé n'existe pas déjà)
     if request.method == 'POST':
         for k in request.form:
             if k in effective_keep and k not in current_args:
@@ -193,29 +181,15 @@ def _merge_context_args(keep=None, drop=None, **new_args):
                 if cleaned is not None:
                     current_args[k] = cleaned
 
-    # new_args peut écraser les valeurs, donc on ne filtre que les non-significatifs
+    # new_args peuvent écraser, donc on applique le même nettoyage
     cleaned_new_args = {
-        k: v for k, v in new_args.items() if is_meaningful(v) is not None
+        k: is_meaningful(v) for k, v in new_args.items()
+        if is_meaningful(v) is not None
     }
 
     merged = {**current_args, **cleaned_new_args}
+    return merged
 
-    # Nettoyage final sécurisé pour éviter l'explosion de strings
-    final_args = {}
-    for k, v in merged.items():
-        val = is_meaningful(v)
-        if val is not None:
-            if isinstance(val, str):
-                final_args[k] = val
-            elif isinstance(val, list):
-                if len(val) == 1 and isinstance(val[0], str) and len(val[0]) > 1:
-                    final_args[k] = val[0]
-                else:
-                    final_args[k] = val
-            else:
-                final_args[k] = val
-
-    return final_args
 
 
 def redirect_with_context(endpoint, keep=None, drop=None, **new_args):
@@ -291,21 +265,7 @@ def hm_format(hours: float):
 def frontend_utilities():
     def url_with_args(**kwargs):
         args = _merge_context_args(**kwargs)
-
-        # 🔒 Protection : transforme toute str en valeur atomique non itérable
-        safe_args = {}
-        for k, v in args.items():
-            if isinstance(v, str):
-                safe_args[k] = v
-            elif isinstance(v, list):
-                if len(v) == 1 and isinstance(v[0], str) and len(v[0]) > 1:
-                    safe_args[k] = v[0]  # aplatissement sécurisé
-                else:
-                    safe_args[k] = v
-            else:
-                safe_args[k] = v
-
-        return url_for(request.endpoint) + ('?' + urlencode(safe_args, doseq=True) if safe_args else '')
+        return url_for(request.endpoint) + ('?' + urlencode(args, doseq=True) if args else '')
 
     return dict(
         SPOOLMAN_BASE_URL=SPOOLMAN_BASE_URL,
