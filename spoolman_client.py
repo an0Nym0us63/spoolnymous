@@ -9,8 +9,8 @@ def patchExtraTags(spool_id, old_extras, new_extras):
   resp = requests.patch(f"{SPOOLMAN_API_URL}/spool/{spool_id}", json={
     "extra": old_extras
   })
-  print(resp.text)
-  print(resp.status_code)
+  #print(resp.text)
+  #print(resp.status_code)
   
 def patchLocation(spool_id, ams_id='', tray_id=''):
   location = ''
@@ -26,14 +26,14 @@ def patchLocation(spool_id, ams_id='', tray_id=''):
   resp = requests.patch(f"{SPOOLMAN_API_URL}/spool/{spool_id}", json={
     "location": location
   })
-  print(resp.text)
-  print(resp.status_code)
+  #print(resp.text)
+  #print(resp.status_code)
 
 
 def getSpoolById(spool_id):
   response = requests.get(f"{SPOOLMAN_API_URL}/spool/{spool_id}")
-  print(response.status_code)
-  print(response.text)
+  #print(response.status_code)
+  #print(response.text)
   return response.json()
 
 
@@ -46,30 +46,30 @@ def fetchSpoolList(archived=False):
   else:
     response = requests.get(f"{SPOOLMAN_API_URL}/spool{archi}")
     
-  print(response.status_code)
-  print(response.text)
+  #print(response.status_code)
+  #print(response.text)
   return response.json()
 
 def consumeSpool(spool_id, use_weight):
-  print(f'Consuming {use_weight} from spool {spool_id}')
+  #print(f'Consuming {use_weight} from spool {spool_id}')
 
   response = requests.put(f"{SPOOLMAN_API_URL}/spool/{spool_id}/use", json={
     "use_weight": use_weight
   })
-  print(response.status_code)
-  print(response.text)
+  #print(response.status_code)
+  #print(response.text)
 
 def reajust_spool(spool_id, new_weight):
-    print(f"Réajuster spool {spool_id} à {new_weight}g")
+    #print(f"Réajuster spool {spool_id} à {new_weight}g")
     response = requests.patch(f"{SPOOLMAN_API_URL}/spool/{spool_id}", json={
         "remaining_weight": new_weight
     })
-    print(response.status_code)
-    print(response.text)
+    #print(response.status_code)
+    #print(response.text)
     return response
 
 def archive_spool(spool_id):
-    print(f"Archiver spool {spool_id}, le déplacer en Archives, vider active_tray et mettre remaining_weight à 0")
+    #print(f"Archiver spool {spool_id}, le déplacer en Archives, vider active_tray et mettre remaining_weight à 0")
     response = requests.patch(f"{SPOOLMAN_API_URL}/spool/{spool_id}", json={
         "archived": True,
         "location": "Archives",
@@ -78,14 +78,14 @@ def archive_spool(spool_id):
             "active_tray": "\"\""
         }
     })
-    print(response.status_code)
-    print(response.text)
+    #print(response.status_code)
+    #print(response.text)
     return response
 
 def fetchSettings():
   response = requests.get(f"{SPOOLMAN_API_URL}/setting/")
-  print(response.status_code)
-  print(response.text)
+  #print(response.status_code)
+  #print(response.text)
 
   # JSON in ein Python-Dictionary laden
   data = response.json()

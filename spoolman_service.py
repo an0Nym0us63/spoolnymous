@@ -130,7 +130,7 @@ def spendFilaments(printdata):
 
       # iterate over all ams_trays and set spool in print history, at the same time sum the usage for the tray and consume it from the spool
       used_grams = 0
-      print(ams_usage)
+      #print(ams_usage)
       for ams_tray in ams_usage:
         if active_tray == ams_tray["trayUid"]:
           used_grams += ams_tray["usedGrams"]
