@@ -5,7 +5,7 @@
 <div x-data="{ open: false }" class="mb-4">
   <!-- Accordéon fermé avec barre de progression comme header -->
   <div
-    class="relative rounded-xl overflow-hidden shadow-md cursor-pointer transition-all duration-200 bg-dark/70"
+    class="relative overflow-hidden shadow-md cursor-pointer transition-all duration-200 rounded-t-xl"
     @click="open = !open"
   >
     {% set progress_color = 'from-green-500 to-blue-500' %}
@@ -18,10 +18,10 @@
     {% endif %}
 
     <!-- Barre de progression colorée en fond direct -->
-    <div class="absolute inset-0">
-      <div class="h-full bg-dark/30"></div>
-      <div class="absolute inset-y-0 left-0 bg-gradient-to-r {{ progress_color }} transition-all duration-700"
+    <div class="absolute inset-0 flex">
+      <div class="h-full bg-gradient-to-r {{ progress_color }} transition-all duration-700"
            style="width: {{ printer_status.progress or 0 }}%; min-width: 2rem;"></div>
+      <div class="flex-1 bg-dark/30"></div>
     </div>
 
     <!-- Contenu du header par-dessus -->
@@ -55,7 +55,7 @@
   </div>
 
   <!-- Contenu déplié -->
-  <div x-show="open" x-transition class="bg-dark border rounded-b-xl shadow-inner p-4 text-sm text-light">
+  <div x-show="open" x-transition class="bg-dark border border-t-0 rounded-b-xl shadow-inner p-4 text-sm text-light">
     <div class="row g-3">
       <div class="col-sm-6">
         <strong>Fichier :</strong> {{ printer_status.print_file or 'N/A' }}<br>
