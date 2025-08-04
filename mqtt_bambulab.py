@@ -328,6 +328,8 @@ def on_message(client, userdata, msg):
                 "fan_speed": data.get("fan", {}).get("speed"),
             })
     except Exception as e:
+        print(topic)
+        print(data)
         traceback.print_exc()
 
     if "print" in data:
