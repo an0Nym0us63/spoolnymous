@@ -31,9 +31,6 @@
   <div class="flex items-center gap-2 truncate">
     <img src="{{ url_for('static', filename='prints/' ~ printer_status.thumbnail) if printer_status.thumbnail else url_for('static', filename='img/placeholder.png') }}"
          alt="thumbnail" class="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded shadow" />
-    <div class="font-semibold truncate text-sm">
-      {{ printer_status.print_name or 'Modèle inconnu' }}
-    </div>
   </div>
 
   <!-- Progression centré -->
@@ -45,10 +42,7 @@
   <!-- Infos à droite -->
   <div class="text-right text-xs">
     {% if printer_status.remaining_time is number %}
-      <div>🍱 {{ printer_status.remaining_time }} min</div>
-    {% endif %}
-    {% if printer_status.layer_num and printer_status.total_layer_num %}
-      <div>🧱 {{ printer_status.layer_num }}/{{ printer_status.total_layer_num }}</div>
+      <div>⏱️ {{ printer_status.remaining_time }} min</div>
     {% endif %}
   </div>
 </div>
@@ -67,7 +61,10 @@
       <div class="col-sm-6">
         <strong>Ventilateur :</strong> {{ printer_status.fan_speed or 'N/A' }}<br>
         <strong>Chambre :</strong> {{ printer_status.chamber_temp or '—' }} °C<br>
-        <strong>WiFi :</strong> {{ printer_status.wifi_signal or '—' }}
+		
+    {% if printer_status.layer_num and printer_status.total_layer_num %}
+      <strong>🧱 </strong> {{ printer_status.layer_num }}/{{ printer_status.total_layer_num }}<br>
+    {% endif %}
       </div>
     </div>
   </div>

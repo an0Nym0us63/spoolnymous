@@ -317,15 +317,12 @@ def safe_update_status(data):
         "progress": data.get("mc_percent"),
         "bed_temp": data.get("bed_temper"),
         "nozzle_temp": data.get("nozzle_temper"),
-        "fan_speed": data.get("cooling_fan_speed"),
         "print_file": data.get("gcode_file"),
         "print_name": data.get("subtask_name"),
         "print_layer": data.get("layer_num"),
         "total_layers": data.get("total_layer_num"),
         "remaining_time": data.get("mc_remaining_time"),
-        "plate_name": data.get("plate_id"),
         "chamber_temp": data.get("chamber_temper"),
-        "wifi_signal": data.get("wifi_signal"),
     }
 
     update_status({k: v for k, v in fields.items() if v is not None})
