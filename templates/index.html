@@ -5,7 +5,8 @@
 <div x-data="{ open: false }" class="mb-4">
   <!-- Accordéon fermé avec barre de progression comme header -->
   <div
-    class="relative overflow-hidden shadow-md cursor-pointer transition-all duration-200 rounded-t-xl"
+    class="relative overflow-hidden shadow-md cursor-pointer transition-all duration-200 rounded-xl"
+    :class="open ? 'rounded-b-none' : 'rounded-xl'"
     @click="open = !open"
   >
     {% set progress_color = 'from-green-500 to-blue-500' %}
@@ -21,7 +22,7 @@
     <div class="absolute inset-0 flex">
       <div class="h-full bg-gradient-to-r {{ progress_color }} transition-all duration-700"
            style="width: {{ printer_status.progress or 0 }}%; min-width: 2rem;"></div>
-      <div class="flex-1 bg-gray-800/60"></div>
+      <div class="flex-1 bg-gray-900/70"></div>
     </div>
 
     <!-- Contenu du header par-dessus -->
@@ -45,7 +46,7 @@
       <!-- Infos rapides à droite -->
       <div class="text-right w-full sm:w-auto text-xs">
         {% if printer_status.remaining_time is number %}
-          <div>⏱ {{ printer_status.remaining_time }} min</div>
+          <div>🍱 {{ printer_status.remaining_time }} min</div>
         {% endif %}
         {% if printer_status.layer_num and printer_status.total_layer_num %}
           <div>🧱 {{ printer_status.layer_num }}/{{ printer_status.total_layer_num }}</div>
