@@ -2,7 +2,7 @@ import json
 import traceback
 import uuid
 import math
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import os
 import re
@@ -477,6 +477,22 @@ def home():
       ams_data=reordered
     latest = get_latest_print()
     status_copy["thumbnail"] = latest["image_file"]
+    emaining = status_copy.get("remaining_time")
+    if isinstance(remaining, (int, float)):
+        # Heure d'arrivée estimée
+        estimated_end = datetime.now() + timedelta(minutes=remaining)
+        status_copy["estimated_end"] = estimated_end.strftime("%H:%M")
+    
+        # Format heure/minute lisible
+        hours = int(remaining // 60)
+        minutes = int(remaining % 60)
+        if hours > 0:
+            status_copy["remaining_time_str"] = f"{hours}h {minutes}min"
+        else:
+            status_copy["remaining_time_str"] = f"{minutes}min"
+    else:
+        status_copy["estimated_end"] = None
+        status_copy["remaining_time_str"] = "—"
     # Nouveau : si ?webview=1 → on met le cookie
     resp = make_response(render_template(
         'index.html',
