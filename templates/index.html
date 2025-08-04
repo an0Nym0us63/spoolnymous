@@ -5,7 +5,7 @@
 <div x-data="{ open: false }" class="mb-4">
   <!-- Accordéon fermé avec barre de progression comme header -->
   <div
-    class="relative rounded-xl overflow-hidden shadow-md cursor-pointer transition-all duration-200"
+    class="relative rounded-xl overflow-hidden shadow-md cursor-pointer transition-all duration-200 bg-dark/70"
     @click="open = !open"
   >
     {% set progress_color = 'from-green-500 to-blue-500' %}
@@ -17,18 +17,15 @@
       {% set progress_color = 'from-yellow-400 to-yellow-600' %}
     {% endif %}
 
-    <!-- Conteneur progression/fond -->
-    <div class="relative h-full">
-      <!-- Fond gris plus visible sauf sous la barre -->
-      <div class="absolute inset-0 bg-dark bg-opacity-60"></div>
-
-      <!-- Barre de progression colorée -->
-      <div class="absolute inset-y-0 left-0 rounded-r-xl bg-gradient-to-r {{ progress_color }} transition-all duration-700"
+    <!-- Barre de progression colorée en fond direct -->
+    <div class="absolute inset-0">
+      <div class="h-full bg-dark/30"></div>
+      <div class="absolute inset-y-0 left-0 bg-gradient-to-r {{ progress_color }} transition-all duration-700"
            style="width: {{ printer_status.progress or 0 }}%; min-width: 2rem;"></div>
     </div>
 
     <!-- Contenu du header par-dessus -->
-    <div class="relative z-10 flex flex-wrap sm:flex-nowrap items-center justify-between bg-dark bg-opacity-90 text-white px-3 py-2 gap-2 text-xs sm:text-sm">
+    <div class="relative z-10 flex flex-wrap sm:flex-nowrap items-center justify-between text-white px-3 py-2 gap-2 text-xs sm:text-sm">
 
       <!-- Thumbnail print -->
       <div class="flex items-center gap-2 w-full sm:w-auto min-w-0">
