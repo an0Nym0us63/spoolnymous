@@ -98,8 +98,7 @@ def processMessage(data):
   global LAST_AMS_CONFIG, PRINTER_STATE, PRINTER_STATE_LAST, PENDING_PRINT_METADATA
     
    # Prepare AMS spending estimation
-  if "print" in data:    
-    print('PRINT--'+str(data))
+  if "print" in data:
     update_dict(PRINTER_STATE, data)
     #print(str(data))
     if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
@@ -329,10 +328,10 @@ def on_message(client, userdata, msg):
     if "print" in data and "ams" in data["print"] and "ams" in data["print"]["ams"]:
       LAST_AMS_CONFIG["ams"] = data["print"]["ams"]["ams"]
       for ams in data["print"]["ams"]["ams"]:
-        print(f"AMS [{num2letter(ams['id'])}] (hum: {ams['humidity_raw']}, temp: {ams['temp']}ºC)")
+        #print(f"AMS [{num2letter(ams['id'])}] (hum: {ams['humidity_raw']}, temp: {ams['temp']}ºC)")
         for tray in ams["tray"]:
           if "tray_sub_brands" in tray:
-            print(
+            #print(
                 f"    - [{num2letter(ams['id'])}{tray['id']}] {tray['tray_sub_brands']} {tray['tray_color']} ({str(tray['remain']).zfill(3)}%) [[{tray['tray_uuid']}]] [[{tray['tray_info_idx']}]]")
 
             foundspool = None
@@ -350,14 +349,14 @@ def on_message(client, userdata, msg):
               if tag != tray["tray_uuid"] and filament_id != tray["tray_info_idx"]:
                 continue
               if tray_uuid == tag:
-                print('Found spool with tag')
+                #print('Found spool with tag')
                 foundspool= spool
                 break
               else:
                 if spool.get("filament", {}).get("extra",{}).get("filament_id"):
                     color_dist = color_distance(spool["filament"]["color_hex"],tray['tray_color'])
                     spool['color_dist']=color_dist
-                    print(filament_id + ' ' +spool["filament"]["color_hex"] + ' : ' + str(color_dist)) 
+                    #print(filament_id + ' ' +spool["filament"]["color_hex"] + ' : ' + str(color_dist)) 
                     if foundspool == None:
                         if color_dist<50:
                             foundspool= spool
@@ -373,7 +372,7 @@ def on_message(client, userdata, msg):
             if foundspool == None:
               print("      - Not found. Update spool tag or filament_id and color!")
             else:
-                print("Found spool " + str(foundspool))
+                #print("Found spool " + str(foundspool))
                 setActiveTray(foundspool['id'], foundspool["extra"], ams['id'], tray["id"])
               
   except Exception as e:
