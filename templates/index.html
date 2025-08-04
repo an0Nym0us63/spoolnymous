@@ -83,6 +83,18 @@
         document.getElementById('status-progress').innerText = `${data.progress || 0}%`;
         document.getElementById('status-text').innerText = data.status || '...';
         document.getElementById('status-progress-bar').style.width = `${data.progress || 0}%`;
+		
+		const bar = document.getElementById('status-progress-bar');
+        bar.classList.remove('from-green-500', 'to-blue-500', 'from-green-600', 'to-emerald-400', 'from-red-600', 'to-pink-500', 'from-yellow-400', 'to-yellow-600');
+        if (data.status === 'FINISH') {
+          bar.classList.add('from-green-600', 'to-emerald-400');
+        } else if (data.status === 'ERROR' || data.status === 'FAILED') {
+          bar.classList.add('from-red-600', 'to-pink-500');
+        } else if (data.status === 'PAUSED') {
+          bar.classList.add('from-yellow-400', 'to-yellow-600');
+        } else {
+          bar.classList.add('from-green-500', 'to-blue-500');
+        }
 
         document.getElementById('status-remaining').innerText = data.remaining_time !== undefined ? `⏱️ ${data.remaining_time} min` : '';
         document.getElementById('status-layers').innerText = data.print_layer && data.total_layers ? `${data.print_layer}/${data.total_layers}` : '';
