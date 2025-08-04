@@ -18,14 +18,14 @@
     {% endif %}
 
     <!-- Fond gris plus visible -->
-    <div class="absolute inset-0 bg-gray-600 bg-opacity-50"></div>
+    <div class="absolute inset-0 bg-dark bg-opacity-50"></div>
 
     <!-- Barre de progression colorée -->
     <div class="absolute inset-y-0 left-0 z-0 bg-gradient-to-r {{ progress_color }}"
          style="width: {{ printer_status.progress or 0 }}%;"></div>
 
     <!-- Contenu du header par-dessus -->
-    <div class="relative z-10 flex flex-wrap sm:flex-nowrap items-center justify-between bg-slate-900 bg-opacity-90 text-white px-3 py-2 gap-2 text-xs sm:text-sm">
+    <div class="relative z-10 flex flex-wrap sm:flex-nowrap items-center justify-between bg-dark bg-opacity-90 text-white px-3 py-2 gap-2 text-xs sm:text-sm">
 
       <!-- Thumbnail print -->
       <div class="flex items-center gap-2 w-full sm:w-auto min-w-0">
@@ -55,15 +55,15 @@
   </div>
 
   <!-- Contenu déplié -->
-  <div x-show="open" x-transition class="bg-white border rounded-b-xl shadow-inner p-4 text-sm">
-    <div class="grid sm:grid-cols-2 gap-4">
-      <div>
+  <div x-show="open" x-transition class="bg-dark border rounded-b-xl shadow-inner p-4 text-sm text-light">
+    <div class="row g-3">
+      <div class="col-sm-6">
         <strong>Fichier :</strong> {{ printer_status.print_file or 'N/A' }}<br>
         <strong>Plate :</strong> {{ printer_status.plate_name or 'N/A' }}<br>
         <strong>Temp. buse :</strong> {{ printer_status.nozzle_temp or '—' }} °C<br>
         <strong>Temp. bed :</strong> {{ printer_status.bed_temp or '—' }} °C
       </div>
-      <div>
+      <div class="col-sm-6">
         <strong>Ventilateur :</strong> {{ printer_status.fan_speed or 'N/A' }}<br>
         <strong>Chambre :</strong> {{ printer_status.chamber_temp or '—' }} °C<br>
         <strong>WiFi :</strong> {{ printer_status.wifi_signal or '—' }}
