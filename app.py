@@ -25,6 +25,7 @@ from mqtt_bambulab import getLastAMSConfig, publish, getMqttClient, setActiveTra
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool, archive_spool, reajust_spool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings,fetchSpools
 from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data
+from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 
 COLOR_FAMILIES = {
     # Neutres
@@ -444,6 +445,8 @@ def home():
     return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
     
   try:
+    with PRINTER_STATUS_LOCK:
+        status_copy = dict(PRINTER_STATUS)
     last_ams_config = getLastAMSConfig()
     ams_data = last_ams_config.get("ams", [])
     vt_tray_data = last_ams_config.get("vt_tray", {})
@@ -480,7 +483,8 @@ def home():
         ams_data=ams_data,
         vt_tray_data=vt_tray_data,
         issue=issue,
-        page_title="Home"
+        page_title="Home",
+        printer_status=status_copy
     ))
 
     if request.args.get("webview") == "1":

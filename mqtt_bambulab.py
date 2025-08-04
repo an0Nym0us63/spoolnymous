@@ -16,6 +16,8 @@ from collections.abc import Mapping
 from logger import append_to_rotating_file
 from print_history import  insert_print, insert_filament_usage, update_filament_spool
 
+from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
+
 MQTT_CLIENT = {}  # Global variable storing MQTT Client
 MQTT_CLIENT_CONNECTED = False
 MQTT_KEEPALIVE = 60
@@ -26,6 +28,10 @@ PRINTER_STATE_LAST = {}
 
 PENDING_PRINT_METADATA = {}
 
+def update_status(new_data):
+    with PRINTER_STATUS_LOCK:
+        PRINTER_STATUS.update(new_data)
+        
 def getPrinterModel():
     global PRINTER_ID
     model_code = PRINTER_ID[:3]
@@ -310,8 +316,16 @@ def on_message(client, userdata, msg):
   global LAST_AMS_CONFIG, PRINTER_STATE, PRINTER_STATE_LAST, PENDING_PRINT_METADATA, PRINTER_MODEL
   
   try:
+    topic = msg.topic
     data = json.loads(msg.payload.decode())
-
+    if "report" in topic and "print" in data:
+        update_status({
+            "status": payload["print"].get("print_status"),
+            "progress": payload["print"].get("gcode_state", {}).get("progress", 0),
+            "bed_temp": payload.get("bed", {}).get("temp"),
+            "tool_temp": payload.get("tool", {}).get("temp"),
+            "fan_speed": payload.get("fan", {}).get("speed"),
+        })
     if "print" in data:
       append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
 
