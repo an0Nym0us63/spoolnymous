@@ -8,9 +8,18 @@
     class="relative rounded-xl overflow-hidden shadow-md cursor-pointer transition-all duration-200"
     @click="open = !open"
   >
+    {% set progress_color = 'from-green-500 to-blue-500' %}
+    {% if printer_status.status == 'FINISH' %}
+      {% set progress_color = 'from-green-600 to-emerald-400' %}
+    {% elif printer_status.status == 'ERROR' or printer_status.status == 'FAILED' %}
+      {% set progress_color = 'from-red-600 to-pink-500' %}
+    {% elif printer_status.status == 'PAUSED' %}
+      {% set progress_color = 'from-yellow-400 to-yellow-600' %}
+    {% endif %}
+
     <!-- Barre de progression colorée -->
-    <div class="absolute inset-0 z-0 bg-gradient-to-r from-green-500 to-blue-500"
-         :style="`width: ${{ printer_status.progress or 0 }}%`"></div>
+    <div class="absolute inset-0 z-0 bg-gradient-to-r {{ progress_color }}"
+         style="width: {{ printer_status.progress or 0 }}%;"></div>
 
     <!-- Contenu du header par-dessus -->
     <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between bg-slate-900 bg-opacity-90 text-white px-4 py-4 gap-2">
@@ -63,6 +72,7 @@
 
 <!-- Alpine.js requis -->
 <script src="https://unpkg.com/alpinejs" defer></script>
+
 
 
 {% if issue %}
