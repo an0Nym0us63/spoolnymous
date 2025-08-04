@@ -103,7 +103,6 @@ def spendFilaments(printdata):
   ams_id = EXTERNAL_SPOOL_AMS_ID
   
   ams_usage = []
-  print(printdata)
   filamentOrder = printdata["filamentOrder"]
   #filament_id_to_amstray = {fid: tray for tray, fid in filamentOrder.items()}
   cleaned_mapping = [x for x in ams_mapping if x != -1]
@@ -159,8 +158,8 @@ def setActiveTray(spool_id, spool_extra, ams_id, tray_id):
       if spool_id != old_spool["id"] and old_spool.get("extra") and old_spool["extra"].get("active_tray") and json.loads(old_spool["extra"]["active_tray"]) == trayUid(ams_id, tray_id):
         patchExtraTags(old_spool["id"], old_spool["extra"], {"active_tray": json.dumps("")})
         patchLocation(old_spool["id"],100)
-  else:
-    print("Skipping set active tray")
+  #else:
+  #  print("Skipping set active tray")
 
 # Fetch spools from spoolman
 def fetchSpools(cached=False,archived=False):
