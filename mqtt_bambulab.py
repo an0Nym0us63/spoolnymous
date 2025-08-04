@@ -339,7 +339,7 @@ def on_message(client, userdata, msg):
     data = json.loads(msg.payload.decode())
     try:
         if "report" in topic and "print" in data:
-            safe_update_status(data)
+            safe_update_status(data["print"])
     except Exception as e:
         traceback.print_exc()
     if "print" in data:
