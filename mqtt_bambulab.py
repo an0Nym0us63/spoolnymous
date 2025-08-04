@@ -310,7 +310,26 @@ def color_distance(hex1: str, hex2: str) -> float:
     lab1 = rgb_to_lab(*rgb1)
     lab2 = rgb_to_lab(*rgb2)
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(lab1, lab2)))
-    
+
+def safe_update_status(data):
+    fields = {
+        "status": data.get("gcode_state"),
+        "progress": data.get("mc_percent"),
+        "bed_temp": data.get("bed_temper"),
+        "nozzle_temp": data.get("nozzle_temper"),
+        "fan_speed": data.get("cooling_fan_speed"),
+        "print_file": data.get("gcode_file"),
+        "print_name": data.get("subtask_name"),
+        "print_layer": data.get("layer_num"),
+        "total_layers": data.get("total_layer_num"),
+        "remaining_time": data.get("mc_remaining_time"),
+        "plate_name": data.get("plate_id"),
+        "chamber_temp": data.get("chamber_temper"),
+        "wifi_signal": data.get("wifi_signal"),
+    }
+
+    update_status({k: v for k, v in fields.items() if v is not None})
+
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970
 def on_message(client, userdata, msg):
   global LAST_AMS_CONFIG, PRINTER_STATE, PRINTER_STATE_LAST, PENDING_PRINT_METADATA, PRINTER_MODEL
@@ -320,10 +339,7 @@ def on_message(client, userdata, msg):
     data = json.loads(msg.payload.decode())
     try:
         if "report" in topic and "print" in data:
-            update_status({"status": data.get("gcode_state", "UNKNOWN"),
-                "progress": data.get("mc_percent", 0),
-                "bed_temp": data.get("bed_temper")
-            })
+            safe_update_status(data)
     except Exception as e:
         traceback.print_exc()
     if "print" in data:
