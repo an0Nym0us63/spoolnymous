@@ -3,39 +3,40 @@
 {% block content %}
 {% if printer_status %}
 <div x-data="{ open: false }" class="mb-4">
-  <!-- Bandeau fermé = header = barre de progression -->
+  <!-- Accordéon fermé avec barre de progression comme header -->
   <div
     class="relative rounded-xl overflow-hidden shadow-md cursor-pointer transition-all duration-200"
     @click="open = !open"
   >
-    <!-- Barre de progression en fond -->
-    <div class="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-500"
+    <!-- Barre de progression colorée -->
+    <div class="absolute inset-0 z-0 bg-gradient-to-r from-green-500 to-blue-500"
          :style="`width: ${{ printer_status.progress or 0 }}%`"></div>
 
-    <!-- Contenu du header -->
-    <div class="relative z-10 flex items-center justify-between bg-slate-900 bg-opacity-80 text-white px-4 py-3">
+    <!-- Contenu du header par-dessus -->
+    <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between bg-slate-900 bg-opacity-90 text-white px-4 py-4 gap-2">
+
       <!-- Thumbnail print -->
-      <div class="flex items-center gap-2">
-        <img src="{{ url_for('static', filename='prints/' ~ printer_status.thumbnail) }}"
-             alt="thumbnail" class="w-12 h-12 object-cover rounded shadow" />
-        <div class="text-sm font-semibold">
+      <div class="flex items-center gap-3 w-full sm:w-auto">
+        <img src="{{ url_for('static', filename='prints/' ~ printer_status.thumbnail) if printer_status.thumbnail else url_for('static', filename='img/placeholder.png') }}"
+             alt="thumbnail" class="w-16 h-16 object-cover rounded shadow" />
+        <div class="text-sm font-semibold truncate">
           {{ printer_status.print_name or 'Modèle inconnu' }}
         </div>
       </div>
 
-      <!-- Progression au centre -->
-      <div class="text-center text-sm font-semibold">
-        {{ printer_status.progress or 0 }}%<br>
-        {{ printer_status.status or '...' }}
+      <!-- Barre centrale : progression + statut -->
+      <div class="text-center font-semibold w-full sm:w-auto">
+        <div>{{ printer_status.progress or 0 }}%</div>
+        <div class="text-xs text-gray-300">{{ printer_status.status or '...' }}</div>
       </div>
 
-      <!-- Infos à droite -->
-      <div class="text-right text-sm">
+      <!-- Infos rapides à droite -->
+      <div class="text-sm text-right w-full sm:w-auto">
         {% if printer_status.remaining_time is number %}
-        <div>Restant : {{ printer_status.remaining_time }} min</div>
+          <div>⏱ {{ printer_status.remaining_time }} min</div>
         {% endif %}
         {% if printer_status.layer_num and printer_status.total_layer_num %}
-        <div>Couche : {{ printer_status.layer_num }}/{{ printer_status.total_layer_num }}</div>
+          <div>🧱 {{ printer_status.layer_num }}/{{ printer_status.total_layer_num }}</div>
         {% endif %}
       </div>
     </div>
@@ -53,7 +54,7 @@
       <div>
         <strong>Ventilateur :</strong> {{ printer_status.fan_speed or 'N/A' }}<br>
         <strong>Chambre :</strong> {{ printer_status.chamber_temp or '—' }} °C<br>
-        <strong>WiFi :</strong> {{ printer_status.wifi_signal or '—' }}<br>
+        <strong>WiFi :</strong> {{ printer_status.wifi_signal or '—' }}
       </div>
     </div>
   </div>
@@ -62,6 +63,7 @@
 
 <!-- Alpine.js requis -->
 <script src="https://unpkg.com/alpinejs" defer></script>
+
 
 {% if issue %}
 <div class="card border-warning shadow-sm mb-4">
