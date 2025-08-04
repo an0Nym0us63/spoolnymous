@@ -95,7 +95,7 @@
           bar.classList.add('from-green-500', 'to-blue-500');
         }
 
-        if (data.remaining_time_str || data.estimated_end) {
+if (data.remaining_time_str || data.estimated_end) {
   document.getElementById('status-remaining').innerHTML =
     `⏱️ ${data.remaining_time_str}<br>🗓️ ${data.estimated_end}`;
 } else {
