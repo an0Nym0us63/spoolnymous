@@ -14,7 +14,7 @@
       {% set progress_color = 'from-green-600 to-emerald-400' %}
     {% elif printer_status.status == 'ERROR' or printer_status.status == 'FAILED' %}
       {% set progress_color = 'from-red-600 to-pink-500' %}
-    {% elif printer_status.status == 'PAUSED' %}
+    {% elif printer_status.status == 'PAUSE' %}
       {% set progress_color = 'from-yellow-400 to-yellow-600' %}
     {% endif %}
 
@@ -90,7 +90,7 @@
           bar.classList.add('from-green-600', 'to-emerald-400');
         } else if (data.status === 'ERROR' || data.status === 'FAILED') {
           bar.classList.add('from-red-600', 'to-pink-500');
-        } else if (data.status === 'PAUSED') {
+        } else if (data.status === 'PAUSE') {
           bar.classList.add('from-yellow-400', 'to-yellow-600');
         } else {
           bar.classList.add('from-green-500', 'to-blue-500');
