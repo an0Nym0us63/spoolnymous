@@ -286,15 +286,15 @@
                                         tray=0,
                                         assign_print_id=print.id,
                                         assign_filament_index=filament.ams_slot,
-                                        assign_page=page,
+                                        assign_page=request.args.get('page'),
                                         search=filament.filament_type,
                                         filament_usage=filament.grams_used,
-                                        assign_search=search,
-										assign_status=status,
-										assign_filament_type=filament_type,
-										assign_color=color,
-										assign_filament_id=filament_id,
-										assign_sold_filter=sold_filter
+                                        assign_search=request.args.get('search'),
+										assign_status=request.args.get('status'),
+										assign_filament_type=request.args.get('filament_type'),
+										assign_color=request.args.get('color'),
+										assign_filament_id=request.args.get('filament_id'),
+										assign_sold_filter=request.args.get('sold_filter')
 										) }}"
                        class="nav-link link-body-emphasis" title="Assigner une bobine">
                       <div class="filament-info d-flex align-items-center gap-2">
