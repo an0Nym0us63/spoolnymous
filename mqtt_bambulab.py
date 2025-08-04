@@ -318,6 +318,8 @@ def on_message(client, userdata, msg):
   try:
     topic = msg.topic
     data = json.loads(msg.payload.decode())
+    print(str(topic))
+    print(str(data))
     try:
         if "report" in topic and "print" in data:
             update_status({
@@ -328,11 +330,7 @@ def on_message(client, userdata, msg):
                 "fan_speed": data.get("fan", {}).get("speed"),
             })
     except Exception as e:
-        print(str(topic))
-        print(str(data))
         traceback.print_exc()
-    with PRINTER_STATUS_LOCK:
-        print(str(PRINTER_STATUS))
     if "print" in data:
       append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
 
