@@ -331,7 +331,8 @@ def on_message(client, userdata, msg):
         print(topic)
         print(data)
         traceback.print_exc()
-
+    with PRINTER_STATUS_LOCK:
+        print(PRINTER_STATUS)
     if "print" in data:
       append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
 
