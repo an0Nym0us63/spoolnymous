@@ -6,7 +6,7 @@
   <!-- Accordéon fermé avec barre de progression comme header -->
   <div
     class="relative overflow-hidden shadow-md cursor-pointer transition-all duration-200"
-    :class="open ? 'rounded-t-xl rounded-b-none' : 'rounded-xl'"
+    :class="open ? 'rounded-t-xl rounded-b-none' : 'rounded-xl bg-gray-900'"
     @click="open = !open"
   >
     {% set progress_color = 'from-green-500 to-blue-500' %}
@@ -38,7 +38,7 @@
       </div>
 
       <!-- Barre centrale : progression + statut -->
-      <div class="text-center font-semibold w-full sm:w-auto text-sm">
+      <div class="text-center font-semibold flex-grow text-sm">
         <div>{{ printer_status.progress or 0 }}%</div>
         <div class="text-xs text-gray-300">{{ printer_status.status or '...' }}</div>
       </div>
