@@ -95,7 +95,7 @@
   {% set charts = [
     ('filamentType', 'Répartition par type de filament', stats.filament_type_pie, False),
     ('vendor', 'Répartition par marque', stats.vendor_pie, False),
-    ('topFilaments', 'Top 15 filaments', stats.top_filaments, False),
+    ('topFilaments', 'Top 20 filaments', stats.top_filaments, False),
     ('colorFamily', 'Répartition par couleur', stats.color_family_pie, True),
     ('duration', 'Répartition des durées d’impression', stats.duration_histogram, False)
   ] %}
@@ -151,7 +151,7 @@
   <div class="card shadow-sm my-4">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Top 15 impressions/groupes</h5>
+        <h5 class="mb-0">Top 30 impressions/groupes</h5>
         <div class="form-check form-switch">
           <input class="form-check-input" type="checkbox" role="switch" id="switchTopPrints">
           <label class="form-check-label" for="switchTopPrints">Par poids</label>

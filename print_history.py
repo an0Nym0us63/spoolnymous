@@ -903,7 +903,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
             key = f"{vendor} - {type_} - {name}"
             filament_totals[key] = filament_totals.get(key, 0.0) + u["grams_used"]
 
-    sorted_filaments = sorted(filament_totals.items(), key=lambda x: x[1], reverse=True)[:25]
+    sorted_filaments = sorted(filament_totals.items(), key=lambda x: x[1], reverse=True)[:20]
     top_filaments = {
         "labels": [label for label, _ in sorted_filaments],
         "values": [val for _, val in sorted_filaments]
@@ -964,8 +964,8 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         "color_family_pie": sort_pie_data(color_family_pie),
         "top_filaments": top_filaments,
         "total_margin": total_margin,
-        "top_longest_prints": sorted(durations_prints + durations_groups, key=lambda x: x["duration"], reverse=True)[:50],
-        "top_heaviest_prints": sorted(weights_prints + weights_groups, key=lambda x: x["weight"], reverse=True)[:50]
+        "top_longest_prints": sorted(durations_prints + durations_groups, key=lambda x: x["duration"], reverse=True)[:30],
+        "top_heaviest_prints": sorted(weights_prints + weights_groups, key=lambda x: x["weight"], reverse=True)[:30]
     }
 
     ordered_families = stats_data["color_family_pie"]["labels"]
