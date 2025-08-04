@@ -85,7 +85,7 @@
         document.getElementById('status-progress-bar').style.width = `${data.progress || 0}%`;
 
         document.getElementById('status-remaining').innerText = data.remaining_time !== undefined ? `⏱️ ${data.remaining_time} min` : '';
-        document.getElementById('status-layers').innerText = data.print_layer && data.total_layers ? `🧱 ${data.print_layer}/${data.total_layers}` : '';
+        document.getElementById('status-layers').innerText = data.print_layer && data.total_layers ? `${data.print_layer}/${data.total_layers}` : '';
 
         document.getElementById('status-nozzle').innerText = data.nozzle_temp || '—';
         document.getElementById('status-bed').innerText = data.bed_temp || '—';
