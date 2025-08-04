@@ -26,26 +26,29 @@
     </div>
 
     <!-- Contenu du header par-dessus -->
-<div class="relative z-10 grid grid-cols-3 items-center text-white px-3 py-2 gap-2 text-xs sm:text-sm">
-  <!-- Thumbnail -->
-  <div class="flex items-center gap-2 truncate">
-    <img src="{{ url_for('static', filename='prints/' ~ printer_status.thumbnail) if printer_status.thumbnail else url_for('static', filename='img/placeholder.png') }}"
-         alt="thumbnail" class="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded shadow" />
-  </div>
+    <div class="relative z-10 grid grid-cols-3 items-center text-white px-3 py-2 gap-2 text-xs sm:text-sm">
+      <!-- Thumbnail + nom du modèle -->
+      <div class="flex items-center gap-2 truncate">
+        <img src="{{ url_for('static', filename='prints/' ~ printer_status.thumbnail) if printer_status.thumbnail else url_for('static', filename='img/placeholder.png') }}"
+             alt="thumbnail" class="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded shadow" />
+        <div class="font-semibold truncate text-sm">
+          {{ printer_status.print_name or 'Modèle inconnu' }}
+        </div>
+      </div>
 
-  <!-- Progression centré -->
-  <div class="text-center font-semibold">
-    <div>{{ printer_status.progress or 0 }}%</div>
-    <div class="text-xs text-gray-300">{{ printer_status.status or '...' }}</div>
-  </div>
+      <!-- Progression centré -->
+      <div class="text-center font-semibold">
+        <div>{{ printer_status.progress or 0 }}%</div>
+        <div class="text-xs text-gray-300">{{ printer_status.status or '...' }}</div>
+      </div>
 
-  <!-- Infos à droite -->
-  <div class="text-right text-xs">
-    {% if printer_status.remaining_time is number %}
-      <div>⏱️ {{ printer_status.remaining_time }} min</div>
-    {% endif %}
-  </div>
-</div>
+      <!-- Infos à droite -->
+      <div class="text-right text-xs">
+        {% if printer_status.remaining_time is number %}
+          <div>⏱️ {{ printer_status.remaining_time }} min</div>
+        {% endif %}
+      </div>
+    </div>
 
   </div>
 
@@ -53,16 +56,16 @@
   <div x-show="open" x-transition class="bg-dark border border-t-0 rounded-b-xl shadow-inner p-4 text-sm text-light">
     <div class="row g-3">
       <div class="col-sm-6">
-        <strong>Fichier :</strong> {{ printer_status.print_name or 'N/A' }}<br>
-        <strong>Temp. buse :</strong> {{ printer_status.nozzle_temp or '—' }} °C<br>
-        <strong>Temp. bed :</strong> {{ printer_status.bed_temp or '—' }} °C
+        <strong>📄</strong> {{ printer_status.print_name or 'N/A' }}<br>
+        <strong>🪟</strong> {{ printer_status.plate_name or 'N/A' }}<br>
+        <strong>🔥</strong> {{ printer_status.nozzle_temp or '—' }} °C<br>
+        <strong>🛏️</strong> {{ printer_status.bed_temp or '—' }} °C
       </div>
       <div class="col-sm-6">
-        <strong>Chambre :</strong> {{ printer_status.chamber_temp or '—' }} °C<br>
-		
-    {% if printer_status.layer_num and printer_status.total_layer_num %}
-      <strong>🧱 </strong> {{ printer_status.layer_num }}/{{ printer_status.total_layer_num }}<br>
-    {% endif %}
+        <strong>🌡️</strong> {{ printer_status.chamber_temp or '—' }} °C<br>
+        {% if printer_status.print_layer and printer_status.total_layers %}
+          <strong>🧱️</strong> {{ printer_status.print_layer }}/{{ printer_status.total_layers }}</div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -71,6 +74,7 @@
 
 <!-- Alpine.js requis -->
 <script src="https://unpkg.com/alpinejs" defer></script>
+
 
 
 {% if issue %}
