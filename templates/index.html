@@ -18,14 +18,14 @@
     {% endif %}
 
     <!-- Fond gris plus visible -->
-    <div class="absolute inset-0 bg-dark bg-opacity-50"></div>
+    <div class="absolute inset-0 bg-dark bg-opacity-50 z-0"></div>
 
     <!-- Barre de progression colorée -->
-    <div class="absolute inset-y-0 left-0 z-0 bg-gradient-to-r {{ progress_color }}"
+    <div class="absolute inset-y-0 left-0 bg-gradient-to-r {{ progress_color }} z-10"
          style="width: {{ printer_status.progress or 0 }}%;"></div>
 
     <!-- Contenu du header par-dessus -->
-    <div class="relative z-10 flex flex-wrap sm:flex-nowrap items-center justify-between bg-dark bg-opacity-90 text-white px-3 py-2 gap-2 text-xs sm:text-sm">
+    <div class="relative z-20 flex flex-wrap sm:flex-nowrap items-center justify-between bg-dark bg-opacity-90 text-white px-3 py-2 gap-2 text-xs sm:text-sm">
 
       <!-- Thumbnail print -->
       <div class="flex items-center gap-2 w-full sm:w-auto min-w-0">
@@ -75,6 +75,7 @@
 
 <!-- Alpine.js requis -->
 <script src="https://unpkg.com/alpinejs" defer></script>
+
 
 
 
