@@ -6,8 +6,9 @@
   <div>
     <strong>Status :</strong> {{ printer_status.status or 'N/A' }} |
     <strong>Progression :</strong> {{ printer_status.progress or 0 }}% |
-    <strong>Temp. buse :</strong> {{ printer_status.tool_temp or '—' }}°C |
+    <strong>Temp. buse :</strong> {{ printer_status.nozzle_temp or '—' }}°C |
     <strong>Temp. bed :</strong> {{ printer_status.bed_temp or '—' }}°C
+    <strong>Modèle :</strong> {{ printer_status.print_name or '—' }}
   </div>
 </div>
 {% endif %}
