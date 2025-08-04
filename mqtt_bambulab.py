@@ -328,11 +328,11 @@ def on_message(client, userdata, msg):
                 "fan_speed": data.get("fan", {}).get("speed"),
             })
     except Exception as e:
-        print(topic)
-        print(data)
+        print(str(topic))
+        print(str(data))
         traceback.print_exc()
     with PRINTER_STATUS_LOCK:
-        print(PRINTER_STATUS)
+        print(str(PRINTER_STATUS))
     if "print" in data:
       append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
 
