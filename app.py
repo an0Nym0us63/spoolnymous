@@ -477,7 +477,7 @@ def home():
       ams_data=reordered
     latest = get_latest_print()
     status_copy["thumbnail"] = latest["image_file"]
-    emaining = status_copy.get("remaining_time")
+    remaining = status_copy.get("remaining_time")
     if isinstance(remaining, (int, float)):
         # Heure d'arrivée estimée
         estimated_end = datetime.now() + timedelta(minutes=remaining)
