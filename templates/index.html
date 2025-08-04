@@ -53,13 +53,11 @@
   <div x-show="open" x-transition class="bg-dark border border-t-0 rounded-b-xl shadow-inner p-4 text-sm text-light">
     <div class="row g-3">
       <div class="col-sm-6">
-        <strong>Fichier :</strong> {{ printer_status.print_file or 'N/A' }}<br>
-        <strong>Plate :</strong> {{ printer_status.plate_name or 'N/A' }}<br>
+        <strong>Fichier :</strong> {{ printer_status.print_name or 'N/A' }}<br>
         <strong>Temp. buse :</strong> {{ printer_status.nozzle_temp or '—' }} °C<br>
         <strong>Temp. bed :</strong> {{ printer_status.bed_temp or '—' }} °C
       </div>
       <div class="col-sm-6">
-        <strong>Ventilateur :</strong> {{ printer_status.fan_speed or 'N/A' }}<br>
         <strong>Chambre :</strong> {{ printer_status.chamber_temp or '—' }} °C<br>
 		
     {% if printer_status.layer_num and printer_status.total_layer_num %}
