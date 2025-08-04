@@ -318,16 +318,21 @@ def on_message(client, userdata, msg):
   try:
     topic = msg.topic
     data = json.loads(msg.payload.decode())
-    print(str(topic))
-    print(str(data))
     try:
         if "report" in topic and "print" in data:
-            update_status({
-                "status": data["print"].get("print_status"),
-                #"progress": data["print"].get("gcode_state", {}).get("progress", 0),
-                "bed_temp": data.get("bed", {}).get("temp"),
-                "tool_temp": data.get("tool", {}).get("temp"),
-                "fan_speed": data.get("fan", {}).get("speed"),
+            update_status({"status": data.get("gcode_state", "UNKNOWN"),
+                "progress": data.get("mc_percent", 0),
+                "bed_temp": data.get("bed_temper"),
+                "nozzle_temp": data.get("nozzle_temper"),
+                "fan_speed": data.get("cooling_fan_speed"),
+                "print_file": data.get("gcode_file"),
+                "print_name": data.get("subtask_name"),
+                "print_layer": data.get("layer_num"),
+                "total_layers": data.get("total_layer_num"),
+                "remaining_time": data.get("mc_remaining_time"),
+                "plate_name": data.get("plate_id"),
+                "chamber_temp": data.get("chamber_temper"),
+                "wifi_signal": data.get("wifi_signal"),
             })
     except Exception as e:
         traceback.print_exc()
