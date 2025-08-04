@@ -320,11 +320,11 @@ def on_message(client, userdata, msg):
     data = json.loads(msg.payload.decode())
     if "report" in topic and "print" in data:
         update_status({
-            "status": payload["print"].get("print_status"),
-            "progress": payload["print"].get("gcode_state", {}).get("progress", 0),
-            "bed_temp": payload.get("bed", {}).get("temp"),
-            "tool_temp": payload.get("tool", {}).get("temp"),
-            "fan_speed": payload.get("fan", {}).get("speed"),
+            "status": data["print"].get("print_status"),
+            "progress": data["print"].get("gcode_state", {}).get("progress", 0),
+            "bed_temp": data.get("bed", {}).get("temp"),
+            "tool_temp": data.get("tool", {}).get("temp"),
+            "fan_speed": data.get("fan", {}).get("speed"),
         })
     if "print" in data:
       append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
