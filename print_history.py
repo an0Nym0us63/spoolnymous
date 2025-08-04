@@ -1243,4 +1243,22 @@ def trigger_cost_recalculation(target_id: int, is_group: bool = False) -> None:
         else:
             recalculate_print_data(target_id, spools_by_id)
 
+def get_latest_print():
+    try:
+        conn = sqlite3.connect(db_config["db_path"])
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(prints)")
+        columns = [col[1] for col in cursor.fetchall()]
+
+        cursor.execute("SELECT * FROM prints ORDER BY id DESC LIMIT 1")
+        row = cursor.fetchone()
+        conn.close()
+
+        if row:
+            return dict(zip(columns, row))
+        return None
+    except Exception as e:
+        print(f"[ERROR] get_latest_print: {e}")
+        return None
+        
 create_database()
