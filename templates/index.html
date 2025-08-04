@@ -20,7 +20,7 @@
 
     <!-- Barre de progression colorée en fond direct -->
     <div class="absolute inset-0 flex">
-      <div class="h-full bg-gradient-to-r {{ progress_color }} transition-all duration-700"
+      <div id="status-progress-bar" class="h-full bg-gradient-to-r {{ progress_color }} transition-all duration-700"
            style="width: {{ printer_status.progress or 0 }}%; min-width: 2rem;"></div>
       <div class="flex-1 bg-gray-700"></div>
     </div>
@@ -29,26 +29,23 @@
     <div class="relative z-10 grid grid-cols-3 items-center text-white px-3 py-2 gap-2 text-xs sm:text-sm">
       <!-- Thumbnail + nom du modèle -->
       <div class="flex items-center gap-2 truncate">
-        <img src="{{ url_for('static', filename='prints/' ~ printer_status.thumbnail) if printer_status.thumbnail else url_for('static', filename='img/placeholder.png') }}"
+        <img id="status-thumbnail" src="{{ url_for('static', filename='prints/' ~ printer_status.thumbnail) if printer_status.thumbnail else url_for('static', filename='img/placeholder.png') }}"
              alt="thumbnail" class="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded shadow" />
-        {% if request.endpoint == 'dashboard' %}
-        <div class="font-semibold truncate text-sm">
-          {{ printer_status.print_name or 'Modèle inconnu' }}
-        </div>
-        {% endif %}
       </div>
 
       <!-- Progression centré -->
       <div class="text-center font-semibold">
-        <div>{{ printer_status.progress or 0 }}%</div>
-        <div class="text-xs text-gray-300">{{ printer_status.status or '...' }}</div>
+        <div id="status-progress">{{ printer_status.progress or 0 }}%</div>
+        <div id="status-text" class="text-xs text-gray-300">{{ printer_status.status or '...' }}</div>
       </div>
 
       <!-- Infos à droite -->
       <div class="text-right text-xs">
+        <div id="status-remaining">
         {% if printer_status.remaining_time is number %}
-          <div>⏱️ {{ printer_status.remaining_time }} min</div>
+          ⏱️ {{ printer_status.remaining_time }} min
         {% endif %}
+        </div>
       </div>
     </div>
 
@@ -58,16 +55,13 @@
   <div x-show="open" x-transition class="bg-dark border border-t-0 rounded-b-xl shadow-inner p-4 text-sm text-light">
     <div class="row g-3">
       <div class="col-sm-6">
-        <strong>📄</strong> {{ printer_status.print_name or 'N/A' }}<br>
-        <strong>🪟</strong> {{ printer_status.plate_name or 'N/A' }}<br>
-        <strong>🔥</strong> {{ printer_status.nozzle_temp or '—' }} °C<br>
-        <strong>🛏️</strong> {{ printer_status.bed_temp or '—' }} °C
+        <strong>📄</strong> <span id="status-print-file">{{ printer_status.print_name or 'N/A' }}</span><br>
+        <strong>🔥</strong> <span id="status-nozzle">{{ printer_status.nozzle_temp or '—' }}</span> °C<br>
+        <strong>🛏️</strong> <span id="status-bed">{{ printer_status.bed_temp or '—' }}</span> °C
       </div>
       <div class="col-sm-6">
-        <strong>🌡️</strong> {{ printer_status.chamber_temp or '—' }} °C<br>
-        {% if printer_status.print_layer and printer_status.total_layers %}
-          <strong>🧱</strong> {{ printer_status.print_layer }}/{{ printer_status.total_layers }}<br>
-        {% endif %}
+        <strong>🌡️</strong> <span id="status-chamber">{{ printer_status.chamber_temp or '—' }}</span> °C<br>
+		<strong>🧱️</strong> <span id="status-layers">{{ printer_status.print_layer }}/{{ printer_status.total_layers }}</span>
       </div>
     </div>
   </div>
@@ -76,6 +70,44 @@
 
 <!-- Alpine.js requis -->
 <script src="https://unpkg.com/alpinejs" defer></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/printer_status');
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        document.getElementById('status-progress').innerText = `${data.progress || 0}%`;
+        document.getElementById('status-text').innerText = data.status || '...';
+        document.getElementById('status-progress-bar').style.width = `${data.progress || 0}%`;
+
+        document.getElementById('status-remaining').innerText = data.remaining_time !== undefined ? `⏱️ ${data.remaining_time} min` : '';
+        document.getElementById('status-layers').innerText = data.print_layer && data.total_layers ? `🧱 ${data.print_layer}/${data.total_layers}` : '';
+
+        document.getElementById('status-nozzle').innerText = data.nozzle_temp || '—';
+        document.getElementById('status-bed').innerText = data.bed_temp || '—';
+        document.getElementById('status-chamber').innerText = data.chamber_temp || '—';
+        document.getElementById('status-plate-name').innerText = data.plate_name || 'N/A';
+
+        if (data.print_name && document.getElementById('status-print-name')) {
+          document.getElementById('status-print-name').innerText = data.print_name;
+        }
+
+        if (data.thumbnail && document.getElementById('status-thumbnail')) {
+          document.getElementById('status-thumbnail').src = `/static/prints/${data.thumbnail}`;
+        }
+
+      } catch (e) {
+        console.error('Erreur mise à jour printer_status:', e);
+      }
+    }, 5000);
+
+    window.addEventListener('beforeunload', () => clearInterval(interval));
+  });
+</script>
 
 
 {% if issue %}

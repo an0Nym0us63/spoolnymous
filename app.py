@@ -1327,6 +1327,14 @@ def cleanup_orphans():
     cleanup_orphan_data()
     flash("🧹 Données orphelines supprimées avec succès.", "success")
     return redirect(url_for("auth.settings"))
+    
+@app.route('/printer_status')
+def api_printer_status():
+    with PRINTER_STATUS_LOCK:
+        status = PRINTER_STATUS
+        latest = get_latest_print()
+        status["thumbnail"] = latest["image_file"]
+        return jsonify(status)
 
 
 app.register_blueprint(auth_bp)
