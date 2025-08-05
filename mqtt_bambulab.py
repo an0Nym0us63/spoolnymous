@@ -325,6 +325,7 @@ def safe_update_status(data):
         "total_layers": data.get("total_layer_num"),
         "remaining_time": data.get("mc_remaining_time"),
         "chamber_temp": data.get("chamber_temper"),
+        "tray_now": data.get("ams",{}).get("tray_now")
     }
     remaining = fields.get("remaining_time")
     if isinstance(remaining, (int, float)):
