@@ -477,22 +477,6 @@ def home():
       ams_data=reordered
     latest = get_latest_print()
     status_copy["thumbnail"] = latest["image_file"]
-    remaining = status_copy.get("remaining_time")
-    if isinstance(remaining, (int, float)):
-        # Heure d'arrivée estimée
-        estimated_end = datetime.now() + timedelta(minutes=remaining)
-        status_copy["estimated_end"] = estimated_end.strftime("%H:%M")
-    
-        # Format heure/minute lisible
-        hours = int(remaining // 60)
-        minutes = int(remaining % 60)
-        if hours > 0:
-            status_copy["remaining_time_str"] = f"{hours}h {minutes}min"
-        else:
-            status_copy["remaining_time_str"] = f"{minutes}min"
-    else:
-        status_copy["estimated_end"] = None
-        status_copy["remaining_time_str"] = "—"
     # Nouveau : si ?webview=1 → on met le cookie
     resp = make_response(render_template(
         'index.html',
@@ -1350,22 +1334,6 @@ def api_printer_status():
         status = PRINTER_STATUS
         latest = get_latest_print()
         status["thumbnail"] = latest["image_file"]
-        remaining = status.get("remaining_time")
-        if isinstance(remaining, (int, float)):
-            # Heure d'arrivée estimée
-            estimated_end = datetime.now() + timedelta(minutes=remaining)
-            status["estimated_end"] = estimated_end.strftime("%H:%M")
-        
-            # Format heure/minute lisible
-            hours = int(remaining // 60)
-            minutes = int(remaining % 60)
-            if hours > 0:
-                status["remaining_time_str"] = f"{hours}h {minutes}min"
-            else:
-                status["remaining_time_str"] = f"{minutes}min"
-        else:
-            status["estimated_end"] = None
-            status["remaining_time_str"] = "—"
         return jsonify(status)
 
 

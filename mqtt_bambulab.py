@@ -3,6 +3,7 @@ import ssl
 import traceback
 from threading import Thread
 
+from datetime import datetime, timedelta
 import paho.mqtt.client as mqtt
 
 from config import PRINTER_ID, PRINTER_CODE, PRINTER_IP, AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID
@@ -324,6 +325,23 @@ def safe_update_status(data):
         "remaining_time": data.get("mc_remaining_time"),
         "chamber_temp": data.get("chamber_temper"),
     }
+    remaining = fields.get("remaining_time")
+    if isinstance(remaining, (int, float)):
+        if remaining > 0:
+            # Heure d'arrivée estimée
+            estimated_end = datetime.now() + timedelta(minutes=remaining)
+            fields["estimated_end"] = estimated_end.strftime("%H:%M")
+    
+            # Format heure/minute lisible avec minutes sur deux chiffres
+            hours = int(remaining // 60)
+            minutes = int(remaining % 60)
+            if hours > 0:
+                fields["remaining_time_str"] = f"{hours}h {minutes:02d}min"
+            else:
+                fields["remaining_time_str"] = f"{minutes:02d}min"
+    else:
+        fields["estimated_end"] = None
+        fields["remaining_time_str"] = "—"
 
     update_status({k: v for k, v in fields.items() if v is not None})
 
