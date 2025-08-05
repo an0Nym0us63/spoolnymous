@@ -170,11 +170,12 @@
   <!-- AMS Cards -->
 {% for ams in ams_data %}
 <div class="col-lg-6 mb-4">
-  <div class="rounded-xl shadow bg-[#1e1e1e] overflow-hidden border-2 border-transparent hover:border-primary transition"
-       id="ams-card-{{ ams.id|string }}">
+  <div class="rounded-xl overflow-hidden shadow border border-transparent hover:border-primary transition"
+       id="ams-card-{{ ams.id|string }}"
+       style="background-color: #2b2b2b;">  <!-- FOND DE LA CARTE REVENUE -->
 
     <!-- En-tête -->
-    <div class="flex justify-between items-start bg-gray-800 px-4 py-2">
+    <div class="flex justify-between items-start px-4 py-2 bg-gray-800 border-b border-gray-700">
       <span class="inline-flex items-center gap-2 bg-primary text-white text-sm font-semibold px-3 py-1 rounded-full shadow">
         {% if ams.location %}
           {{ ams.location }}
@@ -195,8 +196,8 @@
       {% endif %}
     </div>
 
-    <!-- Contenu -->
-    <div class="p-3">
+    <!-- Contenu avec fond visible -->
+    <div class="p-3 bg-gray-900 text-white">
       <div class="row">
         {% for tray in ams.tray %}
         <div class="col-sm-6 mb-3">
@@ -207,6 +208,7 @@
         {% endfor %}
       </div>
     </div>
+
   </div>
 </div>
 {% endfor %}
