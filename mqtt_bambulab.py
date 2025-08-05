@@ -314,7 +314,6 @@ def color_distance(hex1: str, hex2: str) -> float:
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(lab1, lab2)))
 
 def safe_update_status(data):
-    print('test')
     fields = {
         "status": data.get("gcode_state"),
         "progress": data.get("mc_percent"),
@@ -327,15 +326,6 @@ def safe_update_status(data):
         "remaining_time": data.get("mc_remaining_time"),
         "chamber_temp": data.get("chamber_temper"),
     }
-    ams = data.get("ams")
-    if ams:
-        tray_now=ams.get("tray_now")
-        if tray_now:
-            print(tray_now)
-        else:
-            print("🔸 Aucun Tray Now dans ce message")
-    else:
-        print("🔸 Aucun bloc AMS dans ce message")
     remaining = fields.get("remaining_time")
     if isinstance(remaining, (int, float)):
         if remaining > 0:
