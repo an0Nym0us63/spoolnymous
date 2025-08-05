@@ -326,6 +326,7 @@ def safe_update_status(data):
         "remaining_time": data.get("mc_remaining_time"),
         "chamber_temp": data.get("chamber_temper"),
     }
+    print(data.get("ams"))
     remaining = fields.get("remaining_time")
     if isinstance(remaining, (int, float)):
         if remaining > 0:
@@ -354,7 +355,6 @@ def on_message(client, userdata, msg):
     try:
         if "report" in topic and "print" in data:
             safe_update_status(data["print"])
-            print(data.get("print",{}).get("ams",{}).get("tray_now"))
     except Exception as e:
         traceback.print_exc()
     if "print" in data:
