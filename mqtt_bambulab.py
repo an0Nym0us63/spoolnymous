@@ -327,16 +327,28 @@ def safe_update_status(data):
         "chamber_temp": data.get("chamber_temper"),
         "tray_now": data.get("ams",{}).get("tray_now")
     }
-    tray_now = fields.get("tray_now")
-    ams_root = data.get("ams", {})
-    ams_list = ams_root.get("ams", [])
-    
+    tray_now_raw = data.get("ams", {}).get("tray_now")
     try:
-        tray_now = int(tray_now)
+        tray_now = int(tray_now_raw)
     except (TypeError, ValueError):
         tray_now = None
     
-    if isinstance(ams_list, list) and tray_now is not None:
+    extruder_state = data.get("device", {}).get("extruder", {}).get("state")
+    active_nozzle_index = (extruder_state >> 4) & 0xF if extruder_state is not None else 0
+    
+    ams_list = data.get("ams", {}).get("ams", [])
+    fields["tray_local_id"] = None
+    fields["tray_ams_id"] = None
+    
+    # Mapping logique AMS ↔ extrudeur (à adapter si nécessaire)
+    ams_extruder_map = {
+        0: 0,  # AMS 0 → extrudeur gauche
+        1: 1   # AMS 1 → extrudeur droit
+    }
+    
+    if tray_now is not None and isinstance(ams_list, list):
+        candidate_trays = []
+    
         for ams in ams_list:
             try:
                 ams_id = int(ams.get("id"))
@@ -348,11 +360,24 @@ def safe_update_status(data):
                     tray_id = int(tray.get("id"))
                 except (TypeError, ValueError):
                     continue
-                tray_global_id = tray_id + 4 * ams_id
-                if tray_global_id == tray_now:
-                    fields["tray_local_id"] = tray_id
+                if tray_id == tray_now:
+                    candidate_trays.append((ams_id, tray_id))
+    
+        # Si un seul AMS → pas de conflit
+        if len(ams_list) == 1 and candidate_trays:
+            fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
+    
+        # Si plusieurs AMS → chercher celui correspondant à l'extrudeur actif
+        elif len(ams_list) > 1:
+            for ams_id, tray_id in candidate_trays:
+                if ams_extruder_map.get(ams_id) == active_nozzle_index:
                     fields["tray_ams_id"] = ams_id
+                    fields["tray_local_id"] = tray_id
                     break
+    
+        # Fallback : si rien trouvé, on prend le premier match
+        if fields["tray_ams_id"] is None and candidate_trays:
+            fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
 
     remaining = fields.get("remaining_time")
     if isinstance(remaining, (int, float)):
