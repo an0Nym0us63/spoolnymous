@@ -486,46 +486,48 @@ def get_prints_with_filament(filters=None, search=None) -> list:
 
     query_filters = []
     values = []
+    having_clauses = []
+    having_values = []
 
     if filters.get("filament_id"):
         query_filters.append("f.spool_id = ?")
         values.append(filters["filament_id"][0])
+
     if filters.get("filament_type"):
         query_filters.append("f.filament_type = ?")
         values.append(filters["filament_type"][0])
-    if filters.get("family_color"):
-        query_filters.append("f.color LIKE ?")
-        values.append(f"{filters['family_color']}%")
+
     if filters.get("status"):
-        query_filters.append("p.status = ?")
-        values.append(filters["status"][0])
+        statuses = filters["status"]
+        query_filters.append(f"p.status IN ({','.join(['?'] * len(statuses))})")
+        values.extend(statuses)
+
+    if filters.get("family_color"):
+        for color in filters["family_color"]:
+            having_clauses.append("SUM(CASE WHEN f.color LIKE ? THEN 1 ELSE 0 END) > 0")
+            having_values.append(f"{color}%")
 
     if search:
         query_filters.append("(p.file_name LIKE ? OR p.translated_name LIKE ? OR pg.name LIKE ?)")
         values.extend([f"%{search}%"] * 3)
 
     where_clause = "WHERE " + " AND ".join(query_filters) if query_filters else ""
+    group_by_clause = "GROUP BY p.id"
+    having_clause = f"HAVING {' AND '.join(having_clauses)}" if having_clauses else ""
 
     query = f"""
-        SELECT DISTINCT p.*, pg.name as group_name, pg.number_of_items as group_number_of_items,
-                        pg.primary_print_id as group_primary_print_id,
-                        pg.sold_units as group_sold_units,
-                        pg.sold_price_total as group_sold_price_total
+        SELECT p.*, pg.name as group_name, pg.number_of_items as group_number_of_items,
+               pg.primary_print_id as group_primary_print_id,
+               pg.sold_units as group_sold_units,
+               pg.sold_price_total as group_sold_price_total
         FROM prints p
         LEFT JOIN print_groups pg ON p.group_id = pg.id
         LEFT JOIN filament_usage f ON p.id = f.print_id
         {where_clause}
+        {group_by_clause}
+        {having_clause}
         ORDER BY p.print_date DESC
-    """
-    cursor.execute(query, values)
-    prints = [dict(row) for row in cursor.fetchall()]
 
-    for p in prints:
-        cursor.execute("SELECT * FROM filament_usage WHERE print_id = ?", (p["id"],))
-        p["filament_usage"] = [dict(u) for u in cursor.fetchall()]
-
-    conn.close()
-    return prints
 
 def get_filament_for_slot(print_id: int, ams_slot: int):
     conn = sqlite3.connect(db_config["db_path"])
