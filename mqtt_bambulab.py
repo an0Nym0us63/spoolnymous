@@ -328,6 +328,7 @@ def safe_update_status(data):
     }
     ams = data.get("ams")
     if ams:
+        print(ams)
         print(ams.get("tray_now"))
     else:
         print("🔸 Aucun bloc AMS dans ce message")
