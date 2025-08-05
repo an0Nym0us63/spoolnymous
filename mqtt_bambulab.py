@@ -11,7 +11,6 @@ from messages import GET_VERSION, PUSH_ALL
 from spoolman_service import spendFilaments, setActiveTray, fetchSpools
 from tools_3mf import getMetaDataFrom3mf
 import time
-from time import time
 import copy
 import math
 from collections.abc import Mapping
