@@ -316,7 +316,7 @@ def insert_print(file_name: str, print_type: str, image_file: str = None, print_
         status = "SUCCESS"
     cursor.execute('''
         INSERT INTO prints (print_date, file_name, print_type, image_file, duration, original_name, translated_name, job_id, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (print_date, cleaned, print_type, image_file, duration, file_name, translated, job_id, status))
     print_id = cursor.lastrowid
     conn.commit()
