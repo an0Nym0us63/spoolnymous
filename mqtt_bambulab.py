@@ -326,7 +326,11 @@ def safe_update_status(data):
         "remaining_time": data.get("mc_remaining_time"),
         "chamber_temp": data.get("chamber_temper"),
     }
-    print((data.get("ams") or {}).get("tray_now"))
+    ams = data.get("ams")
+    if ams:
+        print(ams.get("tray_now"))
+    else:
+        print("🔸 Aucun bloc AMS dans ce message")
     remaining = fields.get("remaining_time")
     if isinstance(remaining, (int, float)):
         if remaining > 0:
