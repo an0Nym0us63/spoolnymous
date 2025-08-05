@@ -396,13 +396,13 @@ def safe_update_status(data):
     job_id = data.get("job_id")
     status = fields.get("status", "").upper()
 
-    if job_id and job_id not in processed_jobs:
+    if job_id and job_id not in PROCESSED_JOBS:
         if status == "FAILED":
             update_print_status_with_job_id(job_id, "status", "FAILED")
-            processed_jobs.add(job_id)
+            PROCESSED_JOBS.add(job_id)
         elif status == "FINISHED":
             update_print_status_with_job_id(job_id, "status", "SUCCESS")
-            processed_jobs.add(job_id)
+            PROCESSED_JOBS.add(job_id)
     update_status({k: v for k, v in fields.items() if v is not None})
 
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970
