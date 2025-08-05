@@ -326,7 +326,7 @@ def safe_update_status(data):
         "remaining_time": data.get("mc_remaining_time"),
         "chamber_temp": data.get("chamber_temper"),
     }
-    print(data.get("ams").get("tray_now"))
+    print((data.get("ams") or {}).get("tray_now"))
     remaining = fields.get("remaining_time")
     if isinstance(remaining, (int, float)):
         if remaining > 0:
