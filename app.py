@@ -677,7 +677,10 @@ def print_history():
             if (sold_filter == "yes" and is_sold) or (sold_filter == "no" and not is_sold):
                 filtered_entries.append(e)
         entries = {f"group_{e['id']}" if e["type"] == "group" else f"print_{e['print']['id']}": e for e in filtered_entries}
-    total_prints = len(entries)
+    total_prints = sum(
+        1 if e["type"] == "single" else len(e.get("prints", []))
+        for e in entries.values()
+    )
     total_duration_seconds = 0
     total_weight = 0
     total_cost = 0
