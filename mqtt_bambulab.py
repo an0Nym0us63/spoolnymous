@@ -393,8 +393,9 @@ def safe_update_status(data):
                 fields["remaining_time_str"] = f"{hours}h {minutes:02d}min"
             else:
                 fields["remaining_time_str"] = f"{minutes}min"
+    
     job_id = data.get("job_id")
-    status = fields.get("status", "").upper()
+    status = (fields.get("status") or "").upper()
 
     if job_id and job_id not in PROCESSED_JOBS:
         if status == "FAILED":
