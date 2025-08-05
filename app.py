@@ -1341,7 +1341,7 @@ def api_printer_status():
 def printer_camera():
     try:
         # Connexion au flux go2rtc
-        r = requests.get("http://localhost:1984/bambu.mjpeg", stream=True, timeout=5)
+        r = requests.get("http://localhost:1984/api/stream.mjpeg?src=bambu", stream=True, timeout=5)
         if r.status_code != 200 or "multipart" not in r.headers.get("Content-Type", ""):
             abort(502)  # Bad gateway si go2rtc répond mal
 
