@@ -327,6 +327,21 @@ def safe_update_status(data):
         "chamber_temp": data.get("chamber_temper"),
         "tray_now": data.get("ams",{}).get("tray_now")
     }
+    tray_now = fields.get("tray_now")
+    ams_data = data.get("ams", {}).get("ams", [])
+
+    if tray_now is not None and isinstance(ams_data, list):
+        for ams in ams_data:
+            ams_id = ams.get("id")
+            trays = ams.get("tray", [])
+            for tray in trays:
+                tray_id = tray.get("id")
+                if tray_id is not None and ams_id is not None:
+                    if tray_id + 4 * ams_id == tray_now:
+                        fields["tray_local_id"] = tray_id
+                        fields["tray_ams_id"] = ams_id
+                        break
+
     remaining = fields.get("remaining_time")
     if isinstance(remaining, (int, float)):
         if remaining > 0:
