@@ -479,7 +479,6 @@ def get_distinct_values():
     }
 
 def get_prints_with_filament(filters=None, search=None) -> list:
-    from colors import two_closest_families  # ajuste le chemin selon ton projet
     filters = filters or {}
     conn = sqlite3.connect(db_config["db_path"])
     conn.row_factory = sqlite3.Row
