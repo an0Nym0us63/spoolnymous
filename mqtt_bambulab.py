@@ -17,7 +17,7 @@ from collections.abc import Mapping
 from logger import append_to_rotating_file
 from print_history import  insert_print, insert_filament_usage, update_filament_spool,update_print_status_with_job_id
 
-from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK, PROCESSED_JOBS
+from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK, PROCESSED_JOBS, PENDING_JOBS
 
 MQTT_CLIENT = {}  # Global variable storing MQTT Client
 MQTT_CLIENT_CONNECTED = False
@@ -400,21 +400,21 @@ def safe_update_status(data):
     
         now = time.time()
         
-        if job_id not in processed_jobs:
-            if job_id not in pending_jobs:
+        if job_id not in PROCESSED_JOBS:
+            if job_id not in PENDING_JOBS:
                 # première fois qu'on voit ce status pour ce job
-                pending_jobs[job_id] = (status, now)
+                PENDING_JOBS[job_id] = (status, now)
             else:
-                prev_status, first_seen = pending_jobs[job_id]
+                prev_status, first_seen = PENDING_JOBS[job_id]
                 if prev_status == status:
                     if now - first_seen >= 30:
                         final_status = "SUCCESS" if status == "FINISHED" else "FAILED"
                         update_print_status_with_job_id(job_id, "status", final_status)
-                        processed_jobs.add(job_id)
-                        pending_jobs.pop(job_id, None)
+                        PROCESSED_JOBS.add(job_id)
+                        PENDING_JOBS.pop(job_id, None)
                 else:
                     # le statut a changé : on redémarre le timer
-                    pending_jobs[job_id] = (status, now)
+                    PENDING_JOBS[job_id] = (status, now)
     update_status({k: v for k, v in fields.items() if v is not None})
 
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970

@@ -1,5 +1,4 @@
 from threading import Lock
-from time import time
 
 PRINTER_STATUS = {
         "estimated_end": "-",
@@ -8,3 +7,5 @@ PRINTER_STATUS = {
 PRINTER_STATUS_LOCK = Lock()
 
 PROCESSED_JOBS = set()
+
+PENDING_JOBS = {}
