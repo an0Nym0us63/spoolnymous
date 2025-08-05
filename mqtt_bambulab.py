@@ -346,7 +346,7 @@ def safe_update_status(data):
         1: 1   # AMS 1 → extrudeur droit
     }
     
-    if tray_now is not None and isinstance(ams_list, list):
+    if tray_now is not None and isinstance(ams_list, list) and tray_now != 255:
         candidate_trays = []
     
         for ams in ams_list:
@@ -378,6 +378,9 @@ def safe_update_status(data):
         # Fallback : si rien trouvé, on prend le premier match
         if fields["tray_ams_id"] is None and candidate_trays:
             fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
+    else if tray_now is not None and isinstance(ams_list, list) and tray_now == 255:
+        fields["tray_ams_id"] = 255
+        fields["tray_local_id"] = 0
 
     remaining = fields.get("remaining_time")
     if isinstance(remaining, (int, float)):
@@ -386,13 +389,13 @@ def safe_update_status(data):
             estimated_end = datetime.now() + timedelta(minutes=remaining)
             fields["estimated_end"] = estimated_end.strftime("%H:%M")
     
-            # Format heure/minute lisible
-            hours = int(remaining // 60)
-            minutes = int(remaining % 60)
-            if hours > 0:
-                fields["remaining_time_str"] = f"{hours}h {minutes:02d}min"
-            else:
-                fields["remaining_time_str"] = f"{minutes}min"
+        # Format heure/minute lisible
+        hours = int(remaining // 60)
+        minutes = int(remaining % 60)
+        if hours > 0:
+            fields["remaining_time_str"] = f"{hours}h {minutes:02d}min"
+        else:
+            fields["remaining_time_str"] = f"{minutes}min"
     job_id = data.get("job_id")
     status = (fields.get("status") or "").upper()
     
