@@ -378,7 +378,7 @@ def safe_update_status(data):
         # Fallback : si rien trouvé, on prend le premier match
         if fields["tray_ams_id"] is None and candidate_trays:
             fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
-    else if tray_now is not None and isinstance(ams_list, list) and tray_now == 255:
+    elif tray_now is not None and isinstance(ams_list, list) and tray_now == 255:
         fields["tray_ams_id"] = 255
         fields["tray_local_id"] = 0
 
