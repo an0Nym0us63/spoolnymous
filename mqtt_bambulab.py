@@ -314,44 +314,47 @@ def color_distance(hex1: str, hex2: str) -> float:
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(lab1, lab2)))
 
 def safe_update_status(data):
-    fields = {
-        "status": data.get("gcode_state"),
-        "progress": data.get("mc_percent"),
-        "bed_temp": data.get("bed_temper"),
-        "nozzle_temp": data.get("nozzle_temper"),
-        "print_file": data.get("gcode_file"),
-        "print_name": data.get("subtask_name"),
-        "print_layer": data.get("layer_num"),
-        "total_layers": data.get("total_layer_num"),
-        "remaining_time": data.get("mc_remaining_time"),
-        "chamber_temp": data.get("chamber_temper"),
-    }
-    ams = data.get("ams")
-    if ams:
-        tray_now=ams.get("tray_now")
-        if tray_now:
-            print(tray_now)
-        else:
-            print("🔸 Aucun Tray Now dans ce message")
-    else:
-        print("🔸 Aucun bloc AMS dans ce message")
-    remaining = fields.get("remaining_time")
-    if isinstance(remaining, (int, float)):
-        if remaining > 0:
-            # Heure d'arrivée estimée
-            estimated_end = datetime.now() + timedelta(minutes=remaining)
-            fields["estimated_end"] = estimated_end.strftime("%H:%M")
-    
-            # Format heure/minute lisible
-            hours = int(remaining // 60)
-            minutes = int(remaining % 60)
-            if hours > 0:
-                fields["remaining_time_str"] = f"{hours}h {minutes:02d}min"
+    try:
+        fields = {
+            "status": data.get("gcode_state"),
+            "progress": data.get("mc_percent"),
+            "bed_temp": data.get("bed_temper"),
+            "nozzle_temp": data.get("nozzle_temper"),
+            "print_file": data.get("gcode_file"),
+            "print_name": data.get("subtask_name"),
+            "print_layer": data.get("layer_num"),
+            "total_layers": data.get("total_layer_num"),
+            "remaining_time": data.get("mc_remaining_time"),
+            "chamber_temp": data.get("chamber_temper"),
+        }
+        ams = data.get("ams")
+        if ams:
+            tray_now=ams.get("tray_now")
+            if tray_now:
+                print(tray_now)
             else:
-                fields["remaining_time_str"] = f"{minutes}min"
-    if remaining == 0 and data.get("job_id"):
-        update_print_status_with_job_id(data.get("job_id"),"status","SUCCESS")
-    update_status({k: v for k, v in fields.items() if v is not None})
+                print("🔸 Aucun Tray Now dans ce message")
+        else:
+            print("🔸 Aucun bloc AMS dans ce message")
+        remaining = fields.get("remaining_time")
+        if isinstance(remaining, (int, float)):
+            if remaining > 0:
+                # Heure d'arrivée estimée
+                estimated_end = datetime.now() + timedelta(minutes=remaining)
+                fields["estimated_end"] = estimated_end.strftime("%H:%M")
+        
+                # Format heure/minute lisible
+                hours = int(remaining // 60)
+                minutes = int(remaining % 60)
+                if hours > 0:
+                    fields["remaining_time_str"] = f"{hours}h {minutes:02d}min"
+                else:
+                    fields["remaining_time_str"] = f"{minutes}min"
+        if remaining == 0 and data.get("job_id"):
+            update_print_status_with_job_id(data.get("job_id"),"status","SUCCESS")
+        update_status({k: v for k, v in fields.items() if v is not None})
+    except Exception as e:
+        traceback.print_exc()
 
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970
 def on_message(client, userdata, msg):
