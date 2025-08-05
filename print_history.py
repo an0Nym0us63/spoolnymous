@@ -479,6 +479,7 @@ def get_distinct_values():
     }
 
 def get_prints_with_filament(filters=None, search=None) -> list:
+    from colors import two_closest_families  # ajuste le chemin selon ton projet
     filters = filters or {}
     conn = sqlite3.connect(db_config["db_path"])
     conn.row_factory = sqlite3.Row
@@ -503,9 +504,15 @@ def get_prints_with_filament(filters=None, search=None) -> list:
         values.extend(statuses)
 
     if filters.get("color"):
-        for color in filters["color"]:
-            having_clauses.append("SUM(f.color LIKE ?) > 0")
-            having_values.append(f"{color}%")
+        cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
+        all_colors = [row[0] for row in cursor.fetchall()]
+        for fam in filters["color"]:
+            hexes = [c for c in all_colors if fam in two_closest_families(c)]
+            if hexes:
+                having_clauses.append(
+                    "SUM(CASE WHEN f.color IN ({}) THEN 1 ELSE 0 END) > 0".format(','.join(['?'] * len(hexes)))
+                )
+                having_values.extend(hexes)
 
     if search:
         query_filters.append("(p.file_name LIKE ? OR p.translated_name LIKE ? OR pg.name LIKE ?)")
@@ -538,6 +545,7 @@ def get_prints_with_filament(filters=None, search=None) -> list:
 
     conn.close()
     return prints
+
 
 
 def get_filament_for_slot(print_id: int, ams_slot: int):
