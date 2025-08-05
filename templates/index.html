@@ -52,9 +52,6 @@
       <div><strong>🛏️</strong> <span id="status-bed">{{ printer_status.bed_temp or '—' }}</span> °C</div>
       <div><strong>🌡️</strong> <span id="status-chamber">{{ printer_status.chamber_temp or '—' }}</span> °C</div>
       <div><strong>🧱️</strong> <span id="status-layers">{{ printer_status.print_layer }}/{{ printer_status.total_layers }}</span></div>
-      <div><strong>🧱️</strong> <span id="status-tray_now">{{ printer_status.tray_now }}</span></div>
-      <div><strong>🧱️</strong> <span id="status-tray_local_id">{{ printer_status.tray_local_id }}</span></div>
-      <div><strong>🧱️</strong> <span id="status-tray_ams_id">{{ printer_status.tray_ams_id }}</span></div>
     </div>
   </div>
 </div>
@@ -124,9 +121,6 @@
         document.getElementById('status-nozzle').innerText = data.nozzle_temp || '—';
         document.getElementById('status-bed').innerText = data.bed_temp || '—';
         document.getElementById('status-chamber').innerText = data.chamber_temp || '—';
-        document.getElementById('status-tray_now').innerText = data.tray_now || '—';
-        document.getElementById('status-tray_local_id').innerText = data.tray_local_id;
-        document.getElementById('status-tray_ams_id').innerText = data.tray_ams_id;
 
         if (data.print_name && document.getElementById('status-print-name')) {
           document.getElementById('status-print-name').innerText = data.print_name;
