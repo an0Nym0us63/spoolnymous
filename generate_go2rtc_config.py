@@ -5,7 +5,7 @@ code = os.getenv("PRINTER_ACCESS_CODE", "000000")
 
 yaml_content = f"""streams:
   bambu:
-    - ffmpeg:rtsps://bblp:{code}@{ip}:322/streaming/channels/0
+    - ffmpeg:rtsps://bblp:{code}@{ip}:322/streaming/live/1
 """
 
 with open("go2rtc.yaml", "w") as f:
