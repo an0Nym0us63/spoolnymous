@@ -11,6 +11,7 @@ from messages import GET_VERSION, PUSH_ALL
 from spoolman_service import spendFilaments, setActiveTray, fetchSpools
 from tools_3mf import getMetaDataFrom3mf
 import time
+from time import time
 import copy
 import math
 from collections.abc import Mapping
@@ -393,16 +394,28 @@ def safe_update_status(data):
                 fields["remaining_time_str"] = f"{hours}h {minutes:02d}min"
             else:
                 fields["remaining_time_str"] = f"{minutes}min"
-        job_id = data.get("job_id")
-        status = (fields.get("status") or "").upper()
+    job_id = data.get("job_id")
+    status = (fields.get("status") or "").upper()
+    
+    if job_id and status in {"FINISHED", "FAILED"}:
+    
+        now = time.time()
         
-        if job_id and job_id not in PROCESSED_JOBS:
-            if status == "FAILED":
-                update_print_status_with_job_id(job_id, "status", "FAILED")
-                PROCESSED_JOBS.add(job_id)
-            elif status == "FINISHED":
-                update_print_status_with_job_id(job_id, "status", "SUCCESS")
-                PROCESSED_JOBS.add(job_id)
+        if job_id not in processed_jobs:
+            if job_id not in pending_jobs:
+                # première fois qu'on voit ce status pour ce job
+                pending_jobs[job_id] = (status, now)
+            else:
+                prev_status, first_seen = pending_jobs[job_id]
+                if prev_status == status:
+                    if now - first_seen >= 30:
+                        final_status = "SUCCESS" if status == "FINISHED" else "FAILED"
+                        update_print_status_with_job_id(job_id, "status", final_status)
+                        processed_jobs.add(job_id)
+                        pending_jobs.pop(job_id, None)
+                else:
+                    # le statut a changé : on redémarre le timer
+                    pending_jobs[job_id] = (status, now)
     update_status({k: v for k, v in fields.items() if v is not None})
 
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970

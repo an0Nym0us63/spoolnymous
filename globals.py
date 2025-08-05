@@ -1,4 +1,5 @@
 from threading import Lock
+from time import time
 
 PRINTER_STATUS = {
         "estimated_end": "-",
