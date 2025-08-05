@@ -328,8 +328,11 @@ def safe_update_status(data):
     }
     ams = data.get("ams")
     if ams:
-        print(ams)
-        print(ams.get("tray_now"))
+        tray_now=ams.get("tray_now")
+        if tray_now:
+            print(tray_now)
+        else:
+            print("🔸 Aucun Tray Now dans ce message")
     else:
         print("🔸 Aucun bloc AMS dans ce message")
     remaining = fields.get("remaining_time")
