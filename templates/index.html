@@ -65,6 +65,14 @@
 
 <script>
   function updateHighlighting(tray_ams_id, tray_local_id) {
+  console.log("→ tray_ams_id:", tray_ams_id);
+console.log("→ tray_local_id:", tray_local_id);
+
+console.log("→ Cherche ams-card:", `#ams-card-${String(tray_ams_id)}`);
+console.log("→ Cherche tray-card:", `#tray-card-${String(tray_local_id)}`);
+
+console.log("→ Trouvé amsCard?", document.querySelector(`#ams-card-${String(tray_ams_id)}`));
+console.log("→ Trouvé trayCard?", document.querySelector(`#tray-card-${String(tray_local_id)}`));
     // Reset AMS cards
     document.querySelectorAll('[id^="ams-card-"]').forEach(card => {
       card.classList.remove('border-4', 'border-primary');
