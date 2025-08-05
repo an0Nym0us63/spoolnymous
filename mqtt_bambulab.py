@@ -332,14 +332,14 @@ def safe_update_status(data):
             estimated_end = datetime.now() + timedelta(minutes=remaining)
             fields["estimated_end"] = estimated_end.strftime("%H:%M")
     
-            # Format heure/minute lisible avec minutes sur deux chiffres
+            # Format heure/minute lisible
             hours = int(remaining // 60)
             minutes = int(remaining % 60)
             if hours > 0:
                 fields["remaining_time_str"] = f"{hours}h {minutes:02d}min"
             else:
-                fields["remaining_time_str"] = f"{minutes:02d}min"
-
+                fields["remaining_time_str"] = f"{minutes}min"
+    
     update_status({k: v for k, v in fields.items() if v is not None})
 
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970

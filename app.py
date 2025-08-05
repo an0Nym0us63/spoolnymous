@@ -1336,5 +1336,8 @@ def api_printer_status():
         status["thumbnail"] = latest["image_file"]
         return jsonify(status)
 
+@app.route("/printer_camera")
+def printer_camera():
+    return redirect("http://localhost:1984/bambu.mjpeg")
 
 app.register_blueprint(auth_bp)
