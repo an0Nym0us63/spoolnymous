@@ -172,7 +172,7 @@
   {% for ams in ams_data %}
   <div class="col-lg-6 mb-4 text-center">
     <div class="card shadow-sm" 
-       data-ams-id="{{ ams.id }}" id="ams-card-{{ ams.id }}">
+       data-ams-id="{{ ams.id }}" id="ams-card-{{ ams.id|string }}">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">
   {% if ams.location %}
