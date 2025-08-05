@@ -11,7 +11,8 @@ RUN mkdir -p /var/log/flask-app && touch /var/log/flask-app/flask-app.err.log &&
 RUN chown -R nonroot:nonroot /var/log/flask-app
 WORKDIR /home/app
 USER nonroot
-RUN apt-get update && apt-get install -y curl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates gnupg && \
+    rm -rf /var/lib/apt/lists/*
 # Télécharge go2rtc
 RUN curl -L -o /home/app/go2rtc https://github.com/AlexxIT/go2rtc/releases/latest/download/go2rtc_linux_amd64 && \
     chmod +x /home/app/go2rtc
