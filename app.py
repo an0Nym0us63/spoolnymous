@@ -14,7 +14,7 @@ import secrets
 from flask_login import LoginManager, login_required
 from auth import auth_bp, User, get_stored_user
 
-from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response
+from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort
 from werkzeug.utils import secure_filename
 
 from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,LOCATION_MAPPING,AMS_ORDER, COST_BY_HOUR
@@ -1339,13 +1339,18 @@ def api_printer_status():
 
 @app.route("/printer_camera")
 def printer_camera():
-    def generate():
-        r = requests.get("http://localhost:1984/bambu.mjpeg", stream=True)
-        for chunk in r.iter_content(chunk_size=1024):
-            if chunk:
-                yield chunk
+    try:
+        # Connexion au flux go2rtc
+        r = requests.get("http://localhost:1984/bambu.mjpeg", stream=True, timeout=5)
+        if r.status_code != 200 or "multipart" not in r.headers.get("Content-Type", ""):
+            abort(502)  # Bad gateway si go2rtc répond mal
 
-    return Response(stream_with_context(generate()),
-                    content_type="multipart/x-mixed-replace; boundary=ffserver")
+        return Response(
+            stream_with_context(r.iter_content(chunk_size=4096)),
+            content_type=r.headers.get("Content-Type", "multipart/x-mixed-replace; boundary=ffserver")
+        )
+    except requests.RequestException as e:
+        print(f"❌ Erreur de connexion à go2rtc : {e}")
+        abort(502)
 
 app.register_blueprint(auth_bp)
