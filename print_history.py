@@ -502,9 +502,9 @@ def get_prints_with_filament(filters=None, search=None) -> list:
         query_filters.append(f"p.status IN ({','.join(['?'] * len(statuses))})")
         values.extend(statuses)
 
-    if filters.get("family_color"):
-        for color in filters["family_color"]:
-            having_clauses.append("SUM(CASE WHEN f.color LIKE ? THEN 1 ELSE 0 END) > 0")
+    if filters.get("color"):
+        for color in filters["color"]:
+            having_clauses.append("SUM(f.color LIKE ?) > 0")
             having_values.append(f"{color}%")
 
     if search:
