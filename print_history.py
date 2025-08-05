@@ -527,6 +527,17 @@ def get_prints_with_filament(filters=None, search=None) -> list:
         {group_by_clause}
         {having_clause}
         ORDER BY p.print_date DESC
+    """
+
+    cursor.execute(query, values + having_values)
+    prints = [dict(row) for row in cursor.fetchall()]
+
+    for p in prints:
+        cursor.execute("SELECT * FROM filament_usage WHERE print_id = ?", (p["id"],))
+        p["filament_usage"] = [dict(u) for u in cursor.fetchall()]
+
+    conn.close()
+    return prints
 
 
 def get_filament_for_slot(print_id: int, ams_slot: int):
