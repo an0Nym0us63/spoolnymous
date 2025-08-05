@@ -141,7 +141,7 @@ console.log("→ Trouvé trayCard?", document.querySelector(`#tray-card-${String
           document.getElementById('status-thumbnail').src = `/static/prints/${data.thumbnail}`;
         }
 
-        if (data.tray_ams_id && data.tray_local_id) {
+        if (data.tray_ams_id != null && data.tray_local_id != null) {
 			 console.log("🟨 Appel updateHighlighting avec", data.tray_ams_id, data.tray_local_id);
  
           updateHighlighting(data.tray_ams_id, data.tray_local_id);
