@@ -17,7 +17,7 @@ from collections.abc import Mapping
 from logger import append_to_rotating_file
 from print_history import  insert_print, insert_filament_usage, update_filament_spool,update_print_status_with_job_id
 
-from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
+from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK, PROCESSED_JOBS
 
 MQTT_CLIENT = {}  # Global variable storing MQTT Client
 MQTT_CLIENT_CONNECTED = False
@@ -393,8 +393,16 @@ def safe_update_status(data):
                 fields["remaining_time_str"] = f"{hours}h {minutes:02d}min"
             else:
                 fields["remaining_time_str"] = f"{minutes}min"
-    if remaining == 0 and data.get("job_id"):
-        update_print_status_with_job_id(data.get("job_id"),"status","SUCCESS")
+    job_id = data.get("job_id")
+    status = fields.get("status", "").upper()
+
+    if job_id and job_id not in processed_jobs:
+        if status == "FAILED":
+            update_print_status_with_job_id(job_id, "status", "FAILED")
+            processed_jobs.add(job_id)
+        elif status == "FINISHED":
+            update_print_status_with_job_id(job_id, "status", "SUCCESS")
+            processed_jobs.add(job_id)
     update_status({k: v for k, v in fields.items() if v is not None})
 
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970

@@ -5,3 +5,5 @@ PRINTER_STATUS = {
         "remaining_time_str": "-"
     }
 PRINTER_STATUS_LOCK = Lock()
+
+PROCESSED_JOBS = set()
