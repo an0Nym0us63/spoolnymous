@@ -100,8 +100,8 @@ if (data.remaining_time_str || data.estimated_end) {
         document.getElementById('status-bed').innerText = data.bed_temp || '—';
         document.getElementById('status-chamber').innerText = data.chamber_temp || '—';
         document.getElementById('status-tray_now').innerText = data.tray_now || '—';
-        document.getElementById('status-tray_local_id').innerText = data.tray_local_id || '—';
-        document.getElementById('status-tray_ams_id').innerText = data.tray_ams_id || '—';
+        document.getElementById('status-tray_local_id').innerText = data.tray_local_id;
+        document.getElementById('status-tray_ams_id').innerText = data.tray_ams_id;
 
         if (data.print_name && document.getElementById('status-print-name')) {
           document.getElementById('status-print-name').innerText = data.print_name;
