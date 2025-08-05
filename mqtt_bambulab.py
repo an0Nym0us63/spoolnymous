@@ -354,6 +354,7 @@ def on_message(client, userdata, msg):
     try:
         if "report" in topic and "print" in data:
             safe_update_status(data["print"])
+            print(data["print"]["ams"]["tray_now"])
     except Exception as e:
         traceback.print_exc()
     if "print" in data:
@@ -368,8 +369,6 @@ def on_message(client, userdata, msg):
 
     # Save ams spool data
     if "print" in data and "ams" in data["print"] and "ams" in data["print"]["ams"]:
-       
-      print(data["print"]["ams"]["tray_now"])
       LAST_AMS_CONFIG["ams"] = data["print"]["ams"]["ams"]
       for ams in data["print"]["ams"]["ams"]:
         #print(f"AMS [{num2letter(ams['id'])}] (hum: {ams['humidity_raw']}, temp: {ams['temp']}ºC)")
