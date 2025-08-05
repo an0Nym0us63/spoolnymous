@@ -65,36 +65,31 @@
 
 <script>
   function updateHighlighting(tray_ams_id, tray_local_id) {
-  console.log("→ tray_ams_id:", tray_ams_id);
-console.log("→ tray_local_id:", tray_local_id);
+  const trayKey = `${String(tray_ams_id)}_${String(tray_local_id)}`;
+  const amsKey = String(tray_ams_id);
 
-console.log("→ Cherche ams-card:", `#ams-card-${String(tray_ams_id)}`);
-console.log("→ Cherche tray-card:", `#tray-card-${String(tray_local_id)}`);
-
-console.log("→ Trouvé amsCard?", document.querySelector(`#ams-card-${String(tray_ams_id)}`));
-console.log("→ Trouvé trayCard?", document.querySelector(`#tray-card-${String(tray_local_id)}`));
-    // Reset AMS cards
-    document.querySelectorAll('[id^="ams-card-"]').forEach(card => {
-      card.classList.remove('border-4', 'border-primary');
-    });
-    const amsCard = document.querySelector(`#ams-card-${tray_ams_id}`);
-    if (amsCard) {
-      amsCard.classList.add('border-4', 'border-primary');
-    }
-
-    // Reset tray cards
-    document.querySelectorAll('[id^="tray-card-"]').forEach(card => {
-      card.classList.remove('border-3', 'border-warning', 'shadow-lg');
-    });
-    const trayCard = document.querySelector(`#tray-card-${tray_local_id}`);
-    if (trayCard) {
-      trayCard.classList.add('border-3', 'border-warning', 'shadow-lg');
-    }
+  // Reset AMS cards
+  document.querySelectorAll('[id^="ams-card-"]').forEach(card => {
+    card.classList.remove('border', 'border-4', 'border-primary');
+  });
+  const amsCard = document.querySelector(`#ams-card-${amsKey}`);
+  if (amsCard) {
+    amsCard.classList.add('border', 'border-4', 'border-primary');
   }
+
+  // Reset tray cards
+  document.querySelectorAll('[id^="tray-card-"]').forEach(card => {
+    card.classList.remove('border', 'border-3', 'border-warning', 'shadow-lg');
+  });
+  const trayCard = document.querySelector(`#tray-card-${trayKey}`);
+  if (trayCard) {
+    trayCard.classList.add('border', 'border-3', 'border-warning', 'shadow-lg');
+  }
+}
+
 
   document.addEventListener('DOMContentLoaded', () => {
     async function refreshPrinterStatus() {
-		console.log('↻ refreshPrinterStatus lancé');
       try {
         const res = await fetch('/printer_status');
         if (!res.ok) return;
@@ -142,7 +137,6 @@ console.log("→ Trouvé trayCard?", document.querySelector(`#tray-card-${String
         }
 
         if (data.tray_ams_id != null && data.tray_local_id != null) {
-			 console.log("🟨 Appel updateHighlighting avec", data.tray_ams_id, data.tray_local_id);
  
           updateHighlighting(data.tray_ams_id, data.tray_local_id);
         }
