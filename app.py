@@ -571,17 +571,6 @@ def print_history():
     groups_list = get_print_groups()
     groups_by_id = {g['id']: g for g in groups_list}
 
-    total_prints = len(raw_prints)
-    total_duration_seconds = 0
-    total_weight = 0
-    total_cost = 0
-
-    for p in raw_prints:
-        duration_hours = float(p.get("duration") or 0.0) / 3600  # pour compatibilité templates
-        total_duration_seconds += (duration_hours * 3600)
-        total_weight += p.get("total_weight", 0)
-        total_cost += p.get("full_cost", 0)
-
     for p in raw_prints:
         p["duration"] = float(p.get("duration") or 0.0) / 3600  # pour compatibilité templates
         p["electric_cost"] = p.get("electric_cost", 0.0)
@@ -688,7 +677,21 @@ def print_history():
             if (sold_filter == "yes" and is_sold) or (sold_filter == "no" and not is_sold):
                 filtered_entries.append(e)
         entries = {f"group_{e['id']}" if e["type"] == "group" else f"print_{e['print']['id']}": e for e in filtered_entries}
-
+    total_prints = len(entries)
+    total_duration_seconds = 0
+    total_weight = 0
+    total_cost = 0
+    
+    for entry in entries.values():
+        if entry["type"] == "group":
+            total_duration_seconds += entry.get("total_duration", 0) * 3600
+            total_weight += entry.get("total_weight", 0)
+            total_cost += entry.get("full_cost", 0)
+        else:
+            p = entry["print"]
+            total_duration_seconds += (float(p.get("duration") or 0.0) * 3600)
+            total_weight += p.get("total_weight", 0)
+            total_cost += p.get("full_cost", 0)
     entries_list = sorted(entries.values(), key=lambda e: parse_print_date(e["latest_date"] if e["type"] == "group" else e["print"]["print_date"]), reverse=True)
     total_pages = (len(entries_list) + per_page - 1) // per_page
     paged_entries = entries_list[(page - 1) * per_page : page * per_page]
