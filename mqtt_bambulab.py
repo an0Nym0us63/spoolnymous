@@ -354,7 +354,7 @@ def on_message(client, userdata, msg):
     try:
         if "report" in topic and "print" in data:
             safe_update_status(data["print"])
-            print(data["print"]["ams"]["tray_now"])
+            print(data["print"].get("ams").get("tray_now"))
     except Exception as e:
         traceback.print_exc()
     if "print" in data:
