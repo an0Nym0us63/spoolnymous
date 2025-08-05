@@ -328,19 +328,31 @@ def safe_update_status(data):
         "tray_now": data.get("ams",{}).get("tray_now")
     }
     tray_now = fields.get("tray_now")
-    ams_data = data.get("ams", {}).get("ams", [])
-
-    if tray_now is not None and isinstance(ams_data, list):
-        for ams in ams_data:
-            ams_id = ams.get("id")
+    ams_root = data.get("ams", {})
+    ams_list = ams_root.get("ams", [])
+    
+    try:
+        tray_now = int(tray_now)
+    except (TypeError, ValueError):
+        tray_now = None
+    
+    if isinstance(ams_list, list) and tray_now is not None:
+        for ams in ams_list:
+            try:
+                ams_id = int(ams.get("id"))
+            except (TypeError, ValueError):
+                continue
             trays = ams.get("tray", [])
             for tray in trays:
-                tray_id = tray.get("id")
-                if tray_id is not None and ams_id is not None:
-                    if tray_id + 4 * ams_id == tray_now:
-                        fields["tray_local_id"] = tray_id
-                        fields["tray_ams_id"] = ams_id
-                        break
+                try:
+                    tray_id = int(tray.get("id"))
+                except (TypeError, ValueError):
+                    continue
+                tray_global_id = tray_id + 4 * ams_id
+                if tray_global_id == tray_now:
+                    fields["tray_local_id"] = tray_id
+                    fields["tray_ams_id"] = ams_id
+                    break
 
     remaining = fields.get("remaining_time")
     if isinstance(remaining, (int, float)):
