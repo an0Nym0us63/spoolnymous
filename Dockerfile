@@ -11,7 +11,9 @@ RUN mkdir -p /var/log/flask-app && touch /var/log/flask-app/flask-app.err.log &&
 RUN chown -R nonroot:nonroot /var/log/flask-app
 WORKDIR /home/app
 USER nonroot
-
+# Télécharge go2rtc
+RUN curl -L -o /home/app/go2rtc https://github.com/AlexxIT/go2rtc/releases/latest/download/go2rtc_linux_amd64 && \
+    chmod +x /home/app/go2rtc
 # copy all the files to the container
 COPY --chown=nonroot:nonroot . .
 
@@ -27,4 +29,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 # define the port number the container should expose
 EXPOSE 8000
 
-CMD ["gunicorn", "-w", "1", "--threads", "4", "-b", "0.0.0.0:8000", "app:app"]
+CMD ["sh", "-c", "python generate_go2rtc_config.py && ./go2rtc & exec gunicorn -w 1 --threads 4 -b 0.0.0.0:8000 app:app"]
