@@ -8,13 +8,13 @@ import os
 import re
 from collections import defaultdict
 from urllib.parse import urlencode
-
+import requests
 import secrets
 
 from flask_login import LoginManager, login_required
 from auth import auth_bp, User, get_stored_user
 
-from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort
+from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response
 from werkzeug.utils import secure_filename
 
 from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,LOCATION_MAPPING,AMS_ORDER, COST_BY_HOUR
@@ -1336,8 +1336,16 @@ def api_printer_status():
         status["thumbnail"] = latest["image_file"]
         return jsonify(status)
 
+
 @app.route("/printer_camera")
 def printer_camera():
-    return redirect("http://localhost:1984/bambu.mjpeg")
+    def generate():
+        r = requests.get("http://localhost:1984/bambu.mjpeg", stream=True)
+        for chunk in r.iter_content(chunk_size=1024):
+            if chunk:
+                yield chunk
+
+    return Response(stream_with_context(generate()),
+                    content_type="multipart/x-mixed-replace; boundary=ffserver")
 
 app.register_blueprint(auth_bp)
