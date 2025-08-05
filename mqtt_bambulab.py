@@ -393,17 +393,16 @@ def safe_update_status(data):
                 fields["remaining_time_str"] = f"{hours}h {minutes:02d}min"
             else:
                 fields["remaining_time_str"] = f"{minutes}min"
-        else:
-            job_id = data.get("job_id")
-            status = (fields.get("status") or "").upper()
+        job_id = data.get("job_id")
+        status = (fields.get("status") or "").upper()
         
-            if job_id and job_id not in PROCESSED_JOBS:
-                if status == "FAILED"
-                    update_print_status_with_job_id(job_id, "status", "FAILED")
-                    PROCESSED_JOBS.add(job_id)
-                elif status == "FINISHED":
-                    update_print_status_with_job_id(job_id, "status", "SUCCESS")
-                    PROCESSED_JOBS.add(job_id)
+        if job_id and job_id not in PROCESSED_JOBS:
+            if status == "FAILED"
+                update_print_status_with_job_id(job_id, "status", "FAILED")
+                PROCESSED_JOBS.add(job_id)
+            elif status == "FINISHED":
+                update_print_status_with_job_id(job_id, "status", "SUCCESS")
+                PROCESSED_JOBS.add(job_id)
     update_status({k: v for k, v in fields.items() if v is not None})
 
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970
