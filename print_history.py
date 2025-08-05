@@ -103,6 +103,7 @@ def create_database() -> None:
                 full_cost_by_item REAL DEFAULT 0.0,
                 full_normal_cost_by_item REAL DEFAULT 0.0,
                 margin REAL DEFAULT 0.0,
+                job_id INTEGER DEFAULT0,
                 FOREIGN KEY (group_id) REFERENCES print_groups(id)
             )
         ''')
@@ -203,6 +204,8 @@ def create_database() -> None:
             cursor.execute("ALTER TABLE prints ADD COLUMN full_normal_cost_by_item REAL DEFAULT 0.0")
         if "margin" not in columns:
             cursor.execute("ALTER TABLE prints ADD COLUMN margin REAL DEFAULT 0.0")
+        if "job_id" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN job_id INTEGER DEFAULT 0")
         
         cursor.execute("PRAGMA table_info(filament_usage)")
         columns = [col[1] for col in cursor.fetchall()]
@@ -299,7 +302,7 @@ def clean_print_name(raw_name: str) -> str:
 
     return name
 
-def insert_print(file_name: str, print_type: str, image_file: str = None, print_date: str = None, duration: float = 0) -> int:
+def insert_print(file_name: str, print_type: str, image_file: str = None, print_date: str = None, duration: float = 0, job_id: int = 0) -> int:
     if print_date is None:
         print_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -308,10 +311,13 @@ def insert_print(file_name: str, print_type: str, image_file: str = None, print_
 
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
+    status = "IN_PROGRESS"
+    if (print_type == "manual"):
+        status = "SUCCESS"
     cursor.execute('''
-        INSERT INTO prints (print_date, file_name, print_type, image_file, duration, original_name, translated_name)
+        INSERT INTO prints (print_date, file_name, print_type, image_file, duration, original_name, translated_name, job_id, status)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (print_date, cleaned, print_type, image_file, duration, file_name, translated))
+    ''', (print_date, cleaned, print_type, image_file, duration, file_name, translated, job_id, status))
     print_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -559,6 +565,14 @@ def get_filament_for_print(print_id: int):
     conn.close()
     return results
 
+def update_print_status_with_job_id(job_id: int, field: str, value ) -> None:
+    conn = sqlite3.connect(db_config["db_path"])
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    query = f"UPDATE prints SET {field} = ? WHERE job_id = ?"
+    cursor.execute(query, (value, job_id))
+    conn.commit()
+    conn.close()
 
 def delete_print(print_id: int):
     conn = sqlite3.connect(db_config["db_path"])

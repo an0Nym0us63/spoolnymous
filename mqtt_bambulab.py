@@ -15,7 +15,7 @@ import copy
 import math
 from collections.abc import Mapping
 from logger import append_to_rotating_file
-from print_history import  insert_print, insert_filament_usage, update_filament_spool
+from print_history import  insert_print, insert_filament_usage, update_filament_spool,update_print_status_with_job_id
 
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 
@@ -115,7 +115,7 @@ def processMessage(data):
         name = PENDING_PRINT_METADATA["title"]
       if (PENDING_PRINT_METADATA["plateID"] != '1'):
         name += ' - ' +PENDING_PRINT_METADATA["plateID"]
-      print_id = insert_print(name, "cloud", PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"])
+      print_id = insert_print(name, "cloud", PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],data["print"]["job_id"])
 
       if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"]:
         PENDING_PRINT_METADATA["ams_mapping"] = PRINTER_STATE["print"]["ams_mapping"]
@@ -149,7 +149,7 @@ def processMessage(data):
             name = PENDING_PRINT_METADATA["title"]
         if (PENDING_PRINT_METADATA["plateID"] != '1'):
             name += ' - ' +PENDING_PRINT_METADATA["plateID"]
-        print_id = insert_print(name, PRINTER_STATE["print"]["print_type"], PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],PENDING_PRINT_METADATA["title"])
+        print_id = insert_print(name, PRINTER_STATE["print"]["print_type"], PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],PENDING_PRINT_METADATA["title"],PRINTER_STATE["print"]["job_id"])
 
         PENDING_PRINT_METADATA["ams_mapping"] = []
         PENDING_PRINT_METADATA["filamentChanges"] = []
@@ -229,7 +229,8 @@ def insert_manual_print(local_path, custom_datetime):
             "manual",
             metadata.get("image"),
             custom_datetime.strftime("%Y-%m-%d %H:%M:%S"),
-            float(metadata.get("duration", 0))
+            float(metadata.get("duration", 0)),
+            0
         )
 
         metadata["print_id"] = print_id
@@ -339,7 +340,8 @@ def safe_update_status(data):
                 fields["remaining_time_str"] = f"{hours}h {minutes:02d}min"
             else:
                 fields["remaining_time_str"] = f"{minutes}min"
-    
+    if remaining == 0 and data.get("job_id"):
+        update_print_status_with_job_id(data.get("job_id"),"status","SUCCESS")
     update_status({k: v for k, v in fields.items() if v is not None})
 
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970
