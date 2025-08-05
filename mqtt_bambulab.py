@@ -339,9 +339,6 @@ def safe_update_status(data):
                 fields["remaining_time_str"] = f"{hours}h {minutes:02d}min"
             else:
                 fields["remaining_time_str"] = f"{minutes:02d}min"
-    else:
-        fields["estimated_end"] = None
-        fields["remaining_time_str"] = "—"
 
     update_status({k: v for k, v in fields.items() if v is not None})
 
