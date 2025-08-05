@@ -396,7 +396,7 @@ def safe_update_status(data):
     job_id = data.get("job_id")
     status = (fields.get("status") or "").upper()
     
-    if job_id and status in {"FINISHED", "FAILED"}:
+    if job_id and status in {"FINISH", "FAILED"}:
     
         now = time.time()
         
@@ -408,7 +408,7 @@ def safe_update_status(data):
                 prev_status, first_seen = PENDING_JOBS[job_id]
                 if prev_status == status:
                     if now - first_seen >= 30:
-                        final_status = "SUCCESS" if status == "FINISHED" else "FAILED"
+                        final_status = "SUCCESS" if status == "FINISH" else "FAILED"
                         update_print_status_with_job_id(job_id, "status", final_status)
                         PROCESSED_JOBS.add(job_id)
                         PENDING_JOBS.pop(job_id, None)
