@@ -359,7 +359,7 @@ def on_message(client, userdata, msg):
     if "print" in data:
       append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
 
-    print(data)
+    print(json.dumps(data, separators=(',', ':'), ensure_ascii=False))
 
     if AUTO_SPEND:
         processMessage(data)
