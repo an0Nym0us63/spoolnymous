@@ -2,12 +2,7 @@
 
 {% block content %}
 {% if printer_status %}
-<div x-data="{ open: false, showStream: false }"
-     x-init="$watch('open', value => {
-       showStream = value;
-       if (!value && $refs.cam) $refs.cam.removeAttribute('src');
-     })"
-     class="mb-4">
+<div x-data="{ open: false }" class="mb-4">
 
   <!-- Header de l'accordéon -->
   <div
@@ -52,19 +47,11 @@
   <div x-show="open" x-transition class="bg-dark border border-t-0 rounded-b-xl shadow-inner p-4 text-sm text-light space-y-4">
     <!-- Infos grille -->
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-      <div><strong>📄</strong> <span id="status-print-file">{{ printer_status.print_name or 'N/A' }}</span></div>
+      <div><strong>📄</strong> <span id="status-print-name">{{ printer_status.print_name or 'N/A' }}</span></div>
       <div><strong>🔥</strong> <span id="status-nozzle">{{ printer_status.nozzle_temp or '—' }}</span> °C</div>
       <div><strong>🛏️</strong> <span id="status-bed">{{ printer_status.bed_temp or '—' }}</span> °C</div>
       <div><strong>🌡️</strong> <span id="status-chamber">{{ printer_status.chamber_temp or '—' }}</span> °C</div>
       <div><strong>🧱️</strong> <span id="status-layers">{{ printer_status.print_layer }}/{{ printer_status.total_layers }}</span></div>
-    </div>
-
-    <!-- Flux caméra MJPEG -->
-    <div>
-      <img x-ref="cam"
-           x-show="showStream"
-           :src="showStream ? '/printer_camera' : null"
-           class="w-full max-h-[400px] object-contain rounded shadow transition-opacity duration-300 opacity-100" />
     </div>
   </div>
 </div>
@@ -109,7 +96,6 @@ if (data.remaining_time_str || data.estimated_end) {
         document.getElementById('status-nozzle').innerText = data.nozzle_temp || '—';
         document.getElementById('status-bed').innerText = data.bed_temp || '—';
         document.getElementById('status-chamber').innerText = data.chamber_temp || '—';
-        document.getElementById('status-plate-name').innerText = data.plate_name || 'N/A';
 
         if (data.print_name && document.getElementById('status-print-name')) {
           document.getElementById('status-print-name').innerText = data.print_name;
