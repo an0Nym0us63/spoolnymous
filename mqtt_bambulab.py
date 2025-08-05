@@ -397,7 +397,7 @@ def safe_update_status(data):
         status = (fields.get("status") or "").upper()
         
         if job_id and job_id not in PROCESSED_JOBS:
-            if status == "FAILED"
+            if status == "FAILED":
                 update_print_status_with_job_id(job_id, "status", "FAILED")
                 PROCESSED_JOBS.add(job_id)
             elif status == "FINISHED":
