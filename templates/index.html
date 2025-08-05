@@ -64,8 +64,28 @@
 <script src="https://unpkg.com/alpinejs" defer></script>
 
 <script>
+  function updateHighlighting(tray_ams_id, tray_local_id) {
+    // Reset AMS cards
+    document.querySelectorAll('[id^="ams-card-"]').forEach(card => {
+      card.classList.remove('border-4', 'border-primary');
+    });
+    const amsCard = document.querySelector(`#ams-card-${tray_ams_id}`);
+    if (amsCard) {
+      amsCard.classList.add('border-4', 'border-primary');
+    }
+
+    // Reset tray cards
+    document.querySelectorAll('[id^="tray-card-"]').forEach(card => {
+      card.classList.remove('border-3', 'border-warning', 'shadow-lg');
+    });
+    const trayCard = document.querySelector(`#tray-card-${tray_local_id}`);
+    if (trayCard) {
+      trayCard.classList.add('border-3', 'border-warning', 'shadow-lg');
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
-    const interval = setInterval(async () => {
+    async function refreshPrinterStatus() {
       try {
         const res = await fetch('/printer_status');
         if (!res.ok) return;
@@ -75,8 +95,8 @@
         document.getElementById('status-progress').innerText = `${data.progress || 0}%`;
         document.getElementById('status-text').innerText = data.status || '...';
         document.getElementById('status-progress-bar').style.width = `${data.progress || 0}%`;
-		
-		const bar = document.getElementById('status-progress-bar');
+
+        const bar = document.getElementById('status-progress-bar');
         bar.classList.remove('from-green-500', 'to-blue-500', 'from-green-600', 'to-emerald-400', 'from-red-600', 'to-pink-500', 'from-yellow-400', 'to-yellow-600');
         if (data.status === 'FINISH') {
           bar.classList.add('from-green-600', 'to-emerald-400');
@@ -88,12 +108,13 @@
           bar.classList.add('from-green-500', 'to-blue-500');
         }
 
-if (data.remaining_time_str || data.estimated_end) {
-  document.getElementById('status-remaining').innerHTML =
-    `⏱️ ${data.remaining_time_str}<br>🗓️ ${data.estimated_end}`;
-} else {
-  document.getElementById('status-remaining').innerHTML = '';
-}
+        if (data.remaining_time_str || data.estimated_end) {
+          document.getElementById('status-remaining').innerHTML =
+            `⏱️ ${data.remaining_time_str}<br>🗓️ ${data.estimated_end}`;
+        } else {
+          document.getElementById('status-remaining').innerHTML = '';
+        }
+
         document.getElementById('status-layers').innerText = data.print_layer && data.total_layers ? `${data.print_layer}/${data.total_layers}` : '';
 
         document.getElementById('status-nozzle').innerText = data.nozzle_temp || '—';
@@ -111,14 +132,25 @@ if (data.remaining_time_str || data.estimated_end) {
           document.getElementById('status-thumbnail').src = `/static/prints/${data.thumbnail}`;
         }
 
+        if (data.tray_ams_id && data.tray_local_id) {
+          updateHighlighting(data.tray_ams_id, data.tray_local_id);
+        }
+
       } catch (e) {
         console.error('Erreur mise à jour printer_status:', e);
       }
-    }, 5000);
+    }
+
+    // Lancement immédiat
+    refreshPrinterStatus();
+
+    // Puis toutes les 5 secondes
+    const interval = setInterval(refreshPrinterStatus, 5000);
 
     window.addEventListener('beforeunload', () => clearInterval(interval));
   });
 </script>
+
 
 
 {% if issue %}
@@ -139,7 +171,8 @@ if (data.remaining_time_str || data.estimated_end) {
   <!-- AMS Cards -->
   {% for ams in ams_data %}
   <div class="col-lg-6 mb-4 text-center">
-    <div class="card shadow-sm">
+    <div class="card shadow-sm" 
+       data-ams-id="{{ ams.id }}" id="ams-card-{{ ams.id }}">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">
   {% if ams.location %}
@@ -156,7 +189,7 @@ if (data.remaining_time_str || data.estimated_end) {
         <div class="row">
           {% for tray in ams.tray %}
           <div class="col-sm-6 mb-3">
-            {% with tray_data=tray, ams_id=ams.id, pick_tray=False, tray_id=tray.id %}
+            {% with tray_data=tray, ams_id=ams.id, pick_tray=False, tray_id=tray.id%}
               {% include 'fragments/tray.html' %}
             {% endwith %}
           </div>
