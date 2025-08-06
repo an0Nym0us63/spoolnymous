@@ -70,6 +70,12 @@
     🧹 Nettoyer les données orphelines (usages, tags, groupes)
   </button>
 </form>
+<hr class="my-4">
+<form action="{{ url_for('clear_tray_mappings') }}" method="post">
+  <button type="submit" class="btn btn-outline-danger w-100">
+    🧹 Vider les mappings AMS (tray_spool_map)
+  </button>
+</form>
   <hr class="my-5">
 
 <div class="container my-5" style="max-width: 600px;">
