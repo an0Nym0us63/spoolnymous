@@ -1,3 +1,136 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% import 'macros/hidden_args.jinja2' as macros %}
+{% if is_assign_mode %}
+  <h2>Assigner une bobine au print #{{ assign_print_id }}</h2>
+{% elif ams_id and tray_id %}
+  <h2>AMS: {{ ams_id }}, Tray: {{ tray_id }}</h2>
+{% else %}
+  <h2>Bobines disponibles</h2>
+{% endif %}
+
+<!-- Bouton flottant pagination -->
+<div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
+  <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#paginationOffcanvas" aria-controls="paginationOffcanvas">
+    📄
+  </button>
+</div>
+
+<!-- Bouton flottant filtres -->
+<div class="position-fixed bottom-0 start-0 m-3" style="z-index:1030;">
+  <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#filamentFilters" aria-controls="filamentFilters">
+    🔍
+  </button>
+</div>
+
+<div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="filamentFilters" aria-labelledby="filamentFiltersLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="filamentFiltersLabel">Filtres & Tri</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form method="get" class="row g-2 align-items-end">
+	{{ macros.render_filtered_args(args, ['search', 'color', 'sort', 'include_archived', 'page']) }}
+      <div class="col-md-4">
+        <input type="text" name="search" class="form-control" placeholder="Recherche nom, matériau ou vendor" value="{{ search }}">
+      </div>
+      <input type="hidden" name="page" value="1">
+      <div class="col-md-3">
+        <select name="color" class="form-select select2">
+          <option value=""></option>
+          {% for fam in all_families %}
+            <option value="{{ fam }}" {% if fam == selected_family %}selected{% endif %}>
+              {{ fam }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select name="sort" class="form-select">
+          <option value="default" {% if sort != 'remaining' %}selected{% endif %}>
+            Trier par Matériau/Vendor/Nom
+          </option>
+          <option value="remaining" {% if sort == 'remaining' %}selected{% endif %}>
+            Trier par Stock restant
+          </option>
+        </select>
+      </div>
+	  <div class="form-check">
+  <input class="form-check-input" type="checkbox" name="include_archived" value="1" id="includeArchived"
+         {% if request.args.get("include_archived") == "1" %}checked{% endif %}>
+  <label class="form-check-label" for="includeArchived">
+    Inclure les bobines archivées
+  </label>
+</div>
+      <div class="col-md-1 text-end">
+        <button type="submit" class="btn btn-primary">Appliquer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="paginationOffcanvas" aria-labelledby="paginationOffcanvasLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="paginationOffcanvasLabel">Pagination</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
+  </div>
+  <div class="offcanvas-body text-center">
+    <div class="d-inline-flex flex-wrap gap-1 align-items-center justify-content-center">
+      {% if page > 1 %}
+        <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo;</a>
+        <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo;</a>
+      {% endif %}
+
+      <form method="get" class="d-inline-flex align-items-center mx-2">
+	  {{ macros.render_filtered_args(args, ['page']) }}
+        <label for="gotoPage" class="me-1 mb-0"></label>
+        <input type="number" min="1" max="{{ total_pages }}" id="gotoPage" name="page" value="{{ page }}" class="form-control form-control-sm" style="width: 40px;">
+        <button type="submit" class="btn btn-sm btn-primary ms-1">Aller</button>
+      </form>
+
+      <span>/{{ total_pages }}</span>
+
+      {% if page < total_pages %}
+        <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">&rsaquo;</a>
+        <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">&raquo;</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+<!-- Statistiques filament responsive -->
+<div class="row row-cols-3 g-2 mb-3 text-center align-items-stretch">
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">🧵</div>
+        <div class="small fw-bold">{{ total_filaments }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">🏭</div>
+        <div class="small fw-bold">{{ total_vendors }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">⚖️</div>
+        <div class="small fw-bold">
+          {% if total_remaining >= 1000 %}
+            {{ (total_remaining / 1000) | round(2) }} kg
+          {% else %}
+            {{ total_remaining | round(1) }} g
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="accordion" id="filamentsAccordion">
   {% for spool in filaments %}
     <div class="accordion-item {% if spool.archived %}opacity-50{% endif %}" 
@@ -197,3 +330,46 @@
     </div>
   {% endfor %}
 </div>
+
+<div style="height: 4rem;"></div>
+{% if is_assign_mode %}
+  {% include 'fragments/modals_confirm_assign.html' %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="{{ url_for('static', filename='js/print_history.js') }}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  let pendingForm = null;
+
+  document.querySelectorAll(".trigger-assign-modal").forEach(button => {
+    button.addEventListener("click", function () {
+      pendingForm = this.closest("form");
+      const modal = new bootstrap.Modal(document.getElementById('confirmAssignModal'));
+      modal.show();
+    });
+  });
+
+  document.querySelectorAll("#confirmAssignModal .btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+      if (!pendingForm) return;
+      const action = this.getAttribute("data-action");
+
+      if (action === "no") {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "skip_usage";
+        input.value = "1";
+        pendingForm.appendChild(input);
+      }
+
+      pendingForm.submit();
+      pendingForm = null;
+    });
+  });
+});
+</script>
+{% endblock %}
