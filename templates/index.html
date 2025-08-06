@@ -52,7 +52,8 @@
       <div class="text-right text-xs">
         <div id="status-remaining">
           ⏱️ {{ printer_status.remaining_time_str }}<br>
-          🗓️ {{ printer_status.estimated_end or '' }}
+          🗓️ {{ printer_status.estimated_end or '' }}<br>
+          🗓️ {{ printer_status.tray_now or '' }}
         </div>
       </div>
     </div>
