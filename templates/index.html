@@ -175,6 +175,7 @@
   class="rounded-xl overflow-hidden border border-gray-700 shadow-md hover:border-primary transition backdrop-blur-sm"
   style="background: linear-gradient(135deg, rgba(30,30,30,0.85), rgba(40,40,40,0.85));"
 >
+
 <!-- En-tête -->
 <div class="flex justify-between items-center px-4 py-2 bg-gray-800 border-b border-gray-700">
   <!-- Nom AMS -->
@@ -188,9 +189,9 @@
     </span>
   </div>
 
-  <!-- AMS graphique -->
+  <!-- AMS graphique avec vrai espacement -->
   <div class="ml-2 flex items-end">
-    <div class="px-2 py-1 h-8 rounded-t-xl bg-gray-400 border border-gray-600 flex items-end shadow-inner gap-x-[2px]">
+    <div class="px-3 py-1 h-8 min-w-[4rem] rounded-t-xl bg-gray-400 border border-gray-600 flex items-end shadow-inner gap-x-2">
       {% for tray in ams.tray %}
         {% if tray.tray_color and tray.tray_type %}
           <div
@@ -221,12 +222,8 @@
   <!-- Température & humidité avec emojis -->
   {% if ams.temp != "0.0" %}
   <div class="text-xs text-gray-300 flex flex-col items-end space-y-1 whitespace-nowrap">
-    <div class="flex items-center gap-1">
-      💧 {{ ams.humidity_raw }}%
-    </div>
-    <div class="flex items-center gap-1">
-      🌡️ {{ ams.temp }}°C
-    </div>
+    <div class="flex items-center gap-1">💧 {{ ams.humidity_raw }}%</div>
+    <div class="flex items-center gap-1">🧪 {{ ams.temp }}°C</div>
   </div>
   {% endif %}
 </div>
