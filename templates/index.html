@@ -105,11 +105,15 @@
 <!-- En-tête -->
 <div class="flex justify-between items-center px-4 py-2 bg-gray-800 border-b border-gray-700">
   <!-- Nom AMS -->
-<div class="flex items-center gap-1 sm:gap-2 text-primary font-semibold text-[0.4rem] sm:text-[0.45rem] md:text-sm leading-tight truncate max-w-[6rem] sm:max-w-[8rem]" 
-     title="{{ ams.location or ('AMS ' ~ ams.id|string) }}">
-  <i class="bi bi-hdd-stack-fill text-[0.75rem] sm:text-sm opacity-90"></i>
-  <span class="truncate">{{ ams.location or ('AMS ' ~ ams.id|string) }}</span>
-</div>
+  <div class="flex items-center">
+    <span class="inline-flex items-center text-[0.45rem] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-primary text-white shadow text-center max-w-[5.5rem] leading-tight break-words whitespace-normal">
+      {% if ams.location %}
+        {{ ams.location }}
+      {% else %}
+        AMS{% if ams_data|length > 1 %} {{ ams.id|int + 1 }}{% endif %}
+      {% endif %}
+    </span>
+  </div>
 
   <!-- AMS graphique avec vrai espacement -->
   <div class="ml-2 flex items-end">
