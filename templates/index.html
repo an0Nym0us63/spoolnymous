@@ -217,10 +217,32 @@
 
   
   <!-- External Spool -->
-  <div class="{% if ams_data|length > 1 %}col-12{% else %}col-lg-6{% endif %} mb-4 text-center">
-    {% with tray_data=vt_tray_data, ams_id=EXTERNAL_SPOOL_AMS_ID, pick_tray=False, tray_id=EXTERNAL_SPOOL_ID %}
-      {% include 'fragments/tray.html' %}
-    {% endwith %}
+<div class="{% if ams_data|length > 1 %}col-12{% else %}col-lg-6{% endif %} mb-4">
+  <div
+    id="ams-card-external"
+    class="rounded-xl overflow-hidden border border-gray-700 shadow-md hover:border-primary transition backdrop-blur-sm"
+    style="background: linear-gradient(135deg, rgba(30,30,30,0.85), rgba(40,40,40,0.85));"
+  >
+
+    <!-- En-tête simplifiée -->
+    <div class="flex justify-between items-start px-4 py-2 bg-gray-800 border-b border-gray-700">
+      <span class="inline-flex items-center gap-2 bg-primary text-white text-sm font-semibold px-3 py-1 rounded-full shadow">
+        External
+      </span>
+    </div>
+
+    <!-- Contenu aligné avec les AMS -->
+    <div class="p-3 bg-gray-900 text-white">
+      <div class="row justify-center">
+        <div class="col-sm-6 mb-3 mx-auto">
+          {% with tray_data=vt_tray_data, ams_id=EXTERNAL_SPOOL_AMS_ID, pick_tray=False, tray_id=EXTERNAL_SPOOL_ID %}
+            {% include 'fragments/tray.html' %}
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+
   </div>
+</div>
 </div>
 {% endblock %}
