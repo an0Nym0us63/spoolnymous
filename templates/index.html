@@ -187,34 +187,34 @@
   </span>
 
   <!-- Représentation graphique AMS style Bambu -->
-  <div class="ml-2 flex items-end">
-    <div class="px-1 py-1 w-auto h-8 rounded-t-xl bg-gray-400/80 border border-gray-500 flex justify-evenly items-end shadow-inner">
-      {% for tray in ams.tray %}
-        {% if tray.tray_color and tray.tray_type %}
-          <div
-            class="w-2 h-5 mx-[1px] rounded shadow"
-            style="background-color: #{{ tray.tray_color }}"
-            title="{{ tray.name }} - {{ tray.vendor }}"
-          ></div>
-        {% else %}
-          <div
-            class="w-2 h-5 mx-[1px] rounded shadow border border-gray-500"
-            title="Slot vide"
-            style="
-              background-image: repeating-linear-gradient(
-                45deg,
-                #666 0px,
-                #666 2px,
-                #999 2px,
-                #999 4px
-              );
-              background-size: 4px 4px;
-            "
-          ></div>
-        {% endif %}
-      {% endfor %}
-    </div>
+<div class="ml-2 flex items-end">
+  <div class="px-2 py-1 rounded-t-xl bg-gray-400 border border-gray-600 flex items-end shadow-inner">
+    {% for tray in ams.tray %}
+      {% if tray.tray_color and tray.tray_type %}
+        <div
+          class="w-2 h-5 mx-1.5 rounded shadow"
+          style="background-color: #{{ tray.tray_color }}"
+          title="{{ tray.name }} - {{ tray.vendor }}"
+        ></div>
+      {% else %}
+        <div
+          class="w-2 h-5 mx-1.5 rounded shadow border border-gray-500"
+          title="Slot vide"
+          style="
+            background-image: repeating-linear-gradient(
+              45deg,
+              #666 0px,
+              #666 2px,
+              #999 2px,
+              #999 4px
+            );
+            background-size: 4px 4px;
+          "
+        ></div>
+      {% endif %}
+    {% endfor %}
   </div>
+</div>
 
   {% if ams.temp != "0.0" %}
   <div class="text-xs text-gray-300 flex flex-col items-end space-y-1">
