@@ -238,10 +238,11 @@
     card.classList.remove('border', 'border-3', 'border-info', 'shadow-lg');
   });
 
-  // Reset tray graphics
-  document.querySelectorAll('[id^="tray-graphic-"]').forEach(graphic => {
-    graphic.classList.remove('border', 'border-info');
-  });
+// Reset tray graphics
+document.querySelectorAll('[id^="tray-graphic-"]').forEach(graphic => {
+  graphic.classList.remove('border', 'border-info');
+  graphic.style.borderWidth = ''; // Réinitialise l'inline style
+});
 
   // Apply to tray card
   const trayCard = document.querySelector(`#tray-card-${trayKey}`);
@@ -252,7 +253,8 @@
   // Apply to tray graphic
   const trayGraphic = document.querySelector(`#tray-graphic-${trayKey}`);
   if (trayGraphic) {
-    trayGraphic.classList.add('border', 'border-2', 'border-info');
+    trayGraphic.classList.add('border', 'border-info');
+	trayGraphic.style.borderWidth = '1.5px';
   }
 }
 
