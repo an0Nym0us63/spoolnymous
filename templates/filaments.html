@@ -6,8 +6,6 @@
   <h2>Assigner une bobine au print #{{ assign_print_id }}</h2>
 {% elif ams_id and tray_id %}
   <h2>AMS: {{ ams_id }}, Tray: {{ tray_id }}</h2>
-{% else %}
-  <h2>Bobines disponibles</h2>
 {% endif %}
 
 <!-- Bouton flottant pagination -->
@@ -137,75 +135,78 @@
          style="border-radius: 0.75rem; margin-bottom: 0.75rem; background-color: #1e293b; box-shadow: 0 0 10px rgba(0,0,0,0.3);">
       
       <h2 class="accordion-header d-flex justify-content-between align-items-center"
-          id="heading{{ spool.id }}"
-          style="border-radius: 0.75rem;">
+    id="heading{{ spool.id }}"
+    style="border-radius: 0.75rem;">
 
-        <div class="flex-grow-1">
-          <button class="accordion-button collapsed py-1 sm:py-2 px-3 w-100 text-start"
-                  type="button"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#collapse{{ spool.id }}"
-                  aria-expanded="false"
-                  aria-controls="collapse{{ spool.id }}"
-                  style="border-radius: 0.75rem; font-size: 0.85rem;">
+  <div class="flex-grow-1">
+    <button class="accordion-button collapsed py-1 sm:py-2 px-3 w-100 text-start"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#collapse{{ spool.id }}"
+            aria-expanded="false"
+            aria-controls="collapse{{ spool.id }}"
+            style="border-radius: 0.75rem; font-size: 0.85rem;">
 
-            <div class="d-flex w-100 align-items-stretch gap-2">
-              <div class="d-flex align-items-stretch" style="width: 12px;">
-                {% if spool.filament.multi_color_hexes %}
-                  {% set colors =
-                      spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
-                      else spool.filament.multi_color_hexes %}
-                  <span style="width:12px;min-height:100%;background:linear-gradient(90deg{% for c in colors %}, #{{c.strip()}}{% endfor %});border-radius:2px;border:1px solid #888;display:inline-block;"></span>
-                {% else %}
-                  <span style="width:12px;min-height:100%;background-color:#{{ spool.filament.color_hex }};border-radius:2px;border:1px solid #888;display:inline-block;"></span>
-                {% endif %}
-              </div>
-
-              <div class="flex-grow-1 text-start overflow-hidden">
-                <div style="font-weight: 600;">
-                  {{ spool.filament.material }} / {{ spool.filament.name }}
-                </div>
-                <div style="font-size: 0.8rem; color: #cbd5e1;">
-                  {{ spool.filament.vendor.name }}
-                </div>
-              </div>
-
-              <div class="d-flex flex-column justify-content-center align-items-end ms-2 text-end" style="min-width: 70px;">
-                {% if spool.location %}
-                  <div class="small text-muted" style="font-size: 0.75rem;">{{ spool.location }}</div>
-                {% endif %}
-                <strong style="font-size: 1rem;">{{ spool.remaining_weight|round|int }} g</strong>
-              </div>
-            </div>
-          </button>
-        </div>
-
-        <div class="ms-2 me-3 d-flex align-items-center" style="min-width: 40px;">
-          {% if is_assign_mode %}
-            <form method="post" action="{{ url_for('assign_spool_to_print') }}">
-              <input type="hidden" name="spool_id" value="{{ spool.id }}">
-              <input type="hidden" name="print_id" value="{{ assign_print_id }}">
-              <input type="hidden" name="filament_index" value="{{ assign_filament_index }}">
-              <input type="hidden" name="focus_id" value="{{ assign_print_id }}">
-              <input type="hidden" name="filament_usage" value="{{ filament_usage }}">
-              {% if request.args.get('assign_page') %}<input type="hidden" name="page" value="{{ request.args.get('assign_page') }}">{% endif %}
-              {% if request.args.get('assign_status') %}<input type="hidden" name="status" value="{{ request.args.get('assign_status') }}">{% endif %}
-              {% if request.args.get('assign_filament_type') %}<input type="hidden" name="filament_type" value="{{ request.args.get('assign_filament_type') }}">{% endif %}
-              {% if request.args.get('assign_color') %}<input type="hidden" name="color" value="{{ request.args.get('assign_color') }}">{% endif %}
-              {% if request.args.get('assign_filament_id') %}<input type="hidden" name="filament_id" value="{{ request.args.get('assign_filament_id') }}">{% endif %}
-              {% if request.args.get('assign_sold_filter') %}<input type="hidden" name="sold_filter" value="{{ request.args.get('assign_sold_filter') }}">{% endif %}
-
-              <button type="button"
-                      class="btn btn-sm btn-success rounded-circle trigger-assign-modal"
-                      title="Assigner cette bobine">✅</button>
-            </form>
-          {% elif ams_id and tray_id %}
-            <a href="{{ url_for('filaments', spool_id=spool.id, ams=ams_id, tray=tray_id) }}"
-               class="btn btn-sm btn-primary rounded-circle"
-               title="Remplir"><i class="bi bi-plus"></i></a>
+      <div class="d-flex w-100 align-items-stretch gap-2">
+        <div class="d-flex align-items-stretch" style="width: 12px;">
+          {% if spool.filament.multi_color_hexes %}
+            {% set colors =
+                spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
+                else spool.filament.multi_color_hexes %}
+            <span style="width:12px;min-height:100%;background:linear-gradient(90deg{% for c in colors %}, #{{c.strip()}}{% endfor %});border-radius:2px;border:1px solid #888;display:inline-block;"></span>
+          {% else %}
+            <span style="width:12px;min-height:100%;background-color:#{{ spool.filament.color_hex }};border-radius:2px;border:1px solid #888;display:inline-block;"></span>
           {% endif %}
         </div>
-      </h2>
+
+        <div class="flex-grow-1 text-start overflow-hidden">
+          <div style="font-weight: 600;">
+            {{ spool.filament.material }} / {{ spool.filament.name }}
+          </div>
+          <div style="font-size: 0.8rem; color: #cbd5e1;">
+            {{ spool.filament.vendor.name }}
+          </div>
+        </div>
+
+        <div class="d-flex flex-column justify-content-center align-items-end ms-2 text-end" style="min-width: 70px;">
+          {% if spool.location %}
+            <div class="small text-muted" style="font-size: 0.75rem;">{{ spool.location }}</div>
+          {% endif %}
+          <strong style="font-size: 1rem;">{{ spool.remaining_weight|round|int }} g</strong>
+        </div>
+      </div>
+    </button>
+  </div>
+
+  {% if is_assign_mode %}
+  <div class="ms-2 me-3 d-flex align-items-center" style="min-width: 40px;">
+    <form method="post" action="{{ url_for('assign_spool_to_print') }}">
+      <input type="hidden" name="spool_id" value="{{ spool.id }}">
+      <input type="hidden" name="print_id" value="{{ assign_print_id }}">
+      <input type="hidden" name="filament_index" value="{{ assign_filament_index }}">
+      <input type="hidden" name="focus_id" value="{{ assign_print_id }}">
+      <input type="hidden" name="filament_usage" value="{{ filament_usage }}">
+      {% if request.args.get('assign_page') %}<input type="hidden" name="page" value="{{ request.args.get('assign_page') }}">{% endif %}
+      {% if request.args.get('assign_status') %}<input type="hidden" name="status" value="{{ request.args.get('assign_status') }}">{% endif %}
+      {% if request.args.get('assign_filament_type') %}<input type="hidden" name="filament_type" value="{{ request.args.get('assign_filament_type') }}">{% endif %}
+      {% if request.args.get('assign_color') %}<input type="hidden" name="color" value="{{ request.args.get('assign_color') }}">{% endif %}
+      {% if request.args.get('assign_filament_id') %}<input type="hidden" name="filament_id" value="{{ request.args.get('assign_filament_id') }}">{% endif %}
+      {% if request.args.get('assign_sold_filter') %}<input type="hidden" name="sold_filter" value="{{ request.args.get('assign_sold_filter') }}">{% endif %}
+
+      <button type="button"
+              class="btn btn-sm btn-success rounded-circle trigger-assign-modal"
+              title="Assigner cette bobine">✅</button>
+    </form>
+  </div>
+  {% elif ams_id and tray_id %}
+  <div class="ms-2 me-3 d-flex align-items-center" style="min-width: 40px;">
+    <a href="{{ url_for('filaments', spool_id=spool.id, ams=ams_id, tray=tray_id) }}"
+       class="btn btn-sm btn-primary rounded-circle"
+       title="Remplir"><i class="bi bi-plus"></i></a>
+  </div>
+  {% endif %}
+</h2>
+
 
       <div id="collapse{{ spool.id }}" class="accordion-collapse collapse"
            aria-labelledby="heading{{ spool.id }}" data-bs-parent="#filamentsAccordion">
