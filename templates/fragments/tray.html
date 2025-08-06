@@ -1,10 +1,10 @@
 <div
-  class="rounded-xl overflow-hidden border border-gray-700 shadow-md hover:border-warning transition backdrop-blur-sm"
+  class="rounded-xl overflow-hidden border border-gray-700 shadow-md transition hover:border-warning backdrop-blur-sm"
   style="background: linear-gradient(135deg, rgba(35,35,35,0.9), rgba(45,45,45,0.85));"
   data-tray-id="{{ ams_id|string }}_{{ tray_data.id|string }}"
   id="tray-card-{{ ams_id|string }}_{{ tray_data.id|string }}"
 >
-  <!-- Header -->
+  <!-- Header cliquable -->
   <div
     class="px-4 py-2 cursor-pointer text-sm bg-gray-800 hover:bg-gray-700 transition flex justify-between items-start"
     data-bs-toggle="collapse"
@@ -13,7 +13,7 @@
     aria-controls="trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}"
   >
     <div class="flex-1">
-      <div class="font-semibold text-white truncate">
+      <div class="font-semibold text-white">
         {% if ams_id|int != EXTERNAL_SPOOL_AMS_ID %}
           {{ (tray_data.id|int + 1) }}
         {% else %}
@@ -21,7 +21,7 @@
         {% endif %}
         {% if tray_data.tray_type %} - {{ tray_data.name }}{% else %} - Empty{% endif %}
       </div>
-      <div class="text-gray-400 text-xs truncate">
+      <div class="text-gray-400 text-xs">
         {% if tray_data.tray_type %}
           {{ tray_data.tray_type }}
           {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
@@ -31,23 +31,25 @@
         {% endif %}
       </div>
     </div>
-    <div class="text-end text-sm text-white space-y-1">
+    <div class="text-end text-white text-sm">
       {% if tray_data.tray_type %}
-        {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
-          <div class="spool-icon small d-inline-block">
-            {% for color in tray_data.tray_color %}
-              <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <span class="inline-block rounded px-2 py-1 text-xs font-bold shadow"
-                style="background-color: #{{ tray_data.tray_color }};
-                       color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
-            #{{ tray_data.tray_color|upper }}
-          </span>
-        {% endif %}
+        <div>
+          {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
+            <div class="spool-icon small d-inline-block">
+              {% for color in tray_data.tray_color %}
+                <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <span class="inline-block rounded px-2 py-1 text-xs font-bold shadow"
+                  style="background-color: #{{ tray_data.tray_color }};
+                         color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
+              #{{ tray_data.tray_color|upper }}
+            </span>
+          {% endif %}
+        </div>
         {% if AUTO_SPEND and tray_data.matched %}
-        <div class="text-xs text-gray-300 text-end">
+        <div class="text-xs mt-1 text-gray-300">
           {{ tray_data.remaining_weight|round }}g
         </div>
         {% endif %}
@@ -55,53 +57,55 @@
     </div>
   </div>
 
-  <!-- Collapse Détails -->
+  <!-- Détails -->
   <div class="collapse" id="trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}">
-    <div class="px-4 py-3 bg-gray-800/60 text-sm text-white space-y-4 border-t border-gray-700 shadow-inner rounded-b-xl backdrop-blur-lg backdrop-saturate-150">
+    <div class="px-4 py-3 bg-gray-800/60 text-sm text-white space-y-3 border-t border-gray-700 shadow-inner rounded-b-xl backdrop-blur-md">
+
+
       {% if tray_data.tray_type %}
-        <div class="text-center text-gray-400 text-xs">
-          {{ tray_data.tray_type }}
-          {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
-          - {{ tray_data.vendor }}
-        </div>
+      <div class="text-center text-gray-400 text-xs">
+        {{ tray_data.tray_type }}
+        {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
+        - {{ tray_data.vendor }}
+      </div>
 
-        <div class="flex flex-col lg:flex-row gap-4">
-          <div class="flex flex-col items-center text-center lg:w-5/12">
-            <div class="font-bold">{{ tray_data.name }}</div>
-            {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
-              <div class="spool-icon {% if tray_data.tray_color_orientation == 'coaxial' %}horizontal{% else %}vertical{% endif %}">
-                {% for color in tray_data.tray_color %}
-                  <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
-                {% endfor %}
-              </div>
-            {% else %}
-              <span class="inline-block mt-2 rounded px-2 py-1 text-xs font-bold shadow"
-                    style="background-color: #{{ tray_data.tray_color }};
-                           color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
-                #{{ tray_data.tray_color|upper }}
-              </span>
-            {% endif %}
-          </div>
-
-          <div class="flex-1 space-y-2">
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-400">Last used:</span>
-              <span class="font-semibold">{{ tray_data.last_used }}</span>
+      <div class="flex flex-col lg:flex-row lg:items-center gap-4 text-sm">
+        <div class="flex flex-col items-center text-center lg:w-5/12">
+          <div class="font-bold">{{ tray_data.name }}</div>
+          {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
+            <div class="spool-icon {% if tray_data.tray_color_orientation == 'coaxial' %}horizontal{% else %}vertical{% endif %}">
+              {% for color in tray_data.tray_color %}
+                <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
+              {% endfor %}
             </div>
-            {% if AUTO_SPEND and tray_data.matched %}
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-400">Remaining:</span>
-                <span class="font-semibold">{{ tray_data.remaining_weight|round }}g</span>
-              </div>
-            {% endif %}
-            {% if tray_data.remain != -1 %}
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-400">Estimate:</span>
-                <span class="font-semibold">{{ tray_data.remain }}%</span>
-              </div>
-            {% endif %}
-          </div>
+          {% else %}
+            <span class="inline-block mt-2 rounded px-2 py-1 text-xs font-bold shadow"
+                  style="background-color: #{{ tray_data.tray_color }};
+                         color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
+              #{{ tray_data.tray_color|upper }}
+            </span>
+          {% endif %}
         </div>
+
+        <div class="flex-1 space-y-2">
+          <div class="flex justify-between">
+            <span class="text-gray-400">Last used:</span>
+            <span class="font-semibold">{{ tray_data.last_used }}</span>
+          </div>
+          {% if AUTO_SPEND and tray_data.matched %}
+          <div class="flex justify-between">
+            <span class="text-gray-400">Remaining:</span>
+            <span class="font-semibold">{{ tray_data.remaining_weight|round }}g</span>
+          </div>
+          {% endif %}
+          {% if tray_data.remain != -1 %}
+          <div class="flex justify-between">
+            <span class="text-gray-400">Estimate:</span>
+            <span class="font-semibold">{{ tray_data.remain }}%</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
       {% endif %}
 
       <div class="text-center text-gray-500 text-xs">
@@ -112,18 +116,12 @@
       </div>
     </div>
 
-    <!-- Footer Bouton -->
+    <!-- Footer -->
     <div class="px-4 py-2 bg-gray-800 border-t border-gray-700 text-center">
       {% if pick_tray %}
-        <a class="inline-block bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded shadow"
-           href="{{ url_for('tray_load', spool_id=current_spool['id'], tag_id=tag_id, ams=ams_id, tray=tray_id) }}">
-          Assign
-        </a>
+        <a class="btn btn-primary" href="{{ url_for('tray_load', spool_id=current_spool['id'], tag_id=tag_id, ams=ams_id, tray=tray_id) }}">Assign</a>
       {% else %}
-        <a class="inline-block bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded shadow"
-           href="{{ url_for('filaments', ams=ams_id, tray=tray_id, search=tray_data.tray_type) }}">
-          Fill
-        </a>
+        <a class="btn btn-primary" href="{{ url_for('filaments', ams=ams_id, tray=tray_id, search=tray_data.tray_type) }}">Fill</a>
       {% endif %}
     </div>
   </div>
