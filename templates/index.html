@@ -130,11 +130,11 @@
   data-tray-id="{{ ams.id|string }}_{{ tray.id|string }}"
   id="tray-graphic-{{ ams.id|string }}_{{ tray.id|string }}"
   class="w-2 h-5 rounded shadow"
-style="
-  background-color: #{{ tray.tray_color }};
-  border: 1px solid rgba(120, 120, 120, 0.35);  /* gris doux universel */
-  box-sizing: border-box;
-"
+  style="
+    background-color: #{{ tray.tray_color }};
+    border: 1px solid #888;
+    box-sizing: border-box;
+  "
   title="{{ tray.name }} - {{ tray.vendor }}"
 ></div>
         {% else %}
@@ -244,7 +244,8 @@ style="
 
 // Reset tray graphics
 document.querySelectorAll('[id^="tray-graphic-"]').forEach(graphic => {
-  graphic.classList.remove('border', 'border-2', 'border-info');
+  graphic.classList.remove('highlight-outline');
+  graphic.style.outline = '';
 });
 
   // Apply to tray card
@@ -254,10 +255,12 @@ document.querySelectorAll('[id^="tray-graphic-"]').forEach(graphic => {
   }
 
   // Apply to tray graphic
-  const trayGraphic = document.querySelector(`#tray-graphic-${trayKey}`);
-  if (trayGraphic) {
-    trayGraphic.classList.add('border', 'border-2', 'border-info');
-  }
+const trayGraphic = document.querySelector(`#tray-graphic-${trayKey}`);
+if (trayGraphic) {
+  trayGraphic.style.outline = '2px solid #0dcaf0';
+  trayGraphic.style.outlineOffset = '0px'; // ou -1px pour coller
+}
+
 }
 
 
