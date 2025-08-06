@@ -176,56 +176,57 @@
   style="background: linear-gradient(135deg, rgba(30,30,30,0.85), rgba(40,40,40,0.85));"
 >
 
-    <!-- En-tête -->
-    <div class="flex justify-between items-start px-4 py-2 bg-gray-800 border-b border-gray-700">
-      <span class="inline-flex items-center gap-2 bg-primary text-white text-sm font-semibold px-3 py-1 rounded-full shadow">
-        {% if ams.location %}
-          {{ ams.location }}
+<!-- En-tête -->
+<div class="flex justify-between items-start px-4 py-2 bg-gray-800 border-b border-gray-700">
+  <span class="inline-flex items-center gap-2 bg-primary text-white text-sm font-semibold px-3 py-1 rounded-full shadow">
+    {% if ams.location %}
+      {{ ams.location }}
+    {% else %}
+      AMS{% if ams_data|length > 1 %} {{ ams.id|int + 1 }}{% endif %}
+    {% endif %}
+  </span>
+
+  <!-- Représentation graphique AMS style Bambu -->
+  <div class="ml-2 flex items-end">
+    <div class="px-1 py-1 w-auto h-8 rounded-t-xl bg-gray-400/80 border border-gray-500 flex justify-evenly items-end shadow-inner">
+      {% for tray in ams.tray %}
+        {% if tray.tray_color and tray.tray_type %}
+          <div
+            class="w-2 h-5 mx-[1px] rounded shadow"
+            style="background-color: #{{ tray.tray_color }}"
+            title="{{ tray.name }} - {{ tray.vendor }}"
+          ></div>
         {% else %}
-          AMS{% if ams_data|length > 1 %} {{ ams.id|int + 1 }}{% endif %}
+          <div
+            class="w-2 h-5 mx-[1px] rounded shadow border border-gray-500"
+            title="Slot vide"
+            style="
+              background-image: repeating-linear-gradient(
+                45deg,
+                #666 0px,
+                #666 2px,
+                #999 2px,
+                #999 4px
+              );
+              background-size: 4px 4px;
+            "
+          ></div>
         {% endif %}
-      </span>
-		<!-- Représentation graphique AMS style Bambu (transparente + hachures si vide) -->
-<div class="ml-2 flex items-end">
-  <div class="w-14 h-8 rounded-t-xl bg-gray-400/60 border border-gray-500 flex justify-evenly items-end px-1 py-1 shadow-inner">
-    {% for i in range(4) %}
-      {% set tray = ams.tray[i] if i < ams.tray|length else None %}
-      {% if tray and tray.tray_color and tray.tray_type %}
-        <div
-          class="w-2 h-5 rounded shadow"
-          style="background-color: #{{ tray.tray_color }}"
-          title="{{ tray.name }} - {{ tray.vendor }}"
-        ></div>
-      {% else %}
-        <div
-          class="w-2 h-5 rounded shadow border border-gray-500"
-          title="Slot vide"
-          style="
-            background-image: repeating-linear-gradient(
-              45deg,
-              #666 0px,
-              #666 2px,
-              #999 2px,
-              #999 4px
-            );
-            background-size: 4px 4px;
-          "
-        ></div>
-      {% endif %}
-    {% endfor %}
-  </div>
-</div>
-      {% if ams.temp != "0.0" %}
-      <div class="text-xs text-gray-300 flex flex-col items-end space-y-1">
-        <div class="flex items-center gap-1">
-          <i class="bi bi-droplet-half text-cyan-400"></i>{{ ams.humidity_raw }}%
-        </div>
-        <div class="flex items-center gap-1">
-          <i class="bi bi-thermometer-half text-orange-300"></i>{{ ams.temp }}°C
-        </div>
-      </div>
-      {% endif %}
+      {% endfor %}
     </div>
+  </div>
+
+  {% if ams.temp != "0.0" %}
+  <div class="text-xs text-gray-300 flex flex-col items-end space-y-1">
+    <div class="flex items-center gap-1">
+      <i class="bi bi-droplet-half text-cyan-400"></i>{{ ams.humidity_raw }}%
+    </div>
+    <div class="flex items-center gap-1">
+      <i class="bi bi-thermometer-half text-orange-300"></i>{{ ams.temp }}°C
+    </div>
+  </div>
+  {% endif %}
+</div>
 
     <!-- Contenu avec fond visible -->
     <div class="p-3 bg-gray-900 text-white">
