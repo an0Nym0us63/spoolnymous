@@ -2,12 +2,19 @@
 
 {% block content %}
 {% if printer_status %}
-<div x-data="{ open: false }" class="mb-4">
+<div x-data="{ open: false }"
+     class="mb-4 rounded-xl overflow-hidden shadow-md"
+     style="
+       border: 1px solid rgba(255, 255, 255, 0.08);
+       background: rgba(30, 30, 40, 0.85);
+       backdrop-filter: blur(4px);
+       -webkit-backdrop-filter: blur(4px);
+     ">
 
   <!-- Header de l'accordéon -->
   <div
     class="relative overflow-hidden shadow-md cursor-pointer transition-all duration-200"
-    :class="open ? 'rounded-t-xl rounded-b-none bg-gray-900' : 'rounded-xl bg-gray-900'"
+    :class="open ? 'rounded-t-xl rounded-b-none' : 'rounded-xl'"
     @click="open = !open"
   >
     {% set progress_color = 'from-green-500 to-blue-500' %}
