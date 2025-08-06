@@ -106,7 +106,10 @@
 <div class="flex justify-between items-center px-4 py-2 bg-gray-800 border-b border-gray-700">
   <!-- Nom AMS -->
   <div class="flex items-center">
-    <span class="inline-flex items-center text-[0.65rem] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-primary text-white shadow text-center max-w-[5.5rem] leading-tight break-words whitespace-normal">
+    <span class="inline-flex items-center font-semibold px-2 py-0.5 rounded-full bg-primary text-white shadow text-center leading-tight
+  text-[0.55rem] sm:text-[0.65rem] md:text-xs
+  max-w-[4.5rem] sm:max-w-[5rem] md:max-w-[6rem]
+  whitespace-nowrap overflow-hidden text-ellipsis">
       {% if ams.location %}
         {{ ams.location }}
       {% else %}
