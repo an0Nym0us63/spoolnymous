@@ -192,7 +192,12 @@
   <!-- AMS graphique avec vrai espacement -->
   <div class="ml-2 flex items-end">
     <div class="px-3 py-1 h-8 min-w-[4rem] rounded-t-xl border border-gray-600 flex items-end shadow-inner gap-x-2"
-     style="background: linear-gradient(to bottom, rgba(229,231,235,0.85), rgba(156,163,175,0.85));">
+     style="
+       background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+       backdrop-filter: blur(6px);
+       -webkit-backdrop-filter: blur(6px);
+       box-shadow: inset 0 0 4px rgba(255,255,255,0.05), inset 0 1px 2px rgba(255,255,255,0.1);
+     ">
       {% for tray in ams.tray %}
         {% if tray.tray_color and tray.tray_type %}
           <div
