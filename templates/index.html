@@ -127,10 +127,12 @@
       {% for tray in ams.tray %}
         {% if tray.tray_color and tray.tray_type %}
           <div
-            class="w-2 h-5 rounded shadow"
-            style="background-color: #{{ tray.tray_color }}"
-            title="{{ tray.name }} - {{ tray.vendor }}"
-          ></div>
+  data-tray-id="{{ ams.id|string }}_{{ tray.id|string }}"
+  id="tray-card-{{ ams.id|string }}_{{ tray.id|string }}"
+  class="w-2 h-5 rounded shadow"
+  style="background-color: #{{ tray.tray_color }}"
+  title="{{ tray.name }} - {{ tray.vendor }}"
+></div>
         {% else %}
           <div
             class="w-2 h-5 rounded shadow border border-gray-500"
