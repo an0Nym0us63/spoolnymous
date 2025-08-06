@@ -126,9 +126,9 @@
      ">
       {% for tray in ams.tray %}
         {% if tray.tray_color and tray.tray_type %}
-          <div
+<div
   data-tray-id="{{ ams.id|string }}_{{ tray.id|string }}"
-  id="tray-card-{{ ams.id|string }}_{{ tray.id|string }}"
+  id="tray-graphic-{{ ams.id|string }}_{{ tray.id|string }}"
   class="w-2 h-5 rounded shadow"
   style="background-color: #{{ tray.tray_color }}"
   title="{{ tray.name }} - {{ tray.vendor }}"
@@ -224,23 +224,27 @@
   const trayKey = `${String(tray_ams_id)}_${String(tray_local_id)}`;
   const amsKey = String(tray_ams_id);
 
-  // Reset AMS cards
-  document.querySelectorAll('[id^="ams-card-"]').forEach(card => {
-    card.classList.remove('border', 'border-4', 'border-primary');
-  });
-  const amsCard = document.querySelector(`#ams-card-${amsKey}`);
-  if (amsCard) {
-    amsCard.classList.add('border', 'border-4', 'border-primary');
-  }
+  / Reset tray cards
+document.querySelectorAll('[id^="tray-card-"]').forEach(card => {
+  card.classList.remove('border', 'border-3', 'border-warning', 'shadow-lg');
+});
 
-  // Reset tray cards
-  document.querySelectorAll('[id^="tray-card-"]').forEach(card => {
-    card.classList.remove('border', 'border-3', 'border-warning', 'shadow-lg');
-  });
-  const trayCard = document.querySelector(`#tray-card-${trayKey}`);
-  if (trayCard) {
-    trayCard.classList.add('border', 'border-3', 'border-warning', 'shadow-lg');
-  }
+// Reset tray graphics
+document.querySelectorAll('[id^="tray-graphic-"]').forEach(graphic => {
+  graphic.classList.remove('border', 'border-warning');
+});
+
+// Apply to tray card
+const trayCard = document.querySelector(`#tray-card-${trayKey}`);
+if (trayCard) {
+  trayCard.classList.add('border', 'border-3', 'border-warning', 'shadow-lg');
+}
+
+// Apply to tray graphic (thin border only)
+const trayGraphic = document.querySelector(`#tray-graphic-${trayKey}`);
+if (trayGraphic) {
+  trayGraphic.classList.add('border', 'border-warning');
+}
 }
 
 
