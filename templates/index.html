@@ -130,11 +130,11 @@
   data-tray-id="{{ ams.id|string }}_{{ tray.id|string }}"
   id="tray-graphic-{{ ams.id|string }}_{{ tray.id|string }}"
   class="w-2 h-5 rounded shadow"
-  style="
-    background-color: #{{ tray.tray_color }};
-    border: 1px solid rgba(255, 255, 255, 0.2);  /* discret mais lisible */
-    box-sizing: border-box;
-  "
+style="
+  background-color: #{{ tray.tray_color }};
+  border: 1px solid rgba(120, 120, 120, 0.35);  /* gris doux universel */
+  box-sizing: border-box;
+"
   title="{{ tray.name }} - {{ tray.vendor }}"
 ></div>
         {% else %}
