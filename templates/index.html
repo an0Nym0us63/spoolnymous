@@ -235,24 +235,24 @@
 
   // Reset tray cards
   document.querySelectorAll('[id^="tray-card-"]').forEach(card => {
-    card.classList.remove('border', 'border-3', 'border-warning', 'shadow-lg');
+    card.classList.remove('border', 'border-3', 'border-info', 'shadow-lg');
   });
 
   // Reset tray graphics
   document.querySelectorAll('[id^="tray-graphic-"]').forEach(graphic => {
-    graphic.classList.remove('border', 'border-warning');
+    graphic.classList.remove('border', 'border-info');
   });
 
   // Apply to tray card
   const trayCard = document.querySelector(`#tray-card-${trayKey}`);
   if (trayCard) {
-    trayCard.classList.add('border', 'border-3', 'border-warning', 'shadow-lg');
+    trayCard.classList.add('border', 'border-3', 'border-info', 'shadow-lg');
   }
 
   // Apply to tray graphic
   const trayGraphic = document.querySelector(`#tray-graphic-${trayKey}`);
   if (trayGraphic) {
-    trayGraphic.classList.add('border', 'border-warning');
+    trayGraphic.classList.add('border', , 'border-2', 'border-info');
   }
 }
 
