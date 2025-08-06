@@ -130,7 +130,10 @@
   data-tray-id="{{ ams.id|string }}_{{ tray.id|string }}"
   id="tray-graphic-{{ ams.id|string }}_{{ tray.id|string }}"
   class="w-2 h-5 rounded shadow"
-  style="background-color: #{{ tray.tray_color }}"
+  style="
+    background-color: #{{ tray.tray_color }};
+    border: 1px solid rgba(255,255,255,0.08);
+  "
   title="{{ tray.name }} - {{ tray.vendor }}"
 ></div>
         {% else %}
@@ -240,8 +243,7 @@
 
 // Reset tray graphics
 document.querySelectorAll('[id^="tray-graphic-"]').forEach(graphic => {
-  graphic.classList.remove('border', 'border-info');
-  graphic.style.borderWidth = ''; // Réinitialise l'inline style
+  graphic.classList.remove('border', 'border-2', 'border-info');
 });
 
   // Apply to tray card
@@ -253,8 +255,7 @@ document.querySelectorAll('[id^="tray-graphic-"]').forEach(graphic => {
   // Apply to tray graphic
   const trayGraphic = document.querySelector(`#tray-graphic-${trayKey}`);
   if (trayGraphic) {
-    trayGraphic.classList.add('border', 'border-info');
-	trayGraphic.style.borderWidth = '1.5px';
+    trayGraphic.classList.add('border', 'border-2', 'border-info');
   }
 }
 
