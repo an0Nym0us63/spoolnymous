@@ -152,6 +152,16 @@ def create_database() -> None:
                 margin REAL DEFAULT 0.0
             )
         ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tray_spool_map (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tray_uuid TEXT NOT NULL,
+                tray_info_idx TEXT NOT NULL,
+                color TEXT NOT NULL,
+                spool_id INTEGER NOT NULL
+            )
+        ''')
 
         conn.commit()
         conn.close()
@@ -159,7 +169,15 @@ def create_database() -> None:
     else:
         conn = sqlite3.connect(db_config["db_path"])
         cursor = conn.cursor()
-
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tray_spool_map (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tray_uuid TEXT NOT NULL,
+                tray_info_idx TEXT NOT NULL,
+                color TEXT NOT NULL,
+                spool_id INTEGER NOT NULL
+            )
+        ''')
         cursor.execute("PRAGMA table_info(prints)")
         columns = [row[1] for row in cursor.fetchall()]
         if "number_of_items" not in columns:
@@ -1294,5 +1312,71 @@ def get_latest_print():
     except Exception as e:
         print(f"[ERROR] get_latest_print: {e}")
         return None
-        
+
+def get_tray_spool_map(tray_uuid: str, tray_info_idx: str, color: str) -> int | None:
+    """
+    Retourne le spool_id associé à un triplet (tray_uuid, tray_info_idx, color),
+    ou None si aucune correspondance n'est trouvée.
+    """
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT spool_id FROM tray_spool_map
+        WHERE tray_uuid = ? AND tray_info_idx = ? AND color = ?
+    """, (tray_uuid, tray_info_idx, color))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else None
+
+def set_tray_spool_map(tray_uuid: str, tray_info_idx: str, color: str, spool_id: int) -> None:
+    """
+    Insère ou met à jour le spool_id associé à un triplet (tray_uuid, tray_info_idx, color).
+    """
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id FROM tray_spool_map
+        WHERE tray_uuid = ? AND tray_info_idx = ? AND color = ?
+    """, (tray_uuid, tray_info_idx, color))
+    result = cursor.fetchone()
+
+    if result:
+        cursor.execute("""
+            UPDATE tray_spool_map
+            SET spool_id = ?
+            WHERE id = ?
+        """, (spool_id, result[0]))
+    else:
+        cursor.execute("""
+            INSERT INTO tray_spool_map (tray_uuid, tray_info_idx, color, spool_id)
+            VALUES (?, ?, ?, ?)
+        """, (tray_uuid, tray_info_idx, color, spool_id))
+
+    conn.commit()
+    conn.close()
+
+def delete_tray_spool_map_by_id(map_id: int) -> None:
+    """
+    Supprime une entrée de tray_spool_map selon son identifiant unique.
+    """
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM tray_spool_map WHERE id = ?", (map_id,))
+    conn.commit()
+    conn.close()
+
+def get_all_tray_spool_mappings() -> list[dict]:
+    """
+    Retourne toutes les entrées de la table tray_spool_map sous forme de liste de dictionnaires.
+    """
+    conn = sqlite3.connect(db_config["db_path"])
+    conn.row_factory = sqlite3.Row  # Permet d'accéder aux colonnes par nom
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM tray_spool_map")
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [dict(row) for row in rows]
+
 create_database()

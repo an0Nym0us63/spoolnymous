@@ -8,14 +8,14 @@ import paho.mqtt.client as mqtt
 
 from config import PRINTER_ID, PRINTER_CODE, PRINTER_IP, AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID
 from messages import GET_VERSION, PUSH_ALL
-from spoolman_service import spendFilaments, setActiveTray, fetchSpools,clearActiveTray
+from spoolman_service import spendFilaments, setActiveTray, fetchSpools,clearActiveTray,delete_tray_spool_map_by_id
 from tools_3mf import getMetaDataFrom3mf
 import time
 import copy
 import math
 from collections.abc import Mapping
 from logger import append_to_rotating_file
-from print_history import  insert_print, insert_filament_usage, update_filament_spool,update_print_status_with_job_id
+from print_history import  insert_print, insert_filament_usage, update_filament_spool,update_print_status_with_job_id,get_tray_spool_map
 
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK, PROCESSED_JOBS, PENDING_JOBS
 
@@ -447,45 +447,50 @@ def on_message(client, userdata, msg):
       LAST_AMS_CONFIG["ams"] = data["print"]["ams"]["ams"]
       for ams in data["print"]["ams"]["ams"]:
         #print(f"AMS [{num2letter(ams['id'])}] (hum: {ams['humidity_raw']}, temp: {ams['temp']}ºC)")
+        spools = fetchSpools(True)
         for tray in ams["tray"]:
           if "tray_sub_brands" in tray:
             #print(f"    - [{num2letter(ams['id'])}{tray['id']}] {tray['tray_sub_brands']} {tray['tray_color']} ({str(tray['remain']).zfill(3)}%) [[{tray['tray_uuid']}]] [[{tray['tray_info_idx']}]]")
 
             foundspool = None
-            tray_uuid = "00000000000000000000000000000000"
+            tray_uuid = tray["tray_uuid"]
+            tray_info_idx = tray["tray_info_idx"]
+            tray_color = tray["tray_color"]
             tag='n/a'
             filament_id='n/a'
-            tray_uuid = tray["tray_uuid"]
-            for spool in fetchSpools(True):
-              if not spool.get("extra", {}).get("tag") and not spool.get("filament", {}).get("extra",{}).get("filament_id"):
-                continue
-              if spool.get("extra", {}).get("tag"):
-                tag = json.loads(spool["extra"]["tag"])
-              if spool.get("filament", {}).get("extra",{}).get("filament_id"):
-                filament_id = json.loads(spool["filament"]["extra"]["filament_id"])
-              if tag != tray["tray_uuid"] and filament_id != tray["tray_info_idx"]:
-                continue
-              if tray_uuid == tag:
-                #print('Found spool with tag')
-                foundspool= spool
-                break
-              else:
-                if spool.get("filament", {}).get("extra",{}).get("filament_id"):
-                    color_dist = color_distance(spool["filament"]["color_hex"],tray['tray_color'])
-                    spool['color_dist']=color_dist
-                    #print(filament_id + ' ' +spool["filament"]["color_hex"] + ' : ' + str(color_dist)) 
-                    if foundspool == None:
-                        if color_dist<50:
-                            foundspool= spool
+            mapped_spool_id = get_tray_spool_map(tray_uuid, tray_info_idx, tray_color)
+
+            if mapped_spool_id:
+                spool_match = next((s for s in spools if s["id"] == mapped_spool_id), None)
+                if spool_match:
+                    foundspool = spool_match
+                else:
+                    delete_tray_spool_map_by_id(mapped_spool_id)
+            if not foundspool:
+                for spool in spools:
+                    if not spool.get("extra", {}).get("tag") and not spool.get("filament", {}).get("extra",{}).get("filament_id"):
+                        continue
+                    if spool.get("extra", {}).get("tag"):
+                        tag = json.loads(spool["extra"]["tag"])
+                    if spool.get("filament", {}).get("extra",{}).get("filament_id"):
+                        filament_id = json.loads(spool["filament"]["extra"]["filament_id"])
+                    if tag != tray["tray_uuid"] and filament_id != tray["tray_info_idx"]:
+                        continue
+                    if tray_uuid == tag:
+                        #print('Found spool with tag')
+                        foundspool= spool
+                        break
                     else:
-                        if color_dist<foundspool['color_dist']:
-                            foundspool= spool
-
-              # TODO: filament remaining - Doesn't work for AMS Lite
-              # requests.patch(f"http://{SPOOLMAN_IP}:7912/api/v1/spool/{spool['id']}", json={
-              #  "remaining_weight": tray["remain"] / 100 * tray["tray_weight"]
-              # })
-
+                        if spool.get("filament", {}).get("extra",{}).get("filament_id"):
+                            color_dist = color_distance(spool["filament"]["color_hex"],tray['tray_color'])
+                            spool['color_dist']=color_dist
+                            #print(filament_id + ' ' +spool["filament"]["color_hex"] + ' : ' + str(color_dist)) 
+                            if foundspool == None:
+                                if color_dist<50:
+                                    foundspool= spool
+                            else:
+                                if color_dist<foundspool['color_dist']:
+                                    foundspool= spool
             if foundspool == None:
               print("      - Not found. Update spool tag or filament_id and color!")
               clearActiveTray(ams['id'], tray["id"])

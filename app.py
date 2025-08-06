@@ -24,7 +24,7 @@ from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel,insert_manual_print
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool, archive_spool, reajust_spool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings,fetchSpools
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print,get_all_tray_spool_mappings,set_tray_spool_map
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 
 COLOR_FAMILIES = {
@@ -881,10 +881,14 @@ def filaments():
     ams_id = request.args.get("ams")
     tray_id = request.args.get("tray")
     spool_id = request.args.get("spool_id")
-
     # 🎯 Si un spool est sélectionné en mode fill : action directe
     if spool_id and ams_id and tray_id:
         spool_data = getSpoolById(spool_id)
+        tray_uuid = request.args.get("tray_uuid")
+        tray_info_idx = request.args.get("tray_info_idx")
+        tray_color = request.args.get("tray_color")
+        if tray_uuid and tray_info_idx and tray_color:
+            set_tray_spool_map(tray_uuid, tray_info_idx, tray_color, spool_id)
         setActiveTray(spool_id, spool_data["extra"], ams_id, tray_id)
         setActiveSpool(ams_id, tray_id, spool_data)
         return redirect(url_for('home', success_message=f"Updated Spool ID {spool_id} to AMS {ams_id}, Tray {tray_id}."))
@@ -905,7 +909,11 @@ def filaments():
 
     is_assign_mode = all([assign_print_id, assign_filament_index])
     is_fill_mode = all([ams_id, tray_id])
-
+    tray_uuid = tray_info_idx = tray_color = None
+    if is_fill_mode:
+        tray_uuid = request.args.get("tray_uuid")
+        tray_info_idx = request.args.get("tray_info_idx")
+        tray_color = request.args.get("tray_color")
     all_filaments = fetchSpools(False, include_archived) or []
 
     if search:
@@ -990,6 +998,9 @@ def filaments():
         total_vendors=total_vendors,
         total_remaining=total_remaining,
         page_title="Filaments",
+        tray_uuid=tray_uuid,
+        tray_info_idx=tray_info_idx,
+        tray_color=tray_color,
         args=_merge_context_args()
     )
 
@@ -1341,5 +1352,10 @@ def api_printer_status():
         latest = get_latest_print()
         status["thumbnail"] = latest["image_file"]
         return jsonify(status)
+        
+@app.route("/tray_mappings")
+def tray_mappings():
+    mappings = get_all_tray_spool_mappings()
+    return jsonify(mappings)
 
 app.register_blueprint(auth_bp)
