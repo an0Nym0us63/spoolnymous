@@ -177,7 +177,7 @@
 >
 
 <!-- En-tête -->
-<div class="flex justify-between items-center px-4 py-2 border-b border-gray-700" style="background: linear-gradient(to right, rgba(31,41,55,0.95), rgba(55,65,81,0.95));">
+<div class="flex justify-between items-center px-4 py-2 bg-gray-800 border-b border-gray-700">
   <!-- Nom AMS -->
   <div class="flex items-center">
     <span class="inline-flex items-center text-[0.65rem] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-primary text-white shadow text-center max-w-[5.5rem] leading-tight break-words whitespace-normal">
@@ -191,7 +191,8 @@
 
   <!-- AMS graphique avec vrai espacement -->
   <div class="ml-2 flex items-end">
-    <div class="px-3 py-1 h-8 min-w-[4rem] rounded-t-xl bg-gray-400 border border-gray-600 flex items-end shadow-inner gap-x-2">
+    <div class="px-3 py-1 h-8 min-w-[4rem] rounded-t-xl border border-gray-600 flex items-end shadow-inner gap-x-2"
+     style="background: linear-gradient(to bottom, rgba(229,231,235,0.85), rgba(156,163,175,0.85));">
       {% for tray in ams.tray %}
         {% if tray.tray_color and tray.tray_type %}
           <div
