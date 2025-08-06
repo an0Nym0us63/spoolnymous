@@ -1,28 +1,27 @@
-<div class="card" data-tray-id="{{ ams_id|string }}_{{ tray_data.id|string }}"
-     id="tray-card-{{ ams_id|string }}_{{ tray_data.id|string }}">
-  <!-- Header compact, 2 lignes -->
-  <div class="card-header py-1 small"
-     data-bs-toggle="collapse"
-     data-bs-target="#trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}"
-     aria-expanded="false"
-     aria-controls="trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}">
-  <div class="row w-100">
-    <div class="col-8">
-      <div>
-        <strong>
-          {% if ams_id|int != EXTERNAL_SPOOL_AMS_ID %}
-            {{ (tray_data.id|int + 1) }}
-          {% else %}
-            External
-          {% endif %}
-        </strong>
-        {% if tray_data.tray_type %}
-          - {{ tray_data.name }}
+<div
+  class="rounded-xl overflow-hidden border border-gray-700 shadow-md transition hover:border-warning backdrop-blur-sm"
+  style="background: linear-gradient(135deg, rgba(35,35,35,0.9), rgba(45,45,45,0.85));"
+  data-tray-id="{{ ams_id|string }}_{{ tray_data.id|string }}"
+  id="tray-card-{{ ams_id|string }}_{{ tray_data.id|string }}"
+>
+  <!-- Header cliquable -->
+  <div
+    class="px-4 py-2 cursor-pointer text-sm bg-gray-800 hover:bg-gray-700 transition flex justify-between items-start"
+    data-bs-toggle="collapse"
+    data-bs-target="#trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}"
+    aria-expanded="false"
+    aria-controls="trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}"
+  >
+    <div class="flex-1">
+      <div class="font-semibold text-white">
+        {% if ams_id|int != EXTERNAL_SPOOL_AMS_ID %}
+          {{ (tray_data.id|int + 1) }}
         {% else %}
-          - Empty
+          External
         {% endif %}
+        {% if tray_data.tray_type %} - {{ tray_data.name }}{% else %} - Empty{% endif %}
       </div>
-      <div class="text-muted" style="font-size: 0.75rem;">
+      <div class="text-gray-400 text-xs">
         {% if tray_data.tray_type %}
           {{ tray_data.tray_type }}
           {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
@@ -32,7 +31,7 @@
         {% endif %}
       </div>
     </div>
-    <div class="col-4 text-end">
+    <div class="text-end text-white text-sm">
       {% if tray_data.tray_type %}
         <div>
           {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
@@ -42,99 +41,86 @@
               {% endfor %}
             </div>
           {% else %}
-            <span class="badge d-inline-block p-2"
+            <span class="inline-block rounded px-2 py-1 text-xs font-bold shadow"
                   style="background-color: #{{ tray_data.tray_color }};
                          color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
               #{{ tray_data.tray_color|upper }}
             </span>
           {% endif %}
         </div>
-        <div class="small mt-1">
-          {% if AUTO_SPEND and tray_data.matched %}
-            {{ tray_data.remaining_weight|round }}g
-          {% endif %}
+        {% if AUTO_SPEND and tray_data.matched %}
+        <div class="text-xs mt-1 text-gray-300">
+          {{ tray_data.remaining_weight|round }}g
         </div>
+        {% endif %}
       {% endif %}
     </div>
   </div>
-</div>
 
-
-  <!-- Détails (fermés par défaut) -->
+  <!-- Détails -->
   <div class="collapse" id="trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}">
-    <div class="card-body">
-      <div class="small text-muted text-center mb-2">
-        {% if tray_data.tray_type %}
-          {{ tray_data.tray_type }}
-          {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
-          - {{ tray_data.vendor }}
-        {% else %}
-          Empty
-        {% endif %}
+    <div class="px-4 py-3 bg-gray-900 text-sm text-white space-y-3">
+
+      {% if tray_data.tray_type %}
+      <div class="text-center text-gray-400 text-xs">
+        {{ tray_data.tray_type }}
+        {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
+        - {{ tray_data.vendor }}
       </div>
 
-      <div class="row align-items-center text-center text-sm-start">
-        {% if tray_data.tray_type %}
-          <div class="col-12 col-xxl-5 d-flex flex-column align-items-center mb-2 mb-sm-0">
-            <div class="fw-semibold mb-1 text-center">
-              {{ tray_data.name }}
+      <div class="flex flex-col lg:flex-row lg:items-center gap-4 text-sm">
+        <div class="flex flex-col items-center text-center lg:w-5/12">
+          <div class="font-bold">{{ tray_data.name }}</div>
+          {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
+            <div class="spool-icon {% if tray_data.tray_color_orientation == 'coaxial' %}horizontal{% else %}vertical{% endif %}">
+              {% for color in tray_data.tray_color %}
+                <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
+              {% endfor %}
             </div>
-            {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
-              {% if tray_data.tray_color_orientation == "coaxial" %}
-                <div class="spool-icon horizontal">
-              {% else %}
-                <div class="spool-icon vertical">
-              {% endif %}
-                {% for color in tray_data.tray_color %}
-                  <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
-                {% endfor %}
-              </div>
-            {% else %}
-              <span class="badge d-inline-block p-2"
-                    style="background-color: #{{ tray_data.tray_color }};
-                           color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
-                #{{ tray_data.tray_color|upper }}
-              </span>
-            {% endif %}
-          </div>
+          {% else %}
+            <span class="inline-block mt-2 rounded px-2 py-1 text-xs font-bold shadow"
+                  style="background-color: #{{ tray_data.tray_color }};
+                         color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
+              #{{ tray_data.tray_color|upper }}
+            </span>
+          {% endif %}
+        </div>
 
-          <div class="col-12 col-xxl-7">
-            <div class="mt-2 d-flex flex-column flex-sm-row">
-              <div class="me-sm-1">Last used:</div>
-              <div class="fw-bold">{{ tray_data.last_used }}</div>
-            </div>
-            {% if AUTO_SPEND and tray_data.matched %}
-              <div class="mt-2 d-flex flex-column flex-sm-row">
-                <div class="me-sm-1">Remaining:</div>
-                <div class="fw-bold">{{ tray_data.remaining_weight|round }}g</div>
-              </div>
-            {% endif %}
-            {% if tray_data.remain != -1 %}
-              <div class="mt-2 d-flex flex-column flex-sm-row">
-                <div class="me-sm-1">Estimate:</div>
-                <div class="fw-bold">{{ tray_data.remain }}%</div>
-              </div>
-            {% endif %}
+        <div class="flex-1 space-y-2">
+          <div class="flex justify-between">
+            <span class="text-gray-400">Last used:</span>
+            <span class="font-semibold">{{ tray_data.last_used }}</span>
           </div>
-        {% endif %}
+          {% if AUTO_SPEND and tray_data.matched %}
+          <div class="flex justify-between">
+            <span class="text-gray-400">Remaining:</span>
+            <span class="font-semibold">{{ tray_data.remaining_weight|round }}g</span>
+          </div>
+          {% endif %}
+          {% if tray_data.remain != -1 %}
+          <div class="flex justify-between">
+            <span class="text-gray-400">Estimate:</span>
+            <span class="font-semibold">{{ tray_data.remain }}%</span>
+          </div>
+          {% endif %}
+        </div>
       </div>
-    </div>
-
-    <div class="small text-muted text-center mb-2">
-      {% if tray_data.tray_uuid != "00000000000000000000000000000000" %}
-        {{ tray_data.tray_uuid }} -
       {% endif %}
-      {{ tray_data.tray_info_idx }}
+
+      <div class="text-center text-gray-500 text-xs">
+        {% if tray_data.tray_uuid != "00000000000000000000000000000000" %}
+          {{ tray_data.tray_uuid }} -
+        {% endif %}
+        {{ tray_data.tray_info_idx }}
+      </div>
     </div>
 
-    <div class="card-footer">
+    <!-- Footer -->
+    <div class="px-4 py-2 bg-gray-800 border-t border-gray-700 text-center">
       {% if pick_tray %}
-        <a class="btn btn-primary"
-           href="{{ url_for('tray_load', spool_id=current_spool['id'], tag_id=tag_id, ams=ams_id, tray=tray_id) }}">Assign</a>
-      {% endif %}
-      {% if not pick_tray %}
-        <a class="btn btn-primary"
-           href="{{ url_for('filaments', ams=ams_id, tray=tray_id, search=tray_data.tray_type) }}">Fill</a>
+        <a class="btn btn-primary" href="{{ url_for('tray_load', spool_id=current_spool['id'], tag_id=tag_id, ams=ams_id, tray=tray_id) }}">Assign</a>
+      {% else %}
+        <a class="btn btn-primary" href="{{ url_for('filaments', ams=ams_id, tray=tray_id, search=tray_data.tray_type) }}">Fill</a>
       {% endif %}
     </div>
   </div>
