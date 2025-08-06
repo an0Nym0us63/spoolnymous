@@ -22,7 +22,14 @@
     <div class="absolute inset-0 flex">
       <div id="status-progress-bar" class="h-full bg-gradient-to-r {{ progress_color }} transition-all duration-700"
            style="width: {{ printer_status.progress or 0 }}%; min-width: 2rem;"></div>
-      <div class="flex-1 bg-gray-700"></div>
+      <div class="flex-1"
+     style="
+       background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+       backdrop-filter: blur(4px);
+       -webkit-backdrop-filter: blur(4px);
+       box-shadow: inset 0 0 2px rgba(255,255,255,0.04), inset 0 1px 1px rgba(255,255,255,0.08);
+     ">
+</div>
     </div>
 
     <div class="relative z-10 grid grid-cols-3 items-center text-white px-3 py-2 gap-2 text-xs sm:text-sm">
@@ -56,100 +63,6 @@
   </div>
 </div>
 {% endif %}
-
-<!-- Alpine.js requis -->
-<script src="https://unpkg.com/alpinejs" defer></script>
-
-<script>
-  function updateHighlighting(tray_ams_id, tray_local_id) {
-  const trayKey = `${String(tray_ams_id)}_${String(tray_local_id)}`;
-  const amsKey = String(tray_ams_id);
-
-  // Reset AMS cards
-  document.querySelectorAll('[id^="ams-card-"]').forEach(card => {
-    card.classList.remove('border', 'border-4', 'border-primary');
-  });
-  const amsCard = document.querySelector(`#ams-card-${amsKey}`);
-  if (amsCard) {
-    amsCard.classList.add('border', 'border-4', 'border-primary');
-  }
-
-  // Reset tray cards
-  document.querySelectorAll('[id^="tray-card-"]').forEach(card => {
-    card.classList.remove('border', 'border-3', 'border-warning', 'shadow-lg');
-  });
-  const trayCard = document.querySelector(`#tray-card-${trayKey}`);
-  if (trayCard) {
-    trayCard.classList.add('border', 'border-3', 'border-warning', 'shadow-lg');
-  }
-}
-
-
-  document.addEventListener('DOMContentLoaded', () => {
-    async function refreshPrinterStatus() {
-      try {
-        const res = await fetch('/printer_status');
-        if (!res.ok) return;
-
-        const data = await res.json();
-
-        document.getElementById('status-progress').innerText = `${data.progress || 0}%`;
-        document.getElementById('status-text').innerText = data.status || '...';
-        document.getElementById('status-progress-bar').style.width = `${data.progress || 0}%`;
-
-        const bar = document.getElementById('status-progress-bar');
-        bar.classList.remove('from-green-500', 'to-blue-500', 'from-green-600', 'to-emerald-400', 'from-red-600', 'to-pink-500', 'from-yellow-400', 'to-yellow-600');
-        if (data.status === 'FINISH') {
-          bar.classList.add('from-green-600', 'to-emerald-400');
-        } else if (data.status === 'ERROR' || data.status === 'FAILED') {
-          bar.classList.add('from-red-600', 'to-pink-500');
-        } else if (data.status === 'PAUSE') {
-          bar.classList.add('from-yellow-400', 'to-yellow-600');
-        } else {
-          bar.classList.add('from-green-500', 'to-blue-500');
-        }
-
-        if (data.remaining_time_str || data.estimated_end) {
-          document.getElementById('status-remaining').innerHTML =
-            `⏱️ ${data.remaining_time_str}<br>🗓️ ${data.estimated_end}`;
-        } else {
-          document.getElementById('status-remaining').innerHTML = '';
-        }
-
-        document.getElementById('status-layers').innerText = data.print_layer && data.total_layers ? `${data.print_layer}/${data.total_layers}` : '';
-
-        document.getElementById('status-nozzle').innerText = data.nozzle_temp || '—';
-        document.getElementById('status-bed').innerText = data.bed_temp || '—';
-        document.getElementById('status-chamber').innerText = data.chamber_temp || '—';
-
-        if (data.print_name && document.getElementById('status-print-name')) {
-          document.getElementById('status-print-name').innerText = data.print_name;
-        }
-
-        if (data.thumbnail && document.getElementById('status-thumbnail')) {
-          document.getElementById('status-thumbnail').src = `/static/prints/${data.thumbnail}`;
-        }
-
-        if (data.tray_ams_id != null && data.tray_local_id != null) {
- 
-          updateHighlighting(data.tray_ams_id, data.tray_local_id);
-        }
-
-      } catch (e) {
-        console.error('Erreur mise à jour printer_status:', e);
-      }
-    }
-
-    // Lancement immédiat
-    refreshPrinterStatus();
-
-    // Puis toutes les 5 secondes
-    const interval = setInterval(refreshPrinterStatus, 5000);
-
-    window.addEventListener('beforeunload', () => clearInterval(interval));
-  });
-</script>
-
 
 
 {% if issue %}
@@ -282,4 +195,98 @@
   </div>
 </div>
 </div>
+
+<!-- Alpine.js requis -->
+<script src="https://unpkg.com/alpinejs" defer></script>
+
+<script>
+  function updateHighlighting(tray_ams_id, tray_local_id) {
+  const trayKey = `${String(tray_ams_id)}_${String(tray_local_id)}`;
+  const amsKey = String(tray_ams_id);
+
+  // Reset AMS cards
+  document.querySelectorAll('[id^="ams-card-"]').forEach(card => {
+    card.classList.remove('border', 'border-4', 'border-primary');
+  });
+  const amsCard = document.querySelector(`#ams-card-${amsKey}`);
+  if (amsCard) {
+    amsCard.classList.add('border', 'border-4', 'border-primary');
+  }
+
+  // Reset tray cards
+  document.querySelectorAll('[id^="tray-card-"]').forEach(card => {
+    card.classList.remove('border', 'border-3', 'border-warning', 'shadow-lg');
+  });
+  const trayCard = document.querySelector(`#tray-card-${trayKey}`);
+  if (trayCard) {
+    trayCard.classList.add('border', 'border-3', 'border-warning', 'shadow-lg');
+  }
+}
+
+
+  document.addEventListener('DOMContentLoaded', () => {
+    async function refreshPrinterStatus() {
+      try {
+        const res = await fetch('/printer_status');
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        document.getElementById('status-progress').innerText = `${data.progress || 0}%`;
+        document.getElementById('status-text').innerText = data.status || '...';
+        document.getElementById('status-progress-bar').style.width = `${data.progress || 0}%`;
+
+        const bar = document.getElementById('status-progress-bar');
+        bar.classList.remove('from-green-500', 'to-blue-500', 'from-green-600', 'to-emerald-400', 'from-red-600', 'to-pink-500', 'from-yellow-400', 'to-yellow-600');
+        if (data.status === 'FINISH') {
+          bar.classList.add('from-green-600', 'to-emerald-400');
+        } else if (data.status === 'ERROR' || data.status === 'FAILED') {
+          bar.classList.add('from-red-600', 'to-pink-500');
+        } else if (data.status === 'PAUSE') {
+          bar.classList.add('from-yellow-400', 'to-yellow-600');
+        } else {
+          bar.classList.add('from-green-500', 'to-blue-500');
+        }
+
+        if (data.remaining_time_str || data.estimated_end) {
+          document.getElementById('status-remaining').innerHTML =
+            `⏱️ ${data.remaining_time_str}<br>🗓️ ${data.estimated_end}`;
+        } else {
+          document.getElementById('status-remaining').innerHTML = '';
+        }
+
+        document.getElementById('status-layers').innerText = data.print_layer && data.total_layers ? `${data.print_layer}/${data.total_layers}` : '';
+
+        document.getElementById('status-nozzle').innerText = data.nozzle_temp || '—';
+        document.getElementById('status-bed').innerText = data.bed_temp || '—';
+        document.getElementById('status-chamber').innerText = data.chamber_temp || '—';
+
+        if (data.print_name && document.getElementById('status-print-name')) {
+          document.getElementById('status-print-name').innerText = data.print_name;
+        }
+
+        if (data.thumbnail && document.getElementById('status-thumbnail')) {
+          document.getElementById('status-thumbnail').src = `/static/prints/${data.thumbnail}`;
+        }
+
+        if (data.tray_ams_id != null && data.tray_local_id != null) {
+ 
+          updateHighlighting(data.tray_ams_id, data.tray_local_id);
+        }
+
+      } catch (e) {
+        console.error('Erreur mise à jour printer_status:', e);
+      }
+    }
+
+    // Lancement immédiat
+    refreshPrinterStatus();
+
+    // Puis toutes les 5 secondes
+    const interval = setInterval(refreshPrinterStatus, 5000);
+
+    window.addEventListener('beforeunload', () => clearInterval(interval));
+  });
+</script>
+
 {% endblock %}
