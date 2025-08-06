@@ -4,7 +4,8 @@ FROM node:18-bookworm as tailwind-builder
 WORKDIR /build
 
 COPY ./tailwind.css ./tailwind.config.js ./
-RUN npm install -D tailwindcss postcss autoprefixer && \
+
+RUN npm install -D tailwindcss@3.3.5 postcss autoprefixer && \
   echo "🔧 Running tailwind build..." && \
   ./node_modules/.bin/tailwindcss -i ./tailwind.css -o ./tailwind.build.css --minify || \
   (echo "❌ Tailwind build failed." && ls -al && cat tailwind.css && cat tailwind.config.js && exit 1)
