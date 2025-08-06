@@ -1,222 +1,104 @@
-{% extends 'base.html' %}
-
-{% block content %}
-{% import 'macros/hidden_args.jinja2' as macros %}
-{% if is_assign_mode %}
-  <h2>Assigner une bobine au print #{{ assign_print_id }}</h2>
-{% elif ams_id and tray_id %}
-  <h2>AMS: {{ ams_id }}, Tray: {{ tray_id }}</h2>
-{% else %}
-  <h2>Bobines disponibles</h2>
-{% endif %}
-
-<!-- Bouton flottant pagination -->
-<div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
-  <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#paginationOffcanvas" aria-controls="paginationOffcanvas">
-    📄
-  </button>
-</div>
-
-<!-- Bouton flottant filtres -->
-<div class="position-fixed bottom-0 start-0 m-3" style="z-index:1030;">
-  <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#filamentFilters" aria-controls="filamentFilters">
-    🔍
-  </button>
-</div>
-
-<div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="filamentFilters" aria-labelledby="filamentFiltersLabel">
-  <div class="offcanvas-header">
-    <h5 class="offcanvas-title" id="filamentFiltersLabel">Filtres & Tri</h5>
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
-  </div>
-  <div class="offcanvas-body">
-    <form method="get" class="row g-2 align-items-end">
-	{{ macros.render_filtered_args(args, ['search', 'color', 'sort', 'include_archived', 'page']) }}
-      <div class="col-md-4">
-        <input type="text" name="search" class="form-control" placeholder="Recherche nom, matériau ou vendor" value="{{ search }}">
-      </div>
-      <input type="hidden" name="page" value="1">
-      <div class="col-md-3">
-        <select name="color" class="form-select select2">
-          <option value=""></option>
-          {% for fam in all_families %}
-            <option value="{{ fam }}" {% if fam == selected_family %}selected{% endif %}>
-              {{ fam }}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-3">
-        <select name="sort" class="form-select">
-          <option value="default" {% if sort != 'remaining' %}selected{% endif %}>
-            Trier par Matériau/Vendor/Nom
-          </option>
-          <option value="remaining" {% if sort == 'remaining' %}selected{% endif %}>
-            Trier par Stock restant
-          </option>
-        </select>
-      </div>
-	  <div class="form-check">
-  <input class="form-check-input" type="checkbox" name="include_archived" value="1" id="includeArchived"
-         {% if request.args.get("include_archived") == "1" %}checked{% endif %}>
-  <label class="form-check-label" for="includeArchived">
-    Inclure les bobines archivées
-  </label>
-</div>
-      <div class="col-md-1 text-end">
-        <button type="submit" class="btn btn-primary">Appliquer</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="paginationOffcanvas" aria-labelledby="paginationOffcanvasLabel">
-  <div class="offcanvas-header">
-    <h5 class="offcanvas-title" id="paginationOffcanvasLabel">Pagination</h5>
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
-  </div>
-  <div class="offcanvas-body text-center">
-    <div class="d-inline-flex flex-wrap gap-1 align-items-center justify-content-center">
-      {% if page > 1 %}
-        <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo;</a>
-        <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo;</a>
-      {% endif %}
-
-      <form method="get" class="d-inline-flex align-items-center mx-2">
-	  {{ macros.render_filtered_args(args, ['page']) }}
-        <label for="gotoPage" class="me-1 mb-0"></label>
-        <input type="number" min="1" max="{{ total_pages }}" id="gotoPage" name="page" value="{{ page }}" class="form-control form-control-sm" style="width: 40px;">
-        <button type="submit" class="btn btn-sm btn-primary ms-1">Aller</button>
-      </form>
-
-      <span>/{{ total_pages }}</span>
-
-      {% if page < total_pages %}
-        <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">&rsaquo;</a>
-        <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">&raquo;</a>
-      {% endif %}
-    </div>
-  </div>
-</div>
-<!-- Statistiques filament responsive -->
-<div class="row row-cols-3 g-2 mb-3 text-center align-items-stretch">
-  <div class="col">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
-        <div class="fs-5 fs-md-4">🧵</div>
-        <div class="small fw-bold">{{ total_filaments }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
-        <div class="fs-5 fs-md-4">🏭</div>
-        <div class="small fw-bold">{{ total_vendors }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
-        <div class="fs-5 fs-md-4">⚖️</div>
-        <div class="small fw-bold">
-          {% if total_remaining >= 1000 %}
-            {{ (total_remaining / 1000) | round(2) }} kg
-          {% else %}
-            {{ total_remaining | round(1) }} g
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 <div class="accordion" id="filamentsAccordion">
   {% for spool in filaments %}
-    <div class="accordion-item {% if spool.archived %}opacity-50{% endif %}">
-      <h2 class="accordion-header d-flex justify-content-between align-items-center" id="heading{{ spool.id }}">
-  <div class="flex-grow-1">
-    <button class="accordion-button collapsed py-2 w-100 text-start" type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#collapse{{ spool.id }}"
-            aria-expanded="false"
-            aria-controls="collapse{{ spool.id }}">
-      <div class="d-flex w-100 align-items-stretch">
-        <div class="me-3 d-flex align-items-stretch">
-          {% if spool.filament.multi_color_hexes %}
-            {% set colors =
-                spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
-                else spool.filament.multi_color_hexes %}
-            <span style="width:12px;min-height:100%;background:linear-gradient(90deg{% for c in colors %}, #{{c.strip()}}{% endfor %});border-radius:2px;border:1px solid #888;display:inline-block;"></span>
-          {% else %}
-            <span style="width:12px;min-height:100%;background-color:#{{ spool.filament.color_hex }};border-radius:2px;border:1px solid #888;display:inline-block;"></span>
+    <div class="accordion-item {% if spool.archived %}opacity-50{% endif %}" 
+         style="border-radius: 0.75rem; margin-bottom: 0.75rem; background-color: #1e293b; box-shadow: 0 0 10px rgba(0,0,0,0.3);">
+      
+      <h2 class="accordion-header d-flex justify-content-between align-items-center"
+          id="heading{{ spool.id }}"
+          style="border-radius: 0.75rem;">
+
+        <div class="flex-grow-1">
+          <button class="accordion-button collapsed py-1 sm:py-2 px-3 w-100 text-start"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#collapse{{ spool.id }}"
+                  aria-expanded="false"
+                  aria-controls="collapse{{ spool.id }}"
+                  style="border-radius: 0.75rem; font-size: 0.85rem;">
+
+            <div class="d-flex w-100 align-items-stretch gap-2">
+              <div class="d-flex align-items-stretch" style="width: 12px;">
+                {% if spool.filament.multi_color_hexes %}
+                  {% set colors =
+                      spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
+                      else spool.filament.multi_color_hexes %}
+                  <span style="width:12px;min-height:100%;background:linear-gradient(90deg{% for c in colors %}, #{{c.strip()}}{% endfor %});border-radius:2px;border:1px solid #888;display:inline-block;"></span>
+                {% else %}
+                  <span style="width:12px;min-height:100%;background-color:#{{ spool.filament.color_hex }};border-radius:2px;border:1px solid #888;display:inline-block;"></span>
+                {% endif %}
+              </div>
+
+              <div class="flex-grow-1 text-start overflow-hidden">
+                <div style="font-weight: 600;">
+                  {{ spool.filament.material }} / {{ spool.filament.name }}
+                </div>
+                <div style="font-size: 0.8rem; color: #cbd5e1;">
+                  {{ spool.filament.vendor.name }}
+                </div>
+              </div>
+
+              <div class="d-flex flex-column justify-content-center align-items-end ms-2 text-end" style="min-width: 70px;">
+                {% if spool.location %}
+                  <div class="small text-muted" style="font-size: 0.75rem;">{{ spool.location }}</div>
+                {% endif %}
+                <strong style="font-size: 1rem;">{{ spool.remaining_weight|round|int }} g</strong>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <div class="ms-2 me-3 d-flex align-items-center" style="min-width: 40px;">
+          {% if is_assign_mode %}
+            <form method="post" action="{{ url_for('assign_spool_to_print') }}">
+              <input type="hidden" name="spool_id" value="{{ spool.id }}">
+              <input type="hidden" name="print_id" value="{{ assign_print_id }}">
+              <input type="hidden" name="filament_index" value="{{ assign_filament_index }}">
+              <input type="hidden" name="focus_id" value="{{ assign_print_id }}">
+              <input type="hidden" name="filament_usage" value="{{ filament_usage }}">
+              {% if request.args.get('assign_page') %}<input type="hidden" name="page" value="{{ request.args.get('assign_page') }}">{% endif %}
+              {% if request.args.get('assign_status') %}<input type="hidden" name="status" value="{{ request.args.get('assign_status') }}">{% endif %}
+              {% if request.args.get('assign_filament_type') %}<input type="hidden" name="filament_type" value="{{ request.args.get('assign_filament_type') }}">{% endif %}
+              {% if request.args.get('assign_color') %}<input type="hidden" name="color" value="{{ request.args.get('assign_color') }}">{% endif %}
+              {% if request.args.get('assign_filament_id') %}<input type="hidden" name="filament_id" value="{{ request.args.get('assign_filament_id') }}">{% endif %}
+              {% if request.args.get('assign_sold_filter') %}<input type="hidden" name="sold_filter" value="{{ request.args.get('assign_sold_filter') }}">{% endif %}
+
+              <button type="button"
+                      class="btn btn-sm btn-success rounded-circle trigger-assign-modal"
+                      title="Assigner cette bobine">✅</button>
+            </form>
+          {% elif ams_id and tray_id %}
+            <a href="{{ url_for('filaments', spool_id=spool.id, ams=ams_id, tray=tray_id) }}"
+               class="btn btn-sm btn-primary rounded-circle"
+               title="Remplir"><i class="bi bi-plus"></i></a>
           {% endif %}
         </div>
-        <div class="flex-grow-1 text-start">
-          <div><strong>{{ spool.filament.material }}</strong> / {{ spool.filament.name }}</div>
-          <div>{{ spool.filament.vendor.name }}</div>
-        </div>
-        <div class="d-flex flex-column justify-content-center align-items-end ms-2 text-end">
-          {% if spool.location %}
-            <div class="small text-muted">{{ spool.location }}</div>
-          {% endif %}
-          <strong>{{ spool.remaining_weight|round|int }} g</strong>
-        </div>
-      </div>
-    </button>
-  </div>
-
-  <div class="ms-2 me-3 d-flex align-items-center">
-    {% if is_assign_mode %}
-      <form method="post" action="{{ url_for('assign_spool_to_print') }}">
-        <input type="hidden" name="spool_id" value="{{ spool.id }}">
-        <input type="hidden" name="print_id" value="{{ assign_print_id }}">
-        <input type="hidden" name="filament_index" value="{{ assign_filament_index }}">
-        <input type="hidden" name="focus_id" value="{{ assign_print_id }}">
-        <input type="hidden" name="filament_usage" value="{{ filament_usage }}">
-		{% if request.args.get('assign_page') %}<input type="hidden" name="page" value="{{ request.args.get('assign_page') }}">{% endif %}
-{% if request.args.get('assign_status') %}<input type="hidden" name="status" value="{{ request.args.get('assign_status') }}">{% endif %}
-{% if request.args.get('assign_filament_type') %}<input type="hidden" name="filament_type" value="{{ request.args.get('assign_filament_type') }}">{% endif %}
-{% if request.args.get('assign_color') %}<input type="hidden" name="color" value="{{ request.args.get('assign_color') }}">{% endif %}
-{% if request.args.get('assign_filament_id') %}<input type="hidden" name="filament_id" value="{{ request.args.get('assign_filament_id') }}">{% endif %}
-{% if request.args.get('assign_sold_filter') %}<input type="hidden" name="sold_filter" value="{{ request.args.get('assign_sold_filter') }}">{% endif %}
-
-
-        <button type="button"
-                class="btn btn-sm btn-success rounded-circle trigger-assign-modal"
-                title="Assigner cette bobine">✅</button>
-      </form>
-    {% elif ams_id and tray_id %}
-      <a href="{{ url_for('filaments', spool_id=spool.id, ams=ams_id, tray=tray_id) }}"
-         class="btn btn-sm btn-primary rounded-circle"
-         title="Remplir"><i class="bi bi-plus"></i></a>
-    {% endif %}
-  </div>
-</h2>
-
+      </h2>
 
       <div id="collapse{{ spool.id }}" class="accordion-collapse collapse"
            aria-labelledby="heading{{ spool.id }}" data-bs-parent="#filamentsAccordion">
-        <div class="accordion-body">
-			<div class="dropdown float-end">
-  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-    Actions
-  </button>
-  <ul class="dropdown-menu dropdown-menu-end">
-    <li>
-      <button class="dropdown-item text-primary" type="button"
-              data-bs-toggle="modal" data-bs-target="#reajustModal_{{ spool.id }}">
-        🔄 Réajuster
-      </button>
-    </li>
-    <li>
-      <button type="button" class="dropdown-item text-warning" data-bs-toggle="modal" data-bs-target="#archiveModal_{{ spool.id }}">
-  🗄️ Archiver
-</button>
-    </li>
-  </ul>
-</div>
-          <ul class="list-unstyled mb-0">
+        <div class="accordion-body"
+             style="background: rgba(30,41,59,0.85); padding: 0.75rem 1rem; border-radius: 0 0 0.75rem 0.75rem;">
+          
+          <div class="dropdown float-end mb-2">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              Actions
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li>
+                <button class="dropdown-item text-primary" type="button"
+                        data-bs-toggle="modal" data-bs-target="#reajustModal_{{ spool.id }}">
+                  🔄 Réajuster
+                </button>
+              </li>
+              <li>
+                <button type="button" class="dropdown-item text-warning" data-bs-toggle="modal" data-bs-target="#archiveModal_{{ spool.id }}">
+                  🗄️ Archiver
+                </button>
+              </li>
+            </ul>
+          </div>
+          
+          <ul class="list-unstyled mb-0" style="font-size: 0.85rem; color: #cbd5e1;">
             <li><strong>Fournisseur :</strong> {{ spool.filament.vendor.name }}</li>
             <li><strong>Matière :</strong> {{ spool.filament.material }}</li>
             <li><strong>Nom :</strong> {{ spool.filament.name }}</li>
@@ -253,97 +135,65 @@
                 <span class="ms-2">{% for c in colors %}#{{ c.strip() }}{% if not loop.last %} / {% endif %}{% endfor %}</span>
               {% else %}
                 <span style="display:inline-block;width:20px;height:20px;vertical-align:middle;background-color:#{{ spool.filament.color_hex }};border-radius:4px;border:1px solid #ccc;"></span>
-                <span class="ms-2">#{{ spool.filament.color_hex }}</span>
+                <span class="ms-2">
+                  #{{ spool.filament.color_hex }} 
+                  {% set hex = spool.filament.color_hex %}
+                  {% if hex|length == 6 %}
+                    ({{ [hex[0:2], hex[2:4], hex[4:6]]|map('int', 16)|join(', ') }})
+                  {% endif %}
+                </span>
               {% endif %}
             </li>
           </ul>
-		  
-<div class="modal fade" id="reajustModal_{{ spool.id }}" tabindex="-1" aria-labelledby="reajustModalLabel_{{ spool.id }}" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <form method="post" action="{{ url_for('reajust_spool_route', spool_id=spool.id) }}">
-        <div class="modal-header">
-          <h5 class="modal-title" id="reajustModalLabel_{{ spool.id }}">Réajuster la bobine #{{ spool.id }}</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="new_weight_{{ spool.id }}" class="form-label">Poids restant (g)</label>
-            <input type="number" class="form-control" name="new_weight" id="new_weight_{{ spool.id }}" min="0" required>
+
+          <!-- Modal réajust -->
+          <div class="modal fade" id="reajustModal_{{ spool.id }}" tabindex="-1" aria-labelledby="reajustModalLabel_{{ spool.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <form method="post" action="{{ url_for('reajust_spool_route', spool_id=spool.id) }}">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="reajustModalLabel_{{ spool.id }}">Réajuster la bobine #{{ spool.id }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="mb-3">
+                      <label for="new_weight_{{ spool.id }}" class="form-label">Poids restant (g)</label>
+                      <input type="number" class="form-control" name="new_weight" id="new_weight_{{ spool.id }}" min="0" required>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Valider</button>
+                  </div>
+                </form>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-          <button type="submit" class="btn btn-primary">Valider</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-<div class="modal fade" id="archiveModal_{{ spool.id }}" tabindex="-1" aria-labelledby="archiveModalLabel_{{ spool.id }}" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <form method="post" action="{{ url_for('archive_spool_route', spool_id=spool.id) }}">
-        <div class="modal-header">
-          <h5 class="modal-title" id="archiveModalLabel_{{ spool.id }}">Confirmer l’archivage</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-        </div>
-        <div class="modal-body">
-          <p>Voulez-vous vraiment archiver la bobine <strong>#{{ spool.id }}</strong> ?</p>
-          <p class="small text-muted">Elle sera déplacée dans la localisation « Archives » et son champ <code>active_tray</code> sera vidé.</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-          <button type="submit" class="btn btn-warning">✅ Archiver</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
+
+          <!-- Modal archive -->
+          <div class="modal fade" id="archiveModal_{{ spool.id }}" tabindex="-1" aria-labelledby="archiveModalLabel_{{ spool.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <form method="post" action="{{ url_for('archive_spool_route', spool_id=spool.id) }}">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="archiveModalLabel_{{ spool.id }}">Confirmer l’archivage</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                  </div>
+                  <div class="modal-body">
+                    <p>Voulez-vous vraiment archiver la bobine <strong>#{{ spool.id }}</strong> ?</p>
+                    <p class="small text-muted">Elle sera déplacée dans la localisation « Archives » et son champ <code>active_tray</code> sera vidé.</p>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-warning">✅ Archiver</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
   {% endfor %}
 </div>
-<div style="height: 4rem;"></div>
-{% if is_assign_mode %}
-  {% include 'fragments/modals_confirm_assign.html' %}
-{% endif %}
-{% endblock %}
-
-{% block scripts %}
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="{{ url_for('static', filename='js/print_history.js') }}"></script>
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  let pendingForm = null;
-
-  document.querySelectorAll(".trigger-assign-modal").forEach(button => {
-    button.addEventListener("click", function () {
-      pendingForm = this.closest("form");
-      const modal = new bootstrap.Modal(document.getElementById('confirmAssignModal'));
-      modal.show();
-    });
-  });
-
-  document.querySelectorAll("#confirmAssignModal .btn").forEach(btn => {
-    btn.addEventListener("click", function () {
-      if (!pendingForm) return;
-      const action = this.getAttribute("data-action");
-
-      if (action === "no") {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = "skip_usage";
-        input.value = "1";
-        pendingForm.appendChild(input);
-      }
-
-      pendingForm.submit();
-      pendingForm = null;
-    });
-  });
-});
-</script>
-{% endblock %}
