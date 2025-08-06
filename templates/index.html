@@ -1,10 +1,9 @@
 {% extends 'base.html' %}
-
 {% block content %}
-{% if printer_status %}
-<div x-data="{ open: false }" class="mb-4">
 
-  <!-- Header de l'accordéon -->
+{% if printer_status %}
+<div x-data="{ open: false }" class="mb-6">
+  <!-- Accordéon du statut -->
   <div
     class="relative overflow-hidden shadow-md cursor-pointer transition-all duration-200"
     :class="open ? 'rounded-t-xl rounded-b-none bg-gray-900' : 'rounded-xl bg-gray-900'"
@@ -13,7 +12,7 @@
     {% set progress_color = 'from-green-500 to-blue-500' %}
     {% if printer_status.status == 'FINISH' %}
       {% set progress_color = 'from-green-600 to-emerald-400' %}
-    {% elif printer_status.status == 'ERROR' or printer_status.status == 'FAILED' %}
+    {% elif printer_status.status in ['ERROR', 'FAILED'] %}
       {% set progress_color = 'from-red-600 to-pink-500' %}
     {% elif printer_status.status == 'PAUSE' %}
       {% set progress_color = 'from-yellow-400 to-yellow-600' %}
@@ -27,8 +26,10 @@
 
     <div class="relative z-10 grid grid-cols-3 items-center text-white px-3 py-2 gap-2 text-xs sm:text-sm">
       <div class="flex items-center gap-2 truncate">
-        <img id="status-thumbnail" src="{{ url_for('static', filename='prints/' ~ printer_status.thumbnail) if printer_status.thumbnail else url_for('static', filename='img/placeholder.png') }}"
-             alt="thumbnail" class="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded shadow" />
+        <img id="status-thumbnail"
+             src="{{ url_for('static', filename='prints/' ~ printer_status.thumbnail) if printer_status.thumbnail else url_for('static', filename='img/placeholder.png') }}"
+             alt="thumbnail"
+             class="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded shadow" />
       </div>
       <div class="text-center font-semibold">
         <div id="status-progress">{{ printer_status.progress or 0 }}%</div>
@@ -43,9 +44,8 @@
     </div>
   </div>
 
-  <!-- Contenu déplié -->
-  <div x-show="open" x-transition class="bg-dark border border-t-0 rounded-b-xl shadow-inner p-4 text-sm text-light space-y-4">
-    <!-- Infos grille -->
+  <!-- Détails -->
+  <div x-show="open" x-transition class="bg-gray-900/90 border border-t-0 border-gray-700 shadow-inner p-4 text-sm text-white rounded-b-xl space-y-4 backdrop-blur">
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
       <div><strong>📄</strong> <span id="status-print-name">{{ printer_status.print_name or 'N/A' }}</span></div>
       <div><strong>🔥</strong> <span id="status-nozzle">{{ printer_status.nozzle_temp or '—' }}</span> °C</div>
@@ -57,126 +57,25 @@
 </div>
 {% endif %}
 
-<!-- Alpine.js requis -->
-<script src="https://unpkg.com/alpinejs" defer></script>
-
-<script>
-  function updateHighlighting(tray_ams_id, tray_local_id) {
-  const trayKey = `${String(tray_ams_id)}_${String(tray_local_id)}`;
-  const amsKey = String(tray_ams_id);
-
-  // Reset AMS cards
-  document.querySelectorAll('[id^="ams-card-"]').forEach(card => {
-    card.classList.remove('border', 'border-4', 'border-primary');
-  });
-  const amsCard = document.querySelector(`#ams-card-${amsKey}`);
-  if (amsCard) {
-    amsCard.classList.add('border', 'border-4', 'border-primary');
-  }
-
-  // Reset tray cards
-  document.querySelectorAll('[id^="tray-card-"]').forEach(card => {
-    card.classList.remove('border', 'border-3', 'border-warning', 'shadow-lg');
-  });
-  const trayCard = document.querySelector(`#tray-card-${trayKey}`);
-  if (trayCard) {
-    trayCard.classList.add('border', 'border-3', 'border-warning', 'shadow-lg');
-  }
-}
-
-
-  document.addEventListener('DOMContentLoaded', () => {
-    async function refreshPrinterStatus() {
-      try {
-        const res = await fetch('/printer_status');
-        if (!res.ok) return;
-
-        const data = await res.json();
-
-        document.getElementById('status-progress').innerText = `${data.progress || 0}%`;
-        document.getElementById('status-text').innerText = data.status || '...';
-        document.getElementById('status-progress-bar').style.width = `${data.progress || 0}%`;
-
-        const bar = document.getElementById('status-progress-bar');
-        bar.classList.remove('from-green-500', 'to-blue-500', 'from-green-600', 'to-emerald-400', 'from-red-600', 'to-pink-500', 'from-yellow-400', 'to-yellow-600');
-        if (data.status === 'FINISH') {
-          bar.classList.add('from-green-600', 'to-emerald-400');
-        } else if (data.status === 'ERROR' || data.status === 'FAILED') {
-          bar.classList.add('from-red-600', 'to-pink-500');
-        } else if (data.status === 'PAUSE') {
-          bar.classList.add('from-yellow-400', 'to-yellow-600');
-        } else {
-          bar.classList.add('from-green-500', 'to-blue-500');
-        }
-
-        if (data.remaining_time_str || data.estimated_end) {
-          document.getElementById('status-remaining').innerHTML =
-            `⏱️ ${data.remaining_time_str}<br>🗓️ ${data.estimated_end}`;
-        } else {
-          document.getElementById('status-remaining').innerHTML = '';
-        }
-
-        document.getElementById('status-layers').innerText = data.print_layer && data.total_layers ? `${data.print_layer}/${data.total_layers}` : '';
-
-        document.getElementById('status-nozzle').innerText = data.nozzle_temp || '—';
-        document.getElementById('status-bed').innerText = data.bed_temp || '—';
-        document.getElementById('status-chamber').innerText = data.chamber_temp || '—';
-
-        if (data.print_name && document.getElementById('status-print-name')) {
-          document.getElementById('status-print-name').innerText = data.print_name;
-        }
-
-        if (data.thumbnail && document.getElementById('status-thumbnail')) {
-          document.getElementById('status-thumbnail').src = `/static/prints/${data.thumbnail}`;
-        }
-
-        if (data.tray_ams_id != null && data.tray_local_id != null) {
- 
-          updateHighlighting(data.tray_ams_id, data.tray_local_id);
-        }
-
-      } catch (e) {
-        console.error('Erreur mise à jour printer_status:', e);
-      }
-    }
-
-    // Lancement immédiat
-    refreshPrinterStatus();
-
-    // Puis toutes les 5 secondes
-    const interval = setInterval(refreshPrinterStatus, 5000);
-
-    window.addEventListener('beforeunload', () => clearInterval(interval));
-  });
-</script>
-
-
-
+<!-- Alerte -->
 {% if issue %}
-<div class="card border-warning shadow-sm mb-4">
-  <div class="card-header bg-warning text-dark fw-bold">
-    Warning
-  </div>
-  <div class="card-body">
-    <h5 class="card-title">There is a mismatch between printer and SpoolMan</h5>
-    <p class="card-text">Fix issue by clicking "Fix this tray" on tray with <i class="bi bi-exclamation-circle text-danger me-2"></i></p>
-  </div>
+<div class="rounded-xl border border-yellow-500 bg-yellow-200 text-yellow-900 p-4 shadow mb-6">
+  <div class="font-bold text-sm mb-1">⚠️ Problème de synchronisation</div>
+  <p class="text-sm">Corrige en cliquant sur "Fix this tray" sur les bobines signalées avec <i class="bi bi-exclamation-circle text-danger"></i></p>
 </div>
 {% endif %}
 
-<!-- AMS and External Spool Row -->
-<div class="row">
+<!-- Cartes AMS & Externe -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-  <!-- AMS Cards -->
-{% for ams in ams_data %}
-<div class="col-lg-6 mb-4">
-<div
-  id="ams-card-{{ ams.id|string }}"
-  class="rounded-xl overflow-hidden border border-gray-700 shadow-md hover:border-primary transition backdrop-blur-sm"
-  style="background: linear-gradient(135deg, rgba(30,30,30,0.85), rgba(40,40,40,0.85));"
->
-
-    <!-- En-tête -->
+  <!-- Cartes AMS -->
+  {% for ams in ams_data %}
+  <div
+    id="ams-card-{{ ams.id|string }}"
+    class="rounded-xl overflow-hidden border border-gray-700 shadow-md hover:border-primary transition backdrop-blur-sm"
+    style="background: linear-gradient(135deg, rgba(30,30,30,0.85), rgba(40,40,40,0.85));"
+  >
+    <!-- En-tête AMS -->
     <div class="flex justify-between items-start px-4 py-2 bg-gray-800 border-b border-gray-700">
       <span class="inline-flex items-center gap-2 bg-primary text-white text-sm font-semibold px-3 py-1 rounded-full shadow">
         {% if ams.location %}
@@ -198,51 +97,39 @@
       {% endif %}
     </div>
 
-    <!-- Contenu avec fond visible -->
+    <!-- Bobines -->
     <div class="p-3 bg-gray-900 text-white">
-      <div class="row">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {% for tray in ams.tray %}
-        <div class="col-sm-6 mb-3">
           {% with tray_data=tray, ams_id=ams.id, pick_tray=False, tray_id=tray.id %}
             {% include 'fragments/tray.html' %}
           {% endwith %}
-        </div>
         {% endfor %}
       </div>
     </div>
-
   </div>
-</div>
-{% endfor %}
+  {% endfor %}
 
-  
-  <!-- External Spool -->
-<div class="{% if ams_data|length > 1 %}col-12{% else %}col-lg-6{% endif %} mb-4">
+  <!-- Spool externe -->
   <div
     id="ams-card-external"
     class="rounded-xl overflow-hidden border border-gray-700 shadow-md hover:border-primary transition backdrop-blur-sm"
     style="background: linear-gradient(135deg, rgba(30,30,30,0.85), rgba(40,40,40,0.85));"
   >
-
-    <!-- En-tête simplifiée -->
     <div class="flex justify-between items-start px-4 py-2 bg-gray-800 border-b border-gray-700">
       <span class="inline-flex items-center gap-2 bg-primary text-white text-sm font-semibold px-3 py-1 rounded-full shadow">
         External
       </span>
     </div>
 
-    <!-- Contenu aligné avec les AMS -->
     <div class="p-3 bg-gray-900 text-white">
-      <div class="row justify-center">
-        <div class="col-sm-6 mb-3 mx-auto">
-          {% with tray_data=vt_tray_data, ams_id=EXTERNAL_SPOOL_AMS_ID, pick_tray=False, tray_id=EXTERNAL_SPOOL_ID %}
-            {% include 'fragments/tray.html' %}
-          {% endwith %}
-        </div>
+      <div class="grid grid-cols-1 justify-center">
+        {% with tray_data=vt_tray_data, ams_id=EXTERNAL_SPOOL_AMS_ID, pick_tray=False, tray_id=EXTERNAL_SPOOL_ID %}
+          {% include 'fragments/tray.html' %}
+        {% endwith %}
       </div>
     </div>
-
   </div>
 </div>
-</div>
+
 {% endblock %}
