@@ -186,19 +186,19 @@
     {% endif %}
   </span>
 
-  <!-- Représentation graphique AMS compacte et semi-transparente -->
+  <!-- AMS visuel type Bambu stylé -->
   <div class="ml-2 flex items-end">
-    <div class="px-1 py-[3px] rounded-t-xl bg-gray-300/80 border border-gray-500 flex items-end shadow-inner">
+    <div class="px-2 py-1 w-auto h-8 rounded-t-xl bg-gray-400 border border-gray-600 flex justify-evenly items-end shadow-inner">
       {% for tray in ams.tray %}
         {% if tray.tray_color and tray.tray_type %}
           <div
-            class="w-2 h-4 mx-[2px] rounded shadow"
+            class="w-2 h-5 mx-1 rounded shadow"
             style="background-color: #{{ tray.tray_color }}"
             title="{{ tray.name }} - {{ tray.vendor }}"
           ></div>
         {% else %}
           <div
-            class="w-2 h-4 mx-[2px] rounded shadow border border-gray-500"
+            class="w-2 h-5 mx-1 rounded shadow border border-gray-500"
             title="Slot vide"
             style="
               background-image: repeating-linear-gradient(
