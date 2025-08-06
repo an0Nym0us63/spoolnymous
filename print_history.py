@@ -1379,4 +1379,14 @@ def get_all_tray_spool_mappings() -> list[dict]:
 
     return [dict(row) for row in rows]
 
+def delete_all_tray_spool_mappings() -> None:
+    """
+    Supprime tous les enregistrements de la table tray_spool_map.
+    """
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM tray_spool_map")
+    conn.commit()
+    conn.close()
+
 create_database()
