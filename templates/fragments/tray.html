@@ -99,12 +99,14 @@
   <span class="text-gray-400 flex items-center gap-1">
      <span>⚖️</span>
   </span>
-  <span class="font-semibold"{{ tray_data.remaining_weight|round }}g</span>
+  <span class="font-semibold">{{ tray_data.remaining_weight|round }}g</span>
 </div>
           {% endif %}
           {% if tray_data.remain != -1 %}
           <div class="flex justify-between">
-            <span class="text-gray-400">Estimate</span>
+             <span class="text-gray-400 flex items-center gap-1">
+     <span>⏳️</span>
+  </span>
             <span class="font-semibold">{{ tray_data.remain }}%</span>
           </div>
           {% endif %}
