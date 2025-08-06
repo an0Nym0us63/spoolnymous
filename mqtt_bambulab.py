@@ -8,7 +8,7 @@ import paho.mqtt.client as mqtt
 
 from config import PRINTER_ID, PRINTER_CODE, PRINTER_IP, AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID
 from messages import GET_VERSION, PUSH_ALL
-from spoolman_service import spendFilaments, setActiveTray, fetchSpools
+from spoolman_service import spendFilaments, setActiveTray, fetchSpools,clearActiveTray
 from tools_3mf import getMetaDataFrom3mf
 import time
 import copy
@@ -488,6 +488,7 @@ def on_message(client, userdata, msg):
 
             if foundspool == None:
               print("      - Not found. Update spool tag or filament_id and color!")
+              clearActiveTray(ams['id'], tray["id"])
             else:
                 #print("Found spool " + str(foundspool))
                 setActiveTray(foundspool['id'], foundspool["extra"], ams['id'], tray["id"])

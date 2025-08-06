@@ -158,8 +158,12 @@ def setActiveTray(spool_id, spool_extra, ams_id, tray_id):
       if spool_id != old_spool["id"] and old_spool.get("extra") and old_spool["extra"].get("active_tray") and json.loads(old_spool["extra"]["active_tray"]) == trayUid(ams_id, tray_id):
         patchExtraTags(old_spool["id"], old_spool["extra"], {"active_tray": json.dumps("")})
         patchLocation(old_spool["id"],100)
-  #else:
-  #  print("Skipping set active tray")
+        
+def clearActiveTray(ams_id,tray_id):
+    for old_spool in fetchSpools(cached=True):
+      if old_spool.get("extra") and old_spool["extra"].get("active_tray") and json.loads(old_spool["extra"]["active_tray"]) == trayUid(ams_id, tray_id):
+        patchExtraTags(old_spool["id"], old_spool["extra"], {"active_tray": json.dumps("")})
+        patchLocation(old_spool["id"],100)
 
 # Fetch spools from spoolman
 def fetchSpools(cached=False,archived=False):
