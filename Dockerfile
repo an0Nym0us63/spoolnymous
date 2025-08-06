@@ -1,5 +1,5 @@
 # Étape 1 : Builder Tailwind
-FROM node:18-alpine as tailwind-builder
+FROM node:18-bookworm as tailwind-builder
 
 WORKDIR /build
 
