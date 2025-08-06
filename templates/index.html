@@ -103,21 +103,13 @@
   ">
 
 <!-- En-tête -->
-<div class="flex justify-between items-center px-4 py-2 bg-gray-800 border-b border-gray-700">
-  <!-- Nom AMS -->
-<span class="inline-block bg-primary text-white rounded-full shadow font-semibold leading-none 
-  text-[0.5rem] sm:text-[0.6rem] md:text-xs 
-  px-1.5 py-[1px] sm:px-2 sm:py-0.5 
-  max-w-[4rem] sm:max-w-[5rem] 
-  overflow-hidden text-ellipsis whitespace-nowrap"
->
-      {% if ams.location %}
-        {{ ams.location }}
-      {% else %}
-        AMS{% if ams_data|length > 1 %} {{ ams.id|int + 1 }}{% endif %}
-      {% endif %}
-    </span>
-  </div>
+<div class="flex items-center gap-2">
+  <span class="inline-flex items-center gap-1 px-2 py-[2px] sm:px-2.5 sm:py-[3px] rounded-full bg-primary text-white text-[0.6rem] sm:text-[0.7rem] md:text-xs font-semibold shadow"
+        title="{{ ams.location or ('AMS ' ~ ams.id|string) }}">
+    <i class="bi bi-hdd-stack-fill text-[0.7rem]"></i>
+    <span class="truncate max-w-[5.5rem]">{{ ams.location or ('AMS ' ~ ams.id|string) }}</span>
+  </span>
+</div>
 
   <!-- AMS graphique avec vrai espacement -->
   <div class="ml-2 flex items-end">
