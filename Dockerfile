@@ -4,9 +4,10 @@ FROM node:18-bookworm as tailwind-builder
 WORKDIR /build
 
 COPY ./tailwind.css ./tailwind.config.js ./
-RUN npm install -D tailwindcss postcss autoprefixer \
- && npx tailwindcss -i ./tailwind.css -o ./tailwind.build.css --minify \
- || (echo "🔧 Tailwind build failed — showing tailwind.css contents:" && cat ./tailwind.css && exit 1)
+RUN npm install -D tailwindcss postcss autoprefixer && \
+  echo "🔧 Running tailwind build..." && \
+  npx tailwindcss -i ./tailwind.css -o ./tailwind.build.css --minify || \
+  (echo "❌ Tailwind build failed." && ls -al && cat tailwind.css && cat tailwind.config.js && exit 1)
 
 # Étape 2 : Image principale Python
 FROM python:3.12.9-slim-bookworm
