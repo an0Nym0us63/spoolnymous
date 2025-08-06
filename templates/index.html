@@ -42,8 +42,20 @@
 
     <div class="relative z-10 grid grid-cols-3 items-center text-white px-3 py-2 gap-2 text-xs sm:text-sm">
       <div class="flex items-center gap-2 truncate">
-        <img id="status-thumbnail" src="{{ url_for('static', filename='prints/' ~ printer_status.thumbnail) if printer_status.thumbnail else url_for('static', filename='img/placeholder.png') }}"
-             alt="thumbnail" class="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded shadow" />
+        <img
+  id="status-thumbnail"
+  src="{{ url_for('static', filename='prints/' ~ printer_status.thumbnail) if printer_status.thumbnail else url_for('static', filename='img/placeholder.png') }}"
+  alt="thumbnail"
+  class="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded shadow"
+  style="
+    border-radius: 0.5rem;
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 0 10px 2px rgba(59, 130, 246, 0.6);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+  "
+  onmouseover="this.style.boxShadow='0 0 18px 4px rgba(59, 130, 246, 0.9)'; this.style.transform='scale(1.1)';"
+  onmouseout="this.style.boxShadow='0 0 10px 2px rgba(59, 130, 246, 0.6)'; this.style.transform='scale(1)';"
+/>
       </div>
       <div class="text-center font-semibold">
         <div id="status-progress">{{ printer_status.progress or 0 }}%</div>
