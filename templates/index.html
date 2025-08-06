@@ -190,11 +190,11 @@
   <div class="w-14 h-8 rounded-t-xl bg-gray-400/60 border border-gray-500 flex justify-evenly items-end px-1 py-1 shadow-inner">
     {% for i in range(4) %}
       {% set tray = ams.tray[i] if i < ams.tray|length else None %}
-      {% if tray and tray.color_code and not tray.is_empty %}
+      {% if tray and tray.tray_color and tray.tray_type %}
         <div
           class="w-2 h-5 rounded shadow"
-          style="background-color: {{ tray.color_code }}"
-          title="{{ tray.display_name }} - {{ tray.material_brand }}"
+          style="background-color: #{{ tray.tray_color }}"
+          title="{{ tray.name }} - {{ tray.vendor }}"
         ></div>
       {% else %}
         <div
