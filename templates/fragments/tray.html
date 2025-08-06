@@ -57,8 +57,9 @@
 
   <!-- Détails -->
   <div class="collapse" id="trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}">
-    <div class="px-4 py-3 text-sm text-white space-y-3 border-t border-gray-700 shadow-inner rounded-b-xl"
-     style="background-color: rgba(30, 30, 30, 0.75); backdrop-filter: blur(4px);">
+    <div class="px-4 py-3"
+     style="background-color: rgba(45, 50, 60, 0.7); backdrop-filter: blur(4px);"
+     class="text-sm text-white space-y-3 border-t border-gray-700 shadow-inner rounded-b-xl">
 
 
       {% if tray_data.tray_type %}
@@ -89,21 +90,21 @@
         <div class="flex-1 space-y-2">
           <div class="flex justify-between items-center">
   <span class="text-gray-400 flex items-center gap-1">
-    🕓 <span>Last</span>
+    <span>🕓</span>
   </span>
-  <span class="font-semibold">{{ tray_data.last_used }}</span>
+  <span class="font-semibold"> {{ tray_data.last_used }}</span>
 </div>
           {% if AUTO_SPEND and tray_data.matched %}
           <div class="flex justify-between items-center">
   <span class="text-gray-400 flex items-center gap-1">
-    ⚖️ <span>Remaining</span>
+     <span>⚖️</span>
   </span>
-  <span class="font-semibold">{{ tray_data.remaining_weight|round }}g</span>
+  <span class="font-semibold"{{ tray_data.remaining_weight|round }}g</span>
 </div>
           {% endif %}
           {% if tray_data.remain != -1 %}
           <div class="flex justify-between">
-            <span class="text-gray-400">Estimate:</span>
+            <span class="text-gray-400">Estimate</span>
             <span class="font-semibold">{{ tray_data.remain }}%</span>
           </div>
           {% endif %}
@@ -114,14 +115,14 @@
      <div class="text-xs text-gray-400 flex justify-center gap-2 flex-wrap">
   {% if tray_data.tray_uuid != "00000000000000000000000000000000" %}
     <div class="flex items-center gap-1">
-      <i class="bi bi-fingerprint text-[0.65rem] opacity-60"></i>
-      <span class="truncate max-w-[10rem]">{{ tray_data.tray_uuid }}</span>
-    </div>
+  <span class="text-[0.85rem]">🏷️</span>
+  <span class="truncate max-w-[10rem]">{{ tray_data.tray_uuid }}</span>
+</div>
   {% endif %}
-  <div class="flex items-center gap-1">
-    <i class="bi bi-hash text-[0.65rem] opacity-60"></i>
-    <span>{{ tray_data.tray_info_idx }}</span>
-  </div>
+<div class="flex items-center gap-1">
+  <span class="text-[0.65rem] opacity-60">🧵</span>
+  <span>{{ tray_data.tray_info_idx }}</span>
+</div>
 </div>
     </div>
 
