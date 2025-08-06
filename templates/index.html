@@ -6,35 +6,35 @@
 
   <!-- Header de l'accordéon -->
   <div
-    class="tw-relative tw-overflow-hidden tw-shadow-md tw-cursor-pointer tw-transition-all tw-duration-200"
-    :class="open ? 'tw-rounded-t-xl tw-rounded-b-none tw-bg-gray-900' : 'tw-rounded-xl tw-bg-gray-900'"
+    class="relative overflow-hidden shadow-md cursor-pointer transition-all duration-200"
+    :class="open ? 'rounded-t-xl rounded-b-none bg-gray-900' : 'rounded-xl bg-gray-900'"
     @click="open = !open"
   >
-    {% set progress_color = 'tw-from-green-500 tw-to-blue-500' %}
+    {% set progress_color = 'from-green-500 to-blue-500' %}
     {% if printer_status.status == 'FINISH' %}
-      {% set progress_color = 'tw-from-green-600 tw-to-emerald-400' %}
+      {% set progress_color = 'from-green-600 to-emerald-400' %}
     {% elif printer_status.status == 'ERROR' or printer_status.status == 'FAILED' %}
-      {% set progress_color = 'tw-from-red-600 tw-to-pink-500' %}
+      {% set progress_color = 'from-red-600 to-pink-500' %}
     {% elif printer_status.status == 'PAUSE' %}
-      {% set progress_color = 'tw-from-yellow-400 tw-to-yellow-600' %}
+      {% set progress_color = 'from-yellow-400 to-yellow-600' %}
     {% endif %}
 
-    <div class="tw-absolute tw-inset-0 tw-flex">
-      <div id="status-progress-bar" class="tw-h-full tw-bg-gradient-to-r {{ progress_color }} tw-transition-all tw-duration-700"
+    <div class="absolute inset-0 flex">
+      <div id="status-progress-bar" class="h-full bg-gradient-to-r {{ progress_color }} transition-all duration-700"
            style="width: {{ printer_status.progress or 0 }}%; min-width: 2rem;"></div>
-      <div class="tw-flex-1 tw-bg-gray-700"></div>
+      <div class="flex-1 bg-gray-700"></div>
     </div>
 
-    <div class="tw-relative tw-z-10 tw-grid tw-grid-cols-3 tw-items-center tw-text-white tw-px-3 tw-py-2 tw-gap-2 tw-text-xs sm:tw-text-sm">
-      <div class="tw-flex tw-items-center tw-gap-2 tw-truncate">
+    <div class="relative z-10 grid grid-cols-3 items-center text-white px-3 py-2 gap-2 text-xs sm:text-sm">
+      <div class="flex items-center gap-2 truncate">
         <img id="status-thumbnail" src="{{ url_for('static', filename='prints/' ~ printer_status.thumbnail) if printer_status.thumbnail else url_for('static', filename='img/placeholder.png') }}"
-             alt="thumbnail" class="tw-w-10 tw-h-10 sm:tw-w-12 sm:tw-h-12 tw-object-cover tw-rounded tw-shadow" />
+             alt="thumbnail" class="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded shadow" />
       </div>
-      <div class="tw-text-center tw-font-semibold">
+      <div class="text-center font-semibold">
         <div id="status-progress">{{ printer_status.progress or 0 }}%</div>
-        <div id="status-text" class="tw-text-xs tw-text-gray-300">{{ printer_status.status or '...' }}</div>
+        <div id="status-text" class="text-xs text-gray-300">{{ printer_status.status or '...' }}</div>
       </div>
-      <div class="tw-text-right tw-text-xs">
+      <div class="text-right text-xs">
         <div id="status-remaining">
           ⏱️ {{ printer_status.remaining_time_str }}<br>
           🗓️ {{ printer_status.estimated_end or '' }}
@@ -44,13 +44,14 @@
   </div>
 
   <!-- Contenu déplié -->
-  <div x-show="open" x-transition class="tw-bg-gray-800 tw-border tw-border-t-0 tw-rounded-b-xl tw-shadow-inner tw-p-4 tw-text-sm tw-text-light tw-space-y-4">
-    <div class="tw-grid tw-grid-cols-2 sm:tw-grid-cols-3 tw-gap-2">
+  <div x-show="open" x-transition class="bg-dark border border-t-0 rounded-b-xl shadow-inner p-4 text-sm text-light space-y-4">
+    <!-- Infos grille -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
       <div><strong>📄</strong> <span id="status-print-name">{{ printer_status.print_name or 'N/A' }}</span></div>
       <div><strong>🔥</strong> <span id="status-nozzle">{{ printer_status.nozzle_temp or '—' }}</span> °C</div>
       <div><strong>🛏️</strong> <span id="status-bed">{{ printer_status.bed_temp or '—' }}</span> °C</div>
       <div><strong>🌡️</strong> <span id="status-chamber">{{ printer_status.chamber_temp or '—' }}</span> °C</div>
-      <div><strong>🩱️</strong> <span id="status-layers">{{ printer_status.print_layer }}/{{ printer_status.total_layers }}</span></div>
+      <div><strong>🧱️</strong> <span id="status-layers">{{ printer_status.print_layer }}/{{ printer_status.total_layers }}</span></div>
     </div>
   </div>
 </div>
@@ -61,25 +62,28 @@
 
 <script>
   function updateHighlighting(tray_ams_id, tray_local_id) {
-    const trayKey = `${String(tray_ams_id)}_${String(tray_local_id)}`;
-    const amsKey = String(tray_ams_id);
+  const trayKey = `${String(tray_ams_id)}_${String(tray_local_id)}`;
+  const amsKey = String(tray_ams_id);
 
-    document.querySelectorAll('[id^="ams-card-"]').forEach(card => {
-      card.classList.remove('border', 'border-4', 'border-primary');
-    });
-    const amsCard = document.querySelector(`#ams-card-${amsKey}`);
-    if (amsCard) {
-      amsCard.classList.add('border', 'border-4', 'border-primary');
-    }
-
-    document.querySelectorAll('[id^="tray-card-"]').forEach(card => {
-      card.classList.remove('border', 'border-3', 'border-warning', 'shadow-lg');
-    });
-    const trayCard = document.querySelector(`#tray-card-${trayKey}`);
-    if (trayCard) {
-      trayCard.classList.add('border', 'border-3', 'border-warning', 'shadow-lg');
-    }
+  // Reset AMS cards
+  document.querySelectorAll('[id^="ams-card-"]').forEach(card => {
+    card.classList.remove('border', 'border-4', 'border-primary');
+  });
+  const amsCard = document.querySelector(`#ams-card-${amsKey}`);
+  if (amsCard) {
+    amsCard.classList.add('border', 'border-4', 'border-primary');
   }
+
+  // Reset tray cards
+  document.querySelectorAll('[id^="tray-card-"]').forEach(card => {
+    card.classList.remove('border', 'border-3', 'border-warning', 'shadow-lg');
+  });
+  const trayCard = document.querySelector(`#tray-card-${trayKey}`);
+  if (trayCard) {
+    trayCard.classList.add('border', 'border-3', 'border-warning', 'shadow-lg');
+  }
+}
+
 
   document.addEventListener('DOMContentLoaded', () => {
     async function refreshPrinterStatus() {
@@ -94,15 +98,15 @@
         document.getElementById('status-progress-bar').style.width = `${data.progress || 0}%`;
 
         const bar = document.getElementById('status-progress-bar');
-        bar.classList.remove('tw-from-green-500', 'tw-to-blue-500', 'tw-from-green-600', 'tw-to-emerald-400', 'tw-from-red-600', 'tw-to-pink-500', 'tw-from-yellow-400', 'tw-to-yellow-600');
+        bar.classList.remove('from-green-500', 'to-blue-500', 'from-green-600', 'to-emerald-400', 'from-red-600', 'to-pink-500', 'from-yellow-400', 'to-yellow-600');
         if (data.status === 'FINISH') {
-          bar.classList.add('tw-from-green-600', 'tw-to-emerald-400');
+          bar.classList.add('from-green-600', 'to-emerald-400');
         } else if (data.status === 'ERROR' || data.status === 'FAILED') {
-          bar.classList.add('tw-from-red-600', 'tw-to-pink-500');
+          bar.classList.add('from-red-600', 'to-pink-500');
         } else if (data.status === 'PAUSE') {
-          bar.classList.add('tw-from-yellow-400', 'tw-to-yellow-600');
+          bar.classList.add('from-yellow-400', 'to-yellow-600');
         } else {
-          bar.classList.add('tw-from-green-500', 'tw-to-blue-500');
+          bar.classList.add('from-green-500', 'to-blue-500');
         }
 
         if (data.remaining_time_str || data.estimated_end) {
@@ -127,6 +131,7 @@
         }
 
         if (data.tray_ams_id != null && data.tray_local_id != null) {
+ 
           updateHighlighting(data.tray_ams_id, data.tray_local_id);
         }
 
@@ -135,9 +140,140 @@
       }
     }
 
+    // Lancement immédiat
     refreshPrinterStatus();
+
+    // Puis toutes les 5 secondes
     const interval = setInterval(refreshPrinterStatus, 5000);
+
     window.addEventListener('beforeunload', () => clearInterval(interval));
   });
 </script>
+
+
+
+{% if issue %}
+<div class="card border-warning shadow-sm mb-4">
+  <div class="card-header bg-warning text-dark fw-bold">
+    Warning
+  </div>
+  <div class="card-body">
+    <h5 class="card-title">There is a mismatch between printer and SpoolMan</h5>
+    <p class="card-text">Fix issue by clicking "Fix this tray" on tray with <i class="bi bi-exclamation-circle text-danger me-2"></i></p>
+  </div>
+</div>
+{% endif %}
+
+<!-- AMS and External Spool Row -->	
+<div class="row">
+
+  <!-- AMS Cards -->
+{% for ams in ams_data %}
+<div class="col-lg-6 mb-4">
+<div
+  id="ams-card-{{ ams.id|string }}"
+  class="rounded-xl overflow-hidden border border-gray-700 shadow-md hover:border-primary transition backdrop-blur-sm"
+  style="background: linear-gradient(135deg, rgba(30,30,30,0.85), rgba(40,40,40,0.85));"
+>
+
+<!-- En-tête -->
+<div class="flex justify-between items-center px-4 py-2 bg-gray-800 border-b border-gray-700">
+  <!-- Nom AMS -->
+  <div class="flex items-center">
+    <span class="inline-flex items-center text-[0.65rem] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-primary text-white shadow text-center max-w-[5.5rem] leading-tight break-words whitespace-normal">
+      {% if ams.location %}
+        {{ ams.location }}
+      {% else %}
+        AMS{% if ams_data|length > 1 %} {{ ams.id|int + 1 }}{% endif %}
+      {% endif %}
+    </span>
+  </div>
+
+  <!-- AMS graphique avec vrai espacement -->
+  <div class="ml-2 flex items-end">
+    <div class="px-3 py-1 h-8 min-w-[4rem] rounded-t-xl bg-gray-400 border border-gray-600 flex items-end shadow-inner gap-x-2">
+      {% for tray in ams.tray %}
+        {% if tray.tray_color and tray.tray_type %}
+          <div
+            class="w-2 h-5 rounded shadow"
+            style="background-color: #{{ tray.tray_color }}"
+            title="{{ tray.name }} - {{ tray.vendor }}"
+          ></div>
+        {% else %}
+          <div
+            class="w-2 h-5 rounded shadow border border-gray-500"
+            title="Slot vide"
+            style="
+              background-image: repeating-linear-gradient(
+                45deg,
+                #666 0px,
+                #666 2px,
+                #999 2px,
+                #999 4px
+              );
+              background-size: 4px 4px;
+            "
+          ></div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Température & humidité avec emojis -->
+  {% if ams.temp != "0.0" %}
+  <div class="text-xs text-gray-300 flex flex-col items-end space-y-1 whitespace-nowrap">
+    <div class="flex items-center gap-1">💧 {{ ams.humidity_raw }}%</div>
+    <div class="flex items-center gap-1">🌡️ {{ ams.temp }}°C</div>
+  </div>
+  {% endif %}
+</div>
+
+
+    <!-- Contenu avec fond visible -->
+    <div class="p-3 bg-gray-900 text-white">
+      <div class="row">
+        {% for tray in ams.tray %}
+        <div class="col-sm-6 mb-3">
+          {% with tray_data=tray, ams_id=ams.id, pick_tray=False, tray_id=tray.id %}
+            {% include 'fragments/tray.html' %}
+          {% endwith %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endfor %}
+
+  
+  <!-- External Spool -->
+<div class="{% if ams_data|length > 1 %}col-12{% else %}col-lg-6{% endif %} mb-4">
+  <div
+    id="ams-card-external"
+    class="rounded-xl overflow-hidden border border-gray-700 shadow-md hover:border-primary transition backdrop-blur-sm"
+    style="background: linear-gradient(135deg, rgba(30,30,30,0.85), rgba(40,40,40,0.85));"
+  >
+
+    <!-- En-tête simplifiée -->
+    <div class="flex justify-between items-start px-4 py-2 bg-gray-800 border-b border-gray-700">
+      <span class="inline-flex items-center gap-2 bg-primary text-white text-sm font-semibold px-3 py-1 rounded-full shadow">
+        External
+      </span>
+    </div>
+
+    <!-- Contenu aligné avec les AMS -->
+    <div class="p-3 bg-gray-900 text-white">
+      <div class="row justify-center">
+        <div class="col-sm-6 mb-3 mx-auto">
+          {% with tray_data=vt_tray_data, ams_id=EXTERNAL_SPOOL_AMS_ID, pick_tray=False, tray_id=EXTERNAL_SPOOL_ID %}
+            {% include 'fragments/tray.html' %}
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
 {% endblock %}
