@@ -1361,6 +1361,7 @@ def tray_mappings():
 @app.route("/clear_tray_mappings", methods=["POST"])
 def clear_tray_mappings():
     delete_all_tray_spool_mappings()
-    return jsonify({"status": "ok", "message": "Tous les mappings ont été supprimés."})
+    flash("Tous les mappings ont été supprimés.", "success")
+    return redirect(url_for("settings"))
 
 app.register_blueprint(auth_bp)
