@@ -41,11 +41,9 @@
               {% endfor %}
             </div>
           {% else %}
-            <span class="inline-block rounded px-2 py-1 text-xs font-bold shadow"
-                  style="background-color: #{{ tray_data.tray_color }};
-                         color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
-              #{{ tray_data.tray_color|upper }}
-            </span>
+            <span class="inline-block rounded w-6 h-5 shadow border"
+      style="background-color: #{{ tray_data.tray_color }};">
+</span>
           {% endif %}
         </div>
         {% if AUTO_SPEND and tray_data.matched %}
