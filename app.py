@@ -1362,6 +1362,6 @@ def tray_mappings():
 def clear_tray_mappings():
     delete_all_tray_spool_mappings()
     flash("Tous les mappings ont été supprimés.", "success")
-    return redirect(url_for("settings"))
+    return redirect(url_for("auth.settings"))
 
 app.register_blueprint(auth_bp)
