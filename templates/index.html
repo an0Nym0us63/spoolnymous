@@ -177,28 +177,31 @@
 >
 
 <!-- En-tête -->
-<div class="flex justify-between items-start px-4 py-2 bg-gray-800 border-b border-gray-700">
-  <span class="inline-flex items-center gap-2 bg-primary text-white text-xs sm:text-sm font-semibold px-2 py-0.5 rounded-full shadow whitespace-nowrap">
-    {% if ams.location %}
-      {{ ams.location }}
-    {% else %}
-      AMS{% if ams_data|length > 1 %} {{ ams.id|int + 1 }}{% endif %}
-    {% endif %}
-  </span>
+<div class="flex justify-between items-center px-4 py-2 bg-gray-800 border-b border-gray-700">
+  <!-- Nom AMS -->
+  <div class="flex items-center">
+    <span class="inline-flex items-center text-[0.65rem] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-primary text-white shadow text-center max-w-[5.5rem] leading-tight break-words whitespace-normal">
+      {% if ams.location %}
+        {{ ams.location }}
+      {% else %}
+        AMS{% if ams_data|length > 1 %} {{ ams.id|int + 1 }}{% endif %}
+      {% endif %}
+    </span>
+  </div>
 
-  <!-- AMS visuel type Bambu stylé -->
+  <!-- AMS graphique -->
   <div class="ml-2 flex items-end">
-    <div class="px-2 py-1 w-auto h-8 rounded-t-xl bg-gray-400 border border-gray-600 flex justify-evenly items-end shadow-inner">
+    <div class="px-2 py-1 h-8 rounded-t-xl bg-gray-400 border border-gray-600 flex items-end shadow-inner">
       {% for tray in ams.tray %}
         {% if tray.tray_color and tray.tray_type %}
           <div
-            class="w-2 h-5 mx-1 rounded shadow"
+            class="w-2 h-5 mx-[1px] rounded shadow"
             style="background-color: #{{ tray.tray_color }}"
             title="{{ tray.name }} - {{ tray.vendor }}"
           ></div>
         {% else %}
           <div
-            class="w-2 h-5 mx-1 rounded shadow border border-gray-500"
+            class="w-2 h-5 mx-[1px] rounded shadow border border-gray-500"
             title="Slot vide"
             style="
               background-image: repeating-linear-gradient(
@@ -216,6 +219,7 @@
     </div>
   </div>
 
+  <!-- Température & humidité -->
   {% if ams.temp != "0.0" %}
   <div class="text-xs text-gray-300 flex flex-col items-end space-y-1 whitespace-nowrap">
     <div class="flex items-center gap-1">
@@ -227,6 +231,7 @@
   </div>
   {% endif %}
 </div>
+
 
     <!-- Contenu avec fond visible -->
     <div class="p-3 bg-gray-900 text-white">
