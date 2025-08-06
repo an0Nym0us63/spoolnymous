@@ -185,14 +185,16 @@
           AMS{% if ams_data|length > 1 %} {{ ams.id|int + 1 }}{% endif %}
         {% endif %}
       </span>
-		<div class="flex flex-wrap gap-1 mt-2">
-  {% for tray in ams.tray %}
-    <div
-      class="w-5 h-5 rounded-full shadow-inner border border-gray-500"
-      style="background-color: {{ tray.color_code | default('#888') }}"
-      title="{{ tray.display_name }} ({{ tray.material_brand }}) - {{ tray.remaining_weight }}g"
-    ></div>
-  {% endfor %}
+		<div class="ml-2 flex items-end">
+  <div class="w-14 h-8 rounded-t-xl bg-gray-400 border border-gray-500 flex justify-evenly items-end px-1 py-1 shadow-inner">
+    {% for tray in ams.tray %}
+      <div
+        class="w-2 h-5 rounded bg-white shadow"
+        style="background-color: {{ tray.color_code | default('#888') }}"
+        title="{{ tray.display_name }} - {{ tray.material_brand }}"
+      ></div>
+    {% endfor %}
+  </div>
 </div>
       {% if ams.temp != "0.0" %}
       <div class="text-xs text-gray-300 flex flex-col items-end space-y-1">
