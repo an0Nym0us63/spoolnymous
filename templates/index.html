@@ -5,18 +5,19 @@
 <div x-data="{ open: false }"
      class="mb-4 rounded-xl overflow-hidden shadow-md"
      style="
-       border: 1px solid rgba(255, 255, 255, 0.08);
-       background: rgba(30, 30, 40, 0.85);
-       backdrop-filter: blur(4px);
-       -webkit-backdrop-filter: blur(4px);
+       background: linear-gradient(135deg, rgba(40,45,60,0.85), rgba(20,25,40,0.75));
+       border: 1px solid rgba(255,255,255,0.08);
+       backdrop-filter: blur(6px);
+       -webkit-backdrop-filter: blur(6px);
+       box-shadow: inset 0 0 2px rgba(255,255,255,0.05);
      ">
 
   <!-- Header de l'accordéon -->
   <div
-    class="relative overflow-hidden shadow-md cursor-pointer transition-all duration-200"
-    :class="open ? 'rounded-t-xl rounded-b-none' : 'rounded-xl'"
-    @click="open = !open"
-  >
+  class="relative overflow-hidden cursor-pointer transition-all duration-200"
+  :class="open ? 'rounded-t-xl rounded-b-none' : 'rounded-xl'"
+  @click="open = !open"
+>
     {% set progress_color = 'from-green-500 to-blue-500' %}
     {% if printer_status.status == 'FINISH' %}
       {% set progress_color = 'from-green-600 to-emerald-400' %}
@@ -29,7 +30,7 @@
     <div class="absolute inset-0 flex">
       <div id="status-progress-bar" class="h-full bg-gradient-to-r {{ progress_color }} transition-all duration-700"
            style="width: {{ printer_status.progress or 0 }}%; min-width: 2rem;"></div>
-      <div class="flex-1"
+<div class="flex-1"
      style="
        background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
        backdrop-filter: blur(4px);
@@ -58,7 +59,7 @@
   </div>
 
   <!-- Contenu déplié -->
-  <div x-show="open" x-transition class="bg-dark border border-t-0 rounded-b-xl shadow-inner p-4 text-sm text-light space-y-4">
+  <div x-show="open" x-transition class="border-t border-gray-700 p-4 text-sm text-light space-y-4" style="background: transparent;">
     <!-- Infos grille -->
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
       <div><strong>📄</strong> <span id="status-print-name">{{ printer_status.print_name or 'N/A' }}</span></div>
