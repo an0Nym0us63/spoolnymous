@@ -1313,25 +1313,27 @@ def get_latest_print():
         print(f"[ERROR] get_latest_print: {e}")
         return None
 
+tray_spool_map_cache = None
+
+def load_tray_spool_map_cache(force_reload=False):
+    global tray_spool_map_cache
+    if tray_spool_map_cache is None or force_reload:
+        conn = sqlite3.connect(db_config["db_path"])
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, tray_uuid, tray_info_idx, color, spool_id FROM tray_spool_map")
+        tray_spool_map_cache = cursor.fetchall()
+        conn.close()
+
 def get_tray_spool_map(tray_uuid: str, tray_info_idx: str, color: str) -> int | None:
-    """
-    Retourne le spool_id associé à un triplet (tray_uuid, tray_info_idx, color),
-    ou None si aucune correspondance n'est trouvée.
-    """
-    conn = sqlite3.connect(db_config["db_path"])
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT spool_id FROM tray_spool_map
-        WHERE tray_uuid = ? AND tray_info_idx = ? AND color = ?
-    """, (tray_uuid, tray_info_idx, color))
-    result = cursor.fetchone()
-    conn.close()
-    return result[0] if result else None
+    load_tray_spool_map_cache()
+    for row in tray_spool_map_cache:
+        _, uuid, info_idx, col, spool_id = row
+        if uuid == tray_uuid and info_idx == tray_info_idx and col == color:
+            return spool_id
+    return None
 
 def set_tray_spool_map(tray_uuid: str, tray_info_idx: str, color: str, spool_id: int) -> None:
-    """
-    Insère ou met à jour le spool_id associé à un triplet (tray_uuid, tray_info_idx, color).
-    """
+    global tray_spool_map_cache
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
     cursor.execute("""
@@ -1354,39 +1356,33 @@ def set_tray_spool_map(tray_uuid: str, tray_info_idx: str, color: str, spool_id:
 
     conn.commit()
     conn.close()
+    tray_spool_map_cache = None  # Invalider le cache
 
 def delete_tray_spool_map_by_id(map_id: int) -> None:
-    """
-    Supprime une entrée de tray_spool_map selon son identifiant unique.
-    """
+    global tray_spool_map_cache
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
     cursor.execute("DELETE FROM tray_spool_map WHERE id = ?", (map_id,))
     conn.commit()
     conn.close()
+    tray_spool_map_cache = None  # Invalider le cache
 
 def get_all_tray_spool_mappings() -> list[dict]:
-    """
-    Retourne toutes les entrées de la table tray_spool_map sous forme de liste de dictionnaires.
-    """
     conn = sqlite3.connect(db_config["db_path"])
-    conn.row_factory = sqlite3.Row  # Permet d'accéder aux colonnes par nom
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-
     cursor.execute("SELECT * FROM tray_spool_map")
     rows = cursor.fetchall()
     conn.close()
-
     return [dict(row) for row in rows]
 
 def delete_all_tray_spool_mappings() -> None:
-    """
-    Supprime tous les enregistrements de la table tray_spool_map.
-    """
+    global tray_spool_map_cache
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
     cursor.execute("DELETE FROM tray_spool_map")
     conn.commit()
     conn.close()
+    tray_spool_map_cache = None  # Invalider le cache
 
 create_database()
