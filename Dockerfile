@@ -1,6 +1,14 @@
 # Use an official Python runtime as a parent image
 FROM python:3.12.9-slim-bookworm
+# Étape temporaire pour compiler Tailwind
+FROM node:18-alpine as tailwind-builder
 
+WORKDIR /build
+
+COPY ./tailwind.css ./
+COPY ./tailwind.config.js ./
+RUN npm install -D tailwindcss
+RUN npx tailwindcss -i ./tailwind.css -o ./tailwind.build.css --minify
 # permissions and nonroot user for tightened security
 RUN adduser --disabled-login nonroot
 RUN mkdir /home/app/ && chown -R nonroot:nonroot /home/app
@@ -26,5 +34,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # define the port number the container should expose
 EXPOSE 8000
-
+COPY --from=tailwind-builder /build/tailwind.build.css /home/app/static/css/tailwind.build.css
 CMD ["gunicorn", "-w", "1", "--threads", "4", "-b", "0.0.0.0:8000", "app:app"]
