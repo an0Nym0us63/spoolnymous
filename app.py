@@ -1358,7 +1358,7 @@ def tray_mappings():
     mappings = get_all_tray_spool_mappings()
     return jsonify(mappings)
 
-app.route("/clear_tray_mappings", methods=["POST"])
+@app.route("/clear_tray_mappings", methods=["POST"])
 def clear_tray_mappings():
     delete_all_tray_spool_mappings()
     return jsonify({"status": "ok", "message": "Tous les mappings ont été supprimés."})
