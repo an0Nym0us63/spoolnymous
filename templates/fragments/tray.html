@@ -25,7 +25,7 @@
   - {{ '<i class="bi bi-exclamation-circle text-danger me-2"></i>' | safe }}
 {% endif %}
       </div>
-      <div class="text-gray-200 font-semibold text-xs">
+      <div class="text-gray-400 text-xs">
         {% if tray_data.tray_type %}
           {{ tray_data.tray_type }}
           {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
@@ -92,29 +92,33 @@
         </div>
 
         <div class="flex-1 space-y-2">
-<div class="flex justify-between items-center">
-  <span class="text-gray-400 flex items-center gap-1">
-    <span>🕓</span>
-  </span>
-  <span class="font-semibold ml-auto"> {{ tray_data.last_used }}</span>
+
+  <div class="flex items-center justify-between">
+    <span class="text-gray-400 flex items-center gap-1">
+      <span>🕓</span>
+    </span>
+    <span class="font-semibold text-right">{{ tray_data.last_used }}</span>
+  </div>
+
+  {% if AUTO_SPEND and tray_data.matched %}
+  <div class="flex items-center justify-between">
+    <span class="text-gray-400 flex items-center gap-1">
+      <span>⚖️</span>
+    </span>
+    <span class="font-semibold text-right">{{ tray_data.remaining_weight|round }}g</span>
+  </div>
+  {% endif %}
+
+  {% if tray_data.remain != -1 %}
+  <div class="flex items-center justify-between">
+    <span class="text-gray-400 flex items-center gap-1">
+      <span>⏳️</span>
+    </span>
+    <span class="font-semibold text-right">{{ tray_data.remain }}%</span>
+  </div>
+  {% endif %}
+
 </div>
-          {% if AUTO_SPEND and tray_data.matched %}
-          <div class="flex justify-between items-center">
-  <span class="text-gray-400 flex items-center gap-1">
-     <span>⚖️</span>
-  </span>
-  <span class="font-semibold">{{ tray_data.remaining_weight|round }}g</span>
-</div>
-          {% endif %}
-          {% if tray_data.remain != -1 %}
-          <div class="flex justify-between">
-             <span class="text-gray-400 flex items-center gap-1">
-     <span>⏳️</span>
-  </span>
-            <span class="font-semibold">{{ tray_data.remain }}%</span>
-          </div>
-          {% endif %}
-        </div>
       </div>
       {% endif %}
 
