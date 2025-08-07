@@ -104,6 +104,7 @@ def create_database() -> None:
                 full_normal_cost_by_item REAL DEFAULT 0.0,
                 margin REAL DEFAULT 0.0,
                 job_id INTEGER DEFAULT0,
+                original_duration REAL,
                 FOREIGN KEY (group_id) REFERENCES print_groups(id)
             )
         ''')
@@ -189,6 +190,9 @@ def create_database() -> None:
         if "original_name" not in columns:
             cursor.execute("ALTER TABLE prints ADD COLUMN original_name TEXT")
             cursor.execute("UPDATE prints SET original_name = file_name WHERE original_name IS NULL OR original_name = ''")
+        if "original_duration" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN original_duration REAL")
+            cursor.execute("UPDATE prints SET original_duration = duration WHERE original_duration IS NULL")
         if "translated_name" not in columns:
             cursor.execute("ALTER TABLE prints ADD COLUMN translated_name TEXT")
             cursor.execute("SELECT id, file_name FROM prints")
@@ -333,9 +337,9 @@ def insert_print(file_name: str, print_type: str, image_file: str = None, print_
     if (print_type == "manual"):
         status = "SUCCESS"
     cursor.execute('''
-        INSERT INTO prints (print_date, file_name, print_type, image_file, duration, original_name, translated_name, job_id, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (print_date, cleaned, print_type, image_file, duration, file_name, translated, job_id, status))
+        INSERT INTO prints (print_date, file_name, print_type, image_file, duration, original_name, translated_name, job_id, status,original_duration)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (print_date, cleaned, print_type, image_file, duration, file_name, translated, job_id, status, duration))
     print_id = cursor.lastrowid
     conn.commit()
     conn.close()
