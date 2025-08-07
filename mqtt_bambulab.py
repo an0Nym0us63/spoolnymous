@@ -18,6 +18,8 @@ from logger import append_to_rotating_file
 from print_history import  insert_print, insert_filament_usage, update_filament_spool,update_print_field_with_job_id,get_tray_spool_map,delete_tray_spool_map_by_id
 
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK, PROCESSED_JOBS, PENDING_JOBS
+import logging
+logger = logging.getLogger(__name__)
 
 MQTT_CLIENT = {}  # Global variable storing MQTT Client
 MQTT_CLIENT_CONNECTED = False
@@ -109,8 +111,8 @@ def processMessage(data):
     update_dict(PRINTER_STATE, data)
     #print(str(data))
     if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
-      print('1'+str(data))
-      print('1-2'+str(data))
+      logger.info('1'+str(data))
+      logger.info('1-2'+str(data))
       PENDING_PRINT_METADATA = getMetaDataFrom3mf(data["print"]["url"],data["print"]["subtask_name"])
       name=PRINTER_STATE["print"]["subtask_name"]
       if PENDING_PRINT_METADATA["title"] != '':
@@ -137,8 +139,8 @@ def processMessage(data):
     if ( "print_type" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["print_type"] == "local" and
         "print" in PRINTER_STATE_LAST
       ):
-      print('2'+str(data))
-      print('2-2'+str(PRINTER_STATE))
+      logger.info('2'+str(data))
+      logger.info('2-2'+str(PRINTER_STATE))
       if (
           "gcode_state" in PRINTER_STATE["print"] and 
           PRINTER_STATE["print"]["gcode_state"] == "RUNNING" and
@@ -543,7 +545,7 @@ def async_subscribe():
                 MQTT_CLIENT.on_disconnect = on_disconnect
                 MQTT_CLIENT.on_message = on_message
 
-                print("🔄 Trying to connect ...", flush=True)
+                logger.info("🔄 Trying to connect ...")
                 MQTT_CLIENT.connect(printer_ip, 8883, MQTT_KEEPALIVE)
                 MQTT_CLIENT.loop_start()
 
@@ -551,6 +553,7 @@ def async_subscribe():
                 print(f"⚠️ connection failed: {e}, new try in 15 seconds...", flush=True)
 
             time.sleep(15)
+        logger.info("Connected ...")
 
         time.sleep(15)
 
