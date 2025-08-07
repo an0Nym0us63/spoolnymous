@@ -15,7 +15,7 @@ import copy
 import math
 from collections.abc import Mapping
 from logger import append_to_rotating_file
-from print_history import  insert_print, insert_filament_usage, update_filament_spool,update_print_status_with_job_id,get_tray_spool_map,delete_tray_spool_map_by_id
+from print_history import  insert_print, insert_filament_usage, update_filament_spool,update_print_field_with_job_id,get_tray_spool_map,delete_tray_spool_map_by_id
 
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK, PROCESSED_JOBS, PENDING_JOBS
 
