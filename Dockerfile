@@ -1,30 +1,44 @@
-# Use an official Python runtime as a parent image
-FROM python:3.12.9-slim-bookworm
+FROM python:3.12-slim
 
-# permissions and nonroot user for tightened security
-RUN adduser --disabled-login nonroot
-RUN mkdir /home/app/ && chown -R nonroot:nonroot /home/app
-RUN mkdir /home/app/logs/ && chown -R nonroot:nonroot /home/app/logs
-RUN mkdir /home/app/data/ && chown -R nonroot:nonroot /home/app/data
-RUN mkdir -p /home/app/static/prints && chown -R nonroot:nonroot /home/app/static/prints
-RUN mkdir -p /var/log/flask-app && touch /var/log/flask-app/flask-app.err.log && touch /var/log/flask-app/flask-app.out.log
-RUN chown -R nonroot:nonroot /var/log/flask-app
-WORKDIR /home/app
-USER nonroot
+# Paramètres UID/GID configurables (root par défaut)
+ARG UID=0
+ARG GID=0
 
-# copy all the files to the container
-COPY --chown=nonroot:nonroot . .
-
-# venv
-ENV VIRTUAL_ENV=/home/app/venv
-
-# python setup
-RUN python -m venv $VIRTUAL_ENV
+# Définition des chemins
+ENV APP_HOME=/home/app
+ENV VIRTUAL_ENV=$APP_HOME/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-RUN export FLASK_APP=src/app.py
-RUN pip install --no-cache-dir -r requirements.txt
 
-# define the port number the container should expose
+# Création groupe et utilisateur avec UID/GID paramétrables
+RUN addgroup --gid ${GID} spooluser && \
+    adduser --uid ${UID} --gid ${GID} --disabled-login --gecos '' spooluser
+
+# Création des répertoires nécessaires
+RUN mkdir -p $APP_HOME/static/prints \
+    && mkdir -p $APP_HOME/logs \
+    && mkdir -p $APP_HOME/data \
+    && mkdir -p /var/log/flask-app \
+    && touch /var/log/flask-app/flask-app.err.log \
+    && touch /var/log/flask-app/flask-app.out.log \
+    && chown -R ${UID}:${GID} $APP_HOME /var/log/flask-app
+
+# Définir le dossier de travail
+WORKDIR $APP_HOME
+
+# Copier les fichiers de dépendances en premier
+COPY requirements.txt .
+
+# Création de l’environnement virtuel et installation des dépendances
+RUN python -m venv $VIRTUAL_ENV && \
+    . $VIRTUAL_ENV/bin/activate && \
+    pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copier le code source avec les bons UID/GID
+COPY --chown=${UID}:${GID} . .
+
+# Exposer le port HTTP
 EXPOSE 8000
 
-CMD ["gunicorn", "-w", "1", "--threads", "4", "-b", "0.0.0.0:8000", "app:app"]
+# Pas de USER ici — il sera défini à l'exécution via docker run / compose
+CMD ["gunicorn", "-w", "1", "--threads", "4", "-b", "0.0.0.0:8000", "src.app:app"]
