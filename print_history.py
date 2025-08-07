@@ -7,6 +7,7 @@ import operator
 from deep_translator import GoogleTranslator
 import re
 import config
+from config import get_app_setting
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 

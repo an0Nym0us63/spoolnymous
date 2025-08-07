@@ -11,6 +11,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from urllib.parse import urlparse, unquote
+from config import get_app_setting
 
 def parse_ftp_listing(line):
     """Parse a line from an FTP LIST command."""

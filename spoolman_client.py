@@ -1,5 +1,5 @@
 import requests
-from config import SPOOL_SORTING
+from config import SPOOL_SORTING,get_app_setting
 import json
 
 def patchExtraTags(spool_id, old_extras, new_extras):
