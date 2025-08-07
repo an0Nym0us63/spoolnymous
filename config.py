@@ -1,7 +1,6 @@
 import os
 import sqlite3
 
-
 DEFAULT_ADMIN_USERNAME = "admin"
 DEFAULT_ADMIN_PASSWORD = "admin"
 EXTERNAL_SPOOL_AMS_ID = 255 # don't change
