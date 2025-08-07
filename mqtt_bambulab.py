@@ -109,7 +109,8 @@ def processMessage(data):
     update_dict(PRINTER_STATE, data)
     #print(str(data))
     if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
-      print(str(data))
+      print('1'+str(data))
+      print('1-2'+str(data))
       PENDING_PRINT_METADATA = getMetaDataFrom3mf(data["print"]["url"],data["print"]["subtask_name"])
       name=PRINTER_STATE["print"]["subtask_name"]
       if PENDING_PRINT_METADATA["title"] != '':
@@ -136,7 +137,8 @@ def processMessage(data):
     if ( "print_type" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["print_type"] == "local" and
         "print" in PRINTER_STATE_LAST
       ):
-
+      print('2'+str(data))
+      print('2-2'+str(PRINTER_STATE))
       if (
           "gcode_state" in PRINTER_STATE["print"] and 
           PRINTER_STATE["print"]["gcode_state"] == "RUNNING" and
