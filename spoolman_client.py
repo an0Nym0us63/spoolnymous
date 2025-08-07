@@ -21,7 +21,7 @@ def patchExtraTags(spool_id, old_extras, new_extras):
         url = get_spoolman_url()
         response = requests.patch(f"{url}/spool/{spool_id}", json={"extra": old_extras})
         response.raise_for_status()
-        return response.json()
+        return response
     except requests.RequestException as e:
         logger.error(traceback.format_exc())
         raise ApplicationError(f"Erreur lors de la connexion à Spoolman : {e}")
@@ -39,7 +39,7 @@ def patchLocation(spool_id, ams_id='', tray_id=''):
         url = get_spoolman_url()
         response = requests.patch(f"{url}/spool/{spool_id}", json={"location": location})
         response.raise_for_status()
-        return response.json()
+        return response
     except requests.RequestException as e:
         logger.error(traceback.format_exc())
         raise ApplicationError(f"Erreur lors de la connexion à Spoolman : {e}")
@@ -71,7 +71,7 @@ def consumeSpool(spool_id, use_weight):
         url = get_spoolman_url()
         response = requests.put(f"{url}/spool/{spool_id}/use", json={"use_weight": use_weight})
         response.raise_for_status()
-        return response.json()
+        return response
     except requests.RequestException as e:
         logger.error(traceback.format_exc())
         raise ApplicationError(f"Erreur lors de la connexion à Spoolman : {e}")
@@ -81,7 +81,7 @@ def reajust_spool(spool_id, new_weight):
         url = get_spoolman_url()
         response = requests.patch(f"{url}/spool/{spool_id}", json={"remaining_weight": new_weight})
         response.raise_for_status()
-        return response.json()
+        return response
     except requests.RequestException as e:
         logger.error(traceback.format_exc())
         raise ApplicationError(f"Erreur lors de la connexion à Spoolman : {e}")
@@ -96,7 +96,7 @@ def archive_spool(spool_id):
             "extra": {"active_tray": "\"\""}
         })
         response.raise_for_status()
-        return response.json()
+        return response
     except requests.RequestException as e:
         logger.error(traceback.format_exc())
         raise ApplicationError(f"Erreur lors de la connexion à Spoolman : {e}")
