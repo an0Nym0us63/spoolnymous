@@ -109,6 +109,7 @@ def processMessage(data):
     update_dict(PRINTER_STATE, data)
     #print(str(data))
     if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
+      print(str(data))
       PENDING_PRINT_METADATA = getMetaDataFrom3mf(data["print"]["url"],data["print"]["subtask_name"])
       name=PRINTER_STATE["print"]["subtask_name"]
       if PENDING_PRINT_METADATA["title"] != '':
@@ -521,7 +522,6 @@ def async_subscribe():
     global MQTT_CLIENT_CONNECTED
 
     MQTT_CLIENT_CONNECTED = False
-    MQTT_CLIENT = mqtt.Client()
     
     while True:
         while not MQTT_CLIENT_CONNECTED:
@@ -529,7 +529,8 @@ def async_subscribe():
                 # 🔁 Récupération dynamique des paramètres à chaque tentative
                 printer_code = get_app_setting("PRINTER_ACCESS_CODE", default='')
                 printer_ip = get_app_setting("PRINTER_IP", default='')
-
+                
+                MQTT_CLIENT = mqtt.Client()
                 MQTT_CLIENT.username_pw_set("bblp", printer_code)
                 ssl_ctx = ssl.create_default_context()
                 ssl_ctx.check_hostname = False

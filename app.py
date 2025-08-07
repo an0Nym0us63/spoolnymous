@@ -1362,9 +1362,9 @@ def api_printer_status():
         status = PRINTER_STATUS
         latest = get_latest_print()
         if latest and "image_file" in latest:
-            status_copy["thumbnail"] = latest["image_file"]
+            status["thumbnail"] = latest["image_file"]
         else:
-            status_copy["thumbnail"] = None
+            status["thumbnail"] = None
         return jsonify(status)
         
 @app.route("/tray_mappings")
