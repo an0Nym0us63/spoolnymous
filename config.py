@@ -61,11 +61,11 @@ AUTO_SPEND = True
 SPOOL_SORTING = os.getenv('SPOOL_SORTING', "filament.material:asc,filament.vendor.name:asc,filament.name:asc")
 PRINTER_NAME=""
 
-BASE_URL = get_app_setting("OPENSPOOLMAN_BASE_URL", use_env=True)
-PRINTER_ID = get_app_setting("PRINTER_ID", use_env=True)
-PRINTER_CODE = get_app_setting("PRINTER_ACCESS_CODE", use_env=True)
-PRINTER_IP = get_app_setting("PRINTER_IP", use_env=True)
-SPOOLMAN_BASE_URL = get_app_setting("SPOOLMAN_BASE_URL", use_env=True)
+BASE_URL = get_app_setting("OPENSPOOLMAN_BASE_URL",default='', use_env=True)
+PRINTER_ID = get_app_setting("PRINTER_ID",default='', use_env=True)
+PRINTER_CODE = get_app_setting("PRINTER_ACCESS_CODE",default='', use_env=True)
+PRINTER_IP = get_app_setting("PRINTER_IP",default='', use_env=True)
+SPOOLMAN_BASE_URL = get_app_setting("SPOOLMAN_BASE_URL",default='', use_env=True)
 SPOOLMAN_API_URL = f"{SPOOLMAN_BASE_URL}/api/v1"
 LOCATION_MAPPING = get_app_setting("LOCATION_MAPPING",default='', use_env=True)
 AMS_ORDER = get_app_setting("AMS_ORDER",default='',use_env=True)
