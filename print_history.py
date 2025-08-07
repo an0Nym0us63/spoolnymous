@@ -232,7 +232,7 @@ def create_database() -> None:
                 number_of_items INTEGER DEFAULT 1,
                 created_at TEXT,
                 sold_units INTEGER DEFAULT 0,
-                sold_price_total REAL DEFAULT NULL
+                sold_price_total REAL DEFAULT NULL,
                 primary_print_id INTEGER,
                 total_weight REAL DEFAULT 0.0,
                 total_cost REAL DEFAULT 0.0,
