@@ -32,14 +32,14 @@ def patchLocation(spool_id, ams_id='', tray_id=''):
         else:
             location = d[ams_name] + ' '+ str(tray_id)
   try:
-        url = get_spoolman_url_or_abort()
-        response = requests.patch(f"{url}/spool/{spool_id}", json={
-            "location": location
-        })
-        response.raise_for_status()
-        return response.json()
-    except requests.RequestException as e:
-        abort(500, f"Erreur lors de la connexion à Spoolman : {e}")
+    url = get_spoolman_url_or_abort()
+    response = requests.patch(f"{url}/spool/{spool_id}", json={
+        "location": location
+    })
+    response.raise_for_status()
+    return response.json()
+  except requests.RequestException as e:
+    abort(500, f"Erreur lors de la connexion à Spoolman : {e}")
 
 def getSpoolById(spool_id):
   try:
