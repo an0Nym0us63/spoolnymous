@@ -1,5 +1,7 @@
 import json
 import traceback
+import logging
+from exceptions import ApplicationError
 import uuid
 import math
 from datetime import datetime, timedelta
@@ -229,6 +231,7 @@ def parse_print_date(date_str):
 init_mqtt()
 
 app = Flask(__name__)
+logger = logging.getLogger(__name__)
 app.secret_key = secrets.token_hex(32)
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'  # redirige vers /login si non connecté
@@ -282,10 +285,11 @@ def frontend_utilities():
         PRINTER_NAME=PRINTER_NAME,
         url_with_args=url_with_args
     )
-    
-@app.errorhandler(500)
-def internal_error(error):
-    return render_template("error.html", exception= error.description), 500
+
+@app.errorhandler(ApplicationError)
+def handle_application_error(error):
+    logger.error("ApplicationError capturée :\n%s", traceback.format_exc())
+    return render_template("error.html", exception=str(error)), 500
     
 @app.route("/issue")
 def issue():
