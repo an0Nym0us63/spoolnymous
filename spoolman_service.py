@@ -1,5 +1,5 @@
 import os
-from config import PRINTER_ID, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID
+from config import EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from print_history import update_filament_spool
@@ -44,7 +44,7 @@ def get_currency_symbol(code):
     return currency_symbols.get(code, code)
 
 def trayUid(ams_id, tray_id):
-  return f"{PRINTER_ID}_{ams_id}_{tray_id}"
+  return f"{get_app_setting("PRINTER_ID","")}_{ams_id}_{tray_id}"
 
 def getAMSFromTray(n):
     return n // 4

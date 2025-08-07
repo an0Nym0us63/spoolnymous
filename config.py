@@ -1,6 +1,15 @@
 import os
 import sqlite3
 
+
+DEFAULT_ADMIN_USERNAME = "admin"
+DEFAULT_ADMIN_PASSWORD = "admin"
+EXTERNAL_SPOOL_AMS_ID = 255 # don't change
+EXTERNAL_SPOOL_ID = 254 #  don't change
+AUTO_SPEND = True
+SPOOL_SORTING = os.getenv('SPOOL_SORTING', "filament.material:asc,filament.vendor.name:asc,filament.name:asc")
+PRINTER_NAME=""
+
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
 def init_settings_table():
@@ -52,15 +61,3 @@ def get_all_app_settings() -> dict:
     return app_settings_cache.copy()
 
 init_settings_table()
-
-DEFAULT_ADMIN_USERNAME = "admin"
-DEFAULT_ADMIN_PASSWORD = "admin"
-EXTERNAL_SPOOL_AMS_ID = 255 # don't change
-EXTERNAL_SPOOL_ID = 254 #  don't change
-AUTO_SPEND = True
-SPOOL_SORTING = os.getenv('SPOOL_SORTING', "filament.material:asc,filament.vendor.name:asc,filament.name:asc")
-PRINTER_NAME=""
-
-LOCATION_MAPPING = get_app_setting("LOCATION_MAPPING",default='', use_env=True)
-AMS_ORDER = get_app_setting("AMS_ORDER",default='',use_env=True)
-COST_BY_HOUR = get_app_setting("COST_BY_HOUR",default=0,use_env=True)

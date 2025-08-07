@@ -1,12 +1,12 @@
 import requests
-from config import SPOOLMAN_API_URL, SPOOL_SORTING, LOCATION_MAPPING
+from config import SPOOL_SORTING
 import json
 
 def patchExtraTags(spool_id, old_extras, new_extras):
   for key, value in new_extras.items():
     old_extras[key] = value
 
-  resp = requests.patch(f"{SPOOLMAN_API_URL}/spool/{spool_id}", json={
+  resp = requests.patch(f"{get_app_setting("SPOOLMAN_API_URL","")}/spool/{spool_id}", json={
     "extra": old_extras
   })
   #print(resp.text)
@@ -15,15 +15,15 @@ def patchExtraTags(spool_id, old_extras, new_extras):
 def patchLocation(spool_id, ams_id='', tray_id=''):
   location = ''
   ams_name='AMS_'+str(ams_id)
-  if LOCATION_MAPPING != '' :
-    d = dict(item.split(":", 1) for item in LOCATION_MAPPING.split(";"))
+  if get_app_setting("LOCATION_MAPPING","") != '' :
+    d = dict(item.split(":", 1) for item in get_app_setting("LOCATION_MAPPING","").split(";"))
     if ams_name in d:
         if ams_id ==100:
             location = d[ams_name]
         else:
             location = d[ams_name] + ' '+ str(tray_id)
 
-  resp = requests.patch(f"{SPOOLMAN_API_URL}/spool/{spool_id}", json={
+  resp = requests.patch(f"{get_app_setting("SPOOLMAN_API_URL","")}/spool/{spool_id}", json={
     "location": location
   })
   #print(resp.text)
@@ -31,7 +31,7 @@ def patchLocation(spool_id, ams_id='', tray_id=''):
 
 
 def getSpoolById(spool_id):
-  response = requests.get(f"{SPOOLMAN_API_URL}/spool/{spool_id}")
+  response = requests.get(f"{get_app_setting("SPOOLMAN_API_URL","")}/spool/{spool_id}")
   #print(response.status_code)
   #print(response.text)
   return response.json()
@@ -42,9 +42,9 @@ def fetchSpoolList(archived=False):
   if archived:
     archi='?allow_archived=1'
   if SPOOL_SORTING:
-    response = requests.get(f"{SPOOLMAN_API_URL}/spool{archi}&sort={SPOOL_SORTING}")
+    response = requests.get(f"{get_app_setting("SPOOLMAN_API_URL","")}/spool{archi}&sort={SPOOL_SORTING}")
   else:
-    response = requests.get(f"{SPOOLMAN_API_URL}/spool{archi}")
+    response = requests.get(f"{get_app_setting("SPOOLMAN_API_URL","")}/spool{archi}")
     
   #print(response.status_code)
   #print(response.text)
@@ -53,7 +53,7 @@ def fetchSpoolList(archived=False):
 def consumeSpool(spool_id, use_weight):
   #print(f'Consuming {use_weight} from spool {spool_id}')
 
-  response = requests.put(f"{SPOOLMAN_API_URL}/spool/{spool_id}/use", json={
+  response = requests.put(f"{get_app_setting("SPOOLMAN_API_URL","")}/spool/{spool_id}/use", json={
     "use_weight": use_weight
   })
   #print(response.status_code)
@@ -61,7 +61,7 @@ def consumeSpool(spool_id, use_weight):
 
 def reajust_spool(spool_id, new_weight):
     #print(f"Réajuster spool {spool_id} à {new_weight}g")
-    response = requests.patch(f"{SPOOLMAN_API_URL}/spool/{spool_id}", json={
+    response = requests.patch(f"{get_app_setting("SPOOLMAN_API_URL","")}/spool/{spool_id}", json={
         "remaining_weight": new_weight
     })
     #print(response.status_code)
@@ -70,7 +70,7 @@ def reajust_spool(spool_id, new_weight):
 
 def archive_spool(spool_id):
     #print(f"Archiver spool {spool_id}, le déplacer en Archives, vider active_tray et mettre remaining_weight à 0")
-    response = requests.patch(f"{SPOOLMAN_API_URL}/spool/{spool_id}", json={
+    response = requests.patch(f"{get_app_setting("SPOOLMAN_API_URL","")}/spool/{spool_id}", json={
         "archived": True,
         "location": "Archives",
         "remaining_weight": 0,
@@ -83,7 +83,7 @@ def archive_spool(spool_id):
     return response
 
 def fetchSettings():
-  response = requests.get(f"{SPOOLMAN_API_URL}/setting/")
+  response = requests.get(f"{get_app_setting("SPOOLMAN_API_URL","")}/setting/")
   #print(response.status_code)
   #print(response.text)
 

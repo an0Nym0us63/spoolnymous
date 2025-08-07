@@ -10,7 +10,6 @@ import re
 import time
 import uuid
 from datetime import datetime, timezone
-from config import PRINTER_ID, PRINTER_CODE, PRINTER_IP
 from urllib.parse import urlparse, unquote
 
 def parse_ftp_listing(line):
@@ -83,9 +82,9 @@ def download3mfFromFTP(filename, taskname, destFile):
 
   dictChar = {'/':'2f',':':'3a'}
   print("Downloading 3MF file from FTP...")
-  ftp_host = PRINTER_IP
+  ftp_host = get_app_setting("PRINTER_IP","")
   ftp_user = "bblp"
-  ftp_pass = PRINTER_CODE
+  ftp_pass = get_app_setting("PRINTER_CODE","")
   remote_path = "/cache/" + filename
   taskname = encode_custom_hex(taskname)
   remote_path_from_task = "/cache/" + taskname+".gcode.3mf"

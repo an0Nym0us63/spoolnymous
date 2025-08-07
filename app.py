@@ -17,7 +17,7 @@ from auth import auth_bp, User, get_stored_user
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort
 from werkzeug.utils import secure_filename
 
-from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,LOCATION_MAPPING,AMS_ORDER, COST_BY_HOUR
+from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
@@ -272,10 +272,10 @@ def frontend_utilities():
         return url_for(request.endpoint) + ('?' + urlencode(args, doseq=True) if args else '')
 
     return dict(
-        SPOOLMAN_BASE_URL=SPOOLMAN_BASE_URL,
+        SPOOLMAN_BASE_URL=get_app_setting("SPOOLMAN_BASE_URL",""),
         AUTO_SPEND=AUTO_SPEND,
         color_is_dark=color_is_dark,
-        BASE_URL=BASE_URL,
+        BASE_URL=get_app_setting("BASE_URL",""),
         EXTERNAL_SPOOL_AMS_ID=EXTERNAL_SPOOL_AMS_ID,
         EXTERNAL_SPOOL_ID=EXTERNAL_SPOOL_ID,
         PRINTER_MODEL=getPrinterModel(),
@@ -463,12 +463,14 @@ def home():
         augmentTrayDataWithSpoolMan(spool_list, tray, trayUid(ams["id"], tray["id"]))
         issue |= tray["issue"]
       location = ''
+      LOCATION_MAPPING=get_app_setting('LOCATION_MAPPING','')
       if LOCATION_MAPPING != '' :
         d = dict(item.split(":", 1) for item in LOCATION_MAPPING.split(";"))
         ams_name='AMS_'+str(ams["id"])
         if ams_name in d:
             location = d[ams_name]
       ams['location']=location
+    AMS_ORDER=get_app_setting("AMS_ORDER","")
     if AMS_ORDER != '':
       mapping = {int(k): int(v) for k, v in (item.split(":") for item in AMS_ORDER.split(";"))}
       reordered = [None] * len(ams_data)

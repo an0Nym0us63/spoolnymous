@@ -6,8 +6,7 @@ from collections import defaultdict
 import operator
 from deep_translator import GoogleTranslator
 import re
-from config import COST_BY_HOUR as RAW_COST
-COST_BY_HOUR = float(RAW_COST)
+import config
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
@@ -917,7 +916,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         filament_cost += grams * cost_per_gram
 
     duration_hours = total_duration / 3600
-    electric_cost = duration_hours * float(COST_BY_HOUR)
+    electric_cost = duration_hours * float(get_app_setting("COST_BY_HOUR",0"))
 
     vendor_counts = {}
     for u in usage:
@@ -1184,7 +1183,7 @@ def recalculate_print_data(print_id: int, spools_by_id: dict) -> None:
         total_weight += result.get("grams_used", 0.0)
 
     # Calculs électricité
-    electric_cost = (duration / 3600.0) * COST_BY_HOUR if duration else 0.0
+    electric_cost = (duration / 3600.0) * float(get_app_setting("COST_BY_HOUR",0)) if duration else 0.0
 
     full_cost = total_cost + electric_cost
     full_normal_cost = total_normal_cost + electric_cost
