@@ -174,8 +174,7 @@ def getMetaDataFrom3mf(url,taskname):
       temp_file_name = temp_file.name
       
       if url.startswith("http"):
-        download3mfFromFTP(url.replace("ftp://", ""), taskname, temp_file)
-        #download3mfFromCloud(url, temp_file)
+        download3mfFromCloud(url, temp_file)
       elif url.startswith("local:"):
         download3mfFromLocalFilesystem(url.replace("local:", ""), temp_file)
       else:
