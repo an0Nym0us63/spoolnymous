@@ -42,7 +42,7 @@
 
     <div class="relative z-10 grid grid-cols-3 items-center text-white px-3 py-2 gap-2 text-xs sm:text-sm">
       <div class="flex items-center gap-2 truncate">
-        <img id="status-thumbnail" src="{{ url_for('static', filename='prints/' ~ printer_status.thumbnail) if printer_status.thumbnail else url_for('static', filename='img/placeholder.png') }}"
+        <img id="status-thumbnail" src="{{ url_for('static', filename='prints/' ~ printer_status.thumbnail) if printer_status.thumbnail else url_for('static', filename='placeholder.png') }}"
              alt="thumbnail" class="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded shadow" />
       </div>
       <div class="text-center font-semibold">

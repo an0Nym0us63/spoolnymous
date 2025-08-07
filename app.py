@@ -485,7 +485,10 @@ def home():
           reordered[dst_index] = ams_data[src_index]
       ams_data=reordered
     latest = get_latest_print()
-    status_copy["thumbnail"] = latest["image_file"]
+    if latest and "image_file" in latest:
+        status_copy["thumbnail"] = latest["image_file"]
+    else:
+        status_copy["thumbnail"] = None
     # Nouveau : si ?webview=1 → on met le cookie
     resp = make_response(render_template(
         'index.html',
@@ -1358,8 +1361,11 @@ def api_printer_status():
     with PRINTER_STATUS_LOCK:
         status = PRINTER_STATUS
         latest = get_latest_print()
-        status["thumbnail"] = latest["image_file"]
-        return jsonify(status)
+        if latest and "image_file" in latest:
+            status_copy["thumbnail"] = latest["image_file"]
+        else:
+            status_copy["thumbnail"] = None
+                return jsonify(status)
         
 @app.route("/tray_mappings")
 def tray_mappings():
