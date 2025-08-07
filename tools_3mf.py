@@ -82,7 +82,7 @@ def download3mfFromFTP(filename, taskname, destFile):
   found_and_fresh = False
 
   dictChar = {'/':'2f',':':'3a'}
-  print("Downloading 3MF file from FTP...")
+  logger.info("Downloading 3MF file from FTP...")
   ftp_host = get_app_setting("PRINTER_IP","")
   ftp_user = "bblp"
   ftp_pass = get_app_setting("PRINTER_CODE","")
@@ -92,9 +92,9 @@ def download3mfFromFTP(filename, taskname, destFile):
   local_path = destFile.name  # 🔹 Download into the current directory
   encoded_remote_path = urllib.parse.quote(remote_path)
   encoded_remote_path_from_task = urllib.parse.quote(remote_path_from_task)
-  print("[DEBUG] File to download is  : " + encoded_remote_path_from_task)
+  logger.debug("File to download is  : " + encoded_remote_path_from_task)
   url = f"ftps://{ftp_host}{encoded_remote_path_from_task}"
-  print(f"[DEBUG] Waiting for fresh file to appear on server: {url}")
+  logger.debug(f"Waiting for fresh file to appear on server: {url}")
   while time.time() - start_time < TIMEOUT:
     c = pycurl.Curl()
     # 🔹 Setup explicit FTPS connection (like FileZilla)
@@ -112,32 +112,32 @@ def download3mfFromFTP(filename, taskname, destFile):
     # 🔹 Enable proper TLS authentication
     c.setopt(c.FTPSSLAUTH, c.FTPAUTH_TLS)
     
-    print("[DEBUG] Starting file download into ./test.3mf...")
+    logger.debug("Starting file download into ./test.3mf...")
     
     try:
         c.perform()
         filetime = c.getinfo(c.INFO_FILETIME)
         if filetime == -1:
-            print(f"[DEBUG] File exists but no modification time. Retrying in {CHECK_INTERVAL}s.")
+            logger.debug(f" File exists but no modification time. Retrying in {CHECK_INTERVAL}s.")
         else:
             mtime = datetime.fromtimestamp(filetime, tz=timezone.utc)
             now = datetime.now(timezone.utc)
             age = (now - mtime).total_seconds()
-            print(f"[DEBUG] File modification time: {mtime.isoformat()} (age: {int(age)}s)")
+            logger.debug(f" File modification time: {mtime.isoformat()} (age: {int(age)}s)")
             if age <= MAX_AGE:
                 found_and_fresh = True
                 break
             else:
-                print(f"[DEBUG] File is too old (>{int(age)}s). Retrying in {CHECK_INTERVAL}s.")
+                logger.debug(f" File is too old (>{int(age)}s). Retrying in {CHECK_INTERVAL}s.")
     except pycurl.error as e:
-        print(f"[DEBUG] File not found yet ({e}). Retrying in {CHECK_INTERVAL}s.")
+        logger.debug(f" File not found yet ({e}). Retrying in {CHECK_INTERVAL}s.")
     finally:
         c.close()
     time.sleep(CHECK_INTERVAL)
   if not found_and_fresh:
-    print("[ERROR] Timed out: no fresh file found on server.")
+    logger.error("Timed out: no fresh file found on server.")
   else:
-    print("[DEBUG] Fresh file found, starting download…")
+    logger.debug("Fresh file found, starting download…")
 
     with open(local_path, "wb") as f:
         c = pycurl.Curl()
@@ -151,9 +151,9 @@ def download3mfFromFTP(filename, taskname, destFile):
 
         try:
             c.perform()
-            print(f"[DEBUG] File successfully downloaded into {local_path}!")
+            logger.debug(f"File successfully downloaded into {local_path}!")
         except pycurl.error as e:
-            print(f"[ERROR] cURL error during download: {e}")
+            logger.debug(f"cURL error during download: {e}")
         finally:
             c.close()
 
@@ -191,7 +191,7 @@ def getMetaDataFrom3mf(url,taskname):
       parsed_url = urlparse(url)
       metadata["file"] = os.path.basename(parsed_url.path)
 
-      print(f"3MF file downloaded and saved as {temp_file_name}.")
+      logger.info(f"3MF file downloaded and saved as {temp_file_name}.")
 
       # Unzip the 3MF file
       with zipfile.ZipFile(temp_file_name, 'r') as z:
@@ -209,7 +209,7 @@ def getMetaDataFrom3mf(url,taskname):
                 except:
                     pass  # laisser title vide en cas d'erreur
         else:
-            print(f"Fichier '{model_path}' non trouvé dans l'archive.")
+            logger.info(f"Fichier '{model_path}' non trouvé dans l'archive.")
         # Check for the Metadata/slice_info.config file
         slice_info_path = "Metadata/slice_info.config"
         if slice_info_path in z.namelist():
@@ -285,7 +285,7 @@ def getMetaDataFrom3mf(url,taskname):
             metadata["filaments"] = filaments
             metadata["usage"] = usage
         else:
-          print(f"File '{slice_info_path}' not found in the archive.")
+          logger.info(f"File '{slice_info_path}' not found in the archive.")
           return {}
         filename = time.strftime('%Y%m%d%H%M%S') + "_" + str(uuid.uuid4())[:8]
         metadata["image"] = filename + ".png"
@@ -302,19 +302,19 @@ def getMetaDataFrom3mf(url,taskname):
           with z.open(gcode_path) as gcode_file:
             metadata["filamentOrder"] =  get_filament_order(gcode_file)
         
-        print(metadata)
+        logger.info(metadata)
 
         return metadata
 
   except requests.exceptions.RequestException as e:
-    print(f"Error downloading file: {e}")
+    logger.error(f"Error downloading file: {e}")
     return {}
   except zipfile.BadZipFile:
-    print("The downloaded file is not a valid 3MF archive.")
+    logger.error("The downloaded file is not a valid 3MF archive.")
     return {}
   except ET.ParseError:
-    print("Error parsing the XML file.")
+    logger.error("Error parsing the XML file.")
     return {}
   except Exception as e:
-    print(f"An unexpected error occurred: {e}")
+    logger.error(f"An unexpected error occurred: {e}")
     return {}
