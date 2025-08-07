@@ -1340,7 +1340,6 @@ def recalculate_all_costs():
 
 @app.route("/cleanup_orphans", methods=["POST"])
 def cleanup_orphans():
-
     cleanup_orphan_data()
     flash("🧹 Données orphelines supprimées avec succès.", "success")
     return redirect(url_for("auth.settings"))

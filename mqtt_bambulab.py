@@ -6,7 +6,7 @@ from threading import Thread
 from datetime import datetime, timedelta
 import paho.mqtt.client as mqtt
 
-from config import PRINTER_ID, PRINTER_CODE, PRINTER_IP, AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID
+from config import get_app_setting, AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID
 from messages import GET_VERSION, PUSH_ALL
 from spoolman_service import spendFilaments, setActiveTray, fetchSpools,clearActiveTray
 from tools_3mf import getMetaDataFrom3mf
@@ -34,7 +34,7 @@ def update_status(new_data):
         PRINTER_STATUS.update(new_data)
         
 def getPrinterModel():
-    global PRINTER_ID
+    PRINTER_ID = get_app_setting("PRINTER_ID","")
     model_code = PRINTER_ID[:3]
 
     model_map = {
@@ -252,6 +252,7 @@ def insert_manual_print(local_path, custom_datetime):
 
 
 def publish(client, msg):
+  PRINTER_ID=get_app_setting("PRINTER_ID","")
   result = client.publish(f"device/{PRINTER_ID}/request", json.dumps(msg))
   status = result[0]
   if status == 0:
@@ -502,6 +503,7 @@ def on_message(client, userdata, msg):
     traceback.print_exc()
 
 def on_connect(client, userdata, flags, rc):
+  PRINTER_ID=get_app_setting("PRINTER_ID","")
   global MQTT_CLIENT_CONNECTED
   MQTT_CLIENT_CONNECTED = True
   print("Connected with result code " + str(rc))
@@ -515,34 +517,39 @@ def on_disconnect(client, userdata, rc):
   print("Disconnected with result code " + str(rc))
   
 def async_subscribe():
-  global MQTT_CLIENT
-  global MQTT_CLIENT_CONNECTED
-  
-  MQTT_CLIENT_CONNECTED = False
-  MQTT_CLIENT = mqtt.Client()
-  MQTT_CLIENT.username_pw_set("bblp", PRINTER_CODE)
-  ssl_ctx = ssl.create_default_context()
-  ssl_ctx.check_hostname = False
-  ssl_ctx.verify_mode = ssl.CERT_NONE
-  MQTT_CLIENT.tls_set_context(ssl_ctx)
-  MQTT_CLIENT.tls_insecure_set(True)
-  MQTT_CLIENT.on_connect = on_connect
-  MQTT_CLIENT.on_disconnect = on_disconnect
-  MQTT_CLIENT.on_message = on_message
-  
-  while True:
-    while not MQTT_CLIENT_CONNECTED:
-      try:
-          print("🔄 Trying to connect ...", flush=True)
-          MQTT_CLIENT.connect(PRINTER_IP, 8883, MQTT_KEEPALIVE)
-          MQTT_CLIENT.loop_start()
-          
-      except Exception as e:
-          print(f"⚠️ connection failed: {e}, new try in 15 seconds...", flush=True)
+    global MQTT_CLIENT
+    global MQTT_CLIENT_CONNECTED
 
-      time.sleep(15)
+    MQTT_CLIENT_CONNECTED = False
+    MQTT_CLIENT = mqtt.Client()
+    
+    while True:
+        while not MQTT_CLIENT_CONNECTED:
+            try:
+                # 🔁 Récupération dynamique des paramètres à chaque tentative
+                printer_code = get_app_setting("PRINTER_ACCESS_CODE", default='')
+                printer_ip = get_app_setting("PRINTER_IP", default='')
 
-    time.sleep(15)
+                MQTT_CLIENT.username_pw_set("bblp", printer_code)
+                ssl_ctx = ssl.create_default_context()
+                ssl_ctx.check_hostname = False
+                ssl_ctx.verify_mode = ssl.CERT_NONE
+                MQTT_CLIENT.tls_set_context(ssl_ctx)
+                MQTT_CLIENT.tls_insecure_set(True)
+                MQTT_CLIENT.on_connect = on_connect
+                MQTT_CLIENT.on_disconnect = on_disconnect
+                MQTT_CLIENT.on_message = on_message
+
+                print("🔄 Trying to connect ...", flush=True)
+                MQTT_CLIENT.connect(printer_ip, 8883, MQTT_KEEPALIVE)
+                MQTT_CLIENT.loop_start()
+
+            except Exception as e:
+                print(f"⚠️ connection failed: {e}, new try in 15 seconds...", flush=True)
+
+            time.sleep(15)
+
+        time.sleep(15)
 
 def init_mqtt():
   # Start the asynchronous processing in a separate thread
