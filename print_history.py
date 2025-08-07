@@ -171,6 +171,91 @@ def create_database() -> None:
         conn = sqlite3.connect(db_config["db_path"])
         cursor = conn.cursor()
         cursor.execute('''
+            CREATE TABLE IF NOT EXISTS prints (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                print_date TEXT NOT NULL,
+                file_name TEXT NOT NULL,
+                print_type TEXT NOT NULL,
+                image_file TEXT,
+                duration REAL,
+                number_of_items INTEGER DEFAULT 1,
+                group_id INTEGER,
+                original_name TEXT,
+                translated_name TEXT,
+                status TEXT DEFAULT 'SUCCESS',
+                status_note TEXT,
+                sold_units INTEGER DEFAULT 0,
+                sold_price_total REAL DEFAULT NULL,
+                total_weight REAL DEFAULT 0.0,
+                total_cost REAL DEFAULT 0.0,
+                total_normal_cost REAL DEFAULT 0.0,
+                electric_cost REAL DEFAULT 0.0,
+                full_cost REAL DEFAULT 0.0,
+                full_normal_cost REAL DEFAULT 0.0,
+                full_cost_by_item REAL DEFAULT 0.0,
+                full_normal_cost_by_item REAL DEFAULT 0.0,
+                margin REAL DEFAULT 0.0,
+                job_id INTEGER DEFAULT0,
+                original_duration REAL,
+                FOREIGN KEY (group_id) REFERENCES print_groups(id)
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS filament_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                print_id INTEGER NOT NULL,
+                spool_id INTEGER,
+                filament_type TEXT NOT NULL,
+                color TEXT NOT NULL,
+                grams_used REAL NOT NULL,
+                ams_slot INTEGER NOT NULL,
+                cost REAL DEFAULT 0.0,
+                normal_cost REAL DEFAULT 0.0,
+                FOREIGN KEY (print_id) REFERENCES prints (id) ON DELETE CASCADE
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS print_tags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                print_id INTEGER NOT NULL,
+                tag TEXT NOT NULL,
+                FOREIGN KEY (print_id) REFERENCES prints(id) ON DELETE CASCADE
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS print_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                number_of_items INTEGER DEFAULT 1,
+                created_at TEXT,
+                sold_units INTEGER DEFAULT 0,
+                sold_price_total REAL DEFAULT NULL
+                primary_print_id INTEGER,
+                total_weight REAL DEFAULT 0.0,
+                total_cost REAL DEFAULT 0.0,
+                total_normal_cost REAL DEFAULT 0.0,
+                electric_cost REAL DEFAULT 0.0,
+                full_cost REAL DEFAULT 0.0,
+                full_normal_cost REAL DEFAULT 0.0,
+                full_cost_by_item REAL DEFAULT 0.0,
+                full_normal_cost_by_item REAL DEFAULT 0.0,
+                margin REAL DEFAULT 0.0
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tray_spool_map (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tray_uuid TEXT NOT NULL,
+                tray_info_idx TEXT NOT NULL,
+                color TEXT NOT NULL,
+                spool_id INTEGER NOT NULL
+            )
+        ''')
+        cursor.execute('''
             CREATE TABLE IF NOT EXISTS tray_spool_map (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 tray_uuid TEXT NOT NULL,
