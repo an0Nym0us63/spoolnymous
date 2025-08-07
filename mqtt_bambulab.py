@@ -548,12 +548,12 @@ def async_subscribe():
                 logger.info("🔄 Trying to connect ...")
                 MQTT_CLIENT.connect(printer_ip, 8883, MQTT_KEEPALIVE)
                 MQTT_CLIENT.loop_start()
+                logger.info("Connected ...")
 
             except Exception as e:
                 print(f"⚠️ connection failed: {e}, new try in 15 seconds...", flush=True)
 
             time.sleep(15)
-        logger.info("Connected ...")
 
         time.sleep(15)
 
