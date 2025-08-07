@@ -374,19 +374,25 @@ def create_database() -> None:
         conn.commit()
         conn.close()
 
-def update_translated_name(name):
-    source = "auto"
-    target = "fr"
-    ctx_prefix = "__ctx__ "  # Contexte neutre pour forcer la traduction
-    #contextualized_text = f"This is a {name}"
-    forced_input = '\n'.join(name.split())
-    raw_output = GoogleTranslator(source='auto', target=target).translate(forced_input)
-    translated= ' '.join(raw_output.split('\n'))
-    # Supprimer les préfixes de contexte traduits (insensibles à la casse)
-    prefix_pattern = r"^(ceci est (un|une)|c'est (un|une)?|il s'agit d'(un|une)|il s'agit de)\s+"
-    translated = re.sub(prefix_pattern, '', translated, flags=re.IGNORECASE)
+def update_translated_name(name: str) -> str:
+    if not name.strip():
+        return ""
 
-    return translated.strip()
+    # Traduction mot à mot (avec séparation forcée)
+    forced_input = '\n'.join(name.split())
+    mot_a_mot = GoogleTranslator(source='auto', target='fr').translate(forced_input)
+    mot_a_mot = ' '.join(mot_a_mot.split('\n')).strip()
+
+    # Traduction contextuelle
+    contextuel = GoogleTranslator(source='auto', target='fr').translate(name.strip()).strip()
+
+    # Si la traduction contextuelle est identique à l'entrée, pas besoin d'ajouter mot-à-mot
+    if contextuel.lower() == name.lower():
+        return contextuel
+
+    # Dédoublonnage par mots
+    words = list(dict.fromkeys((mot_a_mot + ' ' + contextuel).split()))
+    return ' '.join(words)
 
 def clean_print_name(raw_name: str) -> str:
     # 1. Supprimer l'extension (.stl, .gcode, etc.)
