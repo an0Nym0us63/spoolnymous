@@ -89,7 +89,7 @@ def download3mfFromFTP(filename, taskname, destFile):
   logger.info("Downloading 3MF file from FTP...")
   ftp_host = get_app_setting("PRINTER_IP","")
   ftp_user = "bblp"
-  ftp_pass = get_app_setting("PRINTER_CODE","")
+  ftp_pass = get_app_setting("PRINTER_ACCESS_CODE","")
   remote_path = "/cache/" + filename
   taskname = encode_custom_hex(taskname)
   remote_path_from_task = "/cache/" + taskname+".gcode.3mf"
