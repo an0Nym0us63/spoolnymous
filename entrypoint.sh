@@ -1,10 +1,10 @@
 #!/bin/sh
 
-# UID/GID par défaut si non fournis
+# UID/GID par défaut
 PUID=${PUID:-1000}
 PGID=${PGID:-1000}
 
-# Met à jour l'UID/GID de l'utilisateur app
+# Mise à jour de l'utilisateur app si existant
 if getent group app >/dev/null 2>&1; then
     groupmod -o -g "$PGID" app
 fi
@@ -16,4 +16,5 @@ fi
 echo "[ENTRYPOINT] UID=$(id -u app), GID=$(id -g app)"
 echo "[ENTRYPOINT] Lancement de Gunicorn..."
 
-exec su-exec app gunicorn -w 1 --threads 4 -b 0.0.0.0:8000 src.app:app "$@"
+# Lancement de Gunicorn avec le bon user et module app.py
+exec su-exec app gunicorn -w 1 --threads 4 -b 0.0.0.0:8000 app:app "$@"
