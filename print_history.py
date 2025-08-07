@@ -916,7 +916,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         filament_cost += grams * cost_per_gram
 
     duration_hours = total_duration / 3600
-    electric_cost = duration_hours * float(get_app_setting("COST_BY_HOUR",0"))
+    electric_cost = duration_hours * float(get_app_setting("COST_BY_HOUR",0))
 
     vendor_counts = {}
     for u in usage:
