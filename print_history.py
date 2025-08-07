@@ -379,7 +379,7 @@ def update_translated_name(name):
     target = "fr"
     ctx_prefix = "__ctx__ "  # Contexte neutre pour forcer la traduction
     #contextualized_text = f"This is a {name}"
-    contextualized_text=name
+    contextualized_text=name.lower()
     translated = GoogleTranslator(source=source, target=target).translate(contextualized_text)
 
 
