@@ -120,7 +120,7 @@ def settings():
         using_default=(user_data is None),
         token=user_token,
         settings=get_all_app_settings(),
-        page_title="Settings"
+        page_title="Paramètres"
     )
 
 
