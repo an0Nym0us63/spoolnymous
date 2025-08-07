@@ -285,7 +285,7 @@ def frontend_utilities():
     
 @app.errorhandler(500)
 def internal_error(error):
-    return render_template("error.html", exception= ' ' + error.description), 500
+    return render_template("error.html", exception= error.description), 500
     
 @app.route("/issue")
 def issue():

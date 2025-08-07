@@ -4,7 +4,7 @@ import json
 from flask import abort
 
 def get_spoolman_url_or_abort():
-    url = get_app_setting("SPOOLMAN_API_URL", "")
+    url = get_app_setting("SPOOLMAN_BASE_URL", "")
     if not url:
         abort(500, "L'URL de Spoolman n'est pas définie dans les paramètres.")
     return url
