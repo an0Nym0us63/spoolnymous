@@ -282,8 +282,11 @@ def frontend_utilities():
         PRINTER_NAME=PRINTER_NAME,
         url_with_args=url_with_args
     )
-
-
+    
+@app.errorhandler(500)
+def internal_error(error):
+    return render_template("error.html", exception=error.description), 500
+    
 @app.route("/issue")
 def issue():
   if not isMqttClientConnected():

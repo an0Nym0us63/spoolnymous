@@ -1,5 +1,5 @@
 import os
-from config import EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID
+from config import EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID,get_app_setting
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from print_history import update_filament_spool
