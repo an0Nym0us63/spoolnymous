@@ -32,7 +32,11 @@ RUN groupmod -g 1000 users \
     && touch /var/log/flask-app/flask-app.out.log
 
 WORKDIR $APP_HOME
-
+# Dépendances système pour pycurl
+RUN apt-get update && apt-get install -y \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
 # Dépendances Python
 COPY --chown=app:app requirements.txt .
 RUN python -m venv $VIRTUAL_ENV && \
