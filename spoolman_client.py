@@ -9,10 +9,10 @@ from exceptions import ApplicationError
 logger = logging.getLogger(__name__)
 
 def get_spoolman_url():
-    url = get_app_setting("SPOOLMAN_BASE_URL", "")
+    url = get_app_setting("SPOOLMAN_API_URL", "")
     if not url:
         raise ApplicationError("L'URL de Spoolman n'est pas définie dans les paramètres.")
-    return url
+    return f"{url}/api/v1"
 
 def patchExtraTags(spool_id, old_extras, new_extras):
     for key, value in new_extras.items():
