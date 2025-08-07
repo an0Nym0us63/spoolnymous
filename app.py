@@ -1365,7 +1365,7 @@ def api_printer_status():
             status_copy["thumbnail"] = latest["image_file"]
         else:
             status_copy["thumbnail"] = None
-                return jsonify(status)
+        return jsonify(status)
         
 @app.route("/tray_mappings")
 def tray_mappings():
