@@ -7,7 +7,7 @@ import os
 import json
 import secrets
 
-from config import DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD, set_app_settings
+from config import DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD, set_app_setting
 
 auth_bp = Blueprint('auth', __name__)
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
