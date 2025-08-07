@@ -1,6 +1,7 @@
 import requests
 from config import SPOOL_SORTING,get_app_setting
 import json
+from flask import abort
 
 def get_spoolman_url_or_abort():
     url = get_app_setting("SPOOLMAN_API_URL", "")
