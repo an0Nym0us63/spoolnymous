@@ -1,18 +1,19 @@
 #!/bin/sh
 
-PUID=${PUID:-0}
-PGID=${PGID:-0}
+# UID/GID par défaut si non fournis
+PUID=${PUID:-1000}
+PGID=${PGID:-1000}
 
-# Crée ou modifie le user `app` dynamiquement si nécessaire
-if ! id "app" >/dev/null 2>&1; then
-  addgroup -g "$PGID" app
-  adduser -D -u "$PUID" -G app app
-else
-  groupmod -o -g "$PGID" app
-  usermod -o -u "$PUID" app
+# Met à jour l'UID/GID de l'utilisateur app
+if getent group app >/dev/null 2>&1; then
+    groupmod -o -g "$PGID" app
+fi
+
+if id app >/dev/null 2>&1; then
+    usermod -o -u "$PUID" -g "$PGID" app
 fi
 
 echo "[ENTRYPOINT] UID=$(id -u app), GID=$(id -g app)"
-echo "[ENTRYPOINT] Démarrage de Gunicorn..."
+echo "[ENTRYPOINT] Lancement de Gunicorn..."
 
 exec su-exec app gunicorn -w 1 --threads 4 -b 0.0.0.0:8000 src.app:app "$@"
