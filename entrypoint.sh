@@ -15,6 +15,6 @@ fi
 
 echo "[ENTRYPOINT] UID=$(id -u app), GID=$(id -g app)"
 echo "[ENTRYPOINT] Lancement de Gunicorn..."
-
+chown -R app:app /home/app/data /home/app/logs /home/app/static/prints
 # Lancement de Gunicorn avec le bon user et module app.py
 exec su-exec app gunicorn -w 1 --threads 4 -b 0.0.0.0:8000 app:app "$@"
