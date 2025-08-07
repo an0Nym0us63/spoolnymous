@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 def get_spoolman_url():
     url = get_app_setting("SPOOLMAN_BASE_URL", "")
-    if not url or url="":
+    if not url or url=="":
         raise ApplicationError("L'URL de Spoolman n'est pas définie dans les paramètres.")
     return f"{url}/api/v1"
 
