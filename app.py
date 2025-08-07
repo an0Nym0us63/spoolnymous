@@ -29,6 +29,11 @@ from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings,f
 from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print,get_all_tray_spool_mappings,set_tray_spool_map,delete_all_tray_spool_mappings
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 
+logging.basicConfig(
+    level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+
 COLOR_FAMILIES = {
     # Neutres
     'Black': (0, 0, 0),
