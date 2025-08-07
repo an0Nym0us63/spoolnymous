@@ -61,15 +61,6 @@ def get_filament_order(file):
        filament_order = {1:0}
 
     return filament_order
-    
-def encode_custom_hex(filename, chars="/:"):
-    encoded = ''
-    for c in filename:
-        if c in chars:
-            encoded += f"{ord(c):02x}"
-        else:
-            encoded += c
-    return encoded
 
 def download3mfFromCloud(url, destFile):
   print("Downloading 3MF file from cloud...")
@@ -78,70 +69,71 @@ def download3mfFromCloud(url, destFile):
   response.raise_for_status()
   destFile.write(response.content)
 
+def encode_custom_hex(filename):
+    return ''.join(f"{ord(c):02x}" if c in "/:" else c for c in filename)
+    
 def download3mfFromFTP(filename, taskname, destFile):
-  CHECK_INTERVAL = 10       # secondes
-  TIMEOUT = 180             # secondes
-  MAX_AGE = 180             # secondes (fichier doit être modifié il y a moins de 3 min)
-  start_time = time.time()
-  found_and_fresh = False
+    CHECK_INTERVAL = 5       # secondes
+    TIMEOUT = 180             # secondes
+    start_time = time.time()
+    found_and_stable = False
 
-  dictChar = {'/':'2f',':':'3a'}
-  logger.info("Downloading 3MF file from FTP...")
-  ftp_host = get_app_setting("PRINTER_IP","")
-  ftp_user = "bblp"
-  ftp_pass = get_app_setting("PRINTER_ACCESS_CODE","")
-  remote_path = "/cache/" + filename
-  taskname = encode_custom_hex(taskname)
-  remote_path_from_task = "/cache/" + taskname+".gcode.3mf"
-  local_path = destFile.name  # 🔹 Download into the current directory
-  encoded_remote_path = urllib.parse.quote(remote_path)
-  encoded_remote_path_from_task = urllib.parse.quote(remote_path_from_task)
-  logger.debug("File to download is  : " + encoded_remote_path_from_task)
-  url = f"ftps://{ftp_host}{encoded_remote_path_from_task}"
-  logger.debug(f"Waiting for fresh file to appear on server: {url}")
-  while time.time() - start_time < TIMEOUT:
+    logger.info("Downloading 3MF file from FTP...")
+    ftp_host = get_app_setting("PRINTER_IP","")
+    ftp_user = "bblp"
+    ftp_pass = get_app_setting("PRINTER_ACCESS_CODE","")
+    taskname = encode_custom_hex(taskname)
+    remote_path = f"/cache/{taskname}.gcode.3mf"
+    encoded_path = urllib.parse.quote(remote_path)
+    url = f"ftps://{ftp_host}{encoded_path}"
+    local_path = destFile.name
+
+    logger.debug(f"Waiting for file to appear and stabilize: {url}")
+    time.sleep(5)  # ⏳ Attente initiale minimale
+
+    last_size = -1
+    stable_count = 0
+
     c = pycurl.Curl()
-    # 🔹 Setup explicit FTPS connection (like FileZilla)
     c.setopt(c.URL, url)
     c.setopt(c.USERPWD, f"{ftp_user}:{ftp_pass}")
-    c.setopt(c.NOBODY, True)# juste HEAD, ne télécharge pas
-    
-    # 🔹 Enable SSL/TLS
-    c.setopt(c.SSL_VERIFYPEER, 0)  # Disable SSL verification
+    c.setopt(c.NOBODY, True)
+    c.setopt(c.SSL_VERIFYPEER, 0)
     c.setopt(c.SSL_VERIFYHOST, 0)
-    
-    # 🔹 Enable passive mode (like FileZilla)
     c.setopt(c.FTP_SSL, c.FTPSSL_ALL)
-    
-    # 🔹 Enable proper TLS authentication
     c.setopt(c.FTPSSLAUTH, c.FTPAUTH_TLS)
-    
-    logger.debug("Starting file download into ./test.3mf...")
-    
+    c.setopt(c.CONNECTTIMEOUT, 10)
+    c.setopt(c.TIMEOUT, CHECK_INTERVAL)
+
     try:
-        c.perform()
-        filetime = c.getinfo(c.INFO_FILETIME)
-        if filetime == -1:
-            logger.debug(f" File exists but no modification time. Retrying in {CHECK_INTERVAL}s.")
-        else:
-            mtime = datetime.fromtimestamp(filetime, tz=timezone.utc)
-            now = datetime.now(timezone.utc)
-            age = (now - mtime).total_seconds()
-            logger.debug(f" File modification time: {mtime.isoformat()} (age: {int(age)}s)")
-            if age <= MAX_AGE:
-                found_and_fresh = True
-                break
-            else:
-                logger.debug(f" File is too old (>{int(age)}s). Retrying in {CHECK_INTERVAL}s.")
-    except pycurl.error as e:
-        logger.debug(f" File not found yet ({e}). Retrying in {CHECK_INTERVAL}s.")
+        while time.time() - start_time < TIMEOUT:
+            try:
+                c.perform()
+                current_size = int(c.getinfo(c.CONTENT_LENGTH_DOWNLOAD))
+                logger.debug(f"📏 Current file size: {current_size} bytes")
+
+                if current_size == last_size:
+                    stable_count += 1
+                    logger.debug(f"✅ File size stable {stable_count}/3")
+                    if stable_count >= 3:
+                        found_and_stable = True
+                        break
+                else:
+                    logger.debug("🔁 File size changed. Resetting stability counter.")
+                    stable_count = 1
+                    last_size = current_size
+            except pycurl.error as e:
+                logger.debug(f"📭 File not yet accessible ({e}).")
+                stable_count = 0
+            time.sleep(CHECK_INTERVAL)
     finally:
         c.close()
-    time.sleep(CHECK_INTERVAL)
-  if not found_and_fresh:
-    logger.error("Timed out: no fresh file found on server.")
-  else:
-    logger.debug("Fresh file found, starting download…")
+
+    if not found_and_stable:
+        logger.error("❌ Timed out: file did not stabilize within 3 minutes.")
+        return
+
+    logger.info("📥 File is stable. Starting download...")
 
     with open(local_path, "wb") as f:
         c = pycurl.Curl()
@@ -152,12 +144,11 @@ def download3mfFromFTP(filename, taskname, destFile):
         c.setopt(c.SSL_VERIFYHOST, 0)
         c.setopt(c.FTP_SSL, c.FTPSSL_ALL)
         c.setopt(c.FTPSSLAUTH, c.FTPAUTH_TLS)
-
         try:
             c.perform()
-            logger.debug(f"File successfully downloaded into {local_path}!")
+            logger.info(f"✅ File successfully downloaded into {local_path} ({last_size} bytes).")
         except pycurl.error as e:
-            logger.debug(f"cURL error during download: {e}")
+            logger.error(f"❌ Download error: {e}")
         finally:
             c.close()
 
