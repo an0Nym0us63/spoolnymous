@@ -7,7 +7,7 @@ import os
 import json
 import secrets
 
-from config import DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD
+from config import DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD, set_app_settings
 
 auth_bp = Blueprint('auth', __name__)
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -81,19 +81,31 @@ def logout():
 @login_required
 def settings():
     user_data = get_stored_user()
+    user_token = get_user_token(current_user.id)
 
     if request.method == 'POST':
+        # Régénération du token
         if request.form.get("regen_token") == "1":
             existing = get_stored_user()
             password_hash = existing[current_user.id]["password_hash"] if existing and current_user.id in existing else None
             if password_hash:
-                # Regénérer uniquement le token, garder le même mot de passe
                 token = secrets.token_urlsafe(32)
                 existing[current_user.id]["token"] = token
                 with open(USERS_FILE, 'w') as f:
                     json.dump(existing, f)
                 flash("Token régénéré avec succès.", "success")
-        else:
+            return redirect(url_for('auth.settings'))
+
+        # Mise à jour des paramètres système
+        elif request.form.get("update_core_settings") == "1":
+            for key in ["PRINTER_ID", "PRINTER_ACCESS_CODE", "PRINTER_IP", "SPOOLMAN_BASE_URL", "COST_BY_HOUR"]:
+                value = request.form.get(key, "").strip()
+                set_app_setting(key, value)
+            flash("Paramètres système mis à jour avec succès ✅", "success")
+            return redirect(url_for('auth.settings'))
+
+        # Changement de mot de passe
+        elif request.form.get("new_password") and request.form.get("confirm_password"):
             new_password = request.form.get('new_password')
             confirm_password = request.form.get('confirm_password')
             if new_password != confirm_password:
@@ -103,9 +115,13 @@ def settings():
                 flash("Mot de passe mis à jour.", "success")
                 return redirect(url_for('auth.settings'))
 
-    user_token = get_user_token(current_user.id)
-    return render_template("settings.html", user=current_user, using_default=(user_data is None), token=user_token,
-        page_title="Settings")
+    return render_template("settings.html",
+        user=current_user,
+        using_default=(user_data is None),
+        token=user_token,
+        settings=get_all_app_settings(),
+        page_title="Settings"
+    )
 
 
 @auth_bp.route("/autologin/<token>")
