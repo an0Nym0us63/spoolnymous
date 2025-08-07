@@ -374,11 +374,12 @@ def create_database() -> None:
         conn.commit()
         conn.close()
 
+
 def update_translated_name(name: str) -> str:
     if not name.strip():
         return ""
 
-    # Traduction mot à mot (avec séparation forcée)
+    # Traduction mot à mot
     forced_input = '\n'.join(name.split())
     mot_a_mot = GoogleTranslator(source='auto', target='fr').translate(forced_input)
     mot_a_mot = ' '.join(mot_a_mot.split('\n')).strip()
@@ -386,13 +387,19 @@ def update_translated_name(name: str) -> str:
     # Traduction contextuelle
     contextuel = GoogleTranslator(source='auto', target='fr').translate(name.strip()).strip()
 
-    # Si la traduction contextuelle est identique à l'entrée, pas besoin d'ajouter mot-à-mot
     if contextuel.lower() == name.lower():
         return contextuel
 
-    # Dédoublonnage par mots
-    words = list(dict.fromkeys((mot_a_mot + ' ' + contextuel).split()))
-    return ' '.join(words)
+    # Dédoublonnage insensible à la casse
+    seen = set()
+    dedup_words = []
+    for word in (mot_a_mot + ' ' + contextuel).split():
+        key = word.lower()
+        if key not in seen:
+            seen.add(key)
+            dedup_words.append(word)
+
+    return ' '.join(dedup_words)
 
 def clean_print_name(raw_name: str) -> str:
     # 1. Supprimer l'extension (.stl, .gcode, etc.)
