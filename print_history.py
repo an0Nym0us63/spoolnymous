@@ -607,39 +607,45 @@ def get_filament_for_print(print_id: int):
     conn.close()
     return results
 
-def update_print_status_with_job_id(job_id: int, new_status: str) -> None:
+def update_print_field_with_job_id(job_id: int, field: str, value) -> None:
     conn = sqlite3.connect(db_config["db_path"])
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # Initialisation de duration (None = pas de mise à jour)
-    duration_seconds = None
+    # Si on modifie le statut, on calcule aussi la durée si possible
+    if field == "status":
+        try:
+            cursor.execute("SELECT print_date FROM prints WHERE job_id = ? LIMIT 1", (job_id,))
+            row = cursor.fetchone()
+            if row and row["print_date"]:
+                print_datetime = datetime.strptime(row["print_date"], "%Y-%m-%d %H:%M:%S")
+                duration_seconds = (datetime.now() - print_datetime).total_seconds()
 
-    # Tentative de calcul de la durée depuis print_date
-    try:
-        cursor.execute("SELECT print_date FROM prints WHERE job_id = ? LIMIT 1", (job_id,))
-        row = cursor.fetchone()
-        if row:
-            print_date_str = row["print_date"]
-            print_datetime = datetime.strptime(print_date_str, "%Y-%m-%d %H:%M:%S")
-            now = datetime.now()
-            duration_seconds = (now - print_datetime).total_seconds()
-    except Exception as e:
-        print(f"[WARN] Erreur lors du calcul de la durée pour job_id={job_id} : {e}")
+                cursor.execute("""
+                    UPDATE prints
+                    SET status = ?, duration = ?
+                    WHERE job_id = ?
+                """, (value, duration_seconds, job_id))
+            else:
+                # Pas de print_date, mise à jour uniquement du statut
+                cursor.execute("""
+                    UPDATE prints
+                    SET status = ?
+                    WHERE job_id = ?
+                """, (value, job_id))
+        except Exception as e:
+            print(f"[WARN] Erreur lors du calcul de durée pour job_id={job_id} : {e}")
+            # Fallback : mise à jour simple du statut
+            cursor.execute("""
+                UPDATE prints
+                SET status = ?
+                WHERE job_id = ?
+            """, (value, job_id))
 
-    # Mise à jour du status, et de duration si calculée
-    if duration_seconds is not None:
-        cursor.execute("""
-            UPDATE prints
-            SET status = ?, duration = ?
-            WHERE job_id = ?
-        """, (new_status, duration_seconds, job_id))
     else:
-        cursor.execute("""
-            UPDATE prints
-            SET status = ?
-            WHERE job_id = ?
-        """, (new_status, job_id))
+        # Autres champs : mise à jour directe
+        query = f"UPDATE prints SET {field} = ? WHERE job_id = ?"
+        cursor.execute(query, (value, job_id))
 
     conn.commit()
     conn.close()
