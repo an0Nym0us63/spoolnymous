@@ -379,10 +379,9 @@ def update_translated_name(name):
     target = "fr"
     ctx_prefix = "__ctx__ "  # Contexte neutre pour forcer la traduction
     #contextualized_text = f"This is a {name}"
-    contextualized_text=name.lower()
-    translated = GoogleTranslator(source=source, target=target).translate(contextualized_text)
-
-
+    forced_input = '\n'.join(name.split())
+    raw_output = GoogleTranslator(source='auto', target=target).translate(forced_input)
+    translated= ' '.join(raw_output.split('\n'))
     # Supprimer les préfixes de contexte traduits (insensibles à la casse)
     prefix_pattern = r"^(ceci est (un|une)|c'est (un|une)?|il s'agit d'(un|une)|il s'agit de)\s+"
     translated = re.sub(prefix_pattern, '', translated, flags=re.IGNORECASE)
