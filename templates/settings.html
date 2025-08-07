@@ -1,128 +1,133 @@
 {% extends "base.html" %}
-
 {% block title %}Paramètres - SpoolNymous{% endblock %}
 
 {% block content %}
-<div class="container my-5" style="max-width: 600px;">
-  <h2 class="mb-4 text-light">Paramètres</h2>
-	<form method="POST" class="mb-5">
-  <h4 class="text-light mb-3">🛠️ Paramètres système</h4>
+<div class="container my-5" style="max-width: 700px;">
+  <h2 class="mb-5 text-light">⚙️ Paramètres de SpoolNymous</h2>
 
-  <div class="mb-3">
-    <label for="PRINTER_ID" class="form-label text-light">ID de l'imprimante</label>
-    <input type="text" class="form-control" id="PRINTER_ID" name="PRINTER_ID" value="{{ settings.get('PRINTER_ID', '') }}">
-  </div>
+  <!-- 🔧 Paramètres système -->
+  <section class="mb-5">
+    <h4 class="text-light mb-4">🛠️ Paramètres système</h4>
+    <form method="POST">
+      <div class="mb-3">
+        <label for="PRINTER_ID" class="form-label text-light">ID de l'imprimante</label>
+        <input type="text" class="form-control" id="PRINTER_ID" name="PRINTER_ID" value="{{ settings.get('PRINTER_ID', '') }}">
+      </div>
 
-  <div class="mb-3">
-    <label for="PRINTER_ACCESS_CODE" class="form-label text-light">Code d'accès imprimante</label>
-    <input type="text" class="form-control" id="PRINTER_ACCESS_CODE" name="PRINTER_ACCESS_CODE" value="{{ settings.get('PRINTER_ACCESS_CODE', '') }}">
-  </div>
+      <div class="mb-3">
+        <label for="PRINTER_ACCESS_CODE" class="form-label text-light">Code d'accès imprimante</label>
+        <input type="text" class="form-control" id="PRINTER_ACCESS_CODE" name="PRINTER_ACCESS_CODE" value="{{ settings.get('PRINTER_ACCESS_CODE', '') }}">
+      </div>
 
-  <div class="mb-3">
-    <label for="PRINTER_IP" class="form-label text-light">Adresse IP imprimante</label>
-    <input type="text" class="form-control" id="PRINTER_IP" name="PRINTER_IP" value="{{ settings.get('PRINTER_IP', '') }}">
-  </div>
+      <div class="mb-3">
+        <label for="PRINTER_IP" class="form-label text-light">Adresse IP imprimante</label>
+        <input type="text" class="form-control" id="PRINTER_IP" name="PRINTER_IP" value="{{ settings.get('PRINTER_IP', '') }}">
+      </div>
 
-  <div class="mb-3">
-    <label for="SPOOLMAN_BASE_URL" class="form-label text-light">URL de Spoolman</label>
-    <input type="url" class="form-control" id="SPOOLMAN_BASE_URL" name="SPOOLMAN_BASE_URL" value="{{ settings.get('SPOOLMAN_BASE_URL', '') }}">
-  </div>
+      <div class="mb-3">
+        <label for="SPOOLMAN_BASE_URL" class="form-label text-light">URL de Spoolman</label>
+        <input type="url" class="form-control" id="SPOOLMAN_BASE_URL" name="SPOOLMAN_BASE_URL" value="{{ settings.get('SPOOLMAN_BASE_URL', '') }}">
+      </div>
 
-  <div class="mb-3">
-    <label for="COST_BY_HOUR" class="form-label text-light">Coût horaire électrique(€/h)</label>
-    <input type="number" step="0.001" class="form-control" id="COST_BY_HOUR" name="COST_BY_HOUR" value="{{ settings.get('COST_BY_HOUR', 0) }}">
-  </div>
+      <div class="mb-3">
+        <label for="COST_BY_HOUR" class="form-label text-light">Coût horaire électricité (€/h)</label>
+        <input type="number" step="0.001" class="form-control" id="COST_BY_HOUR" name="COST_BY_HOUR" value="{{ settings.get('COST_BY_HOUR', 0) }}">
+      </div>
 
-  <button type="submit" name="update_core_settings" value="1" class="btn btn-primary w-100">💾 Enregistrer les paramètres système</button>
-</form>
+      <button type="submit" name="update_core_settings" value="1" class="btn btn-primary w-100">💾 Enregistrer les paramètres système</button>
+    </form>
+  </section>
+
+  <!-- 🔐 Mot de passe -->
+  <section class="mb-5">
+    <h4 class="text-light mb-4">🔐 Sécurité & mot de passe</h4>
+    <form method="POST">
+      <div class="mb-3">
+        <label for="new_password" class="form-label text-light">Nouveau mot de passe</label>
+        <input type="password" name="new_password" id="new_password" class="form-control" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="confirm_password" class="form-label text-light">Confirmation</label>
+        <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
+      </div>
+
+      <button type="submit" class="btn btn-success w-100">🔐 Mettre à jour le mot de passe</button>
+    </form>
+
+    {% if using_default %}
+      <div class="alert alert-warning mt-3">
+        ⚠ Vous utilisez actuellement les identifiants par défaut. Pensez à définir un mot de passe personnalisé pour sécuriser l’accès.
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- 📱 Token mobile -->
+  <section class="mb-5">
+    <h4 class="text-light mb-4">📱 Accès mobile & Token</h4>
+    {% if token %}
+      <div class="mb-3">
+        <label class="form-label text-light">Token d’auto-connexion</label>
+        <div class="input-group">
+          <input type="text" readonly class="form-control" value="{{ token }}">
+          <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText('{{ token }}')">Copier</button>
+        </div>
+        <small class="text-muted">À utiliser dans l'application mobile pour une connexion automatique.</small>
+
+        <form method="POST" class="mt-2">
+          <input type="hidden" name="regen_token" value="1">
+          <button type="submit" class="btn btn-outline-warning btn-sm">🔄 Régénérer le token</button>
+        </form>
+      </div>
+    {% elif using_default %}
+      <div class="alert alert-info">Aucun token n’est disponible. Veuillez d’abord définir un mot de passe personnalisé pour activer l’accès mobile.</div>
+    {% endif %}
+  </section>
+
+  <!-- 🧮 Maintenance -->
+  <section class="mb-5">
+    <h4 class="text-light mb-4">🧮 Outils de maintenance</h4>
+    <form action="{{ url_for('recalculate_all_costs') }}" method="post" class="mb-3">
+      <button type="submit" class="btn btn-warning w-100">🔄 Recalculer tous les coûts</button>
+    </form>
+
+    <form action="{{ url_for('cleanup_orphans') }}" method="post" class="mb-3">
+      <button type="submit" class="btn btn-danger w-100">🧹 Nettoyer les données orphelines</button>
+    </form>
+
+    <form action="{{ url_for('clear_tray_mappings') }}" method="post">
+      <button type="submit" class="btn btn-danger w-100">🧹 Vider les mappings AMS</button>
+    </form>
+  </section>
+
+  <!-- 🧑‍💼 Ajout manuel impression -->
+  <section>
+    <h4 class="text-light mb-4">🧑‍💼 Ajout manuel d'une impression</h4>
+    <form action="{{ url_for('admin_manual_print') }}" method="POST" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label for="file" class="form-label text-light">Fichier .3MF</label>
+        <input type="file" class="form-control" id="file" name="file[]" accept=".3mf" multiple required>
+      </div>
+
+      <div class="mb-3">
+        <label for="datetime" class="form-label text-light">Date et heure de l'impression</label>
+        <input type="datetime-local" class="form-control" id="datetime" name="datetime" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100">📤 Ajouter manuellement</button>
+    </form>
+  </section>
+
+  <!-- 🔔 Flash messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        <div class="alert alert-{{ category }} alert-dismissible fade show mt-4" role="alert">
           {{ message }}
           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
         </div>
       {% endfor %}
     {% endif %}
   {% endwith %}
-
-  {% if using_default %}
-    <div class="alert alert-warning">
-      ⚠ Vous utilisez actuellement les identifiants par défaut. Pensez à définir un mot de passe personnalisé pour sécuriser l’accès.
-    </div>
-  {% endif %}
-
-  {% if using_default and not token %}
-    <div class="alert alert-info">
-      Aucun token n’est disponible. Veuillez d’abord définir un mot de passe personnalisé pour activer l’accès mobile.
-    </div>
-  {% endif %}
-
-  {% if token %}
-    <div class="mb-4">
-      <label class="form-label text-light">Token d’auto-connexion</label>
-      <div class="input-group">
-        <input type="text" readonly class="form-control" value="{{ token }}">
-        <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText('{{ token }}')">Copier</button>
-      </div>
-      <small class="text-muted">À utiliser dans l'application mobile pour une connexion automatique.</small>
-
-      <form method="POST" class="mt-2">
-        <input type="hidden" name="regen_token" value="1">
-        <button type="submit" class="btn btn-outline-warning btn-sm">🔄 Régénérer le token</button>
-      </form>
-    </div>
-  {% endif %}
-
-  <form method="POST">
-    <div class="mb-3">
-      <label for="new_password" class="form-label text-light">Nouveau mot de passe</label>
-      <input type="password" name="new_password" id="new_password" class="form-control" required>
-    </div>
-
-    <div class="mb-3">
-      <label for="confirm_password" class="form-label text-light">Confirmation</label>
-      <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
-    </div>
-
-    <button type="submit" class="btn btn-success">🔐 Mettre à jour</button>
-  </form>
-  <hr class="my-4">
-<form action="{{ url_for('recalculate_all_costs') }}" method="post">
-  <button type="submit" class="btn btn-warning w-100">
-    🔄 Recalculer tous les coûts (filaments, impressions, groupes)
-  </button>
-</form>
-<hr class="my-4">
-<form action="{{ url_for('cleanup_orphans') }}" method="post">
-  <button type="submit" class="btn btn-danger w-100">
-    🧹 Nettoyer les données orphelines (usages, tags, groupes)
-  </button>
-</form>
-<hr class="my-4">
-<form action="{{ url_for('clear_tray_mappings') }}" method="post">
-  <button type="submit" class="btn btn-danger w-100">
-    🧹 Vider les mappings AMS (tray_spool_map)
-  </button>
-</form>
-  <hr class="my-5">
-
-<div class="container my-5" style="max-width: 600px;">
-  <h3 class="mb-4 text-light">Administration</h3>
-
-  <form action="{{ url_for('admin_manual_print') }}" method="POST" enctype="multipart/form-data">
-    <div class="mb-3">
-      <label for="file" class="form-label text-light">Fichier .3MF</label>
-      <input type="file" class="form-control" id="file" name="file[]" accept=".3mf" multiple required>
-    </div>
-
-    <div class="mb-3">
-      <label for="datetime" class="form-label text-light">Date et heure de l'impression</label>
-      <input type="datetime-local" class="form-control" id="datetime" name="datetime" required>
-    </div>
-
-    <button type="submit" class="btn btn-primary">📤 Ajouter manuellement</button>
-  </form>
-</div>
 </div>
 {% endblock %}
