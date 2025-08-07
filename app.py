@@ -323,7 +323,7 @@ def issue():
 @app.route("/spool_info")
 def spool_info():
   if not isMqttClientConnected():
-    return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
+    return render_template('error.html', exception="L'imprimante est elle allumée ? Avez vous renseigné les paramètres ?")
     
   try:
     tag_id = request.args.get("tag_id", "-1")
@@ -375,7 +375,7 @@ def spool_info():
 @app.route("/tray_load")
 def tray_load():
   if not isMqttClientConnected():
-    return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
+    return render_template('error.html', exception="L'imprimante est elle allumée ? Avez vous renseigné les paramètres ?")
   
   tag_id = request.args.get("tag_id")
   ams_id = request.args.get("ams")
@@ -398,7 +398,7 @@ def tray_load():
 
 def setActiveSpool(ams_id, tray_id, spool_data):
   if not isMqttClientConnected():
-    return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
+    return render_template('error.html', exception="L'imprimante est elle allumée ? Avez vous renseigné les paramètres ?")
   
   ams_message = AMS_FILAMENT_SETTING
   ams_message["print"]["sequence_id"] = 0
@@ -442,7 +442,7 @@ def setActiveSpool(ams_id, tray_id, spool_data):
 @app.route("/")
 def home():
   if not isMqttClientConnected():
-    return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
+    return render_template('error.html', exception="L'imprimante est elle allumée ? Avez vous renseigné les paramètres ?")
     
   try:
     with PRINTER_STATUS_LOCK:
@@ -511,7 +511,7 @@ def sort_spools(spools):
 @app.route("/assign_tag")
 def assign_tag():
   if not isMqttClientConnected():
-    return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
+    return render_template('error.html', exception="L'imprimante est elle allumée ? Avez vous renseigné les paramètres ?")
     
   try:
     spools = sort_spools(fetchSpools())
@@ -876,7 +876,7 @@ def remove_tag(print_id):
 @app.route("/filaments")
 def filaments():
     if not isMqttClientConnected():
-        return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
+        return render_template('error.html', exception="L'imprimante est elle allumée ? Avez vous renseigné les paramètres ?")
 
     ams_id = request.args.get("ams")
     tray_id = request.args.get("tray")
