@@ -607,12 +607,40 @@ def get_filament_for_print(print_id: int):
     conn.close()
     return results
 
-def update_print_status_with_job_id(job_id: int, field: str, value ) -> None:
+def update_print_status_with_job_id(job_id: int, new_status: str) -> None:
     conn = sqlite3.connect(db_config["db_path"])
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    query = f"UPDATE prints SET {field} = ? WHERE job_id = ?"
-    cursor.execute(query, (value, job_id))
+
+    # Initialisation de duration (None = pas de mise à jour)
+    duration_seconds = None
+
+    # Tentative de calcul de la durée depuis print_date
+    try:
+        cursor.execute("SELECT print_date FROM prints WHERE job_id = ? LIMIT 1", (job_id,))
+        row = cursor.fetchone()
+        if row:
+            print_date_str = row["print_date"]
+            print_datetime = datetime.strptime(print_date_str, "%Y-%m-%d %H:%M:%S")
+            now = datetime.now()
+            duration_seconds = (now - print_datetime).total_seconds()
+    except Exception as e:
+        print(f"[WARN] Erreur lors du calcul de la durée pour job_id={job_id} : {e}")
+
+    # Mise à jour du status, et de duration si calculée
+    if duration_seconds is not None:
+        cursor.execute("""
+            UPDATE prints
+            SET status = ?, duration = ?
+            WHERE job_id = ?
+        """, (new_status, duration_seconds, job_id))
+    else:
+        cursor.execute("""
+            UPDATE prints
+            SET status = ?
+            WHERE job_id = ?
+        """, (new_status, job_id))
+
     conn.commit()
     conn.close()
 
