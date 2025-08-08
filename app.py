@@ -16,7 +16,7 @@ import secrets
 from flask_login import LoginManager, login_required
 from auth import auth_bp, User, get_stored_user
 
-from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort
+from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
 from werkzeug.utils import secure_filename
 
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting
@@ -1298,7 +1298,8 @@ def admin_manual_print():
             flash("Format de date invalide.", "danger")
             return redirect(url_for("auth.settings"))
 
-        os.makedirs("temp_uploads", exist_ok=True)
+        upload_dir = os.path.join(current_app.root_path, "data", "temp_uploads")
+        os.makedirs(upload_dir, exist_ok=True)
 
         successes = []
         errors = []
@@ -1310,7 +1311,7 @@ def admin_manual_print():
 
             try:
                 filename = secure_filename(file.filename)
-                temp_path = os.path.join("temp_uploads", filename)
+                temp_path = os.path.join(upload_dir, filename)
                 file.save(temp_path)
 
                 result = insert_manual_print(temp_path, custom_datetime)
