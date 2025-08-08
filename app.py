@@ -876,11 +876,11 @@ def get_tags(print_id):
 
 @app.route("/history/<int:print_id>/tags/add", methods=["POST"])
 def add_tag(print_id):
-    tag = request.form.get("tag", "")
-    # On découpe la chaîne en mots
-    tags = [word.strip() for word in tag.split() if word.strip()]
-    for t in tags:
-        add_tag_to_print(print_id, t)
+    tag_input = request.form.get("tag", "")
+    # ✂️ Découpe sur les virgules ou points-virgules
+    tags = [t.strip() for t in re.split(r'[;,]', tag_input) if t.strip()]
+    for tag in tags:
+        add_tag_to_print(print_id, tag)
     return jsonify({"status": "ok"})
 
 @app.route("/history/<int:print_id>/tags/remove", methods=["POST"])

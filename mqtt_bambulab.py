@@ -78,7 +78,7 @@ def map_filament(tray_tar):
   #if stg_cur == 4 and tray_tar is not None:
   if PENDING_PRINT_METADATA:
     PENDING_PRINT_METADATA["filamentChanges"].append(tray_tar)  # Jeder Wechsel zählt, auch auf das gleiche Tray
-    print(f'Filamentchange {len(PENDING_PRINT_METADATA["filamentChanges"])}: Tray {tray_tar}')
+    logger.info(f'Filamentchange {len(PENDING_PRINT_METADATA["filamentChanges"])}: Tray {tray_tar}')
 
     # Anzahl der erkannten Wechsel
     change_count = len(PENDING_PRINT_METADATA["filamentChanges"]) - 1  # -1, weil der erste Eintrag kein Wechsel ist
@@ -87,17 +87,17 @@ def map_filament(tray_tar):
     for tray, usage_count in PENDING_PRINT_METADATA["filamentOrder"].items():
         if usage_count == change_count:
             PENDING_PRINT_METADATA["ams_mapping"].append(tray_tar)
-            print(f"✅ Tray {tray_tar} assigned Filament to {tray}")
+            logger.info(f"✅ Tray {tray_tar} assigned Filament to {tray}")
 
             for filament, tray in enumerate(PENDING_PRINT_METADATA["ams_mapping"]):
-              print(f"  Filament {filament} → Tray {tray}")
+              logger.info(f"  Filament {filament} → Tray {tray}")
 
 
     # Falls alle Slots zugeordnet sind, Ausgabe der Zuordnung
     if len(PENDING_PRINT_METADATA["ams_mapping"]) == len(PENDING_PRINT_METADATA["filamentOrder"]):
-        print("\n✅ All trays assigned:")
+        logger.info("\n✅ All trays assigned:")
         for filament, tray in enumerate(PENDING_PRINT_METADATA["ams_mapping"]):
-            print(f"  Filament {tray} → Tray {tray}")
+            logger.info(f"  Filament {tray} → Tray {tray}")
 
         return True
   
@@ -109,7 +109,7 @@ def processMessage(data):
    # Prepare AMS spending estimation
   if "print" in data:
     update_dict(PRINTER_STATE, data)
-    #print(str(data))
+    #logger.info(str(data))
     if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
       logger.info('1'+str(data))
       PENDING_PRINT_METADATA = getMetaDataFrom3mf(data["print"]["url"],data["print"]["subtask_name"])
@@ -120,7 +120,7 @@ def processMessage(data):
         name += ' - ' +PENDING_PRINT_METADATA["plateID"]
       logger.info('Inserting new print ' + name)
       logger.debug(str(PENDING_PRINT_METADATA))
-      print_id = insert_print(name, "cloud", PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],data["print"]["job_id"])
+      print_id = insert_logger.info(name, "cloud", PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],data["print"]["job_id"])
 
       if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"]:
         PENDING_PRINT_METADATA["ams_mapping"] = PRINTER_STATE["print"]["ams_mapping"]
@@ -154,7 +154,7 @@ def processMessage(data):
             name = PENDING_PRINT_METADATA["title"]
         if (PENDING_PRINT_METADATA["plateID"] != '1'):
             name += ' - ' +PENDING_PRINT_METADATA["plateID"]
-        print_id = insert_print(name, PRINTER_STATE["print"]["print_type"], PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],PENDING_PRINT_METADATA["title"],PRINTER_STATE["print"]["job_id"])
+        print_id = insert_logger.info(name, PRINTER_STATE["print"]["print_type"], PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],PENDING_PRINT_METADATA["title"],PRINTER_STATE["print"]["job_id"])
 
         PENDING_PRINT_METADATA["ams_mapping"] = []
         PENDING_PRINT_METADATA["filamentChanges"] = []
@@ -205,7 +205,7 @@ def processMessage(data):
   
     PRINTER_STATE_LAST = copy.deepcopy(PRINTER_STATE)
 
-def insert_manual_print(local_path, custom_datetime):
+def insert_manual_logger.info(local_path, custom_datetime):
     """
     Traite un fichier .3mf local uploadé manuellement, extrait les métadonnées
     et insère un print et ses filaments dans la base.
@@ -229,7 +229,7 @@ def insert_manual_print(local_path, custom_datetime):
         if metadata.get("plateID") != '1':
             name += f" - {metadata['plateID']}"
 
-        print_id = insert_print(
+        print_id = insert_logger.info(
             name,
             "manual",
             metadata.get("image"),
@@ -261,10 +261,10 @@ def publish(client, msg):
   result = client.publish(f"device/{PRINTER_ID}/request", json.dumps(msg))
   status = result[0]
   if status == 0:
-    print(f"Sent {msg} to topic device/{PRINTER_ID}/request")
+    logger.info(f"Sent {msg} to topic device/{PRINTER_ID}/request")
     return True
 
-  print(f"Failed to send message to topic device/{PRINTER_ID}/request")
+  logger.info(f"Failed to send message to topic device/{PRINTER_ID}/request")
   return False
   
 def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
@@ -452,11 +452,11 @@ def on_message(client, userdata, msg):
     if "print" in data and "ams" in data["print"] and "ams" in data["print"]["ams"]:
       LAST_AMS_CONFIG["ams"] = data["print"]["ams"]["ams"]
       for ams in data["print"]["ams"]["ams"]:
-        #print(f"AMS [{num2letter(ams['id'])}] (hum: {ams['humidity_raw']}, temp: {ams['temp']}ºC)")
+        #logger.info(f"AMS [{num2letter(ams['id'])}] (hum: {ams['humidity_raw']}, temp: {ams['temp']}ºC)")
         spools = fetchSpools(True)
         for tray in ams["tray"]:
           if "tray_sub_brands" in tray:
-            #print(f"    - [{num2letter(ams['id'])}{tray['id']}] {tray['tray_sub_brands']} {tray['tray_color']} ({str(tray['remain']).zfill(3)}%) [[{tray['tray_uuid']}]] [[{tray['tray_info_idx']}]]")
+            #logger.info(f"    - [{num2letter(ams['id'])}{tray['id']}] {tray['tray_sub_brands']} {tray['tray_color']} ({str(tray['remain']).zfill(3)}%) [[{tray['tray_uuid']}]] [[{tray['tray_info_idx']}]]")
 
             foundspool = None
             tray_uuid = tray["tray_uuid"]
@@ -483,14 +483,14 @@ def on_message(client, userdata, msg):
                     if tag != tray["tray_uuid"] and filament_id != tray["tray_info_idx"]:
                         continue
                     if tray_uuid == tag:
-                        #print('Found spool with tag')
+                        #logger.info('Found spool with tag')
                         foundspool= spool
                         break
                     else:
                         if spool.get("filament", {}).get("extra",{}).get("filament_id"):
                             color_dist = color_distance(spool["filament"]["color_hex"],tray['tray_color'])
                             spool['color_dist']=color_dist
-                            #print(filament_id + ' ' +spool["filament"]["color_hex"] + ' : ' + str(color_dist)) 
+                            #logger.info(filament_id + ' ' +spool["filament"]["color_hex"] + ' : ' + str(color_dist)) 
                             if foundspool == None:
                                 if color_dist<50:
                                     foundspool= spool
@@ -498,10 +498,10 @@ def on_message(client, userdata, msg):
                                 if color_dist<foundspool['color_dist']:
                                     foundspool= spool
             if foundspool == None:
-              print("      - Not found. Update spool tag or filament_id and color!")
+              logger.info("      - Not found. Update spool tag or filament_id and color!")
               clearActiveTray(ams['id'], tray["id"])
             else:
-                #print("Found spool " + str(foundspool))
+                #logger.info("Found spool " + str(foundspool))
                 setActiveTray(foundspool['id'], foundspool["extra"], ams['id'], tray["id"])
               
   except Exception as e:
@@ -511,7 +511,7 @@ def on_connect(client, userdata, flags, rc):
   PRINTER_ID=get_app_setting("PRINTER_ID","")
   global MQTT_CLIENT_CONNECTED
   MQTT_CLIENT_CONNECTED = True
-  print("Connected with result code " + str(rc))
+  logger.info("Connected with result code " + str(rc))
   client.subscribe(f"device/{PRINTER_ID}/report")
   publish(client, GET_VERSION)
   publish(client, PUSH_ALL)
@@ -519,7 +519,7 @@ def on_connect(client, userdata, flags, rc):
 def on_disconnect(client, userdata, rc):
   global MQTT_CLIENT_CONNECTED
   MQTT_CLIENT_CONNECTED = False
-  print("Disconnected with result code " + str(rc))
+  logger.info("Disconnected with result code " + str(rc))
   
 MQTT_LOCK = Lock()
 
@@ -565,7 +565,7 @@ def async_subscribe():
                     logger.info("Connected ...")
 
                 except Exception as e:
-                    print(f"⚠️ connection failed: {e}, new try in 15 seconds...", flush=True)
+                    logger.info(f"⚠️ connection failed: {e}, new try in 15 seconds...", flush=True)
 
                 time.sleep(15)
 

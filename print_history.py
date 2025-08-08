@@ -633,8 +633,23 @@ def get_prints_with_filament(filters=None, search=None) -> list:
                 having_values.extend(hexes)
 
     if search:
-        query_filters.append("(p.file_name LIKE ? OR p.translated_name LIKE ? OR pg.name LIKE ?)")
-        values.extend([f"%{search}%"] * 3)
+        words = [w.strip().lower() for w in search.split() if w.strip()]
+        for w in words:
+            query_filters.append(f"""
+                (
+                    LOWER(p.file_name) LIKE ?
+                    OR LOWER(p.translated_name) LIKE ?
+                    OR EXISTS (
+                        SELECT 1 FROM print_tags pt
+                        WHERE pt.print_id = p.id AND LOWER(pt.tag) LIKE ?
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM print_groups pg
+                        WHERE pg.id = p.group_id AND LOWER(pg.name) LIKE ?
+                    )
+                )
+            """)
+            values.extend([f"%{w}%"] * 4)
 
     where_clause = "WHERE " + " AND ".join(query_filters) if query_filters else ""
     group_by_clause = "GROUP BY p.id"
