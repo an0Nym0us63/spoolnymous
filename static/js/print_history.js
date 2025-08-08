@@ -112,8 +112,7 @@ $(document).ready(function () {
 					if ($.trim(params.term) === '') return data;
 					if (typeof data.text === 'undefined') return null;
 					return data.text.toLowerCase().includes(params.term.toLowerCase()) ? data : null;
-				},
-				dropdownCssClass: "select2-search-visible"
+				}
 			});
 		}
 
