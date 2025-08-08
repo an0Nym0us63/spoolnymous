@@ -52,13 +52,7 @@ $(document).ready(function () {
     function initSelect2() {
     $('.select2, .select2-filament').each(function () {
         const $select = $(this);
-        const name = $select.attr('name');// Définir la config ici
-	const config = {
-		width: '100%',
-		placeholder: $select.data('placeholder') || '',
-		allowClear: !$select.prop('multiple'),
-		minimumResultsForSearch: 0 // 👈 forcer dès la base
-	};
+        const name = $select.attr('name');
 
         // Supprime proprement si déjà instancié
         if ($select.hasClass('select2-hidden-accessible')) {
@@ -68,7 +62,8 @@ $(document).ready(function () {
         const config = {
             width: '100%',
             placeholder: $select.data('placeholder') || '',
-            allowClear: !$select.prop('multiple')
+            allowClear: !$select.prop('multiple'),
+		minimumResultsForSearch: 0 // 👈 forcer dès la base
         };
 
         if (name === 'status') {
