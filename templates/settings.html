@@ -31,6 +31,10 @@
         <label for="COST_BY_HOUR" class="form-label text-light">Coût horaire électricité (€/h)</label>
         <input type="number" step="0.001" class="form-control" id="COST_BY_HOUR" name="COST_BY_HOUR" value="{{ settings.get('COST_BY_HOUR', 0) }}">
       </div>
+	  <div class="mb-3">
+        <label for="COST_BY_HOUR_PRINTER" class="form-label text-light">Coût horaire usure (€/h)</label>
+        <input type="number" step="0.001" class="form-control" id="COST_BY_HOUR_PRINTER" name="COST_BY_HOUR_PRINTER" value="{{ settings.get('COST_BY_HOUR_PRINTER', 0) }}">
+      </div>
 
       <button type="submit" name="update_core_settings" value="1" class="btn btn-primary w-100">💾 Enregistrer les paramètres système</button>
     </form>
@@ -62,10 +66,10 @@
 
   <!-- 📱 Token mobile -->
   <section class="mb-5">
-    <h4 class="text-light mb-4">📱 Accès mobile & Token</h4>
+    <h4 class="text-light mb-4">📱 Accès mobile & Jeton</h4>
     {% if token %}
       <div class="mb-3">
-        <label class="form-label text-light">Token d’auto-connexion</label>
+        <label class="form-label text-light">Jeton d’auto-connexion</label>
         <div class="input-group">
           <input type="text" readonly class="form-control" value="{{ token }}">
           <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText('{{ token }}')">Copier</button>
@@ -74,11 +78,11 @@
 
         <form method="POST" class="mt-2">
           <input type="hidden" name="regen_token" value="1">
-          <button type="submit" class="btn btn-outline-warning btn-sm">🔄 Régénérer le token</button>
+          <button type="submit" class="btn btn-outline-warning btn-sm">🔄 Régénérer le jeton</button>
         </form>
       </div>
     {% elif using_default %}
-      <div class="alert alert-info">Aucun token n’est disponible. Veuillez d’abord définir un mot de passe personnalisé pour activer l’accès mobile.</div>
+      <div class="alert alert-info">Aucun jeton n’est disponible. Veuillez d’abord définir un mot de passe personnalisé pour activer l’accès mobile.</div>
     {% endif %}
   </section>
 
@@ -94,7 +98,7 @@
     </form>
 
     <form action="{{ url_for('clear_tray_mappings') }}" method="post">
-      <button type="submit" class="btn btn-danger w-100">🧹 Vider les mappings AMS</button>
+      <button type="submit" class="btn btn-danger w-100">🧹 Vider les associations de bobines</button>
     </form>
   </section>
 
