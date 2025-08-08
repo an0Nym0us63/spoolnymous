@@ -104,19 +104,20 @@ $(document).ready(function () {
         }
 		
 		if (name === 'filament_id') {
-			Object.assign(config, {
-				templateResult: formatFilamentOption,
-				templateSelection: formatFilamentOption,
-				minimumResultsForSearch: 0,
-				escapeMarkup: m => m,
-				matcher: function(params, data) {
-					if ($.trim(params.term) === '') return data;
-					if (typeof data.text === 'undefined') return null;
-					return data.text.toLowerCase().includes(params.term.toLowerCase()) ? data : null;
-				}
-			});
-		}
+	Object.assign(config, {
+		templateResult: formatFilamentOption,
+		templateSelection: option => option.text || '',
+		escapeMarkup: m => m,
+		minimumResultsForSearch: 0,
+		matcher: function(params, data) {
+			if ($.trim(params.term) === '') return data;
+			if (!data.element) return null;
 
+			const text = data.element.textContent || '';
+			return text.toLowerCase().includes(params.term.toLowerCase()) ? data : null;
+		}
+	});
+}
         $select.select2(config).on('select2:open', applyThemeToDropdown);
 		// Recolorer les statuts sélectionnés une fois que Select2 est prêt
 if (name === 'status') {
