@@ -90,7 +90,7 @@
 		
 		<div class="col">
   <label for="filament_id">Filament</label>
-  <select name="filament_id" class="form-select select2 select2-filament" data-placeholder="— Tous les filaments —">
+  <select name="filament_id" class="form-select select2-filament" data-placeholder="— Tous les filaments —">
   <option></option>
   {% for filament in distinct_values.filaments %}
     <option value="{{ filament.ids | join(',') }}"
