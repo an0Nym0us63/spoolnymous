@@ -1,10 +1,12 @@
 <div class="card" id="print_{{ print.id }}" style="
-  background: rgba(40, 40, 40, 0.6); /* fond semi-transparent */
-  backdrop-filter: blur(6px);       /* effet de flou derrière */
-  -webkit-backdrop-filter: blur(6px); /* pour Safari */
-  border-radius: 1rem;              /* coins arrondis */
-  border: 1px solid rgba(255,255,255,0.1); /* contour léger */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* ombre douce */
+  background: rgba(15, 23, 42, 0.7);           /* bleu nuit semi-transparent */
+  backdrop-filter: blur(10px);                /* flou derrière */
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 1rem;                        /* coins arrondis */
+  border: 1px solid rgba(255,255,255,0.08);    /* contour doux */
+  box-shadow: inset 0 0 0.5px rgba(255,255,255,0.1),
+              0 6px 20px rgba(0,0,0,0.4);     /* ombre externe + interne subtile */
+  color: #e2e8f0;                              /* texte gris clair */
 ">
   <div class="card-header d-flex justify-content-between align-items-center clickable px-2 py-1"
        data-bs-toggle="collapse"
