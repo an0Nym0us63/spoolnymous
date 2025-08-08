@@ -1,60 +1,5 @@
 {% extends 'base.html' %}
 {% block content %}
-<style>
-  /* Harmonisation des champs dans #filtersOffcanvas */
-  #filtersOffcanvas .select2-container--default .select2-selection--single,
-  #filtersOffcanvas .select2-container--default .select2-selection--multiple,
-  #filtersOffcanvas input[type="text"],
-  #filtersOffcanvas select.form-select {
-    height: 2.375rem;
-    line-height: 1.5;
-    padding: 0.375rem 0.75rem;
-    border: 1px solid #ced4da;
-    border-radius: 0.375rem;
-    box-sizing: border-box;
-    font-size: 1rem;
-    background-color: transparent;
-  }
-
-  /* Centrage vertical de la flèche et du texte dans les Select2 */
-  #filtersOffcanvas .select2-container--default .select2-selection--single {
-    display: flex;
-    align-items: center;
-  }
-
-  #filtersOffcanvas .select2-selection__rendered {
-    line-height: 1.5rem !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    display: block;
-    width: 100%;
-  }
-
-  #filtersOffcanvas .select2-selection__arrow {
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    right: 0.75rem !important;
-  }
-
-  /* Empêche les sélecteurs de dépasser dans certaines configs Bootstrap */
-  #filtersOffcanvas .select2-container {
-    width: 100% !important;
-  }
-
-  #filtersOffcanvas .select2-container--default .select2-selection--multiple {
-    min-height: 2.375rem;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  /* Correction d’alignement du champ "Texte" */
-  #filtersOffcanvas input#search.form-control {
-    display: flex;
-    align-items: center;
-  }
-</style>
-
 {% import 'macros/hidden_args.jinja2' as macros %}
 <!-- Bouton flottant pagination -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
@@ -116,7 +61,7 @@
       <div class="row row-cols-1 row-cols-md-2 g-3">
 <div class="col">
   <label for="status">Statut</label>
-<select name="status" multiple class="form-select select2" data-placeholder="— Statut —">
+<select name="status" multiple class="select2" data-placeholder="— Statut —">
   <option value="SUCCESS" {% if 'SUCCESS' in filters.status %}selected{% endif %}>Succès</option>
   <option value="TO_REDO" {% if 'TO_REDO' in filters.status %}selected{% endif %}>À refaire</option>
   <option value="PARTIAL" {% if 'PARTIAL' in filters.status %}selected{% endif %}>Partiel</option>
@@ -126,7 +71,7 @@
 </div>
         <div class="col">
           <label for="filament_type">Type de filament</label>
-          <select name="filament_type" multiple class="form-select select2" data-placeholder="— Type de filament —">
+          <select name="filament_type" multiple class="select2" data-placeholder="— Type de filament —">
             {% for ft in distinct_values.filament_types %}
               <option value="{{ ft }}" {% if ft in filters.filament_type %}selected{% endif %}>{{ ft }}</option>
             {% endfor %}
@@ -135,7 +80,7 @@
 
         <div class="col">
           <label for="color">Couleur du filament</label>
-          <select name="color" multiple class="form-select select2" data-placeholder="— Famille de couleur —">
+          <select name="color" multiple class="select2" data-placeholder="— Famille de couleur —">
             {% for family in distinct_values.colors %}
               <option value="{{ family }}" {% if family in filters.color %}selected{% endif %}>{{ family }}</option>
             {% endfor %}
@@ -144,7 +89,7 @@
 		
 		<div class="col">
   <label for="filament_id">Filament</label>
-  <select name="filament_id" class="form-select select2-filament" data-placeholder="— Tous les filaments —">
+  <select name="filament_id" class="select2-filament" data-placeholder="— Tous les filaments —">
   <option></option>
   {% for filament in distinct_values.filaments %}
     <option value="{{ filament.ids | join(',') }}"
