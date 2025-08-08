@@ -1,7 +1,7 @@
 import json
 import ssl
 import traceback
-from threading import Thread
+from threading import Thread, Lock
 
 from datetime import datetime, timedelta
 import paho.mqtt.client as mqtt
@@ -112,13 +112,14 @@ def processMessage(data):
     #print(str(data))
     if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
       logger.info('1'+str(data))
-      logger.info('1-2'+str(data))
       PENDING_PRINT_METADATA = getMetaDataFrom3mf(data["print"]["url"],data["print"]["subtask_name"])
       name=PRINTER_STATE["print"]["subtask_name"]
       if PENDING_PRINT_METADATA["title"] != '':
         name = PENDING_PRINT_METADATA["title"]
       if (PENDING_PRINT_METADATA["plateID"] != '1'):
         name += ' - ' +PENDING_PRINT_METADATA["plateID"]
+      logger.info('Inserting new print ' + name)
+      logger.debug(str(PENDING_PRINT_METADATA))
       print_id = insert_print(name, "cloud", PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],data["print"]["job_id"])
 
       if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"]:
@@ -140,7 +141,6 @@ def processMessage(data):
         "print" in PRINTER_STATE_LAST
       ):
       logger.info('2'+str(data))
-      logger.info('2-2'+str(PRINTER_STATE))
       if (
           "gcode_state" in PRINTER_STATE["print"] and 
           PRINTER_STATE["print"]["gcode_state"] == "RUNNING" and
@@ -521,39 +521,53 @@ def on_disconnect(client, userdata, rc):
   MQTT_CLIENT_CONNECTED = False
   print("Disconnected with result code " + str(rc))
   
+MQTT_LOCK = Lock()
+
 def async_subscribe():
     global MQTT_CLIENT
     global MQTT_CLIENT_CONNECTED
 
     MQTT_CLIENT_CONNECTED = False
-    
+
     while True:
-        while not MQTT_CLIENT_CONNECTED:
-            try:
-                # 🔁 Récupération dynamique des paramètres à chaque tentative
-                printer_code = get_app_setting("PRINTER_ACCESS_CODE", default='')
-                printer_ip = get_app_setting("PRINTER_IP", default='')
-                
-                MQTT_CLIENT = mqtt.Client()
-                MQTT_CLIENT.username_pw_set("bblp", printer_code)
-                ssl_ctx = ssl.create_default_context()
-                ssl_ctx.check_hostname = False
-                ssl_ctx.verify_mode = ssl.CERT_NONE
-                MQTT_CLIENT.tls_set_context(ssl_ctx)
-                MQTT_CLIENT.tls_insecure_set(True)
-                MQTT_CLIENT.on_connect = on_connect
-                MQTT_CLIENT.on_disconnect = on_disconnect
-                MQTT_CLIENT.on_message = on_message
+        with MQTT_LOCK:
+            while not MQTT_CLIENT_CONNECTED:
+                try:
+                    # 🔁 Fermer l'ancien client s'il existe
+                    if MQTT_CLIENT is not None:
+                        try:
+                            MQTT_CLIENT.loop_stop()
+                            MQTT_CLIENT.disconnect()
+                        except:
+                            pass
 
-                logger.info("🔄 Trying to connect ...")
-                MQTT_CLIENT.connect(printer_ip, 8883, MQTT_KEEPALIVE)
-                MQTT_CLIENT.loop_start()
-                logger.info("Connected ...")
+                    # 🔁 Récupération dynamique des paramètres
+                    printer_code = get_app_setting("PRINTER_ACCESS_CODE", default='')
+                    printer_ip = get_app_setting("PRINTER_IP", default='')
 
-            except Exception as e:
-                print(f"⚠️ connection failed: {e}, new try in 15 seconds...", flush=True)
+                    MQTT_CLIENT = mqtt.Client()
+                    MQTT_CLIENT.username_pw_set("bblp", printer_code)
 
-            time.sleep(15)
+                    ssl_ctx = ssl.create_default_context()
+                    ssl_ctx.check_hostname = False
+                    ssl_ctx.verify_mode = ssl.CERT_NONE
+
+                    MQTT_CLIENT.tls_set_context(ssl_ctx)
+                    MQTT_CLIENT.tls_insecure_set(True)
+
+                    MQTT_CLIENT.on_connect = on_connect
+                    MQTT_CLIENT.on_disconnect = on_disconnect
+                    MQTT_CLIENT.on_message = on_message
+
+                    logger.info("🔄 Trying to connect ...")
+                    MQTT_CLIENT.connect(printer_ip, 8883, MQTT_KEEPALIVE)
+                    MQTT_CLIENT.loop_start()
+                    logger.info("Connected ...")
+
+                except Exception as e:
+                    print(f"⚠️ connection failed: {e}, new try in 15 seconds...", flush=True)
+
+                time.sleep(15)
 
         time.sleep(15)
 

@@ -73,7 +73,7 @@ def encode_custom_hex(filename):
     return ''.join(f"{ord(c):02x}" if c in "/:" else c for c in filename)
     
 def download3mfFromFTP(filename, taskname, destFile):
-    CHECK_INTERVAL = 5       # secondes
+    CHECK_INTERVAL = 6       # secondes
     TIMEOUT = 180             # secondes
     start_time = time.time()
     found_and_stable = False
@@ -89,7 +89,7 @@ def download3mfFromFTP(filename, taskname, destFile):
     local_path = destFile.name
 
     logger.debug(f"Waiting for file to appear and stabilize: {url}")
-    time.sleep(5)  # ⏳ Attente initiale minimale
+    time.sleep(10)  # ⏳ Attente initiale minimale
 
     last_size = -1
     stable_count = 0
@@ -295,9 +295,6 @@ def getMetaDataFrom3mf(url,taskname):
         if gcode_path in z.namelist():
           with z.open(gcode_path) as gcode_file:
             metadata["filamentOrder"] =  get_filament_order(gcode_file)
-        
-        logger.info(metadata)
-
         return metadata
 
   except requests.exceptions.RequestException as e:

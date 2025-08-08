@@ -892,8 +892,8 @@ def remove_tag(print_id):
     
 @app.route("/filaments")
 def filaments():
-    if not isMqttClientConnected():
-        return render_template('error.html', exception="L'imprimante est elle allumée ? Avez vous renseigné les paramètres ?")
+    #if not isMqttClientConnected():
+    #    return render_template('error.html', exception="L'imprimante est elle allumée ? Avez vous renseigné les paramètres ?")
 
     ams_id = request.args.get("ams")
     tray_id = request.args.get("tray")
