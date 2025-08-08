@@ -50,7 +50,7 @@ $(document).ready(function () {
     }
 
     function initSelect2() {
-    $('.select2').each(function () {
+    $('.select2, .select2-filament').each(function () {
         const $select = $(this);
         const name = $select.attr('name');
 
@@ -111,8 +111,6 @@ $(document).ready(function () {
 				matcher: function(params, data) {
 					if ($.trim(params.term) === '') return data;
 					if (typeof data.text === 'undefined') return null;
-		
-					// Recherche insensible à la casse sur contenu
 					return data.text.toLowerCase().includes(params.term.toLowerCase()) ? data : null;
 				}
 			});
