@@ -288,7 +288,25 @@ if (trayGraphic) {
         const data = await res.json();
 
         document.getElementById('status-progress').innerText = `${data.progress || 0}%`;
-        document.getElementById('status-text').innerText = data.status || '...';
+		const statusTextEl = document.getElementById('status-text');
+let status = data.status || '...';
+
+switch (status) {
+  case 'RUNNING':
+    status = 'En cours';
+    break;
+  case 'PAUSE':
+    status = 'Pause';
+    break;
+  case 'FAILED':
+    status = 'Échec';
+    break;
+  case 'FINISH':
+    status = 'Terminé';
+    break;
+}
+
+statusTextEl.innerText = status;
         document.getElementById('status-progress-bar').style.width = `${data.progress || 0}%`;
 
         const bar = document.getElementById('status-progress-bar');
