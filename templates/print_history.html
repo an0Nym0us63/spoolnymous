@@ -48,9 +48,14 @@
 <!-- Offcanvas filtres -->
 <div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel">
   <div class="offcanvas-header">
-    <h5 class="offcanvas-title" id="filtersOffcanvasLabel">Filtres</h5>
+  <h5 class="offcanvas-title" id="filtersOffcanvasLabel">Filtres</h5>
+  <div class="d-flex align-items-center gap-2 ms-auto">
+    <button type="button" class="btn btn-link text-muted" id="resetPrintHistoryFilters" title="Réinitialiser les filtres">
+      <i class="bi bi-arrow-counterclockwise fs-5"></i>
+    </button>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
   </div>
+</div>
   <div class="offcanvas-body">
     <form method="get">
 	{{ macros.render_filtered_args(args, ['status', 'filament_type', 'color', 'filament_id', 'search', 'page','sold_filter']) }}
@@ -178,5 +183,27 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 });
+ document.getElementById('resetPrintHistoryFilters').addEventListener('click', function () {
+    const form = document.querySelector('#filtersOffcanvas form');
+
+    // Réinitialise les champs texte et select simples
+    form.querySelectorAll('input[type="text"], input[type="hidden"], select').forEach(el => {
+      if (el.type === 'hidden' && el.name === 'page') return;
+      if (el.tagName === 'SELECT') {
+        el.selectedIndex = 0;
+      } else {
+        el.value = '';
+      }
+    });
+
+    // Réinitialise les select2
+    $('.select2').val(null).trigger('change');
+    $('.select2-filament').val(null).trigger('change');
+
+    // Réinitialise les checkbox (au cas où tu en ajoutes plus tard)
+    form.querySelectorAll('input[type="checkbox"]').forEach(el => {
+      el.checked = false;
+    });
+  });
 </script>
 {% endblock %}

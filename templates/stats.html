@@ -12,9 +12,14 @@
   <!-- Offcanvas filtres -->
   <div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel">
     <div class="offcanvas-header">
-      <h5 class="offcanvas-title" id="filtersOffcanvasLabel">Filtres</h5>
-      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
-    </div>
+  <h5 class="offcanvas-title" id="filtersOffcanvasLabel">Filtres</h5>
+  <div class="d-flex align-items-center gap-2 ms-auto">
+    <button type="button" class="btn btn-link text-muted" id="resetStatsFilters" title="Réinitialiser les filtres">
+      <i class="bi bi-arrow-counterclockwise fs-5"></i>
+    </button>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
+  </div>
+</div>
     <div class="offcanvas-body">
       <form method="get">
         <div class="row row-cols-1 row-cols-md-2 g-3">
@@ -379,6 +384,26 @@ new Chart(ctxTopFilaments, {
     }
   }
 });
+document.getElementById('resetStatsFilters').addEventListener('click', function () {
+    const form = document.querySelector('#filtersOffcanvas form');
+
+    form.querySelectorAll('input[type="text"], input[type="hidden"], select').forEach(el => {
+      if (el.type === 'hidden' && el.name === 'page') return;
+      if (el.tagName === 'SELECT') {
+        el.selectedIndex = 0;
+      } else {
+        el.value = '';
+      }
+    });
+
+    // Réinitialise select2 (type et couleur)
+    $('.select2').val(null).trigger('change');
+
+    // Réinitialise les checkbox si jamais il y en a
+    form.querySelectorAll('input[type="checkbox"]').forEach(el => {
+      el.checked = false;
+    });
+  });
 </script>
 </div>
 
