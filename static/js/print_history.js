@@ -107,6 +107,7 @@ $(document).ready(function () {
 			Object.assign(config, {
 				templateResult: formatFilamentOption,
 				templateSelection: formatFilamentOption,
+				minimumResultsForSearch: Infinity ,
 				escapeMarkup: m => m,
 				matcher: function(params, data) {
 					if ($.trim(params.term) === '') return data;

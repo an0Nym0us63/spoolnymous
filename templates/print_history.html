@@ -62,7 +62,7 @@
       <div class="row row-cols-1 row-cols-md-2 g-3">
 <div class="col">
   <label for="status">Statut</label>
-<select name="status" multiple class="form-select select2" data-placeholder="— Statut —">
+<select name="status" multiple class="select2" data-placeholder="— Statut —">
   <option value="SUCCESS" {% if 'SUCCESS' in filters.status %}selected{% endif %}>Succès</option>
   <option value="TO_REDO" {% if 'TO_REDO' in filters.status %}selected{% endif %}>À refaire</option>
   <option value="PARTIAL" {% if 'PARTIAL' in filters.status %}selected{% endif %}>Partiel</option>
@@ -72,7 +72,7 @@
 </div>
         <div class="col">
           <label for="filament_type">Type de filament</label>
-          <select name="filament_type" multiple class="form-select select2" data-placeholder="— Type de filament —">
+          <select name="filament_type" multiple class="select2" data-placeholder="— Type de filament —">
             {% for ft in distinct_values.filament_types %}
               <option value="{{ ft }}" {% if ft in filters.filament_type %}selected{% endif %}>{{ ft }}</option>
             {% endfor %}
@@ -81,7 +81,7 @@
 
         <div class="col">
           <label for="color">Couleur du filament</label>
-          <select name="color" multiple class="form-select select2" data-placeholder="— Famille de couleur —">
+          <select name="color" multiple class="select2" data-placeholder="— Famille de couleur —">
             {% for family in distinct_values.colors %}
               <option value="{{ family }}" {% if family in filters.color %}selected{% endif %}>{{ family }}</option>
             {% endfor %}
@@ -90,7 +90,7 @@
 		
 		<div class="col">
   <label for="filament_id">Filament</label>
-  <select name="filament_id" class="form-select select2-filament" data-placeholder="— Tous les filaments —">
+  <select name="filament_id" class="select2-filament" data-placeholder="— Tous les filaments —">
   <option></option>
   {% for filament in distinct_values.filaments %}
     <option value="{{ filament.ids | join(',') }}"
