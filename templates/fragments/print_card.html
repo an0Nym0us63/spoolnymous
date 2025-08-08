@@ -19,12 +19,12 @@
 <div class="d-flex flex-column align-items-center text-center ps-2 pe-1" style="flex: 1 1 auto; max-width: calc(100% - 100px);">
   <div class="text-center small text-wrap" style="word-break: break-word;">
     {% set status_colors = {
-  "SUCCESS": "#A3D9A5",       # vert doux
-  "SUCCESS_BUT": "#B3D4FC",   # bleu clair pastel
-  "IN_PROGRESS": "#AFE7F2",   # bleu ciel légèrement turquoise
-  "PARTIAL": "#FFD6A5",       # orange pâle
-  "FAILED": "#F5A9A9",        # rouge rose doux
-  "TO_REDO": "#FFF6A5"        # jaune pastel très clair
+  "SUCCESS": "#A3D9A5",       
+  "SUCCESS_BUT": "#B3D4FC",
+  "IN_PROGRESS": "#AFE7F2",   
+  "PARTIAL": "#FFD6A5",       
+  "FAILED": "#F5A9A9",        
+  "TO_REDO": "#FFF6A5"       
 } %}
     {% set color = status_colors.get(print.status, "#6c757d") %}
 
