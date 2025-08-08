@@ -1503,7 +1503,6 @@ def set_tray_spool_map(tray_uuid: str, tray_info_idx: str, color: str, spool_id:
             INSERT INTO tray_spool_map (tray_uuid, tray_info_idx, color, spool_id)
             VALUES (?, ?, ?, ?)
         """, (tray_uuid, tray_info_idx, color, spool_id))
-
     conn.commit()
     conn.close()
     tray_spool_map_cache = None  # Invalider le cache

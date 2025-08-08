@@ -22,7 +22,9 @@
         {% if tray_data.name %}
   - {{ tray_data.name }}
 {% else %}
+{% if tray_data.tray_type %}
   - {{ '<i class="bi bi-exclamation-circle text-danger me-2"></i>' | safe }}
+        {% endif %}
 {% endif %}
       </div>
       <div class="text-gray-400 text-xs">
