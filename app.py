@@ -908,7 +908,7 @@ def filaments():
             set_tray_spool_map(tray_uuid, tray_info_idx, tray_color, spool_id)
         setActiveTray(spool_id, spool_data["extra"], ams_id, tray_id)
         setActiveSpool(ams_id, tray_id, spool_data)
-        return redirect(url_for('home', success_message=f"Updated Spool ID {spool_id} to AMS {ams_id}, Tray {tray_id}."))
+        return redirect(url_for('home', success_message=f"La bobine {spool_id} a été assigné à l'emplacement {tray_id} de l'AMS {ams_id}."))
 
     # 🔁 Sinon, affichage des bobines filtrées/paginées
     page = int(request.args.get("page", 1))
