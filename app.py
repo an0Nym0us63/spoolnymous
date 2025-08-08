@@ -155,7 +155,7 @@ DEFAULT_KEEP_KEYS = {
     'print_history': ["page", "filament_type", "color", "filament_id", "status", "search", "sold_filter"],
     'filaments': ["page", "search", "color", "sort", "include_archived",
                   "assign_print_id", "assign_filament_index", "assign_filament_type","assign_filament_id","assign_sold_filter", "assign_color","assign_page", "assign_search","assign_status", "filament_usage",
-                  "ams", "tray","is_assign_mode"],
+                  "ams", "tray","is_assign_mode","tray_uuid","tray_info_idx","tray_color"],
 }
 
 def _merge_context_args(keep=None, drop=None, endpoint=None, **new_args):

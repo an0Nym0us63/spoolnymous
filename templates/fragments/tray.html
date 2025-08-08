@@ -138,12 +138,10 @@
 
     <!-- Footer -->
     <div class="px-4 py-2 bg-gray-800 border-t border-gray-700 text-center">
-      {% if pick_tray %}
-        <a class="btn btn-primary" href="{{ url_for('tray_load', spool_id=current_spool['id'], tag_id=tag_id, ams=ams_id, tray=tray_id) }}">Assign</a>
-      {% else %}
         <a class="btn btn-primary"
    href="{{ url_for('filaments',
                     ams=ams_id,
+					tray_data=tray_data,
                     tray=tray_id,
                     tray_uuid=tray_data.tray_uuid,
                     tray_info_idx=tray_data.tray_info_idx,
@@ -151,7 +149,6 @@
                     search=tray_data.tray_type) }}">
    🧵 Assigner
 </a>
-      {% endif %}
     </div>
   </div>
 </div>
