@@ -18,13 +18,13 @@
     <!-- Colonne centrale : nom + date -->
 <div class="d-flex flex-column align-items-center text-center ps-2 pe-1" style="flex: 1 1 auto; max-width: calc(100% - 100px);">
   <div class="text-center small text-wrap" style="word-break: break-word;">
-    {% set status_colors = {
-  "SUCCESS": "#A3D9A5",       
-  "SUCCESS_BUT": "#B3D4FC",
-  "IN_PROGRESS": "#AFE7F2",   
-  "PARTIAL": "#FFD6A5",       
-  "FAILED": "#F5A9A9",        
-  "TO_REDO": "#FFF6A5"       
+{% set status_colors = {
+  "SUCCESS": "#7DC97D",
+  "SUCCESS_BUT": "#89C2D9",
+  "IN_PROGRESS": "#5BC0BE",
+  "PARTIAL": "#F4A261",
+  "FAILED": "#E76F51",
+  "TO_REDO": "#F7D774"
 } %}
     {% set color = status_colors.get(print.status, "#6c757d") %}
 
