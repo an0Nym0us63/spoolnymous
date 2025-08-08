@@ -205,27 +205,5 @@ document.addEventListener("DOMContentLoaded", () => {
       el.checked = false;
     });
   });
-  $('.select2-filament').select2({
-  placeholder: "— Tous les filaments —",
-  allowClear: true,
-  matcher: function(params, data) {
-    // Si aucun terme de recherche
-    if ($.trim(params.term) === '') {
-      return data;
-    }
-
-    // Transformer en minuscules pour une recherche insensible à la casse
-    if (typeof data.text === 'undefined') {
-      return null;
-    }
-
-    if (data.text.toLowerCase().includes(params.term.toLowerCase())) {
-      return data;
-    }
-
-    // Ne correspond pas
-    return null;
-  }
-});
 </script>
 {% endblock %}
