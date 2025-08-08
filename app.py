@@ -501,7 +501,7 @@ def home():
         ams_data=ams_data,
         vt_tray_data=vt_tray_data,
         issue=issue,
-        page_title="Home",
+        page_title="Accueil",
         printer_status=status_copy
     ))
 
@@ -755,7 +755,7 @@ def print_history():
         "focus_print_id": focus_print_id,
         "focus_group_id": focus_group_id,
         "status_values": status_values,
-        "page_title": "History",
+        "page_title": "Historique",
         "total_prints": total_prints,
         "total_duration_formatted": total_duration_formatted,
         "total_weight": total_weight,
