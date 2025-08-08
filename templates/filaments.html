@@ -23,15 +23,15 @@
 </div>
 
 <div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="filamentFilters" aria-labelledby="filamentFiltersLabel">
-  <div class="offcanvas-header">
-    <h5 class="offcanvas-title" id="filamentFiltersLabel">Filtres & Tri</h5>
-	 <div class="d-flex gap-2">
-    <button type="button" class="btn btn-outline-secondary btn-sm" id="resetFiltersBtn">
-      Réinitialiser
+<div class="offcanvas-header">
+  <h5 class="offcanvas-title" id="filamentFiltersLabel">Filtres & Tri</h5>
+  <div class="d-flex align-items-center gap-2 ms-auto">
+    <button type="button" class="btn btn-sm btn-link p-0 text-muted" id="resetFiltersBtn" title="Réinitialiser les filtres">
+      <i class="bi bi-arrow-counterclockwise"></i>
     </button>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
   </div>
-  </div>
+</div>
   <div class="offcanvas-body">
     <form method="get" class="row g-2 align-items-end">
 	{{ macros.render_filtered_args(args, ['search', 'color', 'sort', 'include_archived', 'page']) }}
