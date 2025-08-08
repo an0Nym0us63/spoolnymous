@@ -377,10 +377,11 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 });
-  document.getElementById('resetFiltersBtn').addEventListener('click', function () {
+ document.getElementById('resetFiltersBtn').addEventListener('click', function () {
     const form = document.querySelector('#filamentFilters form');
+
     form.querySelectorAll('input[type="text"], input[type="hidden"], select').forEach(el => {
-      if (el.type === 'hidden' && el.name === 'page') return; // Garde la page à 1
+      if (el.type === 'hidden' && el.name === 'page') return;
       if (el.tagName === 'SELECT') {
         el.selectedIndex = 0;
       } else {
@@ -391,6 +392,9 @@ document.addEventListener("DOMContentLoaded", function () {
     form.querySelectorAll('input[type="checkbox"]').forEach(el => {
       el.checked = false;
     });
+
+    // Réinitialise proprement les select2
+    $('.select2').val(null).trigger('change');
   });
 </script>
 {% endblock %}
