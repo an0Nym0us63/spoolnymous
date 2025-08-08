@@ -52,7 +52,13 @@ $(document).ready(function () {
     function initSelect2() {
     $('.select2, .select2-filament').each(function () {
         const $select = $(this);
-        const name = $select.attr('name');
+        const name = $select.attr('name');// Définir la config ici
+	const config = {
+		width: '100%',
+		placeholder: $select.data('placeholder') || '',
+		allowClear: !$select.prop('multiple'),
+		minimumResultsForSearch: 0 // 👈 forcer dès la base
+	};
 
         // Supprime proprement si déjà instancié
         if ($select.hasClass('select2-hidden-accessible')) {
@@ -104,19 +110,18 @@ $(document).ready(function () {
         }
 		
 		if (name === 'filament_id') {
-	Object.assign(config, {
-		templateResult: formatFilamentOption,
-		templateSelection: option => option.text || '',
-		escapeMarkup: m => m,
-		minimumResultsForSearch: 0,
-		matcher: function(params, data) {
-			if ($.trim(params.term) === '') return data;
-			if (!data.element) return null;
-
-			const text = data.element.textContent || '';
-			return text.toLowerCase().includes(params.term.toLowerCase()) ? data : null;
-		}
-	});
+		Object.assign(config, {
+			templateResult: formatFilamentOption,
+			templateSelection: option => option.text || '',
+			escapeMarkup: m => m,
+			matcher: function(params, data) {
+				if ($.trim(params.term) === '') return data;
+				if (!data.element) return null;
+				const text = data.element.textContent || '';
+				return text.toLowerCase().includes(params.term.toLowerCase()) ? data : null;
+			}
+		});
+	}
 }
         $select.select2(config).on('select2:open', applyThemeToDropdown);
 		// Recolorer les statuts sélectionnés une fois que Select2 est prêt
