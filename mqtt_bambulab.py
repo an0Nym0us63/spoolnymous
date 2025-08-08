@@ -120,7 +120,7 @@ def processMessage(data):
         name += ' - ' +PENDING_PRINT_METADATA["plateID"]
       logger.info('Inserting new print ' + name)
       logger.debug(str(PENDING_PRINT_METADATA))
-      print_id = insert_logger.info(name, "cloud", PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],data["print"]["job_id"])
+      print_id = insert_print(name, "cloud", PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],data["print"]["job_id"])
 
       if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"]:
         PENDING_PRINT_METADATA["ams_mapping"] = PRINTER_STATE["print"]["ams_mapping"]
@@ -154,7 +154,7 @@ def processMessage(data):
             name = PENDING_PRINT_METADATA["title"]
         if (PENDING_PRINT_METADATA["plateID"] != '1'):
             name += ' - ' +PENDING_PRINT_METADATA["plateID"]
-        print_id = insert_logger.info(name, PRINTER_STATE["print"]["print_type"], PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],PENDING_PRINT_METADATA["title"],PRINTER_STATE["print"]["job_id"])
+        print_id = insert_print(name, PRINTER_STATE["print"]["print_type"], PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],PENDING_PRINT_METADATA["title"],PRINTER_STATE["print"]["job_id"])
 
         PENDING_PRINT_METADATA["ams_mapping"] = []
         PENDING_PRINT_METADATA["filamentChanges"] = []
@@ -205,7 +205,7 @@ def processMessage(data):
   
     PRINTER_STATE_LAST = copy.deepcopy(PRINTER_STATE)
 
-def insert_manual_logger.info(local_path, custom_datetime):
+def insert_manual_print(local_path, custom_datetime):
     """
     Traite un fichier .3mf local uploadé manuellement, extrait les métadonnées
     et insère un print et ses filaments dans la base.
@@ -229,7 +229,7 @@ def insert_manual_logger.info(local_path, custom_datetime):
         if metadata.get("plateID") != '1':
             name += f" - {metadata['plateID']}"
 
-        print_id = insert_logger.info(
+        print_id = insert_print(
             name,
             "manual",
             metadata.get("image"),
