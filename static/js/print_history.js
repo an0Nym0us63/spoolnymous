@@ -131,8 +131,7 @@ $(document).ready(function () {
               .on('keydown.select2-shield keypress.select2-shield keyup.select2-shield', e => e.stopPropagation());
         }, 0);
     });
-}});
-	}
+}
         $select.select2(config).on('select2:open', applyThemeToDropdown);
 		// Recolorer les statuts sélectionnés une fois que Select2 est prêt
 if (name === 'status') {
