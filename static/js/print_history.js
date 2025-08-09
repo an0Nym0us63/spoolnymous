@@ -105,19 +105,32 @@ $(document).ready(function () {
         }
 		
 		if (name === 'filament_id') {
-		Object.assign(config, {
-			templateResult: formatFilamentOption,
-			templateSelection: option => option.text || '',
-			escapeMarkup: m => m,
-			matcher: function(params, data) {
-				if ($.trim(params.term) === '') return data;
-				if (!data.element) return null;
-				const text = data.element.textContent || '';
-				return text.toLowerCase().includes(params.term.toLowerCase()) ? data : null;
-			}
-		});
-	}
-        $select.select2(config).on('select2:open', applyThemeToDropdown);
+  Object.assign(config, {
+    templateResult: formatFilamentOption,
+    templateSelection: option => option.text || '',
+    escapeMarkup: m => m,
+    minimumResultsForSearch: 0,
+    // 👇 très important si le select est dans un collapse, card, modal, etc.
+    dropdownParent: $select.closest('.modal').length ? $select.closest('.modal') : $(document.body),
+    matcher: function(params, data) {
+      if ($.trim(params.term) === '') return data;
+      if (!data.element) return null;
+      const text = data.element.textContent || '';
+      // recherche simple sur le texte (et tu peux ajouter data-color si tu veux)
+      return text.toLowerCase().includes(params.term.toLowerCase()) ? data : null;
+    }
+  });
+}
+
+$select.select2(config)
+  .on('select2:open', () => {
+    applyThemeToDropdown();
+    // 👇 garantit que le champ reçoit bien le focus clavier
+    setTimeout(() => {
+      const $f = $('.select2-container--open .select2-search__field');
+      $f.prop('disabled', false).prop('readonly', false).trigger('focus');
+    }, 0);
+  });
 		// Recolorer les statuts sélectionnés une fois que Select2 est prêt
 if (name === 'status') {
     setTimeout(() => {
