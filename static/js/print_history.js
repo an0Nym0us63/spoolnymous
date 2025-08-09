@@ -115,19 +115,42 @@ $(document).ready(function () {
       }
 
       if (name === 'filament_id') {
-        Object.assign(config, {
-          templateResult: formatFilamentOption,
-          templateSelection: option => option.text || '',
-          escapeMarkup: m => m,
-          matcher: function (params, data) {
-            if ($.trim(params.term) === '') return data;
-            if (!data.element) return null;
-            const text = (data.element.textContent || '').toLowerCase();
-            const term = (params.term || '').toLowerCase();
-            return text.includes(term) ? data : null;
-          }
-        });
-      }
+  const norm = s => (s || '')
+    .toString()
+    .normalize('NFD').replace(/\p{Diacritic}/gu, '') // retire les accents
+    .toLowerCase()
+    .replace(/[_\-]+/g, ' ')                          // tirets → espaces
+    .replace(/\s+/g, ' ')                             // espaces multiples → 1
+    .trim();
+
+  Object.assign(config, {
+    templateResult: formatFilamentOption,
+    templateSelection: option => option.text || '',
+    escapeMarkup: m => m,
+    minimumResultsForSearch: 0,
+    matcher: function(params, data) {
+      if ($.trim(params.term) === '') return data;
+      if (!data.element) return null;
+
+      // 🔎 Construis le “haystack” (texte + attributs utiles)
+      const $el = $(data.element);
+      const haystack = norm([
+        data.text,
+        $el.data('color'),
+        $el.data('brand'),
+        $el.data('material'),
+        $el.data('vendor'),
+      ].filter(Boolean).join(' '));
+
+      // 🧩 Découpe la requête en mots
+      const tokens = norm(params.term).split(' ').filter(Boolean);
+
+      // AND logique : tous les mots doivent matcher
+      const ok = tokens.every(tok => haystack.includes(tok));
+      return ok ? data : null;
+    }
+  });
+}
 
       $select.select2(config).on('select2:open', () => {
         applyThemeToDropdown();
