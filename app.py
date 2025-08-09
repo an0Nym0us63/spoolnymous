@@ -574,7 +574,10 @@ def print_history():
         "filament_id": request.args.getlist("filament_id"),
         "status": request.args.getlist("status")
     }
-    filters["filament_id"] = [v for v in filters["filament_id"] if v.strip()]
+    raw_filament_ids = request.args.get("filament_id", "")
+    if raw_filament_ids.strip():
+        # Split sur la virgule, supprime espaces et valeurs vides
+        filters["filament_id"] = [v.strip() for v in raw_filament_ids.split(",") if v.strip()]
     search = request.args.get("search", "").strip()
 
     focus_print_id = request.args.get("focus_print_id", type=int)
