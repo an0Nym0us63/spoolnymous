@@ -1452,7 +1452,7 @@ def get_latest_print():
         cursor.execute("PRAGMA table_info(prints)")
         columns = [col[1] for col in cursor.fetchall()]
 
-        cursor.execute("SELECT * FROM prints ORDER BY id DESC LIMIT 1")
+        cursor.execute("SELECT * FROM prints ORDER BY print_date DESC LIMIT 1")
         row = cursor.fetchone()
         conn.close()
 
