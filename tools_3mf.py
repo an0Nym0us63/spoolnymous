@@ -73,7 +73,7 @@ def encode_custom_hex(filename):
     return ''.join(f"{ord(c):02x}" if c in "/:" else c for c in filename)
     
 def download3mfFromFTP(filename, taskname, destFile):
-    CHECK_INTERVAL = 6
+    CHECK_INTERVAL = 8
     TIMEOUT = 180
     start_time = time.time()
 
@@ -90,7 +90,7 @@ def download3mfFromFTP(filename, taskname, destFile):
     local_path = destFile.name
 
     logger.debug(f"Waiting for file to appear and stabilize: {url}")
-    time.sleep(2)
+    time.sleep(5)
 
     last_size = -1
     stable_count = 0
