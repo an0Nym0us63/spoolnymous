@@ -73,84 +73,105 @@ def encode_custom_hex(filename):
     return ''.join(f"{ord(c):02x}" if c in "/:" else c for c in filename)
     
 def download3mfFromFTP(filename, taskname, destFile):
-    CHECK_INTERVAL = 6       # secondes
-    TIMEOUT = 180             # secondes
+    CHECK_INTERVAL = 6
+    TIMEOUT = 180
     start_time = time.time()
-    found_and_stable = False
 
     logger.info("Downloading 3MF file from FTP...")
     ftp_host = get_app_setting("PRINTER_IP","")
     ftp_user = "bblp"
     ftp_pass = get_app_setting("PRINTER_ACCESS_CODE","")
     taskname = encode_custom_hex(taskname)
-    remote_path = f"/cache/{taskname}.gcode.3mf"
-    encoded_path = urllib.parse.quote(remote_path)
-    url = f"ftps://{ftp_host}{encoded_path}"
+
+    remote_dir = "/cache"
+    remote_name = f"{taskname}.gcode.3mf"
+    remote_name_enc = urllib.parse.quote(remote_name)
+    url = f"ftps://{ftp_host}{remote_dir}/{remote_name_enc}"
     local_path = destFile.name
 
     logger.debug(f"Waiting for file to appear and stabilize: {url}")
-    time.sleep(10)  # ⏳ Attente initiale minimale
+    time.sleep(2)
 
     last_size = -1
     stable_count = 0
 
     c = pycurl.Curl()
-    c.setopt(c.URL, url)
-    c.setopt(c.USERPWD, f"{ftp_user}:{ftp_pass}")
-    c.setopt(c.NOBODY, True)
-    c.setopt(c.SSL_VERIFYPEER, 0)
-    c.setopt(c.SSL_VERIFYHOST, 0)
-    c.setopt(c.FTP_SSL, c.FTPSSL_ALL)
-    c.setopt(c.FTPSSLAUTH, c.FTPAUTH_TLS)
-    c.setopt(c.CONNECTTIMEOUT, 10)
-    c.setopt(c.TIMEOUT, CHECK_INTERVAL)
-
     try:
+        # 🔧 Connexion unique + réglages FTP/FTPS robustes
+        c.setopt(c.URL, url)
+        c.setopt(c.USERPWD, f"{ftp_user}:{ftp_pass}")
+        c.setopt(c.SSL_VERIFYPEER, 0)
+        c.setopt(c.SSL_VERIFYHOST, 0)
+        c.setopt(c.FTP_SSL, c.FTPSSL_ALL)
+        c.setopt(c.FTPSSLAUTH, c.FTPAUTH_TLS)
+
+        # Chemin traité tel quel (évite des CWD/ReTR fragiles)
+        c.setopt(c.FTP_FILEMETHOD, c.FTPMETHOD_NOCWD)   # <-- clé
+        # Mode binaire, certains firmwares sont sensibles
+        c.setopt(c.TRANSFERTEXT, False)                 # TYPE I
+        # Optionnel: si soucis de data channel en IPv4
+        # c.setopt(c.FTP_USE_EPSV, 0)
+
+        c.setopt(c.CONNECTTIMEOUT, 10)
+        c.setopt(c.NOBODY, True)
+        c.setopt(c.TIMEOUT, CHECK_INTERVAL)
+
+        # Boucle de stabilisation (HEAD=SIZE)
         while time.time() - start_time < TIMEOUT:
             try:
                 c.perform()
                 current_size = int(c.getinfo(c.CONTENT_LENGTH_DOWNLOAD))
                 logger.debug(f"📏 Current file size: {current_size} bytes")
 
-                if current_size == last_size:
+                if current_size == last_size and current_size > 0:
                     stable_count += 1
                     logger.debug(f"✅ File size stable {stable_count}/3")
                     if stable_count >= 3:
-                        found_and_stable = True
                         break
                 else:
-                    logger.debug("🔁 File size changed. Resetting stability counter.")
                     stable_count = 1
                     last_size = current_size
+                    logger.debug("🔁 File size changed. Resetting stability counter.")
             except pycurl.error as e:
                 logger.debug(f"📭 File not yet accessible ({e}).")
                 stable_count = 0
             time.sleep(CHECK_INTERVAL)
+        else:
+            logger.error("❌ Timed out: file did not stabilize within 3 minutes.")
+            return
+
+        logger.info("📥 File is stable. Starting download...")
+
+        # 🔁 Même connexion, on bascule en GET
+        c.setopt(c.NOBODY, False)
+        c.setopt(c.TIMEOUT, 0)  # pas de petit timeout pendant le download
+
+        # Petits retries ciblés sur 78 (RETR 550)
+        max_attempts = 3
+        for attempt in range(1, max_attempts + 1):
+            try:
+                with open(local_path, "wb") as f:
+                    c.setopt(c.WRITEDATA, f)
+                    c.perform()
+                logger.info(f"✅ File successfully downloaded into {local_path} (~{last_size} bytes).")
+                return
+            except pycurl.error as e:
+                code = e.args[0] if e.args else None
+                if code == 78 and attempt < max_attempts:
+                    logger.warning(f"⚠️  RETR 550 (file exists but path/method mismatch ?). Retrying {attempt}/{max_attempts-1}…")
+                    # Essai alternatif: SINGLECWD si NOCWD échoue
+                    c.setopt(c.FTP_FILEMETHOD, c.FTPMETHOD_SINGLECWD)
+                    time.sleep(0.3 * attempt)
+                    continue
+                # Pour diagnostiquer précisément
+                try:
+                    rc = c.getinfo(c.RESPONSE_CODE)
+                    logger.error(f"❌ Download error: {e} (FTP resp={rc})")
+                except Exception:
+                    logger.error(f"❌ Download error: {e}")
+                return
     finally:
         c.close()
-
-    if not found_and_stable:
-        logger.error("❌ Timed out: file did not stabilize within 3 minutes.")
-        return
-
-    logger.info("📥 File is stable. Starting download...")
-
-    with open(local_path, "wb") as f:
-        c = pycurl.Curl()
-        c.setopt(c.URL, url)
-        c.setopt(c.USERPWD, f"{ftp_user}:{ftp_pass}")
-        c.setopt(c.WRITEDATA, f)
-        c.setopt(c.SSL_VERIFYPEER, 0)
-        c.setopt(c.SSL_VERIFYHOST, 0)
-        c.setopt(c.FTP_SSL, c.FTPSSL_ALL)
-        c.setopt(c.FTPSSLAUTH, c.FTPAUTH_TLS)
-        try:
-            c.perform()
-            logger.info(f"✅ File successfully downloaded into {local_path} ({last_size} bytes).")
-        except pycurl.error as e:
-            logger.error(f"❌ Download error: {e}")
-        finally:
-            c.close()
 
 def download3mfFromLocalFilesystem(path, destFile):
   with open(path, "rb") as src_file:
@@ -174,7 +195,8 @@ def getMetaDataFrom3mf(url,taskname):
       temp_file_name = temp_file.name
       
       if url.startswith("http"):
-        download3mfFromCloud(url, temp_file)
+        #download3mfFromCloud(url, temp_file)
+        download3mfFromFTP(url.replace("ftp://", ""), taskname, temp_file)
       elif url.startswith("local:"):
         download3mfFromLocalFilesystem(url.replace("local:", ""), temp_file)
       else:
