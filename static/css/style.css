@@ -390,6 +390,3 @@
 .navbar-nav .nav-link {
   padding: 0.25rem 0.5rem;
 }
-
-.select2-container .select2-search__field { pointer-events: auto !important; }
-.select2-container .select2-dropdown { z-index: 2055 !important; }
