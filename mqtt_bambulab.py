@@ -503,7 +503,8 @@ def on_message(client, userdata, msg):
             else:
                 #logger.info("Found spool " + str(foundspool))
                 setActiveTray(foundspool['id'], foundspool["extra"], ams['id'], tray["id"])
-              
+          else:
+              clearActiveTray(ams['id'], tray["id"])
   except Exception as e:
     traceback.print_exc()
 
