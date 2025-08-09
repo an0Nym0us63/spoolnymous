@@ -608,19 +608,34 @@ def get_prints_with_filament(filters=None, search=None) -> list:
     having_clauses = []
     having_values = []
 
+    # --- filament_id: au moins un usage sur une des spools demandées ---
     if filters.get("filament_id"):
-        query_filters.append("f.spool_id = ?")
-        values.append(filters["filament_id"][0])
+        # nettoie + garde uniquement les valeurs non vides
+        ids = [v.strip() for v in filters["filament_id"] if v and v.strip()]
+        if ids:
+            placeholders = ",".join(["?"] * len(ids))
+            query_filters.append(f"""
+                EXISTS (
+                    SELECT 1
+                    FROM filament_usage fu
+                    WHERE fu.print_id = p.id
+                      AND fu.spool_id IN ({placeholders})
+                )
+            """)
+            values.extend(ids)
 
+    # --- filament_type: simple égalité sur l’alias du LEFT JOIN ok ---
     if filters.get("filament_type"):
         query_filters.append("f.filament_type = ?")
         values.append(filters["filament_type"][0])
 
+    # --- status: IN dynamique ---
     if filters.get("status"):
         statuses = filters["status"]
         query_filters.append(f"p.status IN ({','.join(['?'] * len(statuses))})")
         values.extend(statuses)
 
+    # --- color: garde ta logique HAVING basée sur des agrégats ---
     if filters.get("color"):
         cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
         all_colors = [row[0] for row in cursor.fetchall()]
@@ -628,14 +643,15 @@ def get_prints_with_filament(filters=None, search=None) -> list:
             hexes = [c for c in all_colors if fam in two_closest_families(c)]
             if hexes:
                 having_clauses.append(
-                    "SUM(CASE WHEN f.color IN ({}) THEN 1 ELSE 0 END) > 0".format(','.join(['?'] * len(hexes)))
+                    "SUM(CASE WHEN f.color IN ({}) THEN 1 ELSE 0 END) > 0".format(",".join(["?"] * len(hexes)))
                 )
                 having_values.extend(hexes)
 
+    # --- recherche plein-texte ---
     if search:
         words = [w.strip().lower() for w in search.split() if w.strip()]
         for w in words:
-            query_filters.append(f"""
+            query_filters.append("""
                 (
                     LOWER(p.file_name) LIKE ?
                     OR LOWER(p.translated_name) LIKE ?
@@ -644,8 +660,8 @@ def get_prints_with_filament(filters=None, search=None) -> list:
                         WHERE pt.print_id = p.id AND LOWER(pt.tag) LIKE ?
                     )
                     OR EXISTS (
-                        SELECT 1 FROM print_groups pg
-                        WHERE pg.id = p.group_id AND LOWER(pg.name) LIKE ?
+                        SELECT 1 FROM print_groups pg2
+                        WHERE pg2.id = p.group_id AND LOWER(pg2.name) LIKE ?
                     )
                 )
             """)
@@ -678,6 +694,7 @@ def get_prints_with_filament(filters=None, search=None) -> list:
 
     conn.close()
     return prints
+
 
 
 
