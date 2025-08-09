@@ -138,6 +138,26 @@ $(document).ready(function () {
             .on('keydown.select2-shield keypress.select2-shield keyup.select2-shield', e => e.stopPropagation());
         }, 0);
       });
+	  // Si le select est DANS un offcanvas, on gère le focus trap Bootstrap
+const $oc = $select.closest('.offcanvas');
+if ($oc.length) {
+  const ocEl  = $oc.get(0);
+  const getOC = () => bootstrap.Offcanvas.getInstance(ocEl);
+
+  $select
+    .on('select2:open.s2offcanvas', () => {
+      const oc = getOC();
+      // Désactive le trap pour laisser le focus dans l’input de recherche
+      if (oc && oc._focustrap) oc._focustrap.deactivate();
+      // Certaines versions Bootstrap ajoutent aussi un listener global :
+      if (window.jQuery) $(document).off('focusin.bs.offcanvas');
+    })
+    .on('select2:close.s2offcanvas', () => {
+      const oc = getOC();
+      // Réactive le trap à la fermeture
+      if (oc && oc._focustrap) oc._focustrap.activate();
+    });
+}
 
       // recoloration des statuts sélectionnés
       if (name === 'status') {
@@ -174,7 +194,8 @@ $(document).ready(function () {
       $select.select2('destroy');
     }
     const dropdownParent =
-      $select.closest('.modal').length ? $select.closest('.modal') : $(document.body);
+  $select.closest('.offcanvas, .modal').first();
+config.dropdownParent = dropdownParent.length ? dropdownParent : $(document.body);
 
     $select.select2({
       width: '100%',
