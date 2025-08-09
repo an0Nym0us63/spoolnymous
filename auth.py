@@ -98,7 +98,7 @@ def settings():
 
         # Mise à jour des paramètres système
         elif request.form.get("update_core_settings") == "1":
-            for key in ["PRINTER_ID", "PRINTER_ACCESS_CODE", "PRINTER_IP", "SPOOLMAN_BASE_URL", "COST_BY_HOUR"]:
+            for key in ["PRINTER_ID", "PRINTER_ACCESS_CODE", "PRINTER_IP", "SPOOLMAN_BASE_URL", "COST_BY_HOUR","LOCATION_MAPPING","AMS_ORDER","COST_BY_HOUR_PRINTER"]:
                 value = request.form.get(key, "").strip()
                 set_app_setting(key, value)
             flash("Paramètres système mis à jour avec succès ✅", "success")
