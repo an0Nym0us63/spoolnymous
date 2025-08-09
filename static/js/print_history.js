@@ -105,31 +105,62 @@ $(document).ready(function () {
         }
 		
 		if (name === 'filament_id') {
-    Object.assign(config, {
-        templateResult: formatFilamentOption,
-        templateSelection: option => option.text || '',
-        escapeMarkup: m => m,
-        matcher: function(params, data) {
-            if ($.trim(params.term) === '') return data;
-            if (!data.element) return null;
+  // parent : offcanvas si présent, sinon body
+  const $oc = $select.closest('.offcanvas');
+  const dropdownParent = $oc.length ? $oc : $(document.body);
 
-            const text = (data.element.textContent || '').toLowerCase();
-            const terms = params.term.toLowerCase().split(/\s+/).filter(t => t);
+  // normalisation pour recherche multi-mots insensible à la casse/accents
+  const norm = s => (s || '')
+    .toString()
+    .normalize('NFD').replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/[_\-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-            // Chaque mot saisi doit apparaître quelque part dans le texte
-            const matches = terms.every(term => text.includes(term));
-            return matches ? data : null;
-        }
-    });
+  Object.assign(config, {
+    dropdownParent,
+    templateResult: formatFilamentOption,
+    templateSelection: option => option.text || '',
+    escapeMarkup: m => m,
+    minimumResultsForSearch: 0,
+    matcher: function (params, data) {
+      if ($.trim(params.term) === '') return data;
+      if (!data.element) return null;
 
-    // Gestion du focus sur ouverture
-    $select.on('select2:open', () => {
-        applyThemeToDropdown();
-        setTimeout(() => {
-            const $f = $('.select2-container--open .select2-search__field');
-            $f.prop('disabled', false).prop('readonly', false).trigger('focus')
-              .on('keydown.select2-shield keypress.select2-shield keyup.select2-shield', e => e.stopPropagation());
-        }, 0);
+      const haystack = norm((data.element.textContent || ''));
+      const tokens = norm(params.term).split(' ').filter(Boolean);
+
+      return tokens.every(t => haystack.includes(t)) ? data : null;
+    }
+  });
+
+  // handlers spécifiques à filament_id (focus + focus-trap offcanvas)
+  $select
+    .off('.filament') // au cas où
+    .on('select2:open.filament', () => {
+      applyThemeToDropdown();
+
+      // désactive le trap si on est dans un offcanvas
+      if ($oc.length) {
+        const oc = bootstrap.Offcanvas.getInstance($oc[0]) || new bootstrap.Offcanvas($oc[0]);
+        oc?._focustrap?.deactivate();
+        if (window.jQuery) $(document).off('focusin.bs.offcanvas');
+      }
+
+      // focus garanti dans l'input de recherche
+      setTimeout(() => {
+        const $f = $('.select2-container--open .select2-search__field');
+        $f.prop('disabled', false).prop('readonly', false).trigger('focus')
+          .on('keydown.s2shield keypress.s2shield keyup.s2shield', e => e.stopPropagation());
+      }, 0);
+    })
+    .on('select2:close.filament', () => {
+      // réactive le trap quand on ferme
+      if ($oc.length) {
+        const oc = bootstrap.Offcanvas.getInstance($oc[0]);
+        oc?._focustrap?.activate();
+      }
     });
 }
         $select.select2(config).on('select2:open', applyThemeToDropdown);
