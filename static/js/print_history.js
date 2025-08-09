@@ -125,10 +125,21 @@ $(document).ready(function () {
 $select.select2(config)
   .on('select2:open', () => {
     applyThemeToDropdown();
-    // 👇 garantit que le champ reçoit bien le focus clavier
+
+    // parent stable (évite z-index/overlay/collapse)
+    const $dd = $('.select2-container--open .select2-dropdown');
+    if (!$dd.parent().is(document.body)) {
+      $dd.appendTo(document.body);
+    }
+
+    // focus garanti
     setTimeout(() => {
       const $f = $('.select2-container--open .select2-search__field');
       $f.prop('disabled', false).prop('readonly', false).trigger('focus');
+      // bloque les raccourcis/handlers globaux qui interceptent les touches
+      $f.on('keydown.select2-shield keypress.select2-shield keyup.select2-shield', e => {
+        e.stopPropagation();
+      });
     }, 0);
   });
 		// Recolorer les statuts sélectionnés une fois que Select2 est prêt
