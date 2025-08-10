@@ -354,8 +354,6 @@ def safe_update_status(data):
     
     if tray_now is not None and isinstance(ams_list, list) and tray_now != 255:
         candidate_trays = []
-        logger.debug(str(tray_now))
-        logger.debug(str(ams_list))
         for ams in ams_list:
             try:
                 ams_id = int(ams.get("id"))
@@ -369,7 +367,6 @@ def safe_update_status(data):
                     continue
                 if tray_id == tray_now:
                     candidate_trays.append((ams_id, tray_id))
-        logger.debug(str(candidate_trays))
         # Si un seul AMS → pas de conflit
         if len(ams_list) == 1 and candidate_trays:
             fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
