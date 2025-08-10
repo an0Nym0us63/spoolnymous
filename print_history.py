@@ -753,24 +753,42 @@ def update_print_field_with_job_id(job_id: int, field: str, value) -> None:
 
             if row and row["print_date"]:
                 print_datetime = datetime.strptime(row["print_date"], "%Y-%m-%d %H:%M:%S")
-                duration_seconds = (datetime.now() - print_datetime).total_seconds()
+                new_duration = (datetime.now() - print_datetime).total_seconds()
 
-                # ✅ On ne met à jour duration que si elle correspond à original_duration
-                if row["duration"] == row["original_duration"]:
+                # --- Conditions de mise à jour de 'duration' ---
+                can_update_duration = False
+
+                # 1) duration ne doit pas avoir divergé de original_duration
+                same_as_original = (row["duration"] == row["original_duration"])
+
+                if same_as_original:
+                    old = row["duration"]
+
+                    # 2) La nouvelle durée doit être dans ±20% de l'ancienne, si old est exploitable
+                    if isinstance(old, (int, float)) and old is not None and old > 0:
+                        lower = 0.8 * float(old)
+                        upper = 1.2 * float(old)
+                        if lower <= new_duration <= upper:
+                            can_update_duration = True
+                    else:
+                        # Pas de baseline fiable -> on n'applique pas la contrainte des 20%
+                        can_update_duration = True
+
+                if can_update_duration:
                     cursor.execute("""
                         UPDATE prints
                         SET status = ?, duration = ?
                         WHERE job_id = ?
-                    """, (value, duration_seconds, job_id))
+                    """, (value, new_duration, job_id))
                 else:
-                    # On ne met à jour que le statut
+                    # On ne touche pas à duration : on met à jour uniquement le statut
                     cursor.execute("""
                         UPDATE prints
                         SET status = ?
                         WHERE job_id = ?
                     """, (value, job_id))
             else:
-                # Pas de print_date → mise à jour uniquement du statut
+                # Pas de print_date -> mise à jour uniquement du statut
                 cursor.execute("""
                     UPDATE prints
                     SET status = ?
@@ -785,7 +803,7 @@ def update_print_field_with_job_id(job_id: int, field: str, value) -> None:
             """, (value, job_id))
 
     else:
-        # Autres champs : mise à jour directe
+        # Autres champs : mise à jour directe (⚠️ valider 'field' côté appelant pour éviter l'injection SQL)
         query = f"UPDATE prints SET {field} = ? WHERE job_id = ?"
         cursor.execute(query, (value, job_id))
 
