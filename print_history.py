@@ -1384,6 +1384,7 @@ def recalculate_group_data(group_id: int, spools_by_id: dict) -> None:
         electric_cost += print_row["electric_cost"]
         full_cost += print_row["full_cost"]
         full_normal_cost += print_row["full_normal_cost"]
+        duration += print_row["duration"]
 
     full_cost_by_item = full_cost / number_of_items if number_of_items else 0.0
     full_normal_cost_by_item = full_normal_cost / number_of_items if number_of_items else 0.0
@@ -1394,12 +1395,12 @@ def recalculate_group_data(group_id: int, spools_by_id: dict) -> None:
         UPDATE print_groups SET
             total_weight = ?, total_cost = ?, total_normal_cost = ?,
             electric_cost = ?, full_cost = ?, full_normal_cost = ?,
-            full_cost_by_item = ?, full_normal_cost_by_item = ?, margin = ?
+            full_cost_by_item = ?, full_normal_cost_by_item = ?, margin = ?, duration = ?
         WHERE id = ?
     """, (
         total_weight, total_cost, total_normal_cost,
         electric_cost, full_cost, full_normal_cost,
-        full_cost_by_item, full_normal_cost_by_item, margin,
+        full_cost_by_item, full_normal_cost_by_item, margin, duration
         group_id
     ))
 
