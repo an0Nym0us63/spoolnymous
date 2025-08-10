@@ -17,7 +17,7 @@
         {% if ams_id|int != EXTERNAL_SPOOL_AMS_ID %}
           {{ (tray_data.id|int + 1) }}
         {% else %}
-          External
+          Externe
         {% endif %}
         {% if tray_data.name %}
   - {{ tray_data.name }}
@@ -33,7 +33,7 @@
           {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
           - {{ tray_data.vendor }}
         {% else %}
-          Empty
+          Vide
         {% endif %}
       </div>
     </div>
