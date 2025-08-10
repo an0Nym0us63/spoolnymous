@@ -1400,7 +1400,7 @@ def recalculate_group_data(group_id: int, spools_by_id: dict) -> None:
     """, (
         total_weight, total_cost, total_normal_cost,
         electric_cost, full_cost, full_normal_cost,
-        full_cost_by_item, full_normal_cost_by_item, margin, duration
+        full_cost_by_item, full_normal_cost_by_item, margin, duration,
         group_id
     ))
 
