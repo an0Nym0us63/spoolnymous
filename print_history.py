@@ -1403,6 +1403,7 @@ def recalculate_group_data(group_id: int, spools_by_id: dict) -> None:
 
     total_cost = total_normal_cost = total_weight = 0.0
     electric_cost = full_cost = full_normal_cost = 0.0
+    duration = 0.0
 
     for p in prints:
         recalculate_print_data(p["id"], spools_by_id)
