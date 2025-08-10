@@ -295,7 +295,7 @@ let status = data.status || '...';
 
 switch (status) {
   case 'RUNNING':
-    status = 'En cours';
+    status = 'Impression ...';
     break;
   case 'PAUSE':
     status = 'Pause';
@@ -305,6 +305,8 @@ switch (status) {
     break;
   case 'FINISH':
     status = 'Terminé';
+  case 'IDLE':
+    status = 'Au repos';
     break;
 }
 

@@ -566,7 +566,7 @@ def async_subscribe():
                     logger.info("Connected ...")
 
                 except Exception as e:
-                    logger.info(f"⚠️ connection failed: {e}, new try in 15 seconds...", flush=True)
+                    logger.info(f"⚠️ connection failed: {e}, new try in 15 seconds...")
 
                 time.sleep(15)
 
