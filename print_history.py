@@ -741,22 +741,36 @@ def update_print_field_with_job_id(job_id: int, field: str, value) -> None:
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # Si on modifie le statut, on calcule aussi la durée si possible
     if field == "status":
         try:
-            cursor.execute("SELECT print_date FROM prints WHERE job_id = ? LIMIT 1", (job_id,))
+            cursor.execute("""
+                SELECT print_date, duration, original_duration
+                FROM prints
+                WHERE job_id = ?
+                LIMIT 1
+            """, (job_id,))
             row = cursor.fetchone()
+
             if row and row["print_date"]:
                 print_datetime = datetime.strptime(row["print_date"], "%Y-%m-%d %H:%M:%S")
                 duration_seconds = (datetime.now() - print_datetime).total_seconds()
 
-                cursor.execute("""
-                    UPDATE prints
-                    SET status = ?, duration = ?
-                    WHERE job_id = ?
-                """, (value, duration_seconds, job_id))
+                # ✅ On ne met à jour duration que si elle correspond à original_duration
+                if row["duration"] == row["original_duration"]:
+                    cursor.execute("""
+                        UPDATE prints
+                        SET status = ?, duration = ?
+                        WHERE job_id = ?
+                    """, (value, duration_seconds, job_id))
+                else:
+                    # On ne met à jour que le statut
+                    cursor.execute("""
+                        UPDATE prints
+                        SET status = ?
+                        WHERE job_id = ?
+                    """, (value, job_id))
             else:
-                # Pas de print_date, mise à jour uniquement du statut
+                # Pas de print_date → mise à jour uniquement du statut
                 cursor.execute("""
                     UPDATE prints
                     SET status = ?
@@ -764,7 +778,6 @@ def update_print_field_with_job_id(job_id: int, field: str, value) -> None:
                 """, (value, job_id))
         except Exception as e:
             print(f"[WARN] Erreur lors du calcul de durée pour job_id={job_id} : {e}")
-            # Fallback : mise à jour simple du statut
             cursor.execute("""
                 UPDATE prints
                 SET status = ?
