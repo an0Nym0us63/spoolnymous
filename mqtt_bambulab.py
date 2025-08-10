@@ -19,7 +19,7 @@ from print_history import  insert_print, insert_filament_usage, update_filament_
 
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK, PROCESSED_JOBS, PENDING_JOBS
 import logging
-logger = logging.getLogger(__name_)
+logger = logging.getLogger(__name__)
 
 MQTT_CLIENT = {}  # Global variable storing MQTT Client
 MQTT_CLIENT_CONNECTED = False
