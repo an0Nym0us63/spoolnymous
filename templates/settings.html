@@ -83,6 +83,46 @@
       </div>
     {% endif %}
   </section>
+  
+  <!-- Section Lien invité -->
+<h2>Lien invité (lecture seule)</h2>
+
+<form method="post" class="mb-3">
+  <input type="hidden" name="create_guest_link" value="1">
+  <label>Validité (jours): <input type="number" name="guest_days_valid" min="1" value="30"></label>
+  <button type="submit" class="btn btn-primary">Créer un lien invité</button>
+</form>
+
+{% if guest_links and guest_links|length > 0 %}
+  <table class="table">
+    <thead>
+      <tr><th>URL</th><th>Créé le</th><th>Expire le</th><th>Statut</th><th></th></tr>
+    </thead>
+    <tbody>
+    {% for gl in guest_links %}
+      <tr>
+        <td>
+          <code>{{ url_for('auth.guest_autologin', token=gl.token, _external=True) }}</code>
+        </td>
+        <td>{{ gl.created_at }}</td>
+        <td>{{ gl.expires_at }}</td>
+        <td>
+          {% if gl.revoked %}<span class="text-danger">Révoqué</span>
+          {% else %}<span class="text-success">Actif</span>{% endif %}
+        </td>
+        <td>
+          {% if not gl.revoked %}
+          <form method="post" style="display:inline">
+            <input type="hidden" name="revoke_guest_token" value="{{ gl.token }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Révoquer</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
 
   <!-- 📱 Token mobile -->
   <section class="mb-5">

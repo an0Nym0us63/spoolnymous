@@ -243,12 +243,20 @@ login_manager.login_view = 'auth.login'  # redirige vers /login si non connecté
 login_manager.init_app(app)
 
 @login_manager.user_loader
-def load_user(user_id):
+def load_user(user_id: str):
+    # Invité auto-connecté via /guest/<token>
+    if user_id.startswith("guest:"):
+        return User(user_id, role="guest")
+
+    # Utilisateur stocké (admin configuré)
     data = get_stored_user()
     if data and user_id in data:
-        return User(user_id)
-    elif user_id == app.config.get("DEFAULT_ADMIN_USERNAME", "admin"):
-        return User(user_id)
+        return User(user_id, role="user")
+
+    # Admin par défaut (fallback)
+    if user_id == app.config.get("DEFAULT_ADMIN_USERNAME", "admin"):
+        return User(user_id, role="user")
+
     return None
 
 @app.before_request
@@ -258,7 +266,13 @@ def detect_webview():
 @app.before_request
 def require_login():
     from flask_login import current_user
-    exempt_routes = {'auth.login', 'auth.logout', 'auth.settings', 'auth.autologin_token', 'static'}
+    exempt_routes = {
+        'auth.login',
+        'auth.autologin_token',   # tu l'avais déjà
+        'auth.guest_autologin',   # <-- AJOUT pour le lien invité /guest/<token>
+        'static',
+    }
+    # ⚠️ Retire 'auth.settings' de la whitelist pour protéger la page
     if request.endpoint not in exempt_routes and not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
     
