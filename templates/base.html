@@ -68,37 +68,21 @@
 		{% if current_user.is_authenticated and current_user.is_guest %}
   <span title="Accès invité — lecture seule" style="font-size: 1.2rem; margin-left: .5rem;">👤</span>
 {% endif %}
-{# --- Badge "où je suis" + bouton Retour (inline styles only) --- #}
-{% set origin_url = request.args.get('origin') %}
+{# Bouton "Retour chez moi" libellé avec le nom de l'installation distante #}
+{% set origin_url    = request.args.get('origin') %}
 {% if origin_url %}
-  {% set origin_label   = request.args.get('origin_label','Mon installation') %}
-  {% set current_label  = request.args.get('current_label') %}
-  {% set theme          = request.args.get('theme','dark') %}
-  {% set sep            = '&' if '?' in origin_url else '?' %}
-  {% set origin_link    = origin_url ~ (sep ~ 'theme=' ~ theme if theme else '') %}
+  {% set origin_label  = request.args.get('origin_label','Mon installation') %}
+  {% set current_label = request.args.get('current_label','Installation distante') %}
+  {% set theme         = request.args.get('theme','dark') %}
+  {% set sep           = '&' if '?' in origin_url else '?' %}
+  {% set origin_link   = origin_url ~ (sep ~ 'theme=' ~ theme if theme else '') %}
+  {# Choix du style du bouton selon le thème Bootstrap #}
+  {% set btn_class = 'btn btn-sm ' ~ ('btn-outline-secondary' if theme == 'light' else 'btn-outline-light') %}
 
-  {# couleurs adaptées au thème (sans CSS global) #}
-  {% set badge_bg   = '#0d6efd' %}
-  {% set badge_fg   = '#ffffff' %}
-  {% if theme == 'light' %}
-    {% set back_fg   = '#212529' %}
-    {% set back_bd   = '#6c757d' %}
-  {% else %}
-    {% set back_fg   = '#ffffff' %}
-    {% set back_bd   = 'rgba(255,255,255,.6)' %}
-  {% endif %}
-
-  <span
-    style="display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .6rem;border-radius:9999px;
-           font-weight:600;line-height:1;max-width:24ch;white-space:nowrap;overflow:hidden;
-           background:{{ badge_bg }};color:{{ badge_fg }};margin-left:.5rem;">
-    🌐 <span style="text-overflow:ellipsis;overflow:hidden;">{{ current_label or 'Installation distante' }}</span>
-  </span>
-
-  <a href="{{ origin_link | safe }}" title="Revenir à {{ origin_label }}"
-     style="margin-left:.5rem;line-height:1;padding:.25rem .6rem;border-radius:.6rem;
-            border:1px solid {{ back_bd }};color:{{ back_fg }};text-decoration:none;">
-    ↩ Retour
+  <a href="{{ origin_link | safe }}"
+     class="{{ btn_class }} ms-2"
+     title="Revenir à {{ origin_label }}">
+    <i class="bi bi-arrow-left-short"></i> {{ current_label }}
   </a>
 {% endif %}
 </a>
