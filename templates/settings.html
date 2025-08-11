@@ -184,7 +184,57 @@
     <div class="text-muted fst-italic">Aucun lien invité créé pour le moment.</div>
   {% endif %}
 </section>
+<section class="mb-5">
+  <h4 class="text-light mb-4">🌐 Installations externes</h4>
 
+  <form method="post" class="mb-3">
+    <input type="hidden" name="add_installation" value="1">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label text-light">Nom</label>
+        <input type="text" name="install_label" class="form-control" placeholder="Ex: Atelier de Paul">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label text-light">URL invité</label>
+        <input type="url" name="install_guest_url" class="form-control" placeholder="https://.../guest/<token>" required>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Ajouter</button>
+      </div>
+    </div>
+  </form>
+
+  {% if installations and installations|length > 0 %}
+    <div class="table-responsive">
+      <table class="table table-sm table-striped table-bordered align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Nom</th>
+            <th>URL invité</th>
+            <th style="width:70px"></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for it in installations %}
+          <tr>
+            <td>{{ it.label or ('Installation #' ~ it.id) }}</td>
+            <td class="text-break"><code>{{ it.guest_url }}</code></td>
+            <td class="text-center">
+              <form method="post" style="display:inline">
+                <button name="remove_installation" value="{{ it.id }}" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                  <i class="bi bi-x-circle"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="text-muted fst-italic">Aucune installation externe configurée.</div>
+  {% endif %}
+</section>
 
   <!-- 🧮 Maintenance -->
   <section class="mb-5">

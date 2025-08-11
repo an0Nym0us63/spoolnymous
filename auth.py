@@ -7,6 +7,7 @@ import os
 import json
 import secrets
 from datetime import datetime, timedelta  # NEW
+from installations import add_installation, remove_installation, load_installations 
 
 from config import DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD, set_app_setting, get_all_app_settings
 
@@ -235,6 +236,27 @@ def settings():
             else:
                 flash("Échec de révocation (token inconnu).", "warning")
             return redirect(url_for('auth.settings'))
+        
+        elif request.form.get("add_installation") == "1":
+            label = (request.form.get("install_label") or "").strip()
+            guest_url = (request.form.get("install_guest_url") or "").strip()
+            if not guest_url:
+                flash("URL invité requise.", "warning")
+            else:
+                add_installation(label, guest_url)
+                flash("Installation ajoutée ✅", "success")
+            return redirect(url_for('auth.settings'))
+
+        elif request.form.get("remove_installation"):
+            try:
+                iid = int(request.form.get("remove_installation"))
+                if remove_installation(iid):
+                    flash("Installation supprimée ✅", "success")
+                else:
+                    flash("Installation introuvable.", "warning")
+            except Exception:
+                flash("ID invalide.", "warning")
+            return redirect(url_for('auth.settings'))
 
     return render_template(
         "settings.html",
@@ -243,7 +265,8 @@ def settings():
         token=user_token,
         settings=get_all_app_settings(),
         page_title="Paramètres",
-        guest_links=list_guest_links(),  # NEW: pour afficher dans le template
+        guest_links=list_guest_links(),
+        installations=load_installations()
     )
 
 @auth_bp.route("/autologin/<token>")

@@ -28,6 +28,9 @@ from spoolman_client import patchExtraTags, getSpoolById, consumeSpool, archive_
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings,fetchSpools
 from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print,get_all_tray_spool_mappings,set_tray_spool_map,delete_all_tray_spool_mappings
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
+from installations import load_installations
+from remote import remote_bp
+app.register_blueprint(remote_bp)
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -286,7 +289,13 @@ def hm_format(hours: float):
     h = int(hours)
     m = int(round((hours - h) * 60))
     return f"{h}h {m:02d}min"
-    
+
+@app.context_processor
+def inject_installations():
+    return {
+        "installations": load_installations()
+    }
+
 @app.context_processor
 def frontend_utilities():
     def url_with_args(**kwargs):
