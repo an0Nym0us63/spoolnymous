@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+{% import 'macros/hidden_args.jinja2' as macros %}
 <div class="container my-4">
 
   <!-- Bouton flottant filtres -->
@@ -22,6 +23,8 @@
 </div>
     <div class="offcanvas-body">
       <form method="get">
+	  
+		{{ macros.render_filtered_args(args, ['search', 'color', 'filament_type', 'period']) }}
         <div class="row row-cols-1 row-cols-md-2 g-3">
           <div class="col">
             <label for="period">Période</label>

@@ -154,10 +154,11 @@ def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
     return pages
 
 DEFAULT_KEEP_KEYS = {
-    'print_history': ["page", "filament_type", "color", "filament_id", "status", "search", "sold_filter","origin","origin_label"],
+    'print_history': ["page", "filament_type", "color", "filament_id", "status", "search", "sold_filter","origin","origin_label","current_label"],
     'filaments': ["page", "search", "color", "sort", "include_archived",
                   "assign_print_id", "assign_filament_index", "assign_filament_type","assign_filament_id","assign_sold_filter", "assign_color","assign_page", "assign_search","assign_status", "filament_usage",
-                  "ams", "tray","is_assign_mode","tray_uuid","tray_info_idx","tray_color","origin","origin_label"],
+                  "ams", "tray","is_assign_mode","tray_uuid","tray_info_idx","tray_color","origin","origin_label","current_label"],
+    'stats': ["period","search","filament_type","color","origin","origin_label","current_label"],
 }
 
 def _merge_context_args(keep=None, drop=None, endpoint=None, **new_args):
@@ -1265,7 +1266,8 @@ def stats():
         filters=filters,
         search=search,
         distinct_values=get_distinct_values(),
-        page_title="Statistiques"
+        page_title="Statistiques",
+        args=_merge_context_args()
     )
 
 @app.route("/adjust_duration", methods=["POST"])
