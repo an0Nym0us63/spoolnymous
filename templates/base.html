@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="{{ request.args.get('theme', 'dark') }}">
+<html lang="en" data-bs-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="initial-scale=1.2, shrink-to-fit=yes, user-scalable=no">
@@ -165,18 +165,6 @@
 {% block scripts %}{% endblock %}
 
 <script>
-;(function () {
-  const htmlElement = document.querySelector("html")
-  if (htmlElement.getAttribute("data-bs-theme") === 'auto') {
-    function updateTheme() {
-      document.querySelector("html").setAttribute("data-bs-theme",
-          window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-    }
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme)
-    updateTheme()
-  }
-})()
-
 function openNativeSettings() {
     if (window.Android && window.Android.openSettings) {
       window.Android.openSettings();
