@@ -15,7 +15,6 @@ import secrets
 
 from flask_login import LoginManager, login_required
 from auth import auth_bp, User, get_stored_user
-
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -155,10 +154,10 @@ def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
     return pages
 
 DEFAULT_KEEP_KEYS = {
-    'print_history': ["page", "filament_type", "color", "filament_id", "status", "search", "sold_filter"],
+    'print_history': ["page", "filament_type", "color", "filament_id", "status", "search", "sold_filter","origin","origin_label"],
     'filaments': ["page", "search", "color", "sort", "include_archived",
                   "assign_print_id", "assign_filament_index", "assign_filament_type","assign_filament_id","assign_sold_filter", "assign_color","assign_page", "assign_search","assign_status", "filament_usage",
-                  "ams", "tray","is_assign_mode","tray_uuid","tray_info_idx","tray_color"],
+                  "ams", "tray","is_assign_mode","tray_uuid","tray_info_idx","tray_color","origin","origin_label"],
 }
 
 def _merge_context_args(keep=None, drop=None, endpoint=None, **new_args):
@@ -253,14 +252,25 @@ app.config.update(
 )
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# ⚠ Autorise l'embed en iframe (simple, “entre potes”)
-@app.after_request
-def allow_iframe(resp):
-    # Supprime X-Frame-Options si un middleware l’ajoute
-    resp.headers.pop('X-Frame-Options', None)
-    # Autorise toutes origines à embarquer cette app (le plus permissif)
-    resp.headers['Content-Security-Policy'] = "frame-ancestors *"
-    return resp
+@app.url_value_preprocessor
+def _pull_origin(endpoint, values):
+    g._origin = request.args.get('origin')
+    g._origin_label = request.args.get('origin_label')
+    g._theme = request.args.get('theme')
+    g._current_label = request.args.get('current_label')  # 👈
+
+@app.url_defaults
+def _push_origin(endpoint, values):
+    if endpoint == 'static':
+        return
+    if g.get('_origin') and 'origin' not in values:
+        values['origin'] = g._origin
+    if g.get('_origin_label') and 'origin_label' not in values:
+        values['origin_label'] = g._origin_label
+    if g.get('_theme') and 'theme' not in values:
+        values['theme'] = g._theme
+    if g.get('_current_label') and 'current_label' not in values:  # 👈
+        values['current_label'] = g._current_label
 
 @login_manager.user_loader
 def load_user(user_id: str):

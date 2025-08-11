@@ -6,7 +6,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="OpenSpoolMan">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>SpoolNymous</title>
+
+<title>SpoolNymous
+{% if page_title %}
+- {{ page_title or '' }}
+{% endif %}
+{% if request.args.get('current_label') %}
+- {{ request.args.get('current_label')}}
+{% endif %}
+</title>
 
 <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
@@ -60,6 +68,17 @@
 		{% if current_user.is_authenticated and current_user.is_guest %}
   <span title="Accès invité — lecture seule" style="font-size: 1.2rem; margin-left: .5rem;">👤</span>
 {% endif %}
+{% set origin_url = request.args.get('origin') %}
+{% if origin_url %}
+  {# badge "Retour" déjà ajouté plus tôt si tu le souhaites #}
+{% endif %}
+
+{# 👇 Badge "où je suis" transmis par current_label #}
+{% if request.args.get('current_label') %}
+  <span class="badge rounded-pill text-bg-info ms-2" title="Installation sélectionnée">
+    🌐 {{ request.args.get('current_label') }}
+  </span>
+{% endif %}
 </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -98,17 +117,9 @@
         <li><hr class="dropdown-divider"></li>
       {% endif %}
 
-      {# 2) Mon installation (toujours en premier) #}
-      <li>
-        <a class="dropdown-item" href="{{ url_for('home', theme=request.args.get('theme')) }}">
-          🏠 Mon installation
-        </a>
-      </li>
-      <li><hr class="dropdown-divider"></li>
-
       {# 3) Autres installations #}
       {% for inst in installations %}
-        <li>
+        <li data-requires-write>
           <a class="dropdown-item"
              href="{{ url_for('switch.switch_install', install_id=inst.id, theme=request.args.get('theme')) }}">
             {{ inst.label or ('Installation #' ~ inst.id) }}
