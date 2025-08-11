@@ -459,9 +459,7 @@ def on_message(client, userdata, msg):
             traceback.print_exc()
       if AUTO_SPEND:
           update_dict(PRINTER_STATE, data)
-          if ("command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]) or (( "print_type" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["print_type"] ==  "local" and
-            "print" in PRINTER_STATE_LAST
-          )):
+          if ("command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]) or (( "print_type" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["print_type"] == "local" and "print" in PRINTER_STATE_LAST)):
           # Lance processMessage en thread si pas déjà en cours
           if PROCESSMSG_LOCK.acquire(blocking=False):
               fire_and_forget(processMessage, data, name="processMessage")
