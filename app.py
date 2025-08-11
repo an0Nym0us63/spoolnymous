@@ -252,6 +252,14 @@ app.config.update(
 )
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
+@app.before_request
+def strip_theme_param():
+    # On ne touche qu'aux GET avec un endpoint FLASK
+    if request.method == 'GET' and request.endpoint and 'theme' in request.args and request.endpoint != 'static':
+        args = request.args.to_dict(flat=True)
+        args.pop('theme', None)
+        return redirect(url_for(request.endpoint, **(request.view_args or {}), **args), code=302)
+        
 @app.url_value_preprocessor
 def _pull_origin(endpoint, values):
     g._origin = request.args.get('origin')
