@@ -68,24 +68,21 @@
 		{% if current_user.is_authenticated and current_user.is_guest %}
   <span title="Accès invité — lecture seule" style="font-size: 1.2rem; margin-left: .5rem;">👤</span>
 {% endif %}
-{# Bouton "Retour chez moi" libellé avec le nom de l'installation distante #}
-{% set origin_url    = request.args.get('origin') %}
+</a>
+{% set origin_url = request.args.get('origin') %}
 {% if origin_url %}
   {% set origin_label  = request.args.get('origin_label','Mon installation') %}
   {% set current_label = request.args.get('current_label','Installation distante') %}
-  {% set theme         = request.args.get('theme','dark') %}
-  {% set sep           = '&' if '?' in origin_url else '?' %}
-  {% set origin_link   = origin_url ~ (sep ~ 'theme=' ~ theme if theme else '') %}
-  {# Choix du style du bouton selon le thème Bootstrap #}
-  {% set btn_class = 'btn btn-sm ' ~ ('btn-outline-secondary' if theme == 'light' else 'btn-outline-light') %}
+  {% set theme        = request.args.get('theme') %}
+  {% set sep          = '&' if '?' in origin_url else '?' %}
+  {% set origin_link  = origin_url ~ (sep ~ 'theme=' ~ theme if theme else '') %}
 
   <a href="{{ origin_link | safe }}"
-     class="{{ btn_class }} ms-2"
+     class="btn btn-sm btn-primary rounded-pill d-inline-flex align-items-center ms-1 px-2 py-0"
      title="Revenir à {{ origin_label }}">
-    <i class="bi bi-arrow-left-short"></i> {{ current_label }}
+    <i class="bi bi-arrow-left me-1"></i>{{ current_label }}
   </a>
 {% endif %}
-</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
