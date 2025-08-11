@@ -61,22 +61,6 @@
   <span title="Accès invité — lecture seule" style="font-size: 1.2rem; margin-left: .5rem;">👤</span>
 {% endif %}
 </a>
-{% if current_user.is_authenticated and installations and installations|length > 0 %}
-  <li class="nav-item dropdown">
-    <a class="nav-link dropdown-toggle" href="#" id="instDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-      🌐 Installations
-    </a>
-    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="instDropdown">
-      {% for inst in installations %}
-        <li>
-          <a class="dropdown-item" href="{{ url_for('remote.remote_view', install_id=inst.id) }}">
-            {{ inst.label or ('Installation #' ~ inst.id) }}
-          </a>
-        </li>
-      {% endfor %}
-    </ul>
-  </li>
-{% endif %}
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -97,12 +81,43 @@
   <li class="nav-item">
     <a href="{{ url_for('stats') }}" class="nav-link">📊 Statistiques</a>
   </li>
+  {% if current_user.is_authenticated and installations and installations|length > 0 %}
+  <li class="nav-item dropdown">
+    <a class="nav-link dropdown-toggle" href="#" id="instDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+      🌐 Installations
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="instDropdown" style="min-width: 260px;">
+      {# 1) Si on vient d'une autre instance → entrée de retour en tête #}
+      {% set origin_url = request.args.get('origin') %}
+      {% if origin_url %}
+        <li>
+          <a class="dropdown-item" href="{{ origin_url | safe }}">
+            ↩ Retour : {{ request.args.get('origin_label','Mon installation') }}
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+      {% endif %}
 
-  {% if not g.is_webview %}
-    <li class="nav-item">
-      <a href="{{ SPOOLMAN_BASE_URL }}" target="_blank" class="nav-link" data-requires-write>🔗 SpoolMan</a>
-    </li>
-  {% endif %}
+      {# 2) Mon installation (toujours en premier) #}
+      <li>
+        <a class="dropdown-item" href="{{ url_for('home', theme=request.args.get('theme')) }}">
+          🏠 Mon installation
+        </a>
+      </li>
+      <li><hr class="dropdown-divider"></li>
+
+      {# 3) Autres installations #}
+      {% for inst in installations %}
+        <li>
+          <a class="dropdown-item"
+             href="{{ url_for('switch.switch_install', install_id=inst.id, theme=request.args.get('theme')) }}">
+            {{ inst.label or ('Installation #' ~ inst.id) }}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </li>
+{% endif %}
 
   {% if current_user.is_authenticated %}
     <li class="nav-item">
