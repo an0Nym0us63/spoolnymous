@@ -42,13 +42,11 @@ def switch_install(install_id: int):
     target = _force_https(inst["guest_url"])
 
     # Paramètres à propager
-    theme = request.args.get("theme")
     origin = _current_origin()
     origin_label = get_app_setting("PRINTER_NAME", "Mon installation")
     current_label = inst.get("label") or f"Installation #{install_id}"  # 👈 nom tel que défini CHEZ TOI
 
     target = _append_params(target, {
-        "theme": theme,
         "origin": origin,
         "origin_label": origin_label,
         "current_label": current_label,  # 👈 on envoie aussi le label cible

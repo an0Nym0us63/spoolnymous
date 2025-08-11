@@ -74,7 +74,6 @@
   {% if origin_url %}
     {% set origin_label  = request.args.get('origin_label','Mon installation') %}
     {% set current_label = request.args.get('current_label','Installation distante') %}
-    {% set theme         = request.args.get('theme','dark') %}
     {% set sep           = '&' if '?' in origin_url else '?' %}
     {% set origin_link   = origin_url ~ (sep ~ 'theme=' ~ theme if theme else '') %}
 
