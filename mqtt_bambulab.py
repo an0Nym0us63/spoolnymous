@@ -31,6 +31,27 @@ PRINTER_STATE_LAST = {}
 
 PENDING_PRINT_METADATA = {}
 
+# --- Async helper pour ne pas bloquer le thread MQTT ---
+PROCESSMSG_LOCK = Lock()  # empêche les exécutions concurrentes de processMessage
+
+def fire_and_forget(fn, *args, name=None, **kwargs):
+    def _runner():
+        t0 = time.time()
+        try:
+            logger.info(f"[async] {fn.__name__} start")
+            fn(*args, **kwargs)
+            dt = time.time() - t0
+            logger.info(f"[async] {fn.__name__} done in {dt:.1f}s")
+        except Exception:
+            logger.exception(f"[async] {fn.__name__} crashed")
+        finally:
+            # Libère le verrou si on l'avait pris
+            try:
+                PROCESSMSG_LOCK.release()
+            except RuntimeError:
+                pass
+    Thread(target=_runner, name=name or fn.__name__, daemon=True).start()
+
 def update_status(new_data):
     with PRINTER_STATUS_LOCK:
         PRINTER_STATUS.update(new_data)
@@ -440,7 +461,11 @@ def on_message(client, userdata, msg):
       append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
 
     if AUTO_SPEND:
-        processMessage(data)
+        # Lance processMessage en thread si pas déjà en cours
+        if PROCESSMSG_LOCK.acquire(blocking=False):
+            fire_and_forget(processMessage, data, name="processMessage")
+        else:
+            logger.debug("[async] processMessage déjà en cours — skip")
       
     # Save external spool tray data
     if "print" in data and "vt_tray" in data["print"]:
