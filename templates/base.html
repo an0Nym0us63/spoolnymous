@@ -75,7 +75,7 @@
     {% set origin_label  = request.args.get('origin_label','Mon installation') %}
     {% set current_label = request.args.get('current_label','Installation distante') %}
     {% set sep           = '&' if '?' in origin_url else '?' %}
-    {% set origin_link   = origin_url ~ (sep ~ 'theme=' ~ theme if theme else '') %}
+    {% set origin_link   = origin_url%}
 
     <a href="{{ origin_link | safe }}"
        class="btn btn-sm btn-primary rounded-pill px-2 py-0 mt-1"
@@ -114,7 +114,7 @@
       {% for inst in installations %}
         <li>
           <a class="dropdown-item"
-             href="{{ url_for('switch.switch_install', install_id=inst.id, theme=request.args.get('theme')) }}">
+             href="{{ url_for('switch.switch_install', install_id=inst.id) }}">
             {{ inst.label or ('Installation #' ~ inst.id) }}
           </a>
         </li>
