@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlparse, unquote
 from config import get_app_setting
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,7 @@ def get_filament_order(file):
     return filament_order
 
 def download3mfFromCloud(url, destFile):
-  print("Downloading 3MF file from cloud...")
+  logger.info("Downloading 3MF file from cloud...")
   # Download the file and save it to the temporary file
   response = requests.get(url)
   response.raise_for_status()
@@ -71,105 +72,161 @@ def download3mfFromCloud(url, destFile):
 
 def encode_custom_hex(filename):
     return ''.join(f"{ord(c):02x}" if c in "/:" else c for c in filename)
-    
-def download3mfFromFTP(filename, taskname, destFile):
-    CHECK_INTERVAL = 6
-    TIMEOUT = 180
-    start_time = time.time()
 
-    logger.info("Downloading 3MF file from FTP...")
+def download3mfFromFTP(filename, taskname, destFile):
+    """
+    Mono-fonction FTPS:
+      - attend l’apparition du fichier,
+      - vérifie que MDTM (UTC) est à moins de 60s de maintenant,
+      - vérifie la stabilité (taille + mtime) sur 3 cycles,
+      - télécharge,
+      - timeout global: 180s.
+
+    Retourne le chemin local du fichier téléchargé (destFile.name) si OK.
+    Lève TimeoutError si non stable/non frais après 180s.
+    Relève l’exception pycurl.error en cas d’erreur de transfert.
+    """
+    # Paramètres de contrôle
+    CHECK_INTERVAL   = 5           # secondes entre sondes
+    TIMEOUT_SEC      = 240         # timeout global
+    STABLE_CYCLES    = 3           # cycles identiques requis
+    FRESH_MAX_AGE_S  = 60          # fichier "frais" = mtime <= 60s
+    MDTM_RE          = re.compile(r"(?:^|[\r\n])\s*\d{3}\s+(\d{14})(?:\.\d+)?\b", re.IGNORECASE)
+    
     ftp_host = get_app_setting("PRINTER_IP","")
     ftp_user = "bblp"
     ftp_pass = get_app_setting("PRINTER_ACCESS_CODE","")
+
+    logger.info("Downloading 3MF file from FTP...")
+    # Encodage minimal du taskname
     taskname = encode_custom_hex(taskname)
 
-    remote_dir = "/cache"
+    # Chemins/URLs
+    remote_dir  = "/cache"
     remote_name = f"{taskname}.gcode.3mf"
-    remote_name_enc = urllib.parse.quote(remote_name)
-    url = f"ftps://{ftp_host}{remote_dir}/{remote_name_enc}"
+    remote_name_enc = urllib.parse.quote(remote_name)           # pour l’URL de transfert
+    url      = f"ftps://{ftp_host}{remote_dir}/{remote_name_enc}"
+    raw_path = f"{remote_dir}/{remote_name}"                    # pour QUOTE MDTM (non encodé)
     local_path = destFile.name
 
     logger.debug(f"Waiting for file to appear and stabilize: {url}")
-    time.sleep(5)
+    time.sleep(5)  # petit délai initial pour laisser l’imprimante créer le fichier
 
-    last_size = -1
-    stable_count = 0
+    start = time.time()
+    last_sig = None  # (size, mtime) avec -1 si None
+    stable = 0
 
     c = pycurl.Curl()
     try:
-        # 🔧 Connexion unique + réglages FTP/FTPS robustes
+        # Connexion FTPS de base
         c.setopt(c.URL, url)
         c.setopt(c.USERPWD, f"{ftp_user}:{ftp_pass}")
         c.setopt(c.SSL_VERIFYPEER, 0)
         c.setopt(c.SSL_VERIFYHOST, 0)
         c.setopt(c.FTP_SSL, c.FTPSSL_ALL)
         c.setopt(c.FTPSSLAUTH, c.FTPAUTH_TLS)
-
-        # Chemin traité tel quel (évite des CWD/ReTR fragiles)
-        c.setopt(c.FTP_FILEMETHOD, c.FTPMETHOD_NOCWD)   # <-- clé
-        # Mode binaire, certains firmwares sont sensibles
-        c.setopt(c.TRANSFERTEXT, False)                 # TYPE I
-        # Optionnel: si soucis de data channel en IPv4
-        # c.setopt(c.FTP_USE_EPSV, 0)
-
+        c.setopt(c.FTP_FILEMETHOD, c.FTPMETHOD_NOCWD)
+        c.setopt(c.TRANSFERTEXT, False)          # binaire
         c.setopt(c.CONNECTTIMEOUT, 10)
-        c.setopt(c.NOBODY, True)
         c.setopt(c.TIMEOUT, CHECK_INTERVAL)
+        c.setopt(c.NOBODY, True)
 
-        # Boucle de stabilisation (HEAD=SIZE)
-        while time.time() - start_time < TIMEOUT:
+        # Boucle d’attente + stabilisation
+        while time.time() - start < TIMEOUT_SEC:
+            size = None
+            mtime = None
+
+            # 1) Taille (HEAD/SIZE via NOBODY)
             try:
                 c.perform()
-                current_size = int(c.getinfo(c.CONTENT_LENGTH_DOWNLOAD))
-                logger.debug(f"📏 Current file size: {current_size} bytes")
+                cl = int(c.getinfo(c.CONTENT_LENGTH_DOWNLOAD))
+                size = cl if cl >= 0 else None
+            except pycurl.error:
+                pass  # pas encore disponible
 
-                if current_size == last_size and current_size > 0:
-                    stable_count += 1
-                    logger.debug(f"✅ File size stable {stable_count}/3")
-                    if stable_count >= 3:
+            # 2) MDTM (on capture le transcript via DEBUGFUNCTION)
+            buf = []
+            def _dbg(_t, m):
+                try:
+                    buf.append(m.decode("latin1", "ignore"))
+                except Exception:
+                    pass
+
+            c.setopt(c.VERBOSE, True)
+            c.setopt(c.DEBUGFUNCTION, _dbg)
+            c.setopt(c.QUOTE, [f"MDTM {raw_path}"])
+            try:
+                c.perform()
+            except pycurl.error:
+                pass
+            finally:
+                # IMPORTANT: pas de None pour "désactiver" des options PycURL
+                c.setopt(c.QUOTE, [])                         # efface la liste de QUOTE
+                c.setopt(c.VERBOSE, False)
+                c.setopt(c.DEBUGFUNCTION, (lambda *a, **k: None))
+
+            transcript = "".join(buf)
+            m = MDTM_RE.search(transcript)
+            if m:
+                try:
+                    dt = datetime.strptime(m.group(1)[:14], "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
+                    mtime = int(dt.timestamp())
+                except Exception:
+                    mtime = None
+
+            # Conditions minimales
+            now_utc = int(datetime.now(timezone.utc).timestamp())
+            age_s = None
+            if mtime is not None:
+                age_s = now_utc - mtime
+            
+            fresh_ok = (mtime is not None) and (0 <= age_s <= FRESH_MAX_AGE_S)
+            size_ok  = (size is not None and size > 0)
+            
+            sig = (size if size is not None else -1, mtime if mtime is not None else -1)
+            logger.debug(f"📏 size={size}  🕒 mtime={mtime}  ⏳age={age_s}s  ✅fresh={fresh_ok}")
+
+            if size_ok and fresh_ok:
+                if sig == last_sig:
+                    stable += 1
+                    logger.debug(f"✅ Stable {stable}/{STABLE_CYCLES}")
+                    if stable >= STABLE_CYCLES:
                         break
                 else:
-                    stable_count = 1
-                    last_size = current_size
-                    logger.debug("🔁 File size changed. Resetting stability counter.")
-            except pycurl.error as e:
-                logger.debug(f"📭 File not yet accessible ({e}).")
-                stable_count = 0
+                    last_sig = sig
+                    stable = 1
+                    logger.debug("🔁 Changement détecté. Reset compteur -> 1")
+            else:
+                if sig != last_sig:
+                    last_sig = sig
+                    stable = 0
+                    logger.debug("⏳ Pas prêt (taille/mtime). Reset compteur -> 0")
+
             time.sleep(CHECK_INTERVAL)
         else:
-            logger.error("❌ Timed out: file did not stabilize within 3 minutes.")
-            return
+            raise TimeoutError("Timeout 180s: fichier introuvable/non frais ou taille non stable.")
 
-        logger.info("📥 File is stable. Starting download...")
-
-        # 🔁 Même connexion, on bascule en GET
+        # Téléchargement (même connexion)
+        logger.info("📥 Fichier stable. Lancement du download...")
         c.setopt(c.NOBODY, False)
         c.setopt(c.TIMEOUT, 0)  # pas de petit timeout pendant le download
 
-        # Petits retries ciblés sur 78 (RETR 550)
-        max_attempts = 3
-        for attempt in range(1, max_attempts + 1):
+        # Retries ciblés (RETR 550 / code 78)
+        for attempt in range(1, 4):
             try:
                 with open(local_path, "wb") as f:
                     c.setopt(c.WRITEDATA, f)
                     c.perform()
-                logger.info(f"✅ File successfully downloaded into {local_path} (~{last_size} bytes).")
-                return
+                logger.info(f"✅ Download OK -> {local_path} (~{size} bytes).")
+                return local_path
             except pycurl.error as e:
                 code = e.args[0] if e.args else None
-                if code == 78 and attempt < max_attempts:
-                    logger.warning(f"⚠️  RETR 550 (file exists but path/method mismatch ?). Retrying {attempt}/{max_attempts-1}…")
-                    # Essai alternatif: SINGLECWD si NOCWD échoue
+                if code == 78 and attempt < 3:
+                    logger.warning(f"⚠️ RETR 550 ? Retry {attempt}/2…")
                     c.setopt(c.FTP_FILEMETHOD, c.FTPMETHOD_SINGLECWD)
                     time.sleep(0.3 * attempt)
                     continue
-                # Pour diagnostiquer précisément
-                try:
-                    rc = c.getinfo(c.RESPONSE_CODE)
-                    logger.error(f"❌ Download error: {e} (FTP resp={rc})")
-                except Exception:
-                    logger.error(f"❌ Download error: {e}")
-                return
+                raise
     finally:
         c.close()
 
