@@ -129,7 +129,6 @@ def processMessage(data):
     
    # Prepare AMS spending estimation
   if "print" in data:
-    update_dict(PRINTER_STATE, data)
     #logger.info(str(data))
     if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
       logger.info('1'+str(data))
@@ -223,8 +222,6 @@ def processMessage(data):
       spendFilaments(PENDING_PRINT_METADATA)
 
       PENDING_PRINT_METADATA = {}
-  
-    PRINTER_STATE_LAST = copy.deepcopy(PRINTER_STATE)
 
 def insert_manual_print(local_path, custom_datetime):
     """
@@ -461,11 +458,16 @@ def on_message(client, userdata, msg):
         except Exception as e:
             traceback.print_exc()
       if AUTO_SPEND:
+          update_dict(PRINTER_STATE, data)
+          if ("command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]) or (( "print_type" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["print_type"] ==  "local" and
+            "print" in PRINTER_STATE_LAST
+          )):
           # Lance processMessage en thread si pas déjà en cours
           if PROCESSMSG_LOCK.acquire(blocking=False):
               fire_and_forget(processMessage, data, name="processMessage")
           else:
               logger.debug("[async] processMessage déjà en cours — skip")
+          PRINTER_STATE_LAST = copy.deepcopy(PRINTER_STATE)
       
     # Save external spool tray data
     if "print" in data and "vt_tray" in data["print"]:
