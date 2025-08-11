@@ -69,7 +69,7 @@
   <span title="Accès invité — lecture seule" style="font-size: 1.2rem; margin-left: .5rem;">👤</span>
 {% endif %}
 </a>
-% set origin_url = request.args.get('origin') %}
+{% set origin_url = request.args.get('origin') %}
 {% if origin_url %}
   {% set origin_label  = request.args.get('origin_label','Mon installation') %}
   {% set current_label = request.args.get('current_label','Installation distante') %}
