@@ -103,7 +103,7 @@ def create_database() -> None:
                 full_cost_by_item REAL DEFAULT 0.0,
                 full_normal_cost_by_item REAL DEFAULT 0.0,
                 margin REAL DEFAULT 0.0,
-                job_id INTEGER DEFAULT0,
+                job_id INTEGER DEFAULT 0,
                 original_duration REAL,
                 FOREIGN KEY (group_id) REFERENCES print_groups(id)
             )
@@ -140,7 +140,7 @@ def create_database() -> None:
                 number_of_items INTEGER DEFAULT 1,
                 created_at TEXT,
                 sold_units INTEGER DEFAULT 0,
-                sold_price_total REAL DEFAULT NULL
+                sold_price_total REAL DEFAULT NULL,
                 primary_print_id INTEGER,
                 total_weight REAL DEFAULT 0.0,
                 total_cost REAL DEFAULT 0.0,
@@ -195,7 +195,7 @@ def create_database() -> None:
                 full_cost_by_item REAL DEFAULT 0.0,
                 full_normal_cost_by_item REAL DEFAULT 0.0,
                 margin REAL DEFAULT 0.0,
-                job_id INTEGER DEFAULT0,
+                job_id INTEGER DEFAULT 0,
                 original_duration REAL,
                 FOREIGN KEY (group_id) REFERENCES print_groups(id)
             )
@@ -246,15 +246,6 @@ def create_database() -> None:
             )
         ''')
         
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS tray_spool_map (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                tray_uuid TEXT NOT NULL,
-                tray_info_idx TEXT NOT NULL,
-                color TEXT NOT NULL,
-                spool_id INTEGER NOT NULL
-            )
-        ''')
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS tray_spool_map (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
