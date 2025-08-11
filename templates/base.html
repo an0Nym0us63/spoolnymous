@@ -68,16 +68,38 @@
 		{% if current_user.is_authenticated and current_user.is_guest %}
   <span title="Accès invité — lecture seule" style="font-size: 1.2rem; margin-left: .5rem;">👤</span>
 {% endif %}
+{# --- Badge "où je suis" + bouton Retour (inline styles only) --- #}
 {% set origin_url = request.args.get('origin') %}
 {% if origin_url %}
-  {# badge "Retour" déjà ajouté plus tôt si tu le souhaites #}
-{% endif %}
+  {% set origin_label   = request.args.get('origin_label','Mon installation') %}
+  {% set current_label  = request.args.get('current_label') %}
+  {% set theme          = request.args.get('theme','dark') %}
+  {% set sep            = '&' if '?' in origin_url else '?' %}
+  {% set origin_link    = origin_url ~ (sep ~ 'theme=' ~ theme if theme else '') %}
 
-{# 👇 Badge "où je suis" transmis par current_label #}
-{% if request.args.get('current_label') %}
-  <span class="badge rounded-pill text-bg-info ms-2" title="Installation sélectionnée">
-    🌐 {{ request.args.get('current_label') }}
+  {# couleurs adaptées au thème (sans CSS global) #}
+  {% set badge_bg   = '#0d6efd' %}
+  {% set badge_fg   = '#ffffff' %}
+  {% if theme == 'light' %}
+    {% set back_fg   = '#212529' %}
+    {% set back_bd   = '#6c757d' %}
+  {% else %}
+    {% set back_fg   = '#ffffff' %}
+    {% set back_bd   = 'rgba(255,255,255,.6)' %}
+  {% endif %}
+
+  <span
+    style="display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .6rem;border-radius:9999px;
+           font-weight:600;line-height:1;max-width:24ch;white-space:nowrap;overflow:hidden;
+           background:{{ badge_bg }};color:{{ badge_fg }};margin-left:.5rem;">
+    🌐 <span style="text-overflow:ellipsis;overflow:hidden;">{{ current_label or 'Installation distante' }}</span>
   </span>
+
+  <a href="{{ origin_link | safe }}" title="Revenir à {{ origin_label }}"
+     style="margin-left:.5rem;line-height:1;padding:.25rem .6rem;border-radius:.6rem;
+            border:1px solid {{ back_bd }};color:{{ back_fg }};text-decoration:none;">
+    ↩ Retour
+  </a>
 {% endif %}
 </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -101,25 +123,13 @@
     <a href="{{ url_for('stats') }}" class="nav-link">📊 Statistiques</a>
   </li>
   {% if current_user.is_authenticated and installations and installations|length > 0 %}
-  <li class="nav-item dropdown">
+  <li class="nav-item dropdown" data-requires-write>
     <a class="nav-link dropdown-toggle" href="#" id="instDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
       🌐 Installations
     </a>
     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="instDropdown" style="min-width: 260px;">
-      {# 1) Si on vient d'une autre instance → entrée de retour en tête #}
-      {% set origin_url = request.args.get('origin') %}
-      {% if origin_url %}
-        <li>
-          <a class="dropdown-item" href="{{ origin_url | safe }}">
-            ↩ Retour : {{ request.args.get('origin_label','Mon installation') }}
-          </a>
-        </li>
-        <li><hr class="dropdown-divider"></li>
-      {% endif %}
-
-      {# 3) Autres installations #}
       {% for inst in installations %}
-        <li data-requires-write>
+        <li>
           <a class="dropdown-item"
              href="{{ url_for('switch.switch_install', install_id=inst.id, theme=request.args.get('theme')) }}">
             {{ inst.label or ('Installation #' ~ inst.id) }}
