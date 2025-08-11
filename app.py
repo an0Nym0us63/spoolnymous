@@ -18,6 +18,7 @@ from auth import auth_bp, User, get_stored_user
 
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
@@ -243,8 +244,23 @@ app.secret_key = secrets.token_hex(32)
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'  # redirige vers /login si non connecté
 login_manager.init_app(app)
-
+app.config["PREFERRED_URL_SCHEME"] = "https"
 app.register_blueprint(remote_bp)
+app.config.update(
+    PREFERRED_URL_SCHEME='https',          # url_for(..., _external=True) → https
+    SESSION_COOKIE_SAMESITE='None',        # cookies utilisables en iframe (tiers)
+    SESSION_COOKIE_SECURE=True             # requis avec SameSite=None
+)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+# ⚠ Autorise l'embed en iframe (simple, “entre potes”)
+@app.after_request
+def allow_iframe(resp):
+    # Supprime X-Frame-Options si un middleware l’ajoute
+    resp.headers.pop('X-Frame-Options', None)
+    # Autorise toutes origines à embarquer cette app (le plus permissif)
+    resp.headers['Content-Security-Policy'] = "frame-ancestors *"
+    return resp
 
 @login_manager.user_loader
 def load_user(user_id: str):

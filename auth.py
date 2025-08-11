@@ -107,7 +107,7 @@ def list_guest_links():
 def revoke_guest_link(token: str) -> bool:
     tokens = _load_guest_tokens()
     if token in tokens:
-        tokens[token]["revoked"] = True
+        del tokens[token]                # ⬅️ on supprime l’entrée
         _save_guest_tokens(tokens)
         return True
     return False
