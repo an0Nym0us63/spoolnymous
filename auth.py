@@ -74,7 +74,13 @@ def create_guest_link(days_valid: int = 30) -> str:
     tokens = _load_guest_tokens()
     token = secrets.token_urlsafe(24)
     now = datetime.utcnow()
-    expires_at = (now + timedelta(days=days_valid)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    # 🔹 Si days_valid <= 0 → pas d'expiration
+    if days_valid and days_valid > 0:
+        expires_at = (now + timedelta(days=days_valid)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    else:
+        expires_at = None
+
     tokens[token] = {
         "created_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "expires_at": expires_at,
@@ -82,6 +88,7 @@ def create_guest_link(days_valid: int = 30) -> str:
     }
     _save_guest_tokens(tokens)
     return token
+
 
 def list_guest_links():
     tokens = _load_guest_tokens()
@@ -109,13 +116,16 @@ def _is_guest_token_valid(token: str) -> bool:
     meta = tokens.get(token)
     if not meta or meta.get("revoked"):
         return False
+
     exp = meta.get("expires_at")
-    if exp:
+    if exp:  # s'il y a une date d'expiration → on vérifie
         try:
             dt = datetime.strptime(exp, "%Y-%m-%dT%H:%M:%SZ")
             return datetime.utcnow() <= dt
         except Exception:
             return False
+
+    # 🔹 Pas d'expiration définie → toujours valide
     return True
 
 # =========================
