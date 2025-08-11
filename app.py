@@ -267,8 +267,6 @@ def _push_origin(endpoint, values):
         values['origin'] = g._origin
     if g.get('_origin_label') and 'origin_label' not in values:
         values['origin_label'] = g._origin_label
-    if g.get('_theme') and 'theme' not in values:
-        values['theme'] = g._theme
     if g.get('_current_label') and 'current_label' not in values:  # 👈
         values['current_label'] = g._current_label
 
