@@ -80,7 +80,7 @@ def download3mfFromFTP(filename, taskname, destFile):
       - vérifie que MDTM (UTC) est à moins de 60s de maintenant,
       - vérifie la stabilité (taille + mtime) sur 3 cycles,
       - télécharge,
-      - timeout global: 180s.
+      - timeout global: 240s.
 
     Retourne le chemin local du fichier téléchargé (destFile.name) si OK.
     Lève TimeoutError si non stable/non frais après 180s.
@@ -110,7 +110,6 @@ def download3mfFromFTP(filename, taskname, destFile):
     local_path = destFile.name
 
     logger.debug(f"Waiting for file to appear and stabilize: {url}")
-    time.sleep(5)  # petit délai initial pour laisser l’imprimante créer le fichier
 
     start = time.time()
     last_sig = None  # (size, mtime) avec -1 si None
