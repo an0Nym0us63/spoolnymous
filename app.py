@@ -30,7 +30,6 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from remote import remote_bp
-app.register_blueprint(remote_bp)
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -244,6 +243,8 @@ app.secret_key = secrets.token_hex(32)
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'  # redirige vers /login si non connecté
 login_manager.init_app(app)
+
+app.register_blueprint(remote_bp)
 
 @login_manager.user_loader
 def load_user(user_id: str):
