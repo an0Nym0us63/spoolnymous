@@ -256,7 +256,6 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 def _pull_origin(endpoint, values):
     g._origin = request.args.get('origin')
     g._origin_label = request.args.get('origin_label')
-    g._theme = request.args.get('theme')
     g._current_label = request.args.get('current_label')  # 👈
 
 @app.url_defaults
