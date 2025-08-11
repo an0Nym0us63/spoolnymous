@@ -98,32 +98,32 @@
             <div class="row row-cols-2 row-cols-md-5 g-2 mb-2 text-center">
               <div>⏱ {{ entry.total_duration|hm_format }}</div>
 			  <div>⚖️ {{ '%.1f'|format(entry.total_weight) }}g</div>
-              <div>🎯 {{ '%.2f'|format(entry.total_cost) }} {{ currencysymbol }}
+              <div data-requires-write>🎯 {{ '%.2f'|format(entry.total_cost) }} {{ currencysymbol }}
   <span class="text-muted fst-italic" style="font-size: 0.6em;">
     ({{ '%.2f'|format(entry.total_normal_cost)}})
   </span></div>
-              <div>⚡ {{ '%.2f'|format(entry.electric_cost) }} {{ currencysymbol }}</div>
-              <div>💵 {{ '%.2f'|format(entry.full_cost) }} {{ currencysymbol }}<span class="text-muted fst-italic" style="font-size: 0.6em;">
+              <div data-requires-write>⚡ {{ '%.2f'|format(entry.electric_cost) }} {{ currencysymbol }}</div>
+              <div data-requires-write>💵 {{ '%.2f'|format(entry.full_cost) }} {{ currencysymbol }}<span class="text-muted fst-italic" style="font-size: 0.6em;">
     ({{ '%.2f'|format(entry.full_normal_cost)}})
   </span></div>
 			  {% if entry.number_of_items > 1 %}
-<div>📦 {{ '%.2f'|format(entry.full_cost_by_item) }} {{ currencysymbol }}<span class="text-muted fst-italic" style="font-size: 0.6em;">
+<div data-requires-write>📦 {{ '%.2f'|format(entry.full_cost_by_item) }} {{ currencysymbol }}<span class="text-muted fst-italic" style="font-size: 0.6em;">
     ({{ '%.2f'|format(entry.full_normal_cost_by_item)}})
   </span></div>
 {% endif %}
 {% if (entry.total_price or 0) > 0 and (entry.sold_units or 0) > 0 %}
-  <div>
+  <div data-requires-write>
     💸 {{ '%.2f'|format(entry.total_price) }} {{ currencysymbol }}
     <span class="text-muted fst-italic" style="font-size: 0.6em;">
       vendu
     </span>
   </div>
   {% if entry.number_of_items > 1 %}
-  <div>
+  <div data-requires-write>
     🧾 {{ entry.sold_units }} unité{{ 's' if entry.sold_units > 1 else '' }}
   </div>
   {% endif %}
-  <div>
+  <div data-requires-write>
     📈 {{ '%.2f'|format(entry.margin) }} {{ currencysymbol }}
     <span class="text-muted fst-italic" style="font-size: 0.6em;">marge</span>
   </div>
@@ -200,10 +200,15 @@
                   </div>
                   <div>
                     <strong>#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</strong><br>
-                    <small>{{ filament.spool.filament.name }} - {{ "%.2f"|format(filament.grams_used) }}g - {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}
-  <span class="text-muted fst-italic" style="font-size: 0.6em;">
-    ({{ '%.2f'|format(filament.normal_cost)}})
-  </span></small>
+                    <small>
+  {{ item_name }} – {{ '%.2f'|format(qty) }}g
+  {% if not (current_user.is_authenticated and current_user.is_guest) %}
+    – {{ '%.2f'|format(cost|float) }} {{ currencysymbol }}
+    <span class="text-muted fst-italic" style="font-size:0.6em;">
+      ({{ '%.2f'|format(normal_cost|float) }})
+    </span>
+  {% endif %}
+</small>
                   </div>
                 {% else %}
                   <div>

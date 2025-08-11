@@ -157,32 +157,32 @@
       <div class="row row-cols-2 row-cols-md-5 g-2 mb-2 text-center">
         <div>⏱ {{ print.duration|hm_format }}</div>
         <div>⚖️ {{ '%.1f'|format(print.total_weight) }}g</div>
-        <div>💰 {{ '%.2f'|format(print.total_cost) }} {{ currencysymbol }}
+        <div data-requires-write>💰 {{ '%.2f'|format(print.total_cost) }} {{ currencysymbol }}
   <span class="text-muted fst-italic" style="font-size: 0.6em;">
     ({{ '%.2f'|format(print.total_normal_cost)}})
   </span></div>
-        <div>⚡ {{ '%.2f'|format(print.electric_cost) }} {{ currencysymbol }}</div>
-        <div>💵 {{ '%.2f'|format(print.full_cost) }} {{ currencysymbol }}
+        <div data-requires-write>⚡ {{ '%.2f'|format(print.electric_cost) }} {{ currencysymbol }}</div>
+        <div data-requires-write>💵 {{ '%.2f'|format(print.full_cost) }} {{ currencysymbol }}
   <span class="text-muted fst-italic" style="font-size: 0.6em;">
     ({{ '%.2f'|format(print.full_normal_cost)}})
   </span></div>
         {% if print.number_of_items > 1 %}
-        <div>📦 {{ '%.2f'|format(print.full_cost_by_item) }} {{ currencysymbol }}
+        <div data-requires-write>📦 {{ '%.2f'|format(print.full_cost_by_item) }} {{ currencysymbol }}
   <span class="text-muted fst-italic" style="font-size: 0.6em;">
     ({{ '%.2f'|format(print.full_normal_cost_by_item)}})
   </span></div>
         {% endif %}
 		{% if (print.total_price or 0) > 0 and (print.sold_units or 0) > 0 %}
-  <div>
+  <div data-requires-write>
     💸 {{ '%.2f'|format(print.total_price) }} {{ currencysymbol }}
     <span class="text-muted fst-italic" style="font-size: 0.6em;">vendu</span>
   </div>
   {% if print.number_of_items > 1 %}
-  <div>
+  <div data-requires-write>
     🧾 {{ print.sold_units }} unité{{ 's' if print.sold_units > 1 else '' }}
   </div>
   {% endif %}
-  <div>
+  <div data-requires-write>
     📈 {{ '%.2f'|format(print.margin) }} {{ currencysymbol }}
     <span class="text-muted fst-italic" style="font-size: 0.6em;">marge</span>
   </div>
@@ -279,11 +279,13 @@
                     <strong>#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</strong><br>
                     <small>
   {{ filament.spool.filament.name }} –
-  {{ "%.2f"|format(filament.grams_used) }}g –
-  {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}
-  <span class="text-muted fst-italic" style="font-size: 0.6em;">
-    ({{ '%.2f'|format(filament.normal_cost)}})
-  </span>
+  {{ "%.2f"|format(filament.grams_used) }}g
+  {% if not (current_user.is_authenticated and current_user.is_guest) %}
+    – {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}
+    <span class="text-muted fst-italic" style="font-size: 0.6em;">
+      ({{ '%.2f'|format(filament.normal_cost) }})
+    </span>
+  {% endif %}
 </small>
                   </div>
                 {% else %}
@@ -331,7 +333,7 @@
           {% for tag in print.tags %}
             <span class="badge bg-primary">
               {{ tag }}
-              <button class="btn-close btn-close-white btn-sm ms-1 remove-tag" data-print-id="{{ print.id }}" data-tag="{{ tag }}"></button>
+              <button class="btn-close btn-close-white btn-sm ms-1 remove-tag" data-print-id="{{ print.id }}" data-tag="{{ tag }}" data-requires-write></button>
             </span>
           {% endfor %}
         {% else %}
@@ -339,7 +341,7 @@
         {% endif %}
       </div>
 
-      <div class="input-group mt-1" style="max-width: 300px;">
+      <div class="input-group mt-1" style="max-width: 300px;" data-requires-write>
         <input type="text" class="form-control form-control-sm add-tag-input" placeholder="Nouveau tag…">
         <button class="btn btn-sm btn-success add-tag-btn" data-print-id="{{ print.id }}">✚ Ajouter</button>
       </div>
