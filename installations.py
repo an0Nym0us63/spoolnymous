@@ -1,25 +1,33 @@
 # installations.py
 import os, json
 from typing import List, Dict
-from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 INSTALLATIONS_FILE = os.path.join(DATA_DIR, 'installations.json')
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# clés à retirer des URLs sauvegardées
+# remplace _normalize_guest_url par ceci
 _DROP_KEYS = {'theme', 'origin', 'origin_label', 'current_label'}
 
 def _normalize_guest_url(url: str) -> str:
     if not url:
         return url
     u = url.strip()
-    p = urlsplit(u)
-    # force https si http
-    scheme = 'https' if p.scheme == 'http' else (p.scheme or 'https')
-    # supprime les query params parasites
+    p = urlparse(u)
+
+    # Si l'URL a été saisie sans schéma (ex: example.com/guest/xxx)
+    if not p.netloc:
+        p = urlparse("https://" + u)
+
+    # Force https si http ou vide
+    scheme = 'https' if p.scheme in ('http', '') else p.scheme
+
+    # Supprime les query params parasites
     q = [(k, v) for (k, v) in parse_qsl(p.query, keep_blank_values=True) if k not in _DROP_KEYS]
-    return urlunsplit((scheme, p.netloc, p.path, p.params, urlencode(q), p.fragment))
+
+    # urlunparse attend 6 éléments: scheme, netloc, path, params, query, fragment
+    return urlunparse((scheme, p.netloc, p.path, p.params, urlencode(q), p.fragment))
 
 def load_installations() -> List[Dict]:
     if not os.path.exists(INSTALLATIONS_FILE):
