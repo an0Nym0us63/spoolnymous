@@ -184,7 +184,7 @@
   </div>
 
   {% if is_assign_mode %}
-  <div class="ms-2 me-3 d-flex align-items-center" style="min-width: 40px;">
+  <div class="ms-2 me-3 d-flex align-items-center" style="min-width: 40px;" data-requires-write>
     <form method="post" action="{{ url_for('assign_spool_to_print') }}">
       <input type="hidden" name="spool_id" value="{{ spool.id }}">
       <input type="hidden" name="print_id" value="{{ assign_print_id }}">
@@ -204,7 +204,7 @@
     </form>
   </div>
   {% elif ams_id and tray_id %}
-  <div class="ms-2 me-3 d-flex align-items-center" style="min-width: 40px;">
+  <div class="ms-2 me-3 d-flex align-items-center" style="min-width: 40px;" data-requires-write>
     <a href="{{ url_for('filaments', spool_id=spool.id, ams=ams_id, tray=tray_id, tray_uuid=tray_uuid, tray_info_idx=tray_info_idx, tray_color=tray_color) }}"
        class="btn btn-sm btn-primary rounded-circle"
        title="Remplir"><i class="bi bi-plus"></i></a>
@@ -218,7 +218,7 @@
         <div class="accordion-body"
              style="background: rgba(30,41,59,0.85); padding: 0.75rem 1rem; border-radius: 0 0 0.75rem 0.75rem;">
           
-          <div class="dropdown float-end mb-2">
+          <div class="dropdown float-end mb-2" data-requires-write>
             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
               Actions
             </button>
