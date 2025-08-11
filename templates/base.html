@@ -35,7 +35,13 @@
   height: 1rem;
   background-size: 1rem 1rem;
 }
+{% if current_user.is_authenticated and current_user.is_guest %}
+  [data-requires-write] {
+    display: none !important;
+  }
+{% endif %}
 </style>
+
 </head>
 
 <body>
@@ -78,13 +84,13 @@
 
   {% if not g.is_webview %}
     <li class="nav-item">
-      <a href="{{ SPOOLMAN_BASE_URL }}" target="_blank" class="nav-link">🔗 SpoolMan</a>
+      <a href="{{ SPOOLMAN_BASE_URL }}" target="_blank" class="nav-link" data-requires-write>🔗 SpoolMan</a>
     </li>
   {% endif %}
 
   {% if current_user.is_authenticated %}
     <li class="nav-item">
-      <a class="nav-link" href="{{ url_for('auth.settings') }}">⚙️ Paramètres</a>
+      <a class="nav-link" href="{{ url_for('auth.settings') }}" data-requires-write>⚙️ Paramètres</a>
     </li>
 	{% if not g.is_webview %}
     <li class="nav-item">
