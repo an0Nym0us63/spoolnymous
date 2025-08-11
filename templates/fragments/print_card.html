@@ -75,7 +75,7 @@
     <div class="card-body position-relative small">
 
       <!-- Actions -->
-      <div class="dropdown float-end mt-1">
+      <div class="dropdown float-end mt-1" data-requires-write>
         <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
           Actions
         </button>
@@ -303,7 +303,7 @@
 										assign_filament_id=request.args.get('filament_id'),
 										assign_sold_filter=request.args.get('sold_filter')
 										) }}"
-                       class="nav-link link-body-emphasis" title="Assigner une bobine">
+                       class="nav-link link-body-emphasis" title="Assigner une bobine" data-requires-write>
                       <div class="filament-info d-flex align-items-center gap-2">
                         <div class="spool-icon vertical small">
                           <div style="background-color: {{ filament.color }};"></div>

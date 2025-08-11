@@ -73,7 +73,7 @@
 
         <div id="group_{{ entry.id }}" class="collapse {% if focus_group_id == entry.id|int %}show{% endif %}" data-bs-parent="#printAccordion">
           <div class="card-body small">
-			<div class="dropdown float-end mt-1">
+			<div class="dropdown float-end mt-1" data-requires-write>
   <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
     Actions
   </button>
