@@ -414,7 +414,7 @@ def safe_update_status(data):
             else:
                 prev_status, first_seen = PENDING_JOBS[job_id]
                 if prev_status == status:
-                    if now - first_seen >= 30:
+                    if now - first_seen >= 10:
                         final_status = "SUCCESS" if status == "FINISH" else "FAILED"
                         update_print_field_with_job_id(job_id, "status", final_status)
                         PROCESSED_JOBS.add(job_id)
