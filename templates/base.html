@@ -56,35 +56,36 @@
 <header class="mb-3 border-bottom">
   <nav class="navbar navbar-expand-lg">
     <div class="container-fluid">
-	  <a class="navbar-brand d-flex align-items-center" href="{{ url_for('home') }}">
-  <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" width="24" height="24" class="me-2">
-  
-        {% if page_title %}
-  <span class="fw-bold">{{ PRINTER_MODEL["model"] }} - {{ page_title or '' }}</span>
-  
-        {% else %}
-  <span class="fw-bold">{{ PRINTER_MODEL["model"] }}</span>
-        {% endif %}
-		{% if current_user.is_authenticated and current_user.is_guest %}
-  <span title="Accès invité — lecture seule" style="font-size: 1.2rem; margin-left: .5rem;">👤</span>
-{% endif %}
-</a>
-{% set origin_url = request.args.get('origin') %}
-{% if origin_url %}
-  {% set origin_label  = request.args.get('origin_label','Mon installation') %}
-  {% set current_label = request.args.get('current_label','Installation distante') %}
-  {% set theme         = request.args.get('theme','dark') %}
-  {% set sep           = '&' if '?' in origin_url else '?' %}
-  {% set origin_link   = origin_url ~ (sep ~ 'theme=' ~ theme if theme else '') %}
-  {% set btn_cls = 'btn btn-sm rounded-pill d-inline-flex align-items-center ms-1 px-2 py-0 ' ~ (
-      'btn-outline-secondary' if theme == 'light' else 'btn-outline-light'
-  ) %}
-<a href="{{ origin_link | safe }}"
-   class="badge rounded-pill text-bg-primary ms-1 text-decoration-none"
-   title="Revenir à {{ origin_label }}">
-  🚪 {{ current_label }}
-</a>
-{% endif %}
+	 <div class="d-flex flex-column align-items-start">
+  <a class="navbar-brand d-flex align-items-center" href="{{ url_for('home') }}">
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" width="24" height="24" class="me-2">
+    {% if page_title %}
+      <span class="fw-bold">{{ PRINTER_MODEL["model"] }} - {{ page_title or '' }}</span>
+    {% else %}
+      <span class="fw-bold">{{ PRINTER_MODEL["model"] }}</span>
+    {% endif %}
+    {% if current_user.is_authenticated and current_user.is_guest %}
+      <span title="Accès invité — lecture seule" style="font-size: 1.2rem; margin-left: .5rem;">👤</span>
+    {% endif %}
+  </a>
+
+  {# bouton retour (sous le nom) #}
+  {% set origin_url = request.args.get('origin') %}
+  {% if origin_url %}
+    {% set origin_label  = request.args.get('origin_label','Mon installation') %}
+    {% set current_label = request.args.get('current_label','Installation distante') %}
+    {% set theme         = request.args.get('theme','dark') %}
+    {% set sep           = '&' if '?' in origin_url else '?' %}
+    {% set origin_link   = origin_url ~ (sep ~ 'theme=' ~ theme if theme else '') %}
+
+    <a href="{{ origin_link | safe }}"
+       class="btn btn-sm btn-primary rounded-pill px-2 py-0 mt-1"
+       title="Revenir à {{ origin_label }}">
+      🚪 {{ current_label }}
+    </a>
+  {% endif %}
+</div>
+
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
