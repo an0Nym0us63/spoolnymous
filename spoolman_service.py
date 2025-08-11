@@ -183,22 +183,22 @@ def fetchSpools(cached=False,archived=False):
 
       price = 20
       filament_price = 20
-      if "price" in spool and spool["price"] > 0:
+      if "price" in spool and spool["price"] >= 0:
         price = spool["price"]
-      elif "price" in spool["filament"] and spool["filament"]["price"] > 0:
+      elif "price" in spool["filament"] and spool["filament"]["price"] >= 0:
         price = spool["filament"]["price"]
-      if "price" in spool["filament"] and spool["filament"]["price"] > 0:
+      if "price" in spool["filament"] and spool["filament"]["price"] >= 0:
         filament_price=spool["filament"]["price"]
       spool["price"]=price
       spool["filament_price"]=filament_price
-      if initial_weight > 0 and price > 0:
+      if initial_weight > 0 and price >= 0:
         spool["cost_per_gram"] = price / initial_weight
       else:
-        spool["cost_per_gram"] = 20
-      if initial_filament_weight > 0 and filament_price > 0:
+        spool["cost_per_gram"] = 0.02
+      if initial_filament_weight > 0 and filament_price >= 0:
         spool["filament_cost_per_gram"] = filament_price / initial_filament_weight
       else:
-        spool["filament_cost_per_gram"] = 20
+        spool["filament_cost_per_gram"] = 0.02
 
       if "multi_color_hexes" in spool["filament"]:
         spool["filament"]["multi_color_hexes"] = spool["filament"]["multi_color_hexes"].split(',')
