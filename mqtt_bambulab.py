@@ -452,20 +452,20 @@ def on_message(client, userdata, msg):
   try:
     topic = msg.topic
     data = json.loads(msg.payload.decode())
-    try:
-        if "report" in topic and "print" in data:
-            safe_update_status(data["print"])
-    except Exception as e:
-        traceback.print_exc()
+    
     if "print" in data:
       append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
-
-    if AUTO_SPEND:
-        # Lance processMessage en thread si pas déjà en cours
-        if PROCESSMSG_LOCK.acquire(blocking=False):
-            fire_and_forget(processMessage, data, name="processMessage")
-        else:
-            logger.debug("[async] processMessage déjà en cours — skip")
+      if "report" in topic:
+        try:
+            safe_update_status(data["print"])
+        except Exception as e:
+            traceback.print_exc()
+      if AUTO_SPEND:
+          # Lance processMessage en thread si pas déjà en cours
+          if PROCESSMSG_LOCK.acquire(blocking=False):
+              fire_and_forget(processMessage, data, name="processMessage")
+          else:
+              logger.debug("[async] processMessage déjà en cours — skip")
       
     # Save external spool tray data
     if "print" in data and "vt_tray" in data["print"]:
