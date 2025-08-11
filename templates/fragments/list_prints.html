@@ -201,11 +201,12 @@
                   <div>
                     <strong>#{{ filament.spool.id }} - {{ filament.spool.filament.vendor.name }} - {{ filament.spool.filament.material }}</strong><br>
                     <small>
-  {{ item_name }} – {{ '%.2f'|format(qty) }}g
+   {{ filament.spool.filament.name }} –
+  {{ "%.2f"|format(filament.grams_used) }}g
   {% if not (current_user.is_authenticated and current_user.is_guest) %}
-    – {{ '%.2f'|format(cost|float) }} {{ currencysymbol }}
+    – {{ '%.2f'|format(filament.cost|float) }} {{ currencysymbol }}
     <span class="text-muted fst-italic" style="font-size:0.6em;">
-      ({{ '%.2f'|format(normal_cost|float) }})
+      ({{ '%.2f'|format(filament.normal_cost|float) }})
     </span>
   {% endif %}
 </small>
