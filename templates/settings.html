@@ -83,73 +83,7 @@
       </div>
     {% endif %}
   </section>
-  
-  <!-- Section Lien invité -->
-<h2>Lien invité (lecture seule)</h2>
-
-<form method="post" class="mb-3">
-  <input type="hidden" name="create_guest_link" value="1">
-  
-  <label>Nom du lien : 
-    <input type="text" name="guest_label" placeholder="Ex: client Jean Dupont">
-  </label>
-  
-  <label>Validité (jours, 0 = illimité) :
-    <input type="number" name="guest_days_valid" min="0" value="30">
-  </label>
-  
-  <button type="submit" class="btn btn-primary">Créer un lien invité</button>
-</form>
-
-{% if guest_links and guest_links|length > 0 %}
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Nom</th>
-        <th>URL</th>
-        <th>Créé le</th>
-        <th>Expire le</th>
-        <th>Statut</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-    {% for gl in guest_links %}
-      <tr>
-        <td>{{ gl.label or '—' }}</td>
-        <td>
-          <code>{{ url_for('auth.guest_autologin', token=gl.token, _external=True) }}</code>
-        </td>
-        <td>{{ gl.created_at }}</td>
-        <td>
-          {% if gl.expires_at %}
-            {{ gl.expires_at }}
-          {% else %}
-            <em>Illimité</em>
-          {% endif %}
-        </td>
-        <td>
-          {% if gl.revoked %}
-            <span class="text-danger">Révoqué</span>
-          {% else %}
-            <span class="text-success">Actif</span>
-          {% endif %}
-        </td>
-        <td>
-          {% if not gl.revoked %}
-          <form method="post" style="display:inline">
-            <input type="hidden" name="revoke_guest_token" value="{{ gl.token }}">
-            <button type="submit" class="btn btn-sm btn-outline-danger">Révoquer</button>
-          </form>
-          {% endif %}
-        </td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-{% endif %}
-
-
+ 
   <!-- 📱 Token mobile -->
   <section class="mb-5">
     <h4 class="text-light mb-4">📱 Accès mobile & Jeton</h4>
@@ -171,6 +105,86 @@
       <div class="alert alert-info">Aucun jeton n’est disponible. Veuillez d’abord définir un mot de passe personnalisé pour activer l’accès mobile.</div>
     {% endif %}
   </section>
+  
+  <!-- 🔑 Lien invité (lecture seule) -->
+<section class="mb-5">
+  <h4 class="text-light mb-4">🔑 Lien invité (lecture seule)</h4>
+
+  <!-- Formulaire création -->
+  <form method="post" class="mb-3">
+    <input type="hidden" name="create_guest_link" value="1">
+
+    <div class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label text-light">Nom du lien</label>
+        <input type="text" name="guest_label" class="form-control" placeholder="Ex: client Jean Dupont">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label text-light">Validité (jours, 0 = illimité)</label>
+        <input type="number" name="guest_days_valid" min="0" value="30" class="form-control">
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-primary w-100">Créer</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Liste des liens -->
+  {% if guest_links and guest_links|length > 0 %}
+    <div class="table-responsive">
+      <table class="table table-sm table-striped table-bordered align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Nom</th>
+            <th>URL</th>
+            <th>Créé le</th>
+            <th>Expire le</th>
+            <th>Statut</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for gl in guest_links %}
+          <tr>
+            <td>{{ gl.label or '—' }}</td>
+            <td class="text-break">
+              <code>{{ url_for('auth.guest_autologin', token=gl.token, _external=True) }}</code>
+            </td>
+            <td>{{ gl.created_at }}</td>
+            <td>
+              {% if gl.expires_at %}
+                {{ gl.expires_at }}
+              {% else %}
+                <em>Illimité</em>
+              {% endif %}
+            </td>
+            <td>
+              {% if gl.revoked %}
+                <span class="badge bg-danger">Révoqué</span>
+              {% else %}
+                <span class="badge bg-success">Actif</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if not gl.revoked %}
+              <form method="post" style="display:inline">
+                <input type="hidden" name="revoke_guest_token" value="{{ gl.token }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Révoquer">
+                  <i class="bi bi-x-circle"></i>
+                </button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="text-muted fst-italic">Aucun lien invité créé pour le moment.</div>
+  {% endif %}
+</section>
+
 
   <!-- 🧮 Maintenance -->
   <section class="mb-5">
