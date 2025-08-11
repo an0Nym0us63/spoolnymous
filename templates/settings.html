@@ -89,26 +89,51 @@
 
 <form method="post" class="mb-3">
   <input type="hidden" name="create_guest_link" value="1">
-  <label>Validité (jours 0 = illimité): <input type="number" name="guest_days_valid" min="0" value="30"></label>
+  
+  <label>Nom du lien : 
+    <input type="text" name="guest_label" placeholder="Ex: client Jean Dupont">
+  </label>
+  
+  <label>Validité (jours, 0 = illimité) :
+    <input type="number" name="guest_days_valid" min="0" value="30">
+  </label>
+  
   <button type="submit" class="btn btn-primary">Créer un lien invité</button>
 </form>
 
 {% if guest_links and guest_links|length > 0 %}
   <table class="table">
     <thead>
-      <tr><th>URL</th><th>Créé le</th><th>Expire le</th><th>Statut</th><th></th></tr>
+      <tr>
+        <th>Nom</th>
+        <th>URL</th>
+        <th>Créé le</th>
+        <th>Expire le</th>
+        <th>Statut</th>
+        <th></th>
+      </tr>
     </thead>
     <tbody>
     {% for gl in guest_links %}
       <tr>
+        <td>{{ gl.label or '—' }}</td>
         <td>
           <code>{{ url_for('auth.guest_autologin', token=gl.token, _external=True) }}</code>
         </td>
         <td>{{ gl.created_at }}</td>
-        <td>{{ gl.expires_at }}</td>
         <td>
-          {% if gl.revoked %}<span class="text-danger">Révoqué</span>
-          {% else %}<span class="text-success">Actif</span>{% endif %}
+          {% if gl.expires_at %}
+            {{ gl.expires_at }}
+          {% else %}
+            <em>Illimité</em>
+          {% endif %}
+        </td>
+        <td>
+          {% if gl.revoked %}
+            <span class="text-danger">Révoqué</span>
+          {% else %}
+            <span class="text-success">Actif</span>
+          {% endif %}
         </td>
         <td>
           {% if not gl.revoked %}
@@ -123,6 +148,7 @@
     </tbody>
   </table>
 {% endif %}
+
 
   <!-- 📱 Token mobile -->
   <section class="mb-5">

@@ -70,18 +70,18 @@ def _save_guest_tokens(tokens_dict):
     with open(GUEST_FILE, 'w') as f:
         json.dump(tokens_dict, f)
 
-def create_guest_link(days_valid: int = 30) -> str:
+def create_guest_link(days_valid: int = 30, label: str = "") -> str:
     tokens = _load_guest_tokens()
     token = secrets.token_urlsafe(24)
     now = datetime.utcnow()
 
-    # 🔹 Si days_valid <= 0 → pas d'expiration
     if days_valid and days_valid > 0:
         expires_at = (now + timedelta(days=days_valid)).strftime("%Y-%m-%dT%H:%M:%SZ")
     else:
         expires_at = None
 
     tokens[token] = {
+        "label": label.strip() or None,  # 🔹 Nom du lien
         "created_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "expires_at": expires_at,
         "revoked": False
@@ -92,11 +92,11 @@ def create_guest_link(days_valid: int = 30) -> str:
 
 def list_guest_links():
     tokens = _load_guest_tokens()
-    # retourne une liste exploitable en template
     out = []
     for tok, meta in tokens.items():
         out.append({
             "token": tok,
+            "label": meta.get("label"),  # 🔹 On renvoie le nom
             "created_at": meta.get("created_at"),
             "expires_at": meta.get("expires_at"),
             "revoked": meta.get("revoked", False)
@@ -222,7 +222,8 @@ def settings():
         # NEW: Créer lien invité
         elif request.form.get("create_guest_link") == "1":
             days = int(request.form.get("guest_days_valid", "30") or "30")
-            tok = create_guest_link(days_valid=days)
+            label = request.form.get("guest_label", "").strip()  # 🔹 récupère le nom
+            tok = create_guest_link(days_valid=days, label=label)
             flash("Lien invité créé ✅", "success")
             return redirect(url_for('auth.settings'))
 
