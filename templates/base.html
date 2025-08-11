@@ -69,18 +69,19 @@
   <span title="Accès invité — lecture seule" style="font-size: 1.2rem; margin-left: .5rem;">👤</span>
 {% endif %}
 </a>
-{% set origin_url = request.args.get('origin') %}
+% set origin_url = request.args.get('origin') %}
 {% if origin_url %}
   {% set origin_label  = request.args.get('origin_label','Mon installation') %}
   {% set current_label = request.args.get('current_label','Installation distante') %}
-  {% set theme        = request.args.get('theme') %}
-  {% set sep          = '&' if '?' in origin_url else '?' %}
-  {% set origin_link  = origin_url ~ (sep ~ 'theme=' ~ theme if theme else '') %}
+  {% set theme         = request.args.get('theme','dark') %}
+  {% set sep           = '&' if '?' in origin_url else '?' %}
+  {% set origin_link   = origin_url ~ (sep ~ 'theme=' ~ theme if theme else '') %}
+  {% set btn_cls = 'btn btn-sm rounded-pill d-inline-flex align-items-center ms-1 px-2 py-0 ' ~ (
+      'btn-outline-secondary' if theme == 'light' else 'btn-outline-light'
+  ) %}
 
-  <a href="{{ origin_link | safe }}"
-     class="btn btn-sm btn-primary rounded-pill d-inline-flex align-items-center ms-1 px-2 py-0"
-     title="Revenir à {{ origin_label }}">
-    <i class="bi bi-arrow-left me-1"></i>{{ current_label }}
+  <a href="{{ origin_link | safe }}" class="{{ btn_cls }}" title="Revenir à {{ origin_label }}">
+    <span class="me-1" aria-hidden="true">🚪</span>{{ current_label }}
   </a>
 {% endif %}
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
