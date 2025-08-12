@@ -872,7 +872,7 @@ def home():
       ams_data=reordered
     latest = get_latest_print()
     if latest:
-        status_copy["printName"] = latest["name"]
+        status_copy["printName"] = latest["file_name"]
         if "image_file" in latest:
             status_copy["thumbnail"] = latest["image_file"]
         else:
@@ -1758,7 +1758,7 @@ def api_printer_status():
         status = PRINTER_STATUS
         latest = get_latest_print()
         if latest:
-            status["printName"] = latest["name"]
+            status["printName"] = latest["file_name"]
             if "image_file" in latest:
                 status["thumbnail"] = latest["image_file"]
             else:
