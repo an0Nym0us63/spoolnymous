@@ -112,21 +112,6 @@ def _make_stream(min_level: int, pattern: str | None):
 
     return gen()
 
-@app.route("/logs")
-@login_required
-def logs_page():
-    # Page HTML (UI) – voir template plus bas
-    return render_template("logs.html", page_title="Logs en temps réel")
-
-@app.route("/logs/stream")
-@login_required
-def logs_stream():
-    # Params: ?level=INFO|DEBUG|...&q=regex
-    level_name = request.args.get("level", "INFO").upper()
-    min_level = LEVELS_MAP.get(level_name, logging.INFO)
-    q = request.args.get("q")  # regex optionnel
-    return Response(_make_stream(min_level, q), mimetype="text/event-stream")
-# --- [LOGS SSE] Fin ajout ---
 
 COLOR_FAMILIES = {
     # Neutres
@@ -344,6 +329,23 @@ app.config.update(
     SESSION_COOKIE_SECURE=True             # requis avec SameSite=None
 )
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+
+@app.route("/logs")
+@login_required
+def logs_page():
+    # Page HTML (UI) – voir template plus bas
+    return render_template("logs.html", page_title="Logs en temps réel")
+
+@app.route("/logs/stream")
+@login_required
+def logs_stream():
+    # Params: ?level=INFO|DEBUG|...&q=regex
+    level_name = request.args.get("level", "INFO").upper()
+    min_level = LEVELS_MAP.get(level_name, logging.INFO)
+    q = request.args.get("q")  # regex optionnel
+    return Response(_make_stream(min_level, q), mimetype="text/event-stream")
+# --- [LOGS SSE] Fin ajout ---
 
 @app.before_request
 def strip_theme_param():
