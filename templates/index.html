@@ -390,20 +390,27 @@ statusTextEl.innerText = status;
 
     window.addEventListener('beforeunload', () => clearInterval(interval));
   });
-
 (function () {
   const img = document.getElementById('printer-cam');
-  const pane = document.getElementById('camPane');
   const overlay = document.getElementById('camOverlay');
+  if (!img) return;
 
-  if (!img || !pane) return; // page sans caméra -> no-op
+  // Trouve le conteneur Alpine qui a x-show (ton panneau déplié)
+  const pane = img.closest('[x-show]') || document.body;
 
-  let timer = null;
+  let timer = null, inViewport = true;
   const period = 1500;
 
-  const showOverlay = (on) => { if (overlay) overlay.style.display = on ? 'flex' : 'none'; };
-  const isOpen = () => pane.dataset.open === '1' && pane.offsetParent !== null;
-  const canRun = () => !document.hidden && isOpen() && inViewport;
+  const showOverlay = (on)=> { if (overlay) overlay.style.display = on ? 'flex' : 'none'; };
+
+  // Vrai test de visibilité (Alpine x-show met display:none)
+  function isVisible(el) {
+    if (!el) return true;
+    if (el.offsetParent === null) return false; // display:none ou détaché
+    const cs = getComputedStyle(el);
+    return cs.display !== 'none' && cs.visibility !== 'hidden' && cs.opacity !== '0';
+  }
+  const canRun = ()=> !document.hidden && isVisible(pane) && inViewport;
 
   function tick() {
     showOverlay(true);
@@ -411,49 +418,34 @@ statusTextEl.innerText = status;
     u.searchParams.set('t', Date.now());
     img.src = u.toString();
   }
-  function start() {
-    if (timer || !canRun()) return;
-    tick();
-    timer = setInterval(tick, period);
-  }
-  function stop() {
-    if (!timer) return;
-    clearInterval(timer);
-    timer = null;
-  }
+  function start(){ if (timer || !canRun()) return; tick(); timer = setInterval(tick, period); }
+  function stop(){ if (!timer) return; clearInterval(timer); timer = null; }
 
-  // overlay off quand une image (JPEG **ou** SVG fallback) s'affiche
-  img.addEventListener('load', () => showOverlay(false));
-  img.addEventListener('error', () => {
-    // backend KO -> petit SVG local pour éviter l’icône cassée
-    const fallback = "data:image/svg+xml;utf8," + encodeURIComponent(
+  img.addEventListener('load', ()=> showOverlay(false));
+  img.addEventListener('error', ()=> {
+    img.src = "data:image/svg+xml;utf8," + encodeURIComponent(
       "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 450'><rect width='100%' height='100%' fill='#111'/><text x='50%' y='50%' fill='#bbb' font-family='sans-serif' font-size='22' text-anchor='middle'>Caméra indisponible</text></svg>"
     );
-    img.src = fallback; showOverlay(false);
+    showOverlay(false);
   });
 
-  // Suivre l’état Alpine (open/fermé) via data-open + style
-  const mo = new MutationObserver(() => { canRun() ? start() : stop(); });
-  mo.observe(pane, { attributes: true, attributeFilter: ['data-open', 'style', 'class'] });
+  // Observe les changements Alpine (x-show modifie style/class)
+  const mo = new MutationObserver(()=> canRun() ? start() : stop());
+  mo.observe(pane, { attributes: true, attributeFilter: ['style', 'class', 'hidden'] });
 
-  // Pause quand l’onglet n’est pas visible
-  document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+  // Pause si onglet caché
+  document.addEventListener('visibilitychange', ()=> document.hidden ? stop() : start());
 
-  // Pause si le bloc sort de l’écran
-  let inViewport = true;
+  // Pause si hors viewport
   if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver(([e]) => {
-      inViewport = e.isIntersecting;
-      canRun() ? start() : stop();
-    }, { threshold: 0.2 });
+    const io = new IntersectionObserver(([e]) => { inViewport = e.isIntersecting; canRun()? start() : stop(); }, { threshold: 0.2 });
     io.observe(img);
   }
 
-  // Démarrage initial (si déjà ouvert)
-  canRun() ? start() : stop();
+  // Démarrage si déjà visible, sinon attend l'ouverture
+  if (canRun()) start();
 
-  // Nettoyage
-  window.addEventListener('beforeunload', () => { stop(); mo.disconnect(); });
+  window.addEventListener('beforeunload', ()=> { stop(); mo.disconnect(); });
 })();
 </script>
 
