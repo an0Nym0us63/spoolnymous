@@ -38,6 +38,10 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
 
+for name in ("urllib3", "urllib3.connectionpool", "requests.packages.urllib3"):
+    lg = logging.getLogger(name)
+    lg.setLevel(logging.WARNING)
+
 LOG_BUFFER_MAX = 500  # lignes conservées pour l’historique immédiat
 _log_buffer = deque(maxlen=LOG_BUFFER_MAX)
 _log_subscribers: list[Queue] = []
