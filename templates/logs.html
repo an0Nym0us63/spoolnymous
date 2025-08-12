@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container my-4" style="max-width: 1100px;">
+  <h3 class="text-light mb-3">🧭 Logs en temps réel</h3>
+
+  <div class="card bg-dark border-secondary mb-3">
+    <div class="card-body">
+      <form id="controls" class="row g-2 align-items-center">
+        <div class="col-auto">
+          <label class="col-form-label text-light" for="level">Niveau</label>
+        </div>
+        <div class="col-auto">
+          <select id="level" class="form-select">
+            <option>DEBUG</option>
+            <option selected>INFO</option>
+            <option>WARNING</option>
+            <option>ERROR</option>
+            <option>CRITICAL</option>
+          </select>
+        </div>
+
+        <div class="col-auto">
+          <label class="col-form-label text-light" for="filter">Filtre (regex)</label>
+        </div>
+        <div class="col-auto">
+          <input id="filter" class="form-control" placeholder="ex: (MQTT|ERROR|tray \d+)" />
+        </div>
+
+        <div class="col-auto">
+          <button class="btn btn-primary" id="apply" type="button">Appliquer</button>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-secondary" id="pause" type="button" data-paused="false">⏸️ Pause</button>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-outline-light" id="clear" type="button">🧹 Clear</button>
+        </div>
+        <div class="col-auto">
+          <div class="form-check form-switch mt-1">
+            <input class="form-check-input" type="checkbox" id="autoscroll" checked>
+            <label class="form-check-label text-light" for="autoscroll">Autoscroll</label>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card bg-black border-secondary">
+    <div class="card-body p-2" style="height: 60vh; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9rem;">
+      <pre id="log" class="m-0 text-light"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  let es = null;
+  let paused = false;
+  const logEl = document.getElementById('log');
+  const levelEl = document.getElementById('level');
+  const filterEl = document.getElementById('filter');
+  const pauseBtn = document.getElementById('pause');
+  const clearBtn = document.getElementById('clear');
+  const applyBtn = document.getElementById('apply');
+  const autoscrollEl = document.getElementById('autoscroll');
+
+  function appendLine(line) {
+    if (paused) return;
+    logEl.textContent += line + "\n";
+    if (autoscrollEl.checked) {
+      logEl.parentElement.scrollTop = logEl.parentElement.scrollHeight;
+    }
+  }
+
+  function connect() {
+    if (es) es.close();
+    const params = new URLSearchParams();
+    params.set('level', levelEl.value);
+    const q = filterEl.value.trim();
+    if (q) params.set('q', q);
+    es = new EventSource(`/logs/stream?` + params.toString());
+    es.onmessage = (ev) => appendLine(ev.data);
+    es.onerror = () => { /* tente de reconnecter après 1s */ setTimeout(connect, 1000); es.close(); };
+  }
+
+  applyBtn.addEventListener('click', () => {
+    logEl.textContent = ""; // reset affichage mais le serveur renverra l’historique filtré
+    connect();
+  });
+
+  pauseBtn.addEventListener('click', () => {
+    paused = !paused;
+    pauseBtn.dataset.paused = String(paused);
+    pauseBtn.textContent = paused ? "▶️ Reprendre" : "⏸️ Pause";
+  });
+
+  clearBtn.addEventListener('click', () => {
+    logEl.textContent = "";
+  });
+
+  // Connexion initiale
+  connect();
+})();
+</script>
+{% endblock %}

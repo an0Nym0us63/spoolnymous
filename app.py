@@ -8,10 +8,12 @@ from datetime import datetime, timedelta
 import time
 import os
 import re
-from collections import defaultdict
+from collections import defaultdict,deque
 from urllib.parse import urlencode
 import requests
 import secrets
+from queue import Queue, Empty
+from threading import Lock
 
 from flask_login import LoginManager, login_required
 from auth import auth_bp, User, get_stored_user
@@ -35,6 +37,96 @@ logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
+
+LOG_BUFFER_MAX = 500  # lignes conservées pour l’historique immédiat
+_log_buffer = deque(maxlen=LOG_BUFFER_MAX)
+_log_subscribers: list[Queue] = []
+_log_lock = Lock()
+
+class SSELogHandler(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        # Réutilise le même format que basicConfig
+        self.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+
+    def emit(self, record: logging.LogRecord):
+        try:
+            msg = self.format(record)
+        except Exception:
+            msg = f"[emit-error] {record.getMessage()}"
+        with _log_lock:
+            _log_buffer.append((record.levelno, msg))
+            # Push non bloquant vers tous les abonnés
+            for q in list(_log_subscribers):
+                try:
+                    q.put_nowait((record.levelno, msg))
+                except Exception:
+                    pass
+
+# Installe le handler s’il n’est pas déjà présent
+if not any(isinstance(h, SSELogHandler) for h in logging.getLogger().handlers):
+    logging.getLogger().addHandler(SSELogHandler())
+
+LEVELS_MAP = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL,
+}
+
+def _make_stream(min_level: int, pattern: str | None):
+    import re
+    regex = re.compile(pattern) if pattern else None
+
+    q = Queue()
+    with _log_lock:
+        _log_subscribers.append(q)
+        # Envoie d’abord le buffer existant (historique récent)
+        snapshot = list(_log_buffer)
+
+    # Générateur SSE
+    def gen():
+        try:
+            # 1) Historique
+            for lvl, msg in snapshot:
+                if lvl >= min_level and (regex is None or regex.search(msg)):
+                    yield f"data: {msg}\n\n"
+
+            # 2) Flux live
+            while True:
+                try:
+                    lvl, msg = q.get(timeout=1.0)
+                except Empty:
+                    # ping pour garder la connexion active
+                    yield ": keep-alive\n\n"
+                    continue
+                if lvl >= min_level and (regex is None or regex.search(msg)):
+                    yield f"data: {msg}\n\n"
+        except GeneratorExit:
+            pass
+        finally:
+            with _log_lock:
+                if q in _log_subscribers:
+                    _log_subscribers.remove(q)
+
+    return gen()
+
+@app.route("/logs")
+@login_required
+def logs_page():
+    # Page HTML (UI) – voir template plus bas
+    return render_template("logs.html", page_title="Logs en temps réel")
+
+@app.route("/logs/stream")
+@login_required
+def logs_stream():
+    # Params: ?level=INFO|DEBUG|...&q=regex
+    level_name = request.args.get("level", "INFO").upper()
+    min_level = LEVELS_MAP.get(level_name, logging.INFO)
+    q = request.args.get("q")  # regex optionnel
+    return Response(_make_stream(min_level, q), mimetype="text/event-stream")
+# --- [LOGS SSE] Fin ajout ---
 
 COLOR_FAMILIES = {
     # Neutres
