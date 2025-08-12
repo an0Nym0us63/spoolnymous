@@ -390,3 +390,9 @@
 .navbar-nav .nav-link {
   padding: 0.25rem 0.5rem;
 }
+
+#logs-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 990; /* < 1000 pour rester sous les dropdowns Bootstrap */
+}
