@@ -272,8 +272,83 @@ class InMemoryLogHandler(logging.Handler):
 
 # Installe le handler si absent
 _root = logging.getLogger()
+
 if not any(isinstance(h, InMemoryLogHandler) for h in _root.handlers):
     _root.addHandler(InMemoryLogHandler())
+    
+def _rtsp_url_bambu(ip: str, access_code: str) -> str:
+    # format Home Assistant (user bblp + code LAN) — RTSPS port 322
+    return f"rtsps://bblp:{access_code}@{ip}:322/streaming/live/1"
+
+# --- cache court pour éviter de taper ffmpeg à gogo ---
+_SNAP_LOCK = threading.Lock()
+_SNAP = {"ts": 0.0, "data": None, "ok": False}
+_SNAP_TTL = 0.8  # seconde(s)
+
+def _svg_fallback(message: str) -> Response:
+    svg = f"""<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 450'>
+  <defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'>
+    <stop offset='0%' stop-color='#222'/><stop offset='100%' stop-color='#111'/>
+  </linearGradient></defs>
+  <rect width='100%' height='100%' fill='url(#g)'/>
+  <g fill='none' stroke='#444' stroke-width='4'>
+    <rect x='150' y='120' width='500' height='300' rx='16' ry='16'/>
+    <circle cx='400' cy='270' r='60' stroke='#666'/><circle cx='400' cy='270' r='20' stroke='#888'/>
+  </g>
+  <g fill='#bbb' font-family='ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto' text-anchor='middle'>
+    <text x='400' y='80' font-size='28'>Caméra indisponible</text>
+    <text x='400' y='120' font-size='16' fill='#999'>{message}</text>
+  </g>
+</svg>"""
+    r = Response(svg.encode("utf-8"), mimetype="image/svg+xml")
+    r.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
+    r.headers["X-Camera-Status"] = "error"
+    return r
+
+@app.get("/camera/snapshot")
+def camera_snapshot():
+    ip   = get_app_setting("PRINTER_IP", "")
+    code = get_app_setting("PRINTER_ACCESS_CODE", "")
+    if not ip or not code:
+        return _svg_fallback("IP et/ou code d'accès manquants.")
+
+    now = time.time()
+    with _SNAP_LOCK:
+        if _SNAP["data"] is not None and (now - _SNAP["ts"] < _SNAP_TTL):
+            resp = Response(_SNAP["data"], mimetype=("image/jpeg" if _SNAP["ok"] else "image/svg+xml"))
+            resp.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
+            resp.headers["X-Camera-Status"] = "ok" if _SNAP["ok"] else "error"
+            return resp
+
+    url = _rtsp_url_bambu(ip, code)
+    cmd = [
+        "ffmpeg",
+        "-nostdin", "-hide_banner", "-loglevel", "error",
+        "-rtsp_transport", "tcp",
+        "-rw_timeout", "5000000",  # 5s
+        "-i", url,
+        "-frames:v", "1",
+        "-f", "mjpeg", "pipe:1",
+    ]
+    try:
+        out = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=6, check=True)
+        data = out.stdout or b""
+        if not data:
+            raise RuntimeError("aucune image")
+        with _SNAP_LOCK:
+            _SNAP.update(ts=now, data=data, ok=True)
+        resp = Response(data, mimetype="image/jpeg")
+        resp.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
+        resp.headers["X-Camera-Status"] = "ok"
+        return resp
+    except FileNotFoundError:
+        fb = _svg_fallback("ffmpeg introuvable sur le serveur.")
+        with _SNAP_LOCK: _SNAP.update(ts=now, data=fb.get_data(), ok=False)
+        return fb
+    except Exception:
+        fb = _svg_fallback("Flux caméra injoignable pour le moment.")
+        with _SNAP_LOCK: _SNAP.update(ts=now, data=fb.get_data(), ok=False)
+        return fb
 
 init_mqtt()
 

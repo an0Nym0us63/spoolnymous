@@ -36,6 +36,7 @@ WORKDIR $APP_HOME
 RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libssl-dev \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 # Dépendances Python
 COPY --chown=app:app requirements.txt .

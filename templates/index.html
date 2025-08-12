@@ -86,6 +86,21 @@
       <div><strong>🌡️</strong> <span id="status-chamber">{{ printer_status.chamber_temp or '—' }}</span> °C</div>
       <div><strong>🧱️</strong> <span id="status-layers">{{ printer_status.print_layer }}/{{ printer_status.total_layers }}</span></div>
     </div>
+	<div class="ratio ratio-16x9 bg-black rounded overflow-hidden position-relative">
+  <img id="printer-cam"
+       src="{{ url_for('camera_snapshot') }}"
+       alt="Caméra imprimante"
+       class="w-100 h-100"
+       style="object-fit:cover;">
+  <div id="camOverlay"
+       class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+       style="display:none;background:rgba(0,0,0,.25);">
+    <div class="text-center">
+      <div class="spinner-border mb-2" role="status" aria-hidden="true"></div>
+      <div class="small text-muted">Mise à jour…</div>
+    </div>
+  </div>
+</div>
   </div>
 </div>
 {% endif %}
@@ -375,6 +390,59 @@ statusTextEl.innerText = status;
 
     window.addEventListener('beforeunload', () => clearInterval(interval));
   });
+  
+(function () {
+  const img = document.getElementById('printer-cam');
+  const toggle = document.getElementById('camLive');
+  // ⚠️ remplace #camPane par l’ID du .collapse qui contient la caméra
+  const pane = document.getElementById('camPane');
+  const overlay = document.getElementById('camOverlay');
+
+  let timer = null;
+  const period = 1500;
+
+  const showOverlay = (on) => overlay.style.display = on ? 'flex' : 'none';
+
+  function tick() {
+    showOverlay(true);
+    const u = new URL("{{ url_for('camera_snapshot') }}", window.location.origin);
+    u.searchParams.set('t', Date.now());
+    img.src = u.toString();
+  }
+  function canRun() {
+    return toggle.checked && !document.hidden && pane.classList.contains('show');
+  }
+  function start() {
+    if (timer || !canRun()) return;
+    tick();
+    timer = setInterval(tick, period);
+  }
+  function stop() {
+    if (!timer) return; clearInterval(timer); timer = null;
+  }
+
+  img.addEventListener('load', () => { showOverlay(false); });
+  img.addEventListener('error', () => {
+    // Fallback local si le backend est injoignable
+    const fallback = "data:image/svg+xml;utf8," + encodeURIComponent(
+      "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 450'><rect width='100%' height='100%' fill='#111'/><text x='50%' y='50%' fill='#bbb' font-family='sans-serif' font-size='22' text-anchor='middle'>Caméra indisponible</text></svg>"
+    );
+    img.src = fallback; showOverlay(false);
+  });
+
+  pane.addEventListener('shown.bs.collapse', start);
+  pane.addEventListener('hidden.bs.collapse', stop);
+  toggle.addEventListener('change', () => canRun() ? start() : stop());
+  document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(([e]) => { e.isIntersecting ? start() : stop(); }, { threshold: 0.2 });
+    io.observe(img);
+  }
+
+  if (pane.classList.contains('show')) start();
+  window.addEventListener('beforeunload', stop);
+})();
 </script>
 
 {% endblock %}
