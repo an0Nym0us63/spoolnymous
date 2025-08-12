@@ -309,11 +309,14 @@ switch (status) {
     break;
   case 'FINISH':
     status = 'Terminé';
+    break;
   case 'IDLE':
     status = 'Au repos';
+    break;
   case 'PREPARE':
     status = 'En préparation';
-  case 'SLICING':
+    break;
+  case 'SLICING'
     status = 'Tranchage';
     break;
 }
