@@ -305,6 +305,23 @@ def _svg_fallback(message: str) -> Response:
     r.headers["X-Camera-Status"] = "error"
     return r
 
+init_mqtt()
+
+app = Flask(__name__)
+logger = logging.getLogger(__name__)
+app.secret_key = secrets.token_hex(32)
+login_manager = LoginManager()
+login_manager.login_view = 'auth.login'  # redirige vers /login si non connecté
+login_manager.init_app(app)
+app.config["PREFERRED_URL_SCHEME"] = "https"
+app.register_blueprint(switch_bp)
+app.config.update(
+    PREFERRED_URL_SCHEME='https',          # url_for(..., _external=True) → https
+    SESSION_COOKIE_SAMESITE='None',        # cookies utilisables en iframe (tiers)
+    SESSION_COOKIE_SECURE=True             # requis avec SameSite=None
+)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
 @app.get("/camera/snapshot")
 def camera_snapshot():
     ip   = get_app_setting("PRINTER_IP", "")
@@ -349,23 +366,6 @@ def camera_snapshot():
         fb = _svg_fallback("Flux caméra injoignable pour le moment.")
         with _SNAP_LOCK: _SNAP.update(ts=now, data=fb.get_data(), ok=False)
         return fb
-
-init_mqtt()
-
-app = Flask(__name__)
-logger = logging.getLogger(__name__)
-app.secret_key = secrets.token_hex(32)
-login_manager = LoginManager()
-login_manager.login_view = 'auth.login'  # redirige vers /login si non connecté
-login_manager.init_app(app)
-app.config["PREFERRED_URL_SCHEME"] = "https"
-app.register_blueprint(switch_bp)
-app.config.update(
-    PREFERRED_URL_SCHEME='https',          # url_for(..., _external=True) → https
-    SESSION_COOKIE_SAMESITE='None',        # cookies utilisables en iframe (tiers)
-    SESSION_COOKIE_SECURE=True             # requis avec SameSite=None
-)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 @app.route("/logs")
 @login_required
