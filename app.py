@@ -281,40 +281,39 @@ class _MJPEGStreamer:
         self.stop_evt = threading.Event()
 
     def _spawn(self):
-        ip   = _read_setting("PRINTER_IP", "")
-        code = _read_setting("PRINTER_ACCESS_CODE", "") or _read_setting("PRINTER_CODE", "")
+        ip   = get_app_setting("PRINTER_IP", "")
+        code = get_app_setting("PRINTER_ACCESS_CODE", "")
         if not ip or not code:
             return False
 
-        for ch in (1, 0):  # essaie /1 puis /0
-            url = _rtsp_url_bambu(ip, code, ch)
-            cmd = [
-                "ffmpeg",
-                "-nostdin", "-hide_banner", "-loglevel", "error",
-                "-rtsp_transport", "tcp",
-                "-i", url,
-                "-f", "image2pipe",
-                "-vcodec", "mjpeg",
-                "-q:v", "7",
-                "-r", str(self.fps),
-                "pipe:1",
-            ]
-            try:
-                self.proc = subprocess.Popen(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
-                )
-                self.stop_evt.clear()
-                self.reader = threading.Thread(target=self._read_loop, daemon=True)
-                self.reader.start()
-                self.stderr_reader = threading.Thread(target=self._stderr_loop, daemon=True)
-                self.stderr_reader.start()
+        url = f"rtsps://bblp:{code}@{ip}:322/streaming/live/1"
+        cmd = [
+            "ffmpeg",
+            "-nostdin", "-hide_banner", "-loglevel", "error",
+            "-rtsp_transport", "tcp",
+            "-i", url,
+            "-f", "image2pipe",
+            "-vcodec", "mjpeg",
+            "-q:v", "7",
+            "-r", str(self.fps),
+            "pipe:1",
+        ]
+        try:
+            self.proc = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
+            )
+            self.stop_evt.clear()
+            self.reader = threading.Thread(target=self._read_loop, daemon=True)
+            self.reader.start()
+            self.stderr_reader = threading.Thread(target=self._stderr_loop, daemon=True)
+            self.stderr_reader.start()
 
-                # ⏳ laisse plus de temps pour la 1ʳᵉ frame (RTSP+TLS peut être lent)
-                if self._wait_first_frame(timeout=8.0):
-                    return True
-                self._kill_proc()
-            except Exception:
-                self._kill_proc()
+            # ⏳ laisse plus de temps pour la 1ʳᵉ frame (RTSP+TLS peut être lent)
+            if self._wait_first_frame(timeout=8.0):
+                return True
+            self._kill_proc()
+        except Exception:
+            self._kill_proc()
         return False
 
     def _stderr_loop(self):
