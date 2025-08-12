@@ -390,18 +390,20 @@ statusTextEl.innerText = status;
 
     window.addEventListener('beforeunload', () => clearInterval(interval));
   });
-  
+
 (function () {
   const img = document.getElementById('printer-cam');
-  const toggle = document.getElementById('camLive');
-  // ⚠️ remplace #camPane par l’ID du .collapse qui contient la caméra
   const pane = document.getElementById('camPane');
   const overlay = document.getElementById('camOverlay');
+
+  if (!img || !pane) return; // page sans caméra -> no-op
 
   let timer = null;
   const period = 1500;
 
-  const showOverlay = (on) => overlay.style.display = on ? 'flex' : 'none';
+  const showOverlay = (on) => { if (overlay) overlay.style.display = on ? 'flex' : 'none'; };
+  const isOpen = () => pane.dataset.open === '1' && pane.offsetParent !== null;
+  const canRun = () => !document.hidden && isOpen() && inViewport;
 
   function tick() {
     showOverlay(true);
@@ -409,39 +411,49 @@ statusTextEl.innerText = status;
     u.searchParams.set('t', Date.now());
     img.src = u.toString();
   }
-  function canRun() {
-    return toggle.checked && !document.hidden && pane.classList.contains('show');
-  }
   function start() {
     if (timer || !canRun()) return;
     tick();
     timer = setInterval(tick, period);
   }
   function stop() {
-    if (!timer) return; clearInterval(timer); timer = null;
+    if (!timer) return;
+    clearInterval(timer);
+    timer = null;
   }
 
-  img.addEventListener('load', () => { showOverlay(false); });
+  // overlay off quand une image (JPEG **ou** SVG fallback) s'affiche
+  img.addEventListener('load', () => showOverlay(false));
   img.addEventListener('error', () => {
-    // Fallback local si le backend est injoignable
+    // backend KO -> petit SVG local pour éviter l’icône cassée
     const fallback = "data:image/svg+xml;utf8," + encodeURIComponent(
       "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 450'><rect width='100%' height='100%' fill='#111'/><text x='50%' y='50%' fill='#bbb' font-family='sans-serif' font-size='22' text-anchor='middle'>Caméra indisponible</text></svg>"
     );
     img.src = fallback; showOverlay(false);
   });
 
-  pane.addEventListener('shown.bs.collapse', start);
-  pane.addEventListener('hidden.bs.collapse', stop);
-  toggle.addEventListener('change', () => canRun() ? start() : stop());
+  // Suivre l’état Alpine (open/fermé) via data-open + style
+  const mo = new MutationObserver(() => { canRun() ? start() : stop(); });
+  mo.observe(pane, { attributes: true, attributeFilter: ['data-open', 'style', 'class'] });
+
+  // Pause quand l’onglet n’est pas visible
   document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
 
+  // Pause si le bloc sort de l’écran
+  let inViewport = true;
   if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver(([e]) => { e.isIntersecting ? start() : stop(); }, { threshold: 0.2 });
+    const io = new IntersectionObserver(([e]) => {
+      inViewport = e.isIntersecting;
+      canRun() ? start() : stop();
+    }, { threshold: 0.2 });
     io.observe(img);
   }
 
-  if (pane.classList.contains('show')) start();
-  window.addEventListener('beforeunload', stop);
+  // Démarrage initial (si déjà ouvert)
+  canRun() ? start() : stop();
+
+  // Nettoyage
+  window.addEventListener('beforeunload', () => { stop(); mo.disconnect(); });
 })();
 </script>
 
