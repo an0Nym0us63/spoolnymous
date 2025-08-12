@@ -13,9 +13,12 @@ from urllib.parse import urlencode
 import requests
 import secrets
 from queue import Queue, Empty, Full
+import threading
 from threading import Lock
+from flask import Response
 from itertools import count
 import subprocess
+import signal
 
 from flask_login import LoginManager, login_required
 from auth import auth_bp, User, get_stored_user
@@ -257,6 +260,155 @@ LEVELS_MAP = {
     "CRITICAL": logging.CRITICAL,
 }
 
+class _MJPEGStreamer:
+    """
+    Démarre un ffmpeg persistant qui sort des JPEG en continu (image2pipe/mjpeg),
+    lit stdout, découpe les frames (SOI/EOI), et réveille les abonnés.
+    Arrêt auto quand plus d’abonnés.
+    """
+    def __init__(self, fps: int = 3):
+        self.fps = fps
+        self.proc = None
+        self.reader = None
+        self.buf = bytearray()
+        self.lock = threading.Lock()
+        self.cond = threading.Condition(self.lock)
+        self.latest = None
+        self.subs = 0
+        self.stop_evt = threading.Event()
+
+    def _spawn(self):
+        ip   = get_app_setting("PRINTER_IP", "")
+        code = get_app_setting("PRINTER_ACCESS_CODE", "")
+        if not ip or not code:
+            return False
+
+        # Essaie /1 puis /0 au démarrage
+        for ch in (1):
+            url = _rtsp_url_bambu(ip, code, ch)
+            cmd = [
+                "ffmpeg",
+                "-nostdin", "-hide_banner", "-loglevel", "error",
+                "-rtsp_transport", "tcp",
+                "-i", url,
+                "-f", "image2pipe",        # flux d'images
+                "-vcodec", "mjpeg",
+                "-q:v", "7",               # qualité JPEG (0..31, plus petit = meilleur)
+                "-r", str(self.fps),       # limitation fps côté encodage
+                "pipe:1",
+            ]
+            try:
+                self.proc = subprocess.Popen(
+                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
+                )
+                self.stop_evt.clear()
+                self.reader = threading.Thread(target=self._read_loop, daemon=True)
+                self.reader.start()
+
+                # Attends une frame pour valider le canal
+                if self._wait_first_frame(timeout=3.0):
+                    return True
+                # Échec : tue et tente l’autre canal
+                self._kill_proc()
+            except Exception:
+                self._kill_proc()
+        return False
+
+    def _wait_first_frame(self, timeout: float) -> bool:
+        end = time.time() + timeout
+        with self.cond:
+            while self.latest is None and time.time() < end:
+                self.cond.wait(timeout=0.2)
+            return self.latest is not None
+
+    def _read_loop(self):
+        s = self.proc.stdout
+        buf = self.buf
+        try:
+            while not self.stop_evt.is_set():
+                chunk = s.read(4096)
+                if not chunk:
+                    break
+                buf += chunk
+                # Découpe JPEG par marqueurs SOI/EOI
+                while True:
+                    soi = buf.find(b"\xff\xd8")
+                    if soi < 0:
+                        # évite d’accumuler si bruit
+                        if len(buf) > 2_000_000:
+                            buf.clear()
+                        break
+                    eoi = buf.find(b"\xff\xd9", soi + 2)
+                    if eoi < 0:
+                        if soi > 0:
+                            del buf[:soi]
+                        break
+                    frame = bytes(buf[soi:eoi + 2])
+                    del buf[:eoi + 2]
+                    with self.cond:
+                        self.latest = frame
+                        self.cond.notify_all()
+        finally:
+            with self.cond:
+                self.cond.notify_all()
+            self._kill_proc()
+
+    def _kill_proc(self):
+        try:
+            if self.proc and self.proc.poll() is None:
+                self.proc.terminate()
+                try:
+                    self.proc.wait(timeout=1.0)
+                except Exception:
+                    self.proc.kill()
+        finally:
+            self.proc = None
+            self.reader = None
+            self.buf.clear()
+
+    def subscribe(self, boundary: bytes = b"frame"):
+        # Démarre ffmpeg si nécessaire
+        if not (self.proc and self.proc.poll() is None):
+            if not self._spawn():
+                # Pas de flux -> lève pour que la route rende 503 (onerror côté <img>)
+                raise RuntimeError("camera stream unavailable")
+        with self.cond:
+            self.subs += 1
+
+        def _gen():
+            try:
+                while True:
+                    with self.cond:
+                        if self.latest is None:
+                            self.cond.wait(timeout=2.0)
+                        frame = self.latest
+                    if not frame:
+                        # si ffmpeg s'est arrêté, on sort
+                        if not (self.proc and self.proc.poll() is None):
+                            break
+                        continue
+                    yield (
+                        b"--" + boundary + b"\r\n"
+                        b"Content-Type: image/jpeg\r\n"
+                        b"Content-Length: " + str(len(frame)).encode() + b"\r\n\r\n"
+                        + frame + b"\r\n"
+                    )
+            finally:
+                with self.cond:
+                    self.subs -= 1
+                # arrêt ffmpeg quand plus d’abonnés (petit délai)
+                def _stop_later():
+                    time.sleep(5)
+                    with self.cond:
+                        if self.subs == 0:
+                            self.stop_evt.set()
+                            self._kill_proc()
+                threading.Thread(target=_stop_later, daemon=True).start()
+        return _gen()
+
+# Instance globale
+_MJPEG = _MJPEGStreamer(fps=3)  # ~3 fps côté serveur
+
 class InMemoryLogHandler(logging.Handler):
     """Handler simple : pousse chaque log formaté dans un buffer en mémoire."""
     def __init__(self):
@@ -337,6 +489,16 @@ app.config.update(
     SESSION_COOKIE_SECURE=True             # requis avec SameSite=None
 )
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+@app.get("/camera/mjpeg")
+def camera_mjpeg():
+    try:
+        boundary = b"frame"
+        gen = _MJPEG.subscribe(boundary=boundary)
+        return Response(gen, mimetype=f"multipart/x-mixed-replace; boundary={boundary.decode()}")
+    except Exception:
+        # Pas de flux/config -> 503 pour déclencher onerror du <img>
+        return Response("camera unavailable", status=503)
 
 @app.get("/camera/snapshot")
 def camera_snapshot():

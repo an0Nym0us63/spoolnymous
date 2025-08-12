@@ -88,7 +88,7 @@
     </div>
 	<div class="ratio ratio-16x9 bg-black rounded overflow-hidden position-relative">
   <img id="printer-cam"
-       src="{{ url_for('camera_snapshot') }}"
+       src=""
        alt="Caméra imprimante"
        class="w-100 h-100"
        style="object-fit:cover;">
@@ -388,70 +388,53 @@ statusTextEl.innerText = status;
 
   // Panneau Alpine qui contient l'image (x-show)
   const pane = img.closest('[x-show]') || document.body;
+  const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
-  let timer = null;
   let inViewport = true;
-  let inFlight = false;     // empêche les requêtes qui se chevauchent
-  const period = 500;      // ← espace un peu les snapshots (~3,5 s)
-  const jitter = 300;       // petite gigue pour éviter les rafales synchronisées
 
-  // Visibilité réelle (Alpine met display:none)
   function isVisible(el) {
     if (!el) return true;
     if (el.offsetParent === null) return false;
     const cs = getComputedStyle(el);
     return cs.display !== 'none' && cs.visibility !== 'hidden' && cs.opacity !== '0';
   }
-  const canRun = ()=> !document.hidden && isVisible(pane) && inViewport;
-
-  function tick() {
-    if (inFlight) return;  // on attend la fin du précédent
-    inFlight = true;
-    const u = new URL("{{ url_for('camera_snapshot') }}", window.location.origin);
-    u.searchParams.set('t', Date.now());
-    img.src = u.toString();
+  function shouldStream() {
+    return !document.hidden && isVisible(pane) && inViewport;
   }
-  function start(){
-    if (timer || !canRun()) return;
-    tick();
-    timer = setInterval(() => {
-      // petit jitter pour lisser la charge
-      setTimeout(tick, Math.random() * jitter);
-    }, period);
+  function start() {
+    if (img.dataset.live === '1') return;
+    img.dataset.live = '1';
+    img.src = "/camera/mjpeg?t=" + Date.now();  // ouvre le flux
   }
-  function stop(){
-    if (!timer) return;
-    clearInterval(timer);
-    timer = null;
+  function stop() {
+    if (img.dataset.live !== '1') return;
+    img.dataset.live = '0';
+    img.src = BLANK;                             // ferme la connexion
   }
 
-  // Quand une image (JPEG ou SVG fallback) est chargée, on libère
-  img.addEventListener('load', () => { inFlight = false; });
-  img.addEventListener('error', () => {
-    // Fallback local si le backend est KO
-    img.src = "data:image/svg+xml;utf8," + encodeURIComponent(
-      "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 450'><rect width='100%' height='100%' fill='#111'/><text x='50%' y='50%' fill='#bbb' font-family='sans-serif' font-size='22' text-anchor='middle'>Caméra indisponible</text></svg>"
-    );
-    inFlight = false;
-  });
+  // Gère erreurs -> fallback local (pas de reconnexion agressive)
+  img.addEventListener('error', () => { img.src = BLANK; img.dataset.live = '0'; });
 
-  // Réagit aux changements Alpine (x-show→ style/class)
-  const mo = new MutationObserver(()=> canRun()? start(): stop());
+  // Observe x-show (style/class)
+  const mo = new MutationObserver(() => shouldStream() ? start() : stop());
   mo.observe(pane, { attributes: true, attributeFilter: ['style','class','hidden'] });
 
-  // Pause si onglet caché
-  document.addEventListener('visibilitychange', ()=> document.hidden ? stop() : start());
+  // Visibilité onglet
+  document.addEventListener('visibilitychange', () => document.hidden ? stop() : (shouldStream() && start()));
 
-  // Pause si hors viewport
+  // Viewport
   if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver(([e]) => { inViewport = e.isIntersecting; canRun()? start(): stop(); }, { threshold: 0.2 });
+    const io = new IntersectionObserver(([e]) => {
+      inViewport = e.isIntersecting;
+      shouldStream() ? start() : stop();
+    }, { threshold: 0.2 });
     io.observe(img);
   }
 
   // Démarrage si déjà visible
-  if (canRun()) start();
+  shouldStream() ? start() : stop();
 
-  window.addEventListener('beforeunload', ()=>{ stop(); mo.disconnect(); });
+  window.addEventListener('beforeunload', stop);
 })();
 </script>
 
