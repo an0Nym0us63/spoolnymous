@@ -275,10 +275,6 @@ _root = logging.getLogger()
 
 if not any(isinstance(h, InMemoryLogHandler) for h in _root.handlers):
     _root.addHandler(InMemoryLogHandler())
-    
-def _rtsp_url_bambu(ip: str, access_code: str) -> str:
-    # format Home Assistant (user bblp + code LAN) — RTSPS port 322
-    return f"rtsps://bblp:{access_code}@{ip}:322/streaming/live/1"
 
 # --- cache court pour éviter de taper ffmpeg à gogo ---
 _SNAP_LOCK = Lock()
@@ -304,6 +300,26 @@ def _svg_fallback(message: str) -> Response:
     r.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
     r.headers["X-Camera-Status"] = "error"
     return r
+
+def _snapshot_once(url: str, timeout_s: float = 6.0) -> bytes:
+    cmd = [
+        "ffmpeg",
+        "-nostdin", "-hide_banner", "-loglevel", "error",
+        "-rtsp_transport", "tcp",
+        "-rw_timeout", str(int(5 * 1_000_000)),   # 5s I/O (µs)
+        "-i", url,
+        "-frames:v", "1",
+        "-f", "image2pipe",                       # <- comme ton test, mais vers stdout
+        "-vcodec", "mjpeg",
+        "pipe:1",
+    ]
+    out = subprocess.run(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        timeout=timeout_s, check=True
+    )
+    if not out.stdout:
+        raise RuntimeError("ffmpeg: sortie vide")
+    return out.stdout
 
 init_mqtt()
 
@@ -332,40 +348,31 @@ def camera_snapshot():
     now = time.time()
     with _SNAP_LOCK:
         if _SNAP["data"] is not None and (now - _SNAP["ts"] < _SNAP_TTL):
-            resp = Response(_SNAP["data"], mimetype=("image/jpeg" if _SNAP["ok"] else "image/svg+xml"))
-            resp.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
-            resp.headers["X-Camera-Status"] = "ok" if _SNAP["ok"] else "error"
-            return resp
+            r = Response(_SNAP["data"], mimetype=("image/jpeg" if _SNAP["ok"] else "image/svg+xml"))
+            r.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
+            r.headers["X-Camera-Status"] = "ok" if _SNAP["ok"] else "error"
+            return r
 
-    url = _rtsp_url_bambu(ip, code)
-    cmd = [
-        "ffmpeg",
-        "-nostdin", "-hide_banner", "-loglevel", "error",
-        "-rtsp_transport", "tcp",
-        "-rw_timeout", "5000000",  # 5s
-        "-i", url,
-        "-frames:v", "1",
-        "-f", "mjpeg", "pipe:1",
+    # Essaye /1 puis /0 (certains firmwares ne peuplent qu'un seul track)
+    urls = [
+        f"rtsps://bblp:{code}@{ip}:322/streaming/live/1",
     ]
-    try:
-        out = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=6, check=True)
-        data = out.stdout or b""
-        if not data:
-            raise RuntimeError("aucune image")
-        with _SNAP_LOCK:
-            _SNAP.update(ts=now, data=data, ok=True)
-        resp = Response(data, mimetype="image/jpeg")
-        resp.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
-        resp.headers["X-Camera-Status"] = "ok"
-        return resp
-    except FileNotFoundError:
-        fb = _svg_fallback("ffmpeg introuvable sur le serveur.")
-        with _SNAP_LOCK: _SNAP.update(ts=now, data=fb.get_data(), ok=False)
-        return fb
-    except Exception:
-        fb = _svg_fallback("Flux caméra injoignable pour le moment.")
-        with _SNAP_LOCK: _SNAP.update(ts=now, data=fb.get_data(), ok=False)
-        return fb
+    for u in urls:
+        try:
+            data = _snapshot_once(u)
+            with _SNAP_LOCK:
+                _SNAP.update(ts=now, data=data, ok=True)
+            resp = Response(data, mimetype="image/jpeg")
+            resp.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
+            resp.headers["X-Camera-Status"] = "ok"
+            return resp
+        except Exception as e:
+            logger.warning("snapshot camera fail on %s: %s", u, e)
+
+    fb = _svg_fallback("Flux caméra injoignable pour le moment.")
+    with _SNAP_LOCK:
+        _SNAP.update(ts=now, data=fb.get_data(), ok=False)
+    return fb
 
 @app.route("/logs")
 @login_required
