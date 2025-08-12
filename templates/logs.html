@@ -138,7 +138,7 @@
   function startPolling() {
     stopPolling();
     pollOnce();
-    pollingTimer = setInterval(pollOnce, 1000); // 1 req/s
+    pollingTimer = setInterval(pollOnce, 2000); // 1 req/s
   }
   function stopPolling() {
     if (pollingTimer) clearInterval(pollingTimer);
