@@ -58,6 +58,10 @@
 				Terminé
 			{% elif printer_status.status == 'IDLE' %}
 				Au repos
+			{% elif printer_status.status == 'PREPARE' %}
+				En préparation
+			{% elif printer_status.status == 'SLICING' %}
+				Tranchage
 			{% else %}
 				{{ printer_status.status or '...' }}
 			{% endif %}
@@ -307,6 +311,10 @@ switch (status) {
     status = 'Terminé';
   case 'IDLE':
     status = 'Au repos';
+  case 'PREPARE':
+    status = 'En préparation';
+  case 'SLICING':
+    status = 'Tranchage';
     break;
 }
 
