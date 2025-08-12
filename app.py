@@ -260,16 +260,19 @@ LEVELS_MAP = {
     "CRITICAL": logging.CRITICAL,
 }
 
+# --- remplace la classe _MJPEGStreamer existante ---
+
 class _MJPEGStreamer:
     """
-    Démarre un ffmpeg persistant qui sort des JPEG en continu (image2pipe/mjpeg),
-    lit stdout, découpe les frames (SOI/EOI), et réveille les abonnés.
+    Démarre un ffmpeg persistant (image2pipe MJPEG), lit stdout,
+    découpe les frames (SOI/EOI) et réveille les abonnés.
     Arrêt auto quand plus d’abonnés.
     """
     def __init__(self, fps: int = 3):
         self.fps = fps
         self.proc = None
         self.reader = None
+        self.stderr_reader = None
         self.buf = bytearray()
         self.lock = threading.Lock()
         self.cond = threading.Condition(self.lock)
@@ -278,23 +281,22 @@ class _MJPEGStreamer:
         self.stop_evt = threading.Event()
 
     def _spawn(self):
-        ip   = get_app_setting("PRINTER_IP", "")
-        code = get_app_setting("PRINTER_ACCESS_CODE", "")
+        ip   = _read_setting("PRINTER_IP", "")
+        code = _read_setting("PRINTER_ACCESS_CODE", "") or _read_setting("PRINTER_CODE", "")
         if not ip or not code:
             return False
 
-        # Essaie /1 puis /0 au démarrage
-        for ch in (1):
+        for ch in (1, 0):  # essaie /1 puis /0
             url = _rtsp_url_bambu(ip, code, ch)
             cmd = [
                 "ffmpeg",
                 "-nostdin", "-hide_banner", "-loglevel", "error",
                 "-rtsp_transport", "tcp",
                 "-i", url,
-                "-f", "image2pipe",        # flux d'images
+                "-f", "image2pipe",
                 "-vcodec", "mjpeg",
-                "-q:v", "7",               # qualité JPEG (0..31, plus petit = meilleur)
-                "-r", str(self.fps),       # limitation fps côté encodage
+                "-q:v", "7",
+                "-r", str(self.fps),
                 "pipe:1",
             ]
             try:
@@ -304,15 +306,28 @@ class _MJPEGStreamer:
                 self.stop_evt.clear()
                 self.reader = threading.Thread(target=self._read_loop, daemon=True)
                 self.reader.start()
+                self.stderr_reader = threading.Thread(target=self._stderr_loop, daemon=True)
+                self.stderr_reader.start()
 
-                # Attends une frame pour valider le canal
-                if self._wait_first_frame(timeout=3.0):
+                # ⏳ laisse plus de temps pour la 1ʳᵉ frame (RTSP+TLS peut être lent)
+                if self._wait_first_frame(timeout=8.0):
                     return True
-                # Échec : tue et tente l’autre canal
                 self._kill_proc()
             except Exception:
                 self._kill_proc()
         return False
+
+    def _stderr_loop(self):
+        # logue les dernières lignes d’erreur ffmpeg (pratique pour diagnostiquer)
+        try:
+            if self.proc and self.proc.stderr:
+                for line in iter(self.proc.stderr.readline, b""):
+                    try:
+                        logging.getLogger("camera").debug("ffmpeg: %s", line.decode(errors="ignore").strip())
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
     def _wait_first_frame(self, timeout: float) -> bool:
         end = time.time() + timeout
@@ -334,7 +349,6 @@ class _MJPEGStreamer:
                 while True:
                     soi = buf.find(b"\xff\xd8")
                     if soi < 0:
-                        # évite d’accumuler si bruit
                         if len(buf) > 2_000_000:
                             buf.clear()
                         break
@@ -364,14 +378,15 @@ class _MJPEGStreamer:
         finally:
             self.proc = None
             self.reader = None
+            self.stderr_reader = None
             self.buf.clear()
 
     def subscribe(self, boundary: bytes = b"frame"):
-        # Démarre ffmpeg si nécessaire
+        # démarre ffmpeg si nécessaire
         if not (self.proc and self.proc.poll() is None):
             if not self._spawn():
-                # Pas de flux -> lève pour que la route rende 503 (onerror côté <img>)
                 raise RuntimeError("camera stream unavailable")
+
         with self.cond:
             self.subs += 1
 
@@ -383,7 +398,6 @@ class _MJPEGStreamer:
                             self.cond.wait(timeout=2.0)
                         frame = self.latest
                     if not frame:
-                        # si ffmpeg s'est arrêté, on sort
                         if not (self.proc and self.proc.poll() is None):
                             break
                         continue
@@ -396,7 +410,7 @@ class _MJPEGStreamer:
             finally:
                 with self.cond:
                     self.subs -= 1
-                # arrêt ffmpeg quand plus d’abonnés (petit délai)
+                # arrêt ffmpeg quand plus d’abonnés
                 def _stop_later():
                     time.sleep(5)
                     with self.cond:
