@@ -281,7 +281,7 @@ def _rtsp_url_bambu(ip: str, access_code: str) -> str:
     return f"rtsps://bblp:{access_code}@{ip}:322/streaming/live/1"
 
 # --- cache court pour éviter de taper ffmpeg à gogo ---
-_SNAP_LOCK = threading.Lock()
+_SNAP_LOCK = Lock()
 _SNAP = {"ts": 0.0, "data": None, "ok": False}
 _SNAP_TTL = 0.8  # seconde(s)
 
