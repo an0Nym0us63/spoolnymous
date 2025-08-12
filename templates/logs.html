@@ -3,13 +3,12 @@
 <div class="container my-4" style="max-width: 1100px;">
   <h3 class="text-light mb-3">🧭 Logs en temps réel</h3>
 
-  <div class="card bg-dark border-secondary mb-3">
+  <!-- Toolbar sticky + responsive -->
+  <div class="card bg-dark border-secondary mb-3" id="logs-toolbar">
     <div class="card-body">
-      <form id="controls" class="row g-2 align-items-center">
-        <div class="col-auto">
-          <label class="col-form-label text-light" for="level">Niveau</label>
-        </div>
-        <div class="col-auto">
+      <form id="controls" class="row row-cols-1 row-cols-sm-auto g-2 align-items-center">
+        <div class="col">
+          <label class="col-form-label text-light control-label" for="level">Niveau</label>
           <select id="level" class="form-select">
             <option>DEBUG</option>
             <option selected>INFO</option>
@@ -19,23 +18,18 @@
           </select>
         </div>
 
-        <div class="col-auto">
-          <label class="col-form-label text-light" for="filter">Filtre (regex)</label>
-        </div>
-        <div class="col-auto">
-          <input id="filter" class="form-control" placeholder="ex: (MQTT|ERROR|tray \d+)" />
+        <div class="col">
+          <label class="col-form-label text-light control-label" for="filter">Filtre (regex)</label>
+          <input id="filter" class="form-control" placeholder="Filtre regex (ex: MQTT|ERROR)" />
         </div>
 
-        <div class="col-auto">
-          <button class="btn btn-primary" id="apply" type="button">Appliquer</button>
+        <div class="col d-flex gap-2">
+          <button class="btn btn-primary flex-fill" id="apply" type="button">Appliquer</button>
+          <button class="btn btn-secondary flex-fill" id="pause" type="button" data-paused="false">⏸️ Pause</button>
+          <button class="btn btn-outline-light flex-fill" id="clear" type="button">🧹 Clear</button>
         </div>
-        <div class="col-auto">
-          <button class="btn btn-secondary" id="pause" type="button" data-paused="false">⏸️ Pause</button>
-        </div>
-        <div class="col-auto">
-          <button class="btn btn-outline-light" id="clear" type="button">🧹 Clear</button>
-        </div>
-        <div class="col-auto">
+
+        <div class="col">
           <div class="form-check form-switch mt-1">
             <input class="form-check-input" type="checkbox" id="autoscroll" checked>
             <label class="form-check-label text-light" for="autoscroll">Autoscroll</label>
@@ -46,11 +40,36 @@
   </div>
 
   <div class="card bg-black border-secondary">
-    <div class="card-body p-2" style="height: 60vh; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9rem;">
+    <div id="log-container" class="card-body p-2">
       <pre id="log" class="m-0 text-light"></pre>
     </div>
   </div>
 </div>
+
+<style>
+  /* Toolbar sticky en haut */
+  #logs-toolbar { position: sticky; top: 0; z-index: 1030; }
+
+  /* Zone log : meilleure occupation sur mobile (dynamic viewport) */
+  #log-container { 
+    height: 60dvh;               /* mobile-friendly */
+    overflow: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; 
+    font-size: 0.92rem;
+  }
+  /* Wrap des longues lignes (URLs, traces) */
+  #log { 
+    white-space: pre-wrap; 
+    word-wrap: break-word; 
+    word-break: break-word;
+  }
+
+  /* Compactage des contrôles sur petits écrans */
+  @media (max-width: 576px) {
+    .control-label { display: none; }
+    .btn, .form-select, .form-control { padding-top: .4rem; padding-bottom: .4rem; }
+  }
+</style>
 
 <script>
 (function() {
@@ -64,12 +83,27 @@
   const applyBtn = document.getElementById('apply');
   const autoscrollEl = document.getElementById('autoscroll');
 
+  // Buffer d'affichage pour limiter le nombre d'opérations DOM (performances)
+  let renderBuffer = [];
+  let flushScheduled = false;
+  function scheduleFlush() {
+    if (flushScheduled) return;
+    flushScheduled = true;
+    setTimeout(() => {
+      flushScheduled = false;
+      if (paused || renderBuffer.length === 0) { renderBuffer = []; return; }
+      logEl.textContent += renderBuffer.join("\n") + "\n";
+      renderBuffer = [];
+      if (autoscrollEl.checked) {
+        logEl.parentElement.scrollTop = logEl.parentElement.scrollHeight;
+      }
+    }, 50); // flush toutes les ~50ms
+  }
+
   function appendLine(line) {
     if (paused) return;
-    logEl.textContent += line + "\n";
-    if (autoscrollEl.checked) {
-      logEl.parentElement.scrollTop = logEl.parentElement.scrollHeight;
-    }
+    renderBuffer.push(line);
+    scheduleFlush();
   }
 
   function connect() {
@@ -80,13 +114,27 @@
     if (q) params.set('q', q);
     es = new EventSource(`/logs/stream?` + params.toString());
     es.onmessage = (ev) => appendLine(ev.data);
-    es.onerror = () => { /* tente de reconnecter après 1s */ setTimeout(connect, 1000); es.close(); };
+    es.onerror = () => { setTimeout(connect, 1000); es.close(); };
   }
 
-  applyBtn.addEventListener('click', () => {
-    logEl.textContent = ""; // reset affichage mais le serveur renverra l’historique filtré
+  function resetAndConnect() {
+    logEl.textContent = ""; // reset affichage : le serveur renverra l'historique filtré
+    renderBuffer = [];
     connect();
+  }
+
+  // Reconnecte automatiquement quand le niveau change
+  levelEl.addEventListener('change', resetAndConnect);
+
+  // Debounce sur le filtre (reconnecte 400ms après la dernière frappe)
+  let filterTimer = null;
+  filterEl.addEventListener('input', () => {
+    clearTimeout(filterTimer);
+    filterTimer = setTimeout(resetAndConnect, 400);
   });
+
+  // Le bouton "Appliquer" reste disponible
+  applyBtn.addEventListener('click', resetAndConnect);
 
   pauseBtn.addEventListener('click', () => {
     paused = !paused;
@@ -96,6 +144,7 @@
 
   clearBtn.addEventListener('click', () => {
     logEl.textContent = "";
+    renderBuffer = [];
   });
 
   // Connexion initiale
