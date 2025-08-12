@@ -92,14 +92,6 @@
        alt="Caméra imprimante"
        class="w-100 h-100"
        style="object-fit:cover;">
-  <div id="camOverlay"
-       class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-       style="display:none;background:rgba(0,0,0,.25);">
-    <div class="text-center">
-      <div class="spinner-border mb-2" role="status" aria-hidden="true"></div>
-      <div class="small text-muted">Mise à jour…</div>
-    </div>
-  </div>
 </div>
   </div>
 </div>
@@ -392,60 +384,74 @@ statusTextEl.innerText = status;
   });
 (function () {
   const img = document.getElementById('printer-cam');
-  const overlay = document.getElementById('camOverlay');
   if (!img) return;
 
-  // Trouve le conteneur Alpine qui a x-show (ton panneau déplié)
+  // Panneau Alpine qui contient l'image (x-show)
   const pane = img.closest('[x-show]') || document.body;
 
-  let timer = null, inViewport = true;
-  const period = 1500;
+  let timer = null;
+  let inViewport = true;
+  let inFlight = false;     // empêche les requêtes qui se chevauchent
+  const period = 3500;      // ← espace un peu les snapshots (~3,5 s)
+  const jitter = 300;       // petite gigue pour éviter les rafales synchronisées
 
-  const showOverlay = (on)=> { if (overlay) overlay.style.display = on ? 'flex' : 'none'; };
-
-  // Vrai test de visibilité (Alpine x-show met display:none)
+  // Visibilité réelle (Alpine met display:none)
   function isVisible(el) {
     if (!el) return true;
-    if (el.offsetParent === null) return false; // display:none ou détaché
+    if (el.offsetParent === null) return false;
     const cs = getComputedStyle(el);
     return cs.display !== 'none' && cs.visibility !== 'hidden' && cs.opacity !== '0';
   }
   const canRun = ()=> !document.hidden && isVisible(pane) && inViewport;
 
   function tick() {
-    showOverlay(true);
+    if (inFlight) return;  // on attend la fin du précédent
+    inFlight = true;
     const u = new URL("{{ url_for('camera_snapshot') }}", window.location.origin);
     u.searchParams.set('t', Date.now());
     img.src = u.toString();
   }
-  function start(){ if (timer || !canRun()) return; tick(); timer = setInterval(tick, period); }
-  function stop(){ if (!timer) return; clearInterval(timer); timer = null; }
+  function start(){
+    if (timer || !canRun()) return;
+    tick();
+    timer = setInterval(() => {
+      // petit jitter pour lisser la charge
+      setTimeout(tick, Math.random() * jitter);
+    }, period);
+  }
+  function stop(){
+    if (!timer) return;
+    clearInterval(timer);
+    timer = null;
+  }
 
-  img.addEventListener('load', ()=> showOverlay(false));
-  img.addEventListener('error', ()=> {
+  // Quand une image (JPEG ou SVG fallback) est chargée, on libère
+  img.addEventListener('load', () => { inFlight = false; });
+  img.addEventListener('error', () => {
+    // Fallback local si le backend est KO
     img.src = "data:image/svg+xml;utf8," + encodeURIComponent(
       "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 450'><rect width='100%' height='100%' fill='#111'/><text x='50%' y='50%' fill='#bbb' font-family='sans-serif' font-size='22' text-anchor='middle'>Caméra indisponible</text></svg>"
     );
-    showOverlay(false);
+    inFlight = false;
   });
 
-  // Observe les changements Alpine (x-show modifie style/class)
-  const mo = new MutationObserver(()=> canRun() ? start() : stop());
-  mo.observe(pane, { attributes: true, attributeFilter: ['style', 'class', 'hidden'] });
+  // Réagit aux changements Alpine (x-show→ style/class)
+  const mo = new MutationObserver(()=> canRun()? start(): stop());
+  mo.observe(pane, { attributes: true, attributeFilter: ['style','class','hidden'] });
 
   // Pause si onglet caché
   document.addEventListener('visibilitychange', ()=> document.hidden ? stop() : start());
 
   // Pause si hors viewport
   if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver(([e]) => { inViewport = e.isIntersecting; canRun()? start() : stop(); }, { threshold: 0.2 });
+    const io = new IntersectionObserver(([e]) => { inViewport = e.isIntersecting; canRun()? start(): stop(); }, { threshold: 0.2 });
     io.observe(img);
   }
 
-  // Démarrage si déjà visible, sinon attend l'ouverture
+  // Démarrage si déjà visible
   if (canRun()) start();
 
-  window.addEventListener('beforeunload', ()=> { stop(); mo.disconnect(); });
+  window.addEventListener('beforeunload', ()=>{ stop(); mo.disconnect(); });
 })();
 </script>
 
