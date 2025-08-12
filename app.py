@@ -12,7 +12,7 @@ from collections import defaultdict,deque
 from urllib.parse import urlencode
 import requests
 import secrets
-from queue import Queue, Empty
+from queue import Queue, Empty, Full
 from threading import Lock
 
 from flask_login import LoginManager, login_required
@@ -43,10 +43,10 @@ _log_buffer = deque(maxlen=LOG_BUFFER_MAX)
 _log_subscribers: list[Queue] = []
 _log_lock = Lock()
 
+SUBSCRIBER_QUEUE_MAX = 1000  # bornéour chaque abonné
 class SSELogHandler(logging.Handler):
     def __init__(self):
         super().__init__()
-        # Réutilise le même format que basicConfig
         self.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
 
     def emit(self, record: logging.LogRecord):
@@ -56,11 +56,15 @@ class SSELogHandler(logging.Handler):
             msg = f"[emit-error] {record.getMessage()}"
         with _log_lock:
             _log_buffer.append((record.levelno, msg))
-            # Push non bloquant vers tous les abonnés
-            for q in list(_log_subscribers):
+            # Push non bloquant vers chaque abonné
+            for subq in list(_log_subscribers):
                 try:
-                    q.put_nowait((record.levelno, msg))
+                    subq.put_nowait((record.levelno, msg))  # ne bloque jamais
+                except Full:
+                    # Client lent : on DROP cette ligne pour lui (pas de backpressure)
+                    pass
                 except Exception:
+                    # Abonné défaillant : on ignore (on pourrait aussi le retirer)
                     pass
 
 # Installe le handler s’il n’est pas déjà présent
@@ -76,39 +80,34 @@ LEVELS_MAP = {
 }
 
 def _make_stream(min_level: int, pattern: str | None):
-    import re
-    regex = re.compile(pattern) if pattern else None
+    import re, time
+    rx = re.compile(pattern) if pattern else None
 
-    q = Queue()
+    subq = Queue(maxsize=SUBSCRIBER_QUEUE_MAX)  # <= une queue par abonné
     with _log_lock:
-        _log_subscribers.append(q)
-        # Envoie d’abord le buffer existant (historique récent)
+        _log_subscribers.append(subq)
         snapshot = list(_log_buffer)
 
-    # Générateur SSE
     def gen():
         try:
-            # 1) Historique
+            yield "retry: 1000\n\n"  # optionnel
+            # Historique
             for lvl, msg in snapshot:
-                if lvl >= min_level and (regex is None or regex.search(msg)):
+                if lvl >= min_level and (rx is None or rx.search(msg)):
                     yield f"data: {msg}\n\n"
-
-            # 2) Flux live
+            # Live
             while True:
                 try:
-                    lvl, msg = q.get(timeout=1.0)
+                    lvl, msg = subq.get(timeout=1.0)
                 except Empty:
-                    # ping pour garder la connexion active
-                    yield ": keep-alive\n\n"
+                    yield ": keep-alive\n\n"  # heartbeat
                     continue
-                if lvl >= min_level and (regex is None or regex.search(msg)):
+                if lvl >= min_level and (rx is None or rx.search(msg)):
                     yield f"data: {msg}\n\n"
-        except GeneratorExit:
-            pass
         finally:
             with _log_lock:
-                if q in _log_subscribers:
-                    _log_subscribers.remove(q)
+                if subq in _log_subscribers:
+                    _log_subscribers.remove(subq)
 
     return gen()
 
@@ -344,7 +343,16 @@ def logs_stream():
     level_name = request.args.get("level", "INFO").upper()
     min_level = LEVELS_MAP.get(level_name, logging.INFO)
     q = request.args.get("q")  # regex optionnel
-    return Response(_make_stream(min_level, q), mimetype="text/event-stream")
+    gen = _make_stream(min_level, q)
+
+    # >>> ICI : on construit la réponse avec les bons en-têtes
+    resp = Response(stream_with_context(gen), mimetype="text/event-stream")
+    resp.headers["Cache-Control"] = "no-cache, no-transform"
+    resp.headers["X-Accel-Buffering"] = "no"   # évite le buffering Nginx/Traefik
+    # optionnels mais utiles :
+    resp.headers["Connection"] = "keep-alive"
+    # resp.headers["Content-Encoding"] = "identity"  # si ton proxy compresse
+    return resp
 # --- [LOGS SSE] Fin ajout ---
 
 @app.before_request
