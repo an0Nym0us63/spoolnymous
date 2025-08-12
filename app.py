@@ -26,7 +26,7 @@ from flask import flash,Flask, request, render_template, redirect, url_for,jsoni
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting
+from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
@@ -490,7 +490,11 @@ init_mqtt()
 
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
-app.secret_key = secrets.token_hex(32)
+secret_key = get_app_setting("SECRET_KEY", "")
+if not secret_key:
+    secret_key = secrets.token_hex(32)
+    set_app_setting("SECRET_KEY", secret_key)
+app.secret_key = secret_key
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'  # redirige vers /login si non connecté
 login_manager.init_app(app)
