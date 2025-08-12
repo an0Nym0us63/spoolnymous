@@ -307,7 +307,6 @@ def _snapshot_once(url: str, timeout_s: float = 6.0) -> bytes:
         "ffmpeg",
         "-nostdin", "-hide_banner", "-loglevel", "error",
         "-rtsp_transport", "tcp",
-        "-rw_timeout", str(int(5 * 1_000_000)),   # 5s I/O (µs)
         "-i", url,
         "-frames:v", "1",
         "-f", "image2pipe",                       # <- comme ton test, mais vers stdout
