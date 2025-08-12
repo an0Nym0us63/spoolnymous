@@ -17,4 +17,6 @@ echo "[ENTRYPOINT] UID=$(id -u app), GID=$(id -g app)"
 echo "[ENTRYPOINT] Lancement de Gunicorn..."
 chown -R app:app /home/app/data /home/app/logs /home/app/static/prints
 # Lancement de Gunicorn avec le bon user et module app.py
-exec su-exec app gunicorn -k gthread -w 2 --threads 8 -b 0.0.0.0:8000 app:app "$@"
+exec su-exec app gunicorn -k gthread -w 1 --threads 8 --timeout 0 \
+  --max-requests 2000 --max-requests-jitter 200 \
+  -b 0.0.0.0:8000 app:app "$@"
