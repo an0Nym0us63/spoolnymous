@@ -335,7 +335,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 @login_required
 def logs_page():
     # Page HTML (UI) – voir template plus bas
-    return render_template("logs.html", page_title="Logs en temps réel")
+    return render_template("logs.html", page_title="Logs")
 
 @app.route("/logs/stream")
 @login_required
