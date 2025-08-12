@@ -871,10 +871,15 @@ def home():
           reordered[dst_index] = ams_data[src_index]
       ams_data=reordered
     latest = get_latest_print()
-    if latest and "image_file" in latest:
-        status_copy["thumbnail"] = latest["image_file"]
+    if latest:
+        status_copy["printName"] = latest["name"]
+        if "image_file" in latest:
+            status_copy["thumbnail"] = latest["image_file"]
+        else:
+            status_copy["thumbnail"] = None
     else:
         status_copy["thumbnail"] = None
+        status_copy["printName"] = None
     # Nouveau : si ?webview=1 → on met le cookie
     resp = make_response(render_template(
         'index.html',
@@ -1752,9 +1757,14 @@ def api_printer_status():
     with PRINTER_STATUS_LOCK:
         status = PRINTER_STATUS
         latest = get_latest_print()
-        if latest and "image_file" in latest:
-            status["thumbnail"] = latest["image_file"]
+        if latest:
+            status["printName"] = latest["name"]
+            if "image_file" in latest:
+                status["thumbnail"] = latest["image_file"]
+            else:
+                status["thumbnail"] = None
         else:
+            status["printName"] = None
             status["thumbnail"] = None
         return jsonify(status)
         

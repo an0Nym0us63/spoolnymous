@@ -80,18 +80,20 @@
   <div x-show="open" x-transition class="border-t border-gray-700 p-4 text-sm text-light space-y-4" style="background: transparent;">
     <!-- Infos grille -->
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-      <div><strong>📄</strong> <span id="status-print-name">{{ printer_status.print_name or 'N/A' }}</span></div>
+      <div><strong>📄</strong> <span id="status-print-name">{{ printer_status.print_printName or 'N/A' }}</span></div>
       <div><strong>🔥</strong> <span id="status-nozzle">{{ printer_status.nozzle_temp or '—' }}</span> °C</div>
       <div><strong>🛏️</strong> <span id="status-bed">{{ printer_status.bed_temp or '—' }}</span> °C</div>
       <div><strong>🌡️</strong> <span id="status-chamber">{{ printer_status.chamber_temp or '—' }}</span> °C</div>
       <div><strong>🧱️</strong> <span id="status-layers">{{ printer_status.print_layer }}/{{ printer_status.total_layers }}</span></div>
     </div>
-	<div class="ratio ratio-16x9 bg-black rounded overflow-hidden position-relative">
-  <img id="printer-cam"
-       src=""
-       alt="Caméra imprimante"
-       class="w-100 h-100"
-       style="object-fit:cover;">
+<div style="width:100%; max-width:720px; margin:0 auto;">
+  <div class="ratio ratio-16x9 bg-black rounded overflow-hidden position-relative">
+    <img id="printer-cam"
+         src="{{ url_for('camera_snapshot') }}"
+         alt="Caméra imprimante"
+         class="w-100 h-100"
+         style="object-fit:cover;">
+  </div>
 </div>
   </div>
 </div>
