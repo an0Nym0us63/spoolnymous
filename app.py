@@ -14,6 +14,7 @@ import requests
 import secrets
 from queue import Queue, Empty, Full
 from threading import Lock
+from itertools import count
 
 from flask_login import LoginManager, login_required
 from auth import auth_bp, User, get_stored_user
@@ -41,80 +42,6 @@ logging.basicConfig(
 for name in ("urllib3", "urllib3.connectionpool", "requests.packages.urllib3"):
     lg = logging.getLogger(name)
     lg.setLevel(logging.WARNING)
-
-LOG_BUFFER_MAX = 500  # lignes conservées pour l’historique immédiat
-_log_buffer = deque(maxlen=LOG_BUFFER_MAX)
-_log_subscribers: list[Queue] = []
-_log_lock = Lock()
-
-SUBSCRIBER_QUEUE_MAX = 1000  # bornéour chaque abonné
-class SSELogHandler(logging.Handler):
-    def __init__(self):
-        super().__init__()
-        self.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
-
-    def emit(self, record: logging.LogRecord):
-        try:
-            msg = self.format(record)
-        except Exception:
-            msg = f"[emit-error] {record.getMessage()}"
-        with _log_lock:
-            _log_buffer.append((record.levelno, msg))
-            # Push non bloquant vers chaque abonné
-            for subq in list(_log_subscribers):
-                try:
-                    subq.put_nowait((record.levelno, msg))  # ne bloque jamais
-                except Full:
-                    # Client lent : on DROP cette ligne pour lui (pas de backpressure)
-                    pass
-                except Exception:
-                    # Abonné défaillant : on ignore (on pourrait aussi le retirer)
-                    pass
-
-# Installe le handler s’il n’est pas déjà présent
-if not any(isinstance(h, SSELogHandler) for h in logging.getLogger().handlers):
-    logging.getLogger().addHandler(SSELogHandler())
-
-LEVELS_MAP = {
-    "DEBUG": logging.DEBUG,
-    "INFO": logging.INFO,
-    "WARNING": logging.WARNING,
-    "ERROR": logging.ERROR,
-    "CRITICAL": logging.CRITICAL,
-}
-
-def _make_stream(min_level: int, pattern: str | None):
-    import re, time
-    rx = re.compile(pattern) if pattern else None
-
-    subq = Queue(maxsize=SUBSCRIBER_QUEUE_MAX)  # <= une queue par abonné
-    with _log_lock:
-        _log_subscribers.append(subq)
-        snapshot = list(_log_buffer)
-
-    def gen():
-        try:
-            yield "retry: 1000\n\n"  # optionnel
-            # Historique
-            for lvl, msg in snapshot:
-                if lvl >= min_level and (rx is None or rx.search(msg)):
-                    yield f"data: {msg}\n\n"
-            # Live
-            while True:
-                try:
-                    lvl, msg = subq.get(timeout=1.0)
-                except Empty:
-                    yield ": keep-alive\n\n"  # heartbeat
-                    continue
-                if lvl >= min_level and (rx is None or rx.search(msg)):
-                    yield f"data: {msg}\n\n"
-        finally:
-            with _log_lock:
-                if subq in _log_subscribers:
-                    _log_subscribers.remove(subq)
-
-    return gen()
-
 
 COLOR_FAMILIES = {
     # Neutres
@@ -283,9 +210,7 @@ def _merge_context_args(keep=None, drop=None, endpoint=None, **new_args):
 
     merged = {**current_args, **cleaned_new_args}
     return merged
-
-
-
+    
 def redirect_with_context(endpoint, keep=None, drop=None, **new_args):
     """
     Redirige vers une route en conservant certains arguments (GET et POST filtrés).
@@ -316,6 +241,40 @@ def parse_print_date(date_str):
     except:
         return datetime.min  # en cas de date invalide, met tout en bas
 
+
+
+LOG_BUFFER_MAX = 1000                                # lignes conservées
+_log_buffer = deque(maxlen=LOG_BUFFER_MAX)           # (idx, levelno, message)
+_log_lock = Lock()
+_log_counter = count(1)                              # index auto-incrémenté des lignes
+
+LEVELS_MAP = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL,
+}
+
+class InMemoryLogHandler(logging.Handler):
+    """Handler simple : pousse chaque log formaté dans un buffer en mémoire."""
+    def __init__(self):
+        super().__init__()
+        self.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+    def emit(self, record: logging.LogRecord):
+        try:
+            msg = self.format(record)
+        except Exception:
+            msg = record.getMessage()
+        idx = next(_log_counter)
+        with _log_lock:
+            _log_buffer.append((idx, record.levelno, msg))
+
+# Installe le handler si absent
+_root = logging.getLogger()
+if not any(isinstance(h, InMemoryLogHandler) for h in _root.handlers):
+    _root.addHandler(InMemoryLogHandler())
+
 init_mqtt()
 
 app = Flask(__name__)
@@ -333,31 +292,34 @@ app.config.update(
 )
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-
 @app.route("/logs")
 @login_required
 def logs_page():
-    # Page HTML (UI) – voir template plus bas
+    # Page HTML (UI)
     return render_template("logs.html", page_title="Logs")
 
-@app.route("/logs/stream")
+@app.route("/logs/poll")
 @login_required
-def logs_stream():
-    # Params: ?level=INFO|DEBUG|...&q=regex
-    level_name = request.args.get("level", "INFO").upper()
-    min_level = LEVELS_MAP.get(level_name, logging.INFO)
-    q = request.args.get("q")  # regex optionnel
-    gen = _make_stream(min_level, q)
+def logs_poll():
+    """Retourne les nouvelles lignes depuis ?since=..., filtrées par ?level et ?q (regex)."""
+    level_name = (request.args.get("level") or "INFO").upper()
+    min_level  = LEVELS_MAP.get(level_name, logging.INFO)
+    q          = request.args.get("q") or ""
+    rx         = re.compile(q) if q else None
+    since      = int(request.args.get("since") or 0)
 
-    # >>> ICI : on construit la réponse avec les bons en-têtes
-    resp = Response(stream_with_context(gen), mimetype="text/event-stream")
-    resp.headers["Cache-Control"] = "no-cache, no-transform"
-    resp.headers["X-Accel-Buffering"] = "no"   # évite le buffering Nginx/Traefik
-    # optionnels mais utiles :
-    resp.headers["Connection"] = "keep-alive"
-    # resp.headers["Content-Encoding"] = "identity"  # si ton proxy compresse
-    return resp
-# --- [LOGS SSE] Fin ajout ---
+    with _log_lock:
+        lines = [(idx, msg) for (idx, lvl, msg) in _log_buffer
+                 if idx > since and lvl >= min_level and (rx is None or rx.search(msg))]
+
+    # Borne anti-burst
+    MAX_LINES = 500
+    if len(lines) > MAX_LINES:
+        lines = lines[-MAX_LINES:]
+
+    last = lines[-1][0] if lines else since
+    return jsonify({"lines": [m for _, m in lines], "last": last})
+# --- [LOGS BUFFER/POLL] Fin ---
 
 @app.before_request
 def strip_theme_param():

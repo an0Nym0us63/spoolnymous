@@ -51,7 +51,7 @@
 
   /* Zone log : meilleure occupation sur mobile (dynamic viewport) */
   #log-container { 
-    height: 60dvh;               /* mobile-friendly */
+    height: 60dvh;
     overflow: auto;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; 
     font-size: 0.92rem;
@@ -72,7 +72,6 @@
 
 <script>
 (function() {
-  let es = null;
   let paused = false;
   const logEl = document.getElementById('log');
   const levelEl = document.getElementById('level');
@@ -82,7 +81,11 @@
   const applyBtn = document.getElementById('apply');
   const autoscrollEl = document.getElementById('autoscroll');
 
-  // Buffer d'affichage pour limiter le nombre d'opérations DOM (performances)
+  // État du polling
+  let last = 0;
+  let pollingTimer = null;
+
+  // Buffer d'affichage pour limiter les opérations DOM
   let renderBuffer = [];
   let flushScheduled = false;
   function scheduleFlush() {
@@ -90,50 +93,74 @@
     flushScheduled = true;
     setTimeout(() => {
       flushScheduled = false;
-      if (paused || renderBuffer.length === 0) { renderBuffer = []; return; }
-      logEl.textContent += renderBuffer.join("\n") + "\n";
-      renderBuffer = [];
-      if (autoscrollEl.checked) {
-        logEl.parentElement.scrollTop = logEl.parentElement.scrollHeight;
+      if (renderBuffer.length === 0) return;
+      if (!paused) {
+        logEl.textContent += renderBuffer.join("\n") + "\n";
+        if (autoscrollEl.checked) {
+          logEl.parentElement.scrollTop = logEl.parentElement.scrollHeight;
+        }
       }
-    }, 50); // flush toutes les ~50ms
+      renderBuffer = [];
+    }, 50);
   }
 
   function appendLine(line) {
-    if (paused) return;
     renderBuffer.push(line);
     scheduleFlush();
   }
 
-  function connect() {
-    if (es) es.close();
+  async function pollOnce() {
     const params = new URLSearchParams();
     params.set('level', levelEl.value);
     const q = filterEl.value.trim();
     if (q) params.set('q', q);
-    es = new EventSource(`/logs/stream?` + params.toString());
-    es.onmessage = (ev) => appendLine(ev.data);
-    es.onerror = () => { setTimeout(connect, 1000); es.close(); };
+    params.set('since', String(last));
+
+    try {
+      const res = await fetch('/logs/poll?' + params.toString(), { cache: 'no-store' });
+      if (!res.ok) return;
+      const ctype = res.headers.get('content-type') || '';
+      if (!ctype.includes('application/json')) {
+        // ex: redirection login/erreur -> on ignore
+        return;
+      }
+      const data = await res.json();
+      // On avance le curseur même en pause pour ne pas accumuler
+      last = data.last || last;
+      if (!paused && Array.isArray(data.lines)) {
+        for (const line of data.lines) appendLine(line);
+      }
+    } catch (_) {
+      // silencieux
+    }
   }
 
-  function resetAndConnect() {
-    logEl.textContent = ""; // reset affichage : le serveur renverra l'historique filtré
+  function startPolling() {
+    stopPolling();
+    pollOnce();
+    pollingTimer = setInterval(pollOnce, 1000); // 1 req/s
+  }
+  function stopPolling() {
+    if (pollingTimer) clearInterval(pollingTimer);
+    pollingTimer = null;
+  }
+  function resetAndStart() {
+    logEl.textContent = "";
     renderBuffer = [];
-    connect();
+    last = 0;
+    startPolling();
   }
 
-  // Reconnecte automatiquement quand le niveau change
-  levelEl.addEventListener('change', resetAndConnect);
+  // Rechargements auto sur changements d’inputs
+  levelEl.addEventListener('change', resetAndStart);
 
-  // Debounce sur le filtre (reconnecte 400ms après la dernière frappe)
   let filterTimer = null;
   filterEl.addEventListener('input', () => {
     clearTimeout(filterTimer);
-    filterTimer = setTimeout(resetAndConnect, 400);
+    filterTimer = setTimeout(resetAndStart, 400);
   });
 
-  // Le bouton "Appliquer" reste disponible
-  applyBtn.addEventListener('click', resetAndConnect);
+  applyBtn.addEventListener('click', resetAndStart);
 
   pauseBtn.addEventListener('click', () => {
     paused = !paused;
@@ -146,8 +173,9 @@
     renderBuffer = [];
   });
 
-  // Connexion initiale
-  connect();
+  // Démarrage / arrêt propre
+  startPolling();
+  window.addEventListener('beforeunload', stopPolling);
 })();
 </script>
 {% endblock %}
