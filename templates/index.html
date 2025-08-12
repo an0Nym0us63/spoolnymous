@@ -392,7 +392,7 @@ statusTextEl.innerText = status;
   let timer = null;
   let inViewport = true;
   let inFlight = false;     // empêche les requêtes qui se chevauchent
-  const period = 3500;      // ← espace un peu les snapshots (~3,5 s)
+  const period = 500;      // ← espace un peu les snapshots (~3,5 s)
   const jitter = 300;       // petite gigue pour éviter les rafales synchronisées
 
   // Visibilité réelle (Alpine met display:none)
