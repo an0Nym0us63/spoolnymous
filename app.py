@@ -420,7 +420,7 @@ class _MJPEGStreamer:
         return _gen()
 
 # Instance globale
-_MJPEG = _MJPEGStreamer(fps=3)  # ~3 fps côté serveur
+_MJPEG = _MJPEGStreamer(fps=10)  # ~3 fps côté serveur
 
 class InMemoryLogHandler(logging.Handler):
     """Handler simple : pousse chaque log formaté dans un buffer en mémoire."""
