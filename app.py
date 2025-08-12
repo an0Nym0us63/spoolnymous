@@ -15,6 +15,7 @@ import secrets
 from queue import Queue, Empty, Full
 from threading import Lock
 from itertools import count
+import subprocess
 
 from flask_login import LoginManager, login_required
 from auth import auth_bp, User, get_stored_user
