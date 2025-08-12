@@ -66,7 +66,7 @@ def get_filament_order(file):
 def download3mfFromCloud(url, destFile):
   logger.info("Downloading 3MF file from cloud...")
   # Download the file and save it to the temporary file
-  response = requests.get(url)
+  response = requests.get(url,timeout=20)
   response.raise_for_status()
   destFile.write(response.content)
 
