@@ -358,8 +358,8 @@ statusTextEl.innerText = status;
         document.getElementById('status-bed').innerText = data.bed_temp || '—';
         document.getElementById('status-chamber').innerText = data.chamber_temp || '—';
 
-        if (data.print_printName && document.getElementById('status-print-name')) {
-          document.getElementById('status-print-name').innerText = data.print_printName;
+        if (data.printName && document.getElementById('status-print-name')) {
+          document.getElementById('status-print-name').innerText = data.printName;
         }
 
         if (data.thumbnail && document.getElementById('status-thumbnail')) {
