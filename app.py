@@ -495,6 +495,7 @@ if not secret_key:
     secret_key = secrets.token_hex(32)
     set_app_setting("SECRET_KEY", secret_key)
 app.secret_key = secret_key
+
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'  # redirige vers /login si non connecté
 login_manager.init_app(app)
