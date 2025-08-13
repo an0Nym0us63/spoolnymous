@@ -1123,46 +1123,40 @@ def print_history():
     for e in entries.values():
         if e.get("type") == "group" and isinstance(e.get("tags"), set):
             e["tags"] = sorted(e["tags"], key=lambda s: s.lower())
+
     all_print_ids = [p["id"] for p in raw_prints]
     counts_print = get_object_counts_by_parent("print", all_print_ids)
     
     group_ids = [e["id"] for e in entries.values() if e["type"] == "group"]
     counts_group = get_object_counts_by_parent("group", group_ids)
     
-    # Annoter uniquement available_units (entier) – pas de "4/5" côté back
+    # Annoter uniquement used_units (entier) – pas de "4/5" ni d'available côté back
     for e in entries.values():
         if e["type"] == "group":
-            total = int(e.get("number_of_items") or 1)
-            created = counts_group.get(e["id"], 0)
-            e["available_units"] = max(0, total - created)
-    
-            # on annote aussi chaque print du groupe (utile si tu veux un badge par print)
-            for p in e.get("prints", []):
-                ptot = int(p.get("number_of_items") or 1)
-                pcreated = counts_print.get(p["id"], 0)
-                p["available_units"] = max(0, ptot - pcreated)
+            used = counts_group.get(e["id"], 0)
+            e["used_units"] = max(0, int(used))
     
         else:  # single print
             p = e["print"]
-            total = int(p.get("number_of_items") or 1)
-            created = counts_print.get(p["id"], 0)
-            p["available_units"] = max(0, total - created)
-    total_pages = (len(entries_list) + per_page - 1) // per_page
-    paged_entries = entries_list[(page - 1) * per_page : page * per_page]
-
-    if focus_print_id and not focus_group_id:
-        for entry in entries_list:
-            if entry["type"] == "single" and entry["print"]["id"] == focus_print_id:
-                if entry["print"].get("group_id"):
-                    focus_group_id = entry["print"]["group_id"]
-                break
-            elif entry["type"] == "group":
-                for p in entry["prints"]:
-                    if p["id"] == focus_print_id:
-                        focus_group_id = p.get("group_id")
-                        break
-                if focus_group_id:
+            used = counts_print.get(p["id"], 0)
+            p["used_units"] = max(0, int(used))
+    
+        total_pages = (len(entries_list) + per_page - 1) // per_page
+        paged_entries = entries_list[(page - 1) * per_page : page * per_page]
+    
+        if focus_print_id and not focus_group_id:
+            for entry in entries_list:
+                if entry["type"] == "single" and entry["print"]["id"] == focus_print_id:
+                    if entry["print"].get("group_id"):
+                        focus_group_id = entry["print"]["group_id"]
                     break
+                elif entry["type"] == "group":
+                    for p in entry["prints"]:
+                        if p["id"] == focus_print_id:
+                            focus_group_id = p.get("group_id")
+                            break
+                    if focus_group_id:
+                        break
 
     distinct_values = get_distinct_values()
     args = request.args.to_dict(flat=False)
