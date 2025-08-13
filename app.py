@@ -959,6 +959,8 @@ def print_history():
 
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per_page", 30))
+    ref_print_id = request.args.get("ref_print_id", type=int)
+    ref_group_id = request.args.get("ref_group_id", type=int)
 
     filters = {
         "filament_type": request.args.getlist("filament_type"),
@@ -966,6 +968,10 @@ def print_history():
         "filament_id": request.args.getlist("filament_id"),
         "status": request.args.getlist("status")
     }
+    if ref_print_id:
+        filters["__ref_print_id"] = ref_print_id
+    if ref_group_id:
+        filters["__ref_group_id"] = ref_group_id
     raw_filament_ids = request.args.get("filament_id", "")
     if raw_filament_ids.strip():
         # Split sur la virgule, supprime espaces et valeurs vides

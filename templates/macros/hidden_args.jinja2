@@ -1,5 +1,9 @@
-{% macro render_filtered_args(args, exclude=[]) %}
-  {% for k, vlist in args.items() if k not in exclude %}
+{% macro render_filtered_args(args, exclude=[], force_exclude=['ref_print_id','ref_group_id']) %}
+  {# combine exclusions: celles passées + celles forcées par défaut #}
+  {% set excl = (exclude or []) + (force_exclude or []) %}
+
+  {# on reconstruit tous les args sauf ceux exclus #}
+  {% for k, vlist in args.items() if k not in excl %}
     {% set values = vlist if vlist is iterable and vlist is not string else [vlist] %}
     {% for v in values %}
       <input type="hidden" name="{{ k }}" value="{{ v }}">

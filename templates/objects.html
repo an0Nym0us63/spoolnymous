@@ -70,6 +70,19 @@
         📝 Renommer
       </a>
     </li>
+	{% if o.parent_type == 'print' %}
+  <li>
+    <a class="dropdown-item" href="{{ url_for('print_history') }}?ref_print_id={{ o.parent_id }}&focus_print_id={{ o.parent_id }}">
+      🔎 Voir la référence
+    </a>
+  </li>
+{% else %}
+  <li>
+    <a class="dropdown-item" href="{{ url_for('print_history') }}?ref_group_id={{ o.parent_id }}&focus_group_id={{ o.parent_id }}">
+      🔎 Voir la référence
+    </a>
+  </li>
+{% endif %}
     <li>
   <a href="#"
      class="dropdown-item text-danger object-delete-btn"
@@ -116,16 +129,6 @@
               {% if o.sold_date %}<li>Vendu le : {{ o.sold_date }}</li>{% endif %}
               <li>Maj : {{ o.updated_at | datetimeformat('fr')}}</li>
             </ul>
-
-            <!-- Zone d’actions (placeholder pour plus tard : renommer, vendre, accessoires...) -->
-            <div class="d-flex flex-wrap gap-2">
-              <a class="btn btn-sm btn-outline-secondary"
-                 href="/print_history?{{ 'focus_group_id=' ~ o.parent_id if o.parent_type=='group' else 'focus_print_id=' ~ o.parent_id }}"
-                 title="Voir l’origine dans l’historique">
-                Voir l’origine
-              </a>
-              <!-- Les autres actions viendront ici quand on les branchera -->
-            </div>
           </div>
         </div>
       </div>

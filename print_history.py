@@ -599,9 +599,17 @@ def get_prints_with_filament(filters=None, search=None) -> list:
     having_clauses = []
     having_values = []
 
-    # --- filament_id: au moins un usage sur une des spools demandées ---
+    # --- FILTRES CACHÉS: lien direct depuis Objets -------------------------
+    # Priorité au ref_print_id si les deux sont fournis.
+    if filters.get("__ref_print_id"):
+        query_filters.append("p.id = ?")
+        values.append(int(filters["__ref_print_id"]))
+    elif filters.get("__ref_group_id"):
+        query_filters.append("p.group_id = ?")
+        values.append(int(filters["__ref_group_id"]))
+
+    # --- filament_id: au moins un usage sur une des spools demandées -------
     if filters.get("filament_id"):
-        # nettoie + garde uniquement les valeurs non vides
         ids = [v.strip() for v in filters["filament_id"] if v and v.strip()]
         if ids:
             placeholders = ",".join(["?"] * len(ids))
@@ -615,18 +623,18 @@ def get_prints_with_filament(filters=None, search=None) -> list:
             """)
             values.extend(ids)
 
-    # --- filament_type: simple égalité sur l’alias du LEFT JOIN ok ---
+    # --- filament_type: simple égalité sur l’alias du LEFT JOIN -----------
     if filters.get("filament_type"):
         query_filters.append("f.filament_type = ?")
         values.append(filters["filament_type"][0])
 
-    # --- status: IN dynamique ---
+    # --- status: IN dynamique ---------------------------------------------
     if filters.get("status"):
         statuses = filters["status"]
         query_filters.append(f"p.status IN ({','.join(['?'] * len(statuses))})")
         values.extend(statuses)
 
-    # --- color: garde ta logique HAVING basée sur des agrégats ---
+    # --- color: HAVING sur agrégat ----------------------------------------
     if filters.get("color"):
         cursor.execute("SELECT DISTINCT color FROM filament_usage WHERE color IS NOT NULL")
         all_colors = [row[0] for row in cursor.fetchall()]
@@ -638,7 +646,7 @@ def get_prints_with_filament(filters=None, search=None) -> list:
                 )
                 having_values.extend(hexes)
 
-    # --- recherche plein-texte ---
+    # --- recherche plein-texte --------------------------------------------
     if search:
         words = [w.strip().lower() for w in search.split() if w.strip()]
         for w in words:
@@ -656,7 +664,7 @@ def get_prints_with_filament(filters=None, search=None) -> list:
                     )
                 )
             """)
-            values.extend([f"%{w}%"] * 4)
+            values.extend([f"%{w}%" ] * 4)
 
     where_clause = "WHERE " + " AND ".join(query_filters) if query_filters else ""
     group_by_clause = "GROUP BY p.id"
@@ -685,9 +693,6 @@ def get_prints_with_filament(filters=None, search=None) -> list:
 
     conn.close()
     return prints
-
-
-
 
 def get_filament_for_slot(print_id: int, ams_slot: int):
     conn = sqlite3.connect(db_config["db_path"])

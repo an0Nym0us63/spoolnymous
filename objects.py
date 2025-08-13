@@ -91,6 +91,7 @@ class SourceSnapshot(NamedTuple):
     full_cost_unit: float
     thumbnail: str | None
     tags: list[str]
+    created_at: str | None  # 👈 date d’origine (print_date ou dernier print du groupe)
 
 def _compute_full_unit(units: int, full_cost_by_item, full_cost) -> float:
     try:
@@ -104,7 +105,6 @@ def _compute_full_unit(units: int, full_cost_by_item, full_cost) -> float:
 
 def _snapshot_from_print(print_id: int) -> SourceSnapshot:
     conn = _connect(); cur = conn.cursor()
-    # Lis ce dont on a besoin directement dans prints
     cur.execute("""
         SELECT
             id,
@@ -112,30 +112,30 @@ def _snapshot_from_print(print_id: int) -> SourceSnapshot:
             COALESCE(number_of_items, 1)        AS number_of_items,
             full_cost_by_item,
             full_cost,
-            image_file
+            image_file,
+            print_date
         FROM prints
         WHERE id = ?
     """, (print_id,))
     row = cur.fetchone()
     if not row:
         conn.close()
-        return SourceSnapshot(f"Print #{print_id}", 1, 0.0, None, [])
+        return SourceSnapshot(f"Print #{print_id}", 1, 0.0, None, [], None)
 
     units = int(row["number_of_items"] or 1)
     full_unit = _compute_full_unit(units, row["full_cost_by_item"], row["full_cost"])
-    # On stocke une URL utilisable directement ; adapte si tu préfères stocker juste le filename
     thumb = f"/static/prints/{row['image_file']}" if row["image_file"] else None
+    created_at = row["print_date"]  # on prend la date du print telle quelle
 
     # Tags du print
     cur.execute("SELECT tag FROM print_tags WHERE print_id = ? ORDER BY LOWER(tag)", (print_id,))
     tags = [r[0] for r in cur.fetchall()]
     conn.close()
 
-    return SourceSnapshot(row["name"], max(1, units), full_unit, thumb, tags)
+    return SourceSnapshot(row["name"], max(1, units), full_unit, thumb, tags, created_at)
 
 def _snapshot_from_group(group_id: int) -> SourceSnapshot:
     conn = _connect(); cur = conn.cursor()
-    # Lis ce dont on a besoin dans print_groups
     cur.execute("""
         SELECT
             id,
@@ -150,18 +150,33 @@ def _snapshot_from_group(group_id: int) -> SourceSnapshot:
     row = cur.fetchone()
     if not row:
         conn.close()
-        return SourceSnapshot(f"Groupe #{group_id}", 1, 0.0, None, [])
+        return SourceSnapshot(f"Groupe #{group_id}", 1, 0.0, None, [], None)
 
     units = int(row["number_of_items"] or 1)
     full_unit = _compute_full_unit(units, row["full_cost_by_item"], row["full_cost"])
 
-    # Thumbnail du groupe = image du print “référence” s’il existe
+    # Thumbnail : priorité au print de référence
     thumb = None
     if row["primary_print_id"]:
         cur.execute("SELECT image_file FROM prints WHERE id = ?", (row["primary_print_id"],))
         p = cur.fetchone()
         if p and p["image_file"]:
             thumb = f"/static/prints/{p['image_file']}"
+
+    # Fallback thumbnail + created_at : dernier print du groupe par date
+    cur.execute("""
+        SELECT image_file, print_date
+        FROM prints
+        WHERE group_id = ?
+        ORDER BY datetime(print_date) DESC, id DESC
+        LIMIT 1
+    """, (group_id,))
+    lastp = cur.fetchone()
+    created_at = None
+    if lastp:
+        created_at = lastp["print_date"]
+        if not thumb and lastp["image_file"]:
+            thumb = f"/static/prints/{lastp['image_file']}"
 
     # Tags = union des tags de tous les prints du groupe
     cur.execute("""
@@ -174,7 +189,7 @@ def _snapshot_from_group(group_id: int) -> SourceSnapshot:
     tags = [r[0] for r in cur.fetchall()]
 
     conn.close()
-    return SourceSnapshot(row["name"], max(1, units), full_unit, thumb, tags)
+    return SourceSnapshot(row["name"], max(1, units), full_unit, thumb, tags, created_at)
 
 def snapshot_source(source_type: SourceType, source_id: int) -> SourceSnapshot:
     if source_type == "print":
@@ -182,8 +197,7 @@ def snapshot_source(source_type: SourceType, source_id: int) -> SourceSnapshot:
     elif source_type == "group":
         return _snapshot_from_group(source_id)
     else:
-        # Type inconnu => snapshot vide
-        return SourceSnapshot(f"{source_type} #{source_id}", 1, 0.0, None, [])
+        return SourceSnapshot(f"{source_type} #{source_id}", 1, 0.0, None, [], None)
     
 def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
     return dict(row) if row else {}
@@ -314,53 +328,91 @@ def get_available_units(source_type: SourceType, source_id: int) -> int:
 
 def create_objects_from_source(source_type: SourceType, source_id: int, qty: int) -> int:
     """
-    Crée `qty` lignes dans objects :
-      - name identique à la source
-      - thumbnail identique à la source
-      - tags copiés de la source (print: tags du print ; group: union des tags des prints du groupe)
+    Crée `qty` objets à partir d'une source (print|group), en respectant la dispo :
+      dispo = number_of_items(source) - objets déjà créés pour (type,id)
+    Chaque objet créé reçoit :
+      - name           = nom de la source
+      - thumbnail      = vignette de la source (print.image_file ; pour group: primary print
+                         sinon dernier print par date)
       - cost_fabrication = full_cost unitaire de la source
-      - cost_accessory = 0 à la création
-      - cost_total = fabrication + accessoires
-    Respecte la dispo : max = number_of_items - déjà créés
+      - cost_accessory   = 0 à la création
+      - cost_total       = fabrication + accessoires
+      - created_at / updated_at = date d’origine de la source (print_date pour print ;
+                         pour group: date du dernier print du groupe). Si inconnue, on laisse
+                         les DEFAULT SQL (datetime('now')).
+      - tags            = copie des tags de la source (print_tags ; pour group: union des tags
+                         des prints du groupe)
+    Retourne le nombre d’objets effectivement créés (0 si rien à créer).
     """
+    if source_type not in ("print", "group"):
+        return 0
+    qty = int(qty or 0)
     if qty <= 0:
         return 0
 
     snap = snapshot_source(source_type, source_id)
-    available = get_available_units(source_type, source_id)
-    n = min(qty, available)
-    if n <= 0:
-        return 0
 
-    conn = _connect(); cur = conn.cursor()
+    conn = _connect()
+    cur = conn.cursor()
     try:
         conn.execute("BEGIN")
 
-        # On recalcule `already` dans la même transaction pour éviter les courses
-        cur.execute("SELECT COUNT(*) FROM objects WHERE parent_type=? AND parent_id=?", (source_type, source_id))
+        # Recompte dans la transaction pour éviter les conditions de course
+        cur.execute(
+            "SELECT COUNT(*) FROM objects WHERE parent_type=? AND parent_id=?",
+            (source_type, source_id)
+        )
         already = int(cur.fetchone()[0])
-        remaining = max(0, snap.number_of_items - already)
-        n = min(n, remaining)
+        remaining = max(0, int(snap.number_of_items) - already)
+        n = min(qty, remaining)
         if n <= 0:
-            conn.rollback(); return 0
+            conn.rollback()
+            return 0
 
+        # Valeurs unitaires constantes pour cette salve
+        cost_fab = float(snap.full_cost_unit or 0.0)
+        cost_acc = 0.0
+        cost_total = cost_fab + cost_acc
+        created_iso = snap.created_at  # peut être None
         new_ids: list[int] = []
-        for _ in range(n):
-            cost_fab = float(snap.full_cost_unit or 0.0)
-            cost_acc = 0.0
-            cost_total = cost_fab + cost_acc
-            cur.execute("""
-                INSERT INTO objects (
-                    parent_type, parent_id, name, thumbnail,
-                    cost_fabrication, cost_accessory, cost_total,
-                    available, sold_price, sold_date, comment
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, NULL, NULL, NULL)
-            """, (source_type, source_id, snap.name, snap.thumbnail,
-                  cost_fab, cost_acc, cost_total))
-            new_ids.append(int(cur.lastrowid))
 
-        # Copier les tags
-        if snap.tags:
+        if created_iso is None:
+            # On laisse SQLite remplir created_at/updated_at via les DEFAULT
+            for _ in range(n):
+                cur.execute(
+                    """
+                    INSERT INTO objects (
+                        parent_type, parent_id, name, thumbnail,
+                        cost_fabrication, cost_accessory, cost_total,
+                        available, sold_price, sold_date, comment
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, NULL, NULL, NULL)
+                    """,
+                    (source_type, source_id, snap.name, snap.thumbnail,
+                     cost_fab, cost_acc, cost_total)
+                )
+                new_ids.append(int(cur.lastrowid))
+        else:
+            # On force created_at / updated_at = date d’origine
+            for _ in range(n):
+                cur.execute(
+                    """
+                    INSERT INTO objects (
+                        parent_type, parent_id, name, thumbnail,
+                        cost_fabrication, cost_accessory, cost_total,
+                        available, sold_price, sold_date, comment,
+                        created_at, updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, NULL, NULL, NULL, ?, ?)
+                    """,
+                    (source_type, source_id, snap.name, snap.thumbnail,
+                     cost_fab, cost_acc, cost_total,
+                     created_iso, created_iso)
+                )
+                new_ids.append(int(cur.lastrowid))
+
+        # Copie des tags
+        if snap.tags and new_ids:
             cur.executemany(
                 "INSERT OR IGNORE INTO tag_objects (object_id, tag) VALUES (?, ?)",
                 [(oid, t) for oid in new_ids for t in snap.tags]
@@ -373,6 +425,7 @@ def create_objects_from_source(source_type: SourceType, source_id: int, qty: int
         raise
     finally:
         conn.close()
+
 
 
 # ---------------------------------------------------------------------------
