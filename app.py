@@ -1849,7 +1849,8 @@ def objects_page():
         total_pages=total_pages,
         filters=filters,
         args=request.args,
-        obj_tags=obj_tags
+        obj_tags=obj_tags,
+        page_title="Objets"
     )
 
 app.register_blueprint(auth_bp)
