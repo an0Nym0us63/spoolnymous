@@ -71,12 +71,17 @@
       </a>
     </li>
     <li>
-      <form class="m-0 p-0" method="post" action="{{ url_for('objects_delete', object_id=o.id) }}"
-            onsubmit="return confirm('Supprimer cet objet ?');">
-        {{ macros.render_filtered_args(args) }}
-        <button type="submit" class="dropdown-item text-danger">🗑 Supprimer</button>
-      </form>
-    </li>
+  <a href="#"
+     class="dropdown-item text-danger object-delete-btn"
+     data-object-id="{{ o.id }}"
+     data-object-name="{{ o.name|e }}">
+    🗑 Supprimer
+  </a>
+  <form id="deleteForm_{{ o.id }}" class="d-none m-0 p-0"
+        method="post" action="{{ url_for('objects_delete', object_id=o.id) }}">
+    {{ macros.render_filtered_args(args) }}
+  </form>
+</li>
   </ul>
 </div>
         <div class="row g-3">
