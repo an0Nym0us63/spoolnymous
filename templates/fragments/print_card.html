@@ -63,12 +63,16 @@
           {{ print.number_of_items }}
         </span>
         {% endif %}
-		 {% if print.used_units  > 0 %}
-        <span class="badge bg-info rounded-pill"
-              style="position: absolute; bottom: 4px; right: 0px; font-size: 0.6rem; padding: 0.15em 0.4em;">
-          {{ print.used_units  }}
-        </span>
-        {% endif %}
+		{% set used  = (print.used_units or 0)|int %}
+{% set total = (print.number_of_items or 1)|int %}
+
+{% if total > 1 and used > 0 %}
+  <span class="badge {% if used >= total %}text-bg-danger{% else %}text-bg-warning{% endif %} rounded-pill"
+        style="position: absolute; bottom: 4px; right: 0; font-size: 0.3rem; padding: 0.15em 0.4em;"
+        title="{{ used }} utilisé(s) / {{ total }}">
+    {{ used }}
+  </span>
+{% endif %}
       </div>
       {% else %}
         <span class="text-muted">—</span>
