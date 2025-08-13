@@ -1120,6 +1120,12 @@ def print_history():
             total_weight += p.get("total_weight", 0)
             total_cost += p.get("full_cost", 0)
     entries_list = sorted(entries.values(), key=lambda e: parse_print_date(e["latest_date"] if e["type"] == "group" else e["print"]["print_date"]), reverse=True)
+
+    all_print_ids = [p["id"] for p in raw_prints]
+    counts_print = get_object_counts_by_parent("print", all_print_ids)
+    
+    group_ids = [e["id"] for e in entries.values() if e["type"] == "group"]
+    counts_group = get_object_counts_by_parent("group", group_ids)
     for e in entries.values():
         if e.get("type") == "group" and isinstance(e.get("tags"), set):
             e["tags"] = sorted(e["tags"], key=lambda s: s.lower())
@@ -1153,13 +1159,6 @@ def print_history():
                             break
                     if focus_group_id:
                         break
-
-    all_print_ids = [p["id"] for p in raw_prints]
-    counts_print = get_object_counts_by_parent("print", all_print_ids)
-    
-    group_ids = [e["id"] for e in entries.values() if e["type"] == "group"]
-    counts_group = get_object_counts_by_parent("group", group_ids)
-        
 
     distinct_values = get_distinct_values()
     args = request.args.to_dict(flat=False)
