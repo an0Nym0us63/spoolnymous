@@ -228,6 +228,13 @@
 
 
             <hr>
+
+            <div id="group_accordion_{{ entry.id }}">
+  {% for print in entry.prints %}
+    {% set print = print %}
+    {% include 'fragments/print_card.html' %}
+  {% endfor %}
+</div>
 <div class="mt-2">
   <div class="small text-muted">Tags du groupe :</div>
   <div class="d-flex flex-wrap gap-1 align-items-center">
@@ -256,12 +263,6 @@
            name="tag" placeholder="Nouveau tag… (sépare par , ou ;)">
     <button class="btn btn-sm btn-success" type="submit">✚ Ajouter</button>
   </form>
-</div>
-            <div id="group_accordion_{{ entry.id }}">
-  {% for print in entry.prints %}
-    {% set print = print %}
-    {% include 'fragments/print_card.html' %}
-  {% endfor %}
 </div>
           </div>
         </div>
