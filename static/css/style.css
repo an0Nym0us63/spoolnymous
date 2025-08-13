@@ -390,3 +390,17 @@
 .navbar-nav .nav-link {
   padding: 0.25rem 0.5rem;
 }
+
+/* SweetAlert2 — harmonisation avec Bootstrap dark/light */
+[data-bs-theme="dark"] .swal2-popup {
+  background-color: var(--bs-body-bg) !important;
+  color: var(--bs-body-color) !important;
+}
+[data-bs-theme="dark"] .swal2-title,
+[data-bs-theme="dark"] .swal2-html-container {
+  color: var(--bs-body-color) !important;
+}
+/* facultatif : harmoniser le spinner/toast */
+[data-bs-theme="dark"] .swal2-timer-progress-bar {
+  background: rgba(255,255,255,.2) !important;
+}

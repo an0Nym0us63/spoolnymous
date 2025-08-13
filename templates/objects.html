@@ -268,5 +268,44 @@
       if (k==='p'){ e.preventDefault(); toggleOffcanvas('paginationOffcanvas'); }
     });
   })();
+
+ function escapeHtml(str) {
+    return (str || '').replace(/[&<>"']/g, s => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]
+    ));
+  }
+
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.object-delete-btn');
+    if (!btn) return;
+
+    e.preventDefault();
+    const id   = btn.getAttribute('data-object-id');
+    const name = btn.getAttribute('data-object-name') || ('Objet #' + id);
+
+    const doSubmit = () => {
+      const form = document.getElementById('deleteForm_' + id);
+      if (form) form.submit();
+    };
+
+    if (window.Swal) {
+      const classes = (typeof getSwalThemeClasses === 'function') ? getSwalThemeClasses() : {};
+      Swal.fire({
+        title: "Supprimer l’objet ?",
+        html: `Confirmer la suppression de <strong>${escapeHtml(name)}</strong> ?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Supprimer",
+        cancelButtonText: "Annuler",
+        reverseButtons: true,
+        customClass: classes
+      }).then(res => {
+        if (res.isConfirmed) doSubmit();
+      });
+    } else {
+      // Fallback si Swal n’est pas chargé
+      if (confirm('Supprimer "' + name + '" ?')) doSubmit();
+    }
+  });
 </script>
 {% endblock %}

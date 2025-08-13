@@ -75,3 +75,35 @@
     </form>
   </div>
 </div>
+
+<div class="modal fade create-objects-modal"
+     id="createObjectsModal_group_{{ entry.id }}"
+     tabindex="-1"
+     aria-labelledby="createObjectsLabel_group_{{ entry.id }}"
+     data-source-type="group"
+     data-source-id="{{ entry.id }}">
+  <div class="modal-dialog">
+    <form class="modal-content create-objects-form">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createObjectsLabel_group_{{ entry.id }}">
+          Créer des objets (groupe #{{ entry.id }})
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2 small text-muted">
+          Disponible : <span class="available-counter">—</span>
+        </div>
+        <label class="form-label">Quantité à créer</label>
+        <input type="number" class="form-control qty-input" name="qty" min="1" value="1" required>
+        <input type="hidden" name="type" value="group">
+        <input type="hidden" name="id" value="{{ entry.id }}">
+{{ macros.render_filtered_args(args) }}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-success submit-btn">Créer</button>
+      </div>
+    </form>
+  </div>
+</div>
