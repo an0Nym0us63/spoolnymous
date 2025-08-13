@@ -2,7 +2,7 @@ import sqlite3
 from typing import Optional, Dict, Any, List, Tuple, NamedTuple, Literal
 
 # On réutilise la config DB telle qu'elle existe déjà dans le projet
-from print_history import db_config,recalculate_print_data, recalculate_group_data
+from print_history import db_config
 
 # ---------------------------------------------------------------------------
 # Connexion
@@ -91,45 +91,78 @@ class SourceSnapshot(NamedTuple):
     thumbnail: str | None
     tags: list[str]
 
+def _compute_full_unit(units: int, full_cost_by_item, full_cost) -> float:
+    try:
+        if full_cost_by_item is not None:
+            return float(full_cost_by_item)
+        if full_cost is not None and units:
+            return float(full_cost) / max(1, int(units))
+    except Exception:
+        pass
+    return 0.0
+
 def _snapshot_from_print(print_id: int) -> SourceSnapshot:
-    d = recalculate_print_data(print_id) or {}
-    name = d.get("name") or d.get("title") or f"Print #{print_id}"
-    units = int(d.get("number_of_items") or 1)
-
-    # coût unitaire “full” (prend la valeur par item si dispo, sinon total / units)
-    if d.get("full_cost_by_item") is not None:
-        full_unit = float(d["full_cost_by_item"])
-    elif d.get("full_cost") is not None and units:
-        full_unit = float(d["full_cost"]) / units
-    else:
-        full_unit = 0.0
-
-    thumb = d.get("thumbnail") or d.get("image") or None
-
-    # tags du print
     conn = _connect(); cur = conn.cursor()
+    # Lis ce dont on a besoin directement dans prints
+    cur.execute("""
+        SELECT
+            id,
+            COALESCE(file_name, 'Print #' || id) AS name,
+            COALESCE(number_of_items, 1)        AS number_of_items,
+            full_cost_by_item,
+            full_cost,
+            image_file
+        FROM prints
+        WHERE id = ?
+    """, (print_id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return SourceSnapshot(f"Print #{print_id}", 1, 0.0, None, [])
+
+    units = int(row["number_of_items"] or 1)
+    full_unit = _compute_full_unit(units, row["full_cost_by_item"], row["full_cost"])
+    # On stocke une URL utilisable directement ; adapte si tu préfères stocker juste le filename
+    thumb = f"/static/prints/{row['image_file']}" if row["image_file"] else None
+
+    # Tags du print
     cur.execute("SELECT tag FROM print_tags WHERE print_id = ? ORDER BY LOWER(tag)", (print_id,))
     tags = [r[0] for r in cur.fetchall()]
     conn.close()
 
-    return SourceSnapshot(name, max(units, 1), full_unit, thumb, tags)
+    return SourceSnapshot(row["name"], max(1, units), full_unit, thumb, tags)
 
 def _snapshot_from_group(group_id: int) -> SourceSnapshot:
-    d = recalculate_group_data(group_id) or {}
-    name = d.get("name") or f"Groupe #{group_id}"
-    units = int(d.get("number_of_items") or 1)
-
-    if d.get("full_cost_by_item") is not None:
-        full_unit = float(d["full_cost_by_item"])
-    elif d.get("full_cost") is not None and units:
-        full_unit = float(d["full_cost"]) / units
-    else:
-        full_unit = 0.0
-
-    thumb = d.get("thumbnail") or d.get("image") or None
-
-    # union des tags de tous les prints du groupe (si tu n’as pas de table de tags de groupe)
     conn = _connect(); cur = conn.cursor()
+    # Lis ce dont on a besoin dans print_groups
+    cur.execute("""
+        SELECT
+            id,
+            COALESCE(name, 'Groupe ' || id) AS name,
+            COALESCE(number_of_items, 1)    AS number_of_items,
+            full_cost_by_item,
+            full_cost,
+            primary_print_id
+        FROM print_groups
+        WHERE id = ?
+    """, (group_id,))
+    row = cur.fetchone()
+    if not row:
+        conn.close()
+        return SourceSnapshot(f"Groupe #{group_id}", 1, 0.0, None, [])
+
+    units = int(row["number_of_items"] or 1)
+    full_unit = _compute_full_unit(units, row["full_cost_by_item"], row["full_cost"])
+
+    # Thumbnail du groupe = image du print “référence” s’il existe
+    thumb = None
+    if row["primary_print_id"]:
+        cur.execute("SELECT image_file FROM prints WHERE id = ?", (row["primary_print_id"],))
+        p = cur.fetchone()
+        if p and p["image_file"]:
+            thumb = f"/static/prints/{p['image_file']}"
+
+    # Tags = union des tags de tous les prints du groupe
     cur.execute("""
         SELECT DISTINCT pt.tag
         FROM print_tags pt
@@ -138,12 +171,18 @@ def _snapshot_from_group(group_id: int) -> SourceSnapshot:
         ORDER BY LOWER(pt.tag)
     """, (group_id,))
     tags = [r[0] for r in cur.fetchall()]
-    conn.close()
 
-    return SourceSnapshot(name, max(units, 1), full_unit, thumb, tags)
+    conn.close()
+    return SourceSnapshot(row["name"], max(1, units), full_unit, thumb, tags)
 
 def snapshot_source(source_type: SourceType, source_id: int) -> SourceSnapshot:
-    return _snapshot_from_print(source_id) if source_type == "print" else _snapshot_from_group(source_id)
+    if source_type == "print":
+        return _snapshot_from_print(source_id)
+    elif source_type == "group":
+        return _snapshot_from_group(source_id)
+    else:
+        # Type inconnu => snapshot vide
+        return SourceSnapshot(f"{source_type} #{source_id}", 1, 0.0, None, [])
     
 def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
     return dict(row) if row else {}

@@ -1815,8 +1815,10 @@ def clear_tray_mappings():
 
 @app.route("/api/objects/available")
 def api_objects_available():
-    source_type = request.args.get("type", "").strip()  # 'print' ou 'group'
-    source_id = int(request.args.get("id", "0"))
+    source_type = request.args.get("type", "").strip()
+    if source_type not in ("print", "group"):
+        return jsonify({"available": 0}), 400
+    source_id = int(request.args.get("id", "0") or 0)
     return jsonify({"available": get_available_units(source_type, source_id)})
 
 @app.route("/api/objects/create", methods=["POST"])
