@@ -549,3 +549,28 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 });
+
+document.addEventListener('keydown', function (event) {
+    // Empêche de déclencher si on est en train d'écrire dans un champ texte
+    const isInputActive = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) 
+        || document.activeElement.isContentEditable;
+    if (isInputActive) return;
+
+    // Touche F => filtre
+    if (event.key.toLowerCase() === 'f') {
+        event.preventDefault();
+        const filterPanel = document.querySelector('#filterPanel'); // à adapter selon ton ID réel
+        if (filterPanel) {
+            filterPanel.classList.toggle('d-none'); // ou ton système d'affichage
+        }
+    }
+
+    // Touche P => pagination
+    if (event.key.toLowerCase() === 'p') {
+        event.preventDefault();
+        const paginationPanel = document.querySelector('#paginationPanel'); // à adapter selon ton ID réel
+        if (paginationPanel) {
+            paginationPanel.classList.toggle('d-none');
+        }
+    }
+});
