@@ -1123,18 +1123,14 @@ def print_history():
     for e in entries.values():
         if e.get("type") == "group" and isinstance(e.get("tags"), set):
             e["tags"] = sorted(e["tags"], key=lambda s: s.lower())
-
-    all_print_ids = [p["id"] for p in raw_prints]
-    counts_print = get_object_counts_by_parent("print", all_print_ids)
-    
-    group_ids = [e["id"] for e in entries.values() if e["type"] == "group"]
-    counts_group = get_object_counts_by_parent("group", group_ids)
-    
-    # Annoter uniquement used_units (entier) – pas de "4/5" ni d'available côté back
-    for e in entries.values():
         if e["type"] == "group":
             used = counts_group.get(e["id"], 0)
             e["used_units"] = max(0, int(used))
+    
+            # Par print du groupe (utile si tu veux aussi le badge “utilisé” par print)
+            for p in e.get("prints", []):
+                p_used = counts_print.get(p["id"], 0)
+                p["used_units"] = max(0, int(p_used))
     
         else:  # single print
             p = e["print"]
@@ -1157,6 +1153,13 @@ def print_history():
                             break
                     if focus_group_id:
                         break
+
+    all_print_ids = [p["id"] for p in raw_prints]
+    counts_print = get_object_counts_by_parent("print", all_print_ids)
+    
+    group_ids = [e["id"] for e in entries.values() if e["type"] == "group"]
+    counts_group = get_object_counts_by_parent("group", group_ids)
+        
 
     distinct_values = get_distinct_values()
     args = request.args.to_dict(flat=False)
