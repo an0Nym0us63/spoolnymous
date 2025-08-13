@@ -37,6 +37,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -1811,5 +1812,44 @@ def clear_tray_mappings():
     delete_all_tray_spool_mappings()
     flash("Tous les mappings ont été supprimés.", "success")
     return redirect(url_for("auth.settings"))
+
+@app.route("/api/objects/available")
+def api_objects_available():
+    source_type = request.args.get("type", "").strip()  # 'print' ou 'group'
+    source_id = int(request.args.get("id", "0"))
+    return jsonify({"available": get_available_units(source_type, source_id)})
+
+@app.route("/api/objects/create", methods=["POST"])
+def api_objects_create():
+    source_type = request.form.get("type", "").strip()
+    source_id = int(request.form.get("id", "0"))
+    qty = int(request.form.get("qty", "0"))
+    created = create_objects_from_source(source_type, source_id, qty)
+    return jsonify({"status": "ok", "created": created})
+
+@app.route("/objects")
+def objects_page():
+    page = int(request.args.get("page", "1") or 1)
+    filters = {
+        "search": request.args.get("search", ""),
+        "sold_filter": request.args.get("sold_filter", ""),    # yes/no/« »
+        "source_type": request.args.get("source_type", ""),    # print/group/« »
+        "available": request.args.get("available", ""),        # yes/no/« »
+    }
+    rows, total_pages = list_objects(filters, page, per_page=30)
+
+    # Tags des objets (batch)
+    ids = [r["id"] for r in rows]
+    obj_tags = get_tags_for_objects(ids) if ids else {}
+
+    return render_template(
+        "objects.html",
+        objects=rows,
+        page=page,
+        total_pages=total_pages,
+        filters=filters,
+        args=request.args,
+        obj_tags=obj_tags
+    )
 
 app.register_blueprint(auth_bp)

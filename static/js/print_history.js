@@ -583,3 +583,80 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 })();
+
+// --- Modals "Créer des objets" (print/group) ------------------------------
+$(document)
+  .on('show.bs.modal', '.create-objects-modal', function () {
+    const $modal = $(this);
+    const type = $modal.data('source-type');
+    const id = $modal.data('source-id');
+    const $counter = $modal.find('.available-counter');
+    const $qty = $modal.find('.qty-input');
+    const $submit = $modal.find('.submit-btn');
+
+    $counter.text('…');
+    $qty.prop('disabled', true);
+    $submit.prop('disabled', true);
+
+    $.getJSON('/api/objects/available', { type, id })
+      .done(({ available }) => {
+        const avail = parseInt(available || 0, 10);
+        $counter.text(avail);
+        if (avail <= 0) {
+          $qty.val(0).attr({ min: 0, max: 0 }).prop('disabled', true);
+          $submit.prop('disabled', true).text('Aucune unité');
+        } else {
+          $qty.val(Math.min(avail, Math.max(1, parseInt($qty.val() || '1', 10))));
+          $qty.attr({ min: 1, max: avail }).prop('disabled', false);
+          $submit.prop('disabled', false).text('Créer');
+        }
+      })
+      .fail(() => {
+        $counter.text('Erreur');
+      });
+  })
+  .on('submit', '.create-objects-form', function (e) {
+    e.preventDefault();
+    const $form = $(this);
+    const $modal = $form.closest('.create-objects-modal');
+    const type = $modal.data('source-type');
+    const id = $modal.data('source-id');
+    const qty = parseInt($form.find('.qty-input').val() || '0', 10);
+
+    if (!qty || qty < 1) return;
+
+    $.post('/api/objects/create', { type, id, qty })
+      .done(({ created }) => {
+        // Ferme le modal proprement
+        const modalEl = $modal.get(0);
+        const inst = bootstrap.Modal.getInstance(modalEl);
+        inst && inst.hide();
+
+        // Feedback + refresh page (conserve page + focus)
+        const params = new URLSearchParams(window.location.search);
+        const page = params.get('page') || '1';
+        const focusKey = type === 'group' ? 'focus_group_id' : 'focus_print_id';
+        if (window.Swal) {
+          Swal.fire({
+            title: "Création effectuée",
+            text: `${created} objet(s) créé(s).`,
+            icon: "success",
+            timer: 1000,
+            showConfirmButton: false,
+            customClass: (typeof getSwalThemeClasses === 'function') ? getSwalThemeClasses() : {}
+          }).then(() => {
+            window.location.href = `/print_history?page=${page}&${focusKey}=${id}`;
+          });
+        } else {
+          window.location.href = `/print_history?page=${page}&${focusKey}=${id}`;
+        }
+      })
+      .fail(() => {
+        if (window.Swal) {
+          Swal.fire("Erreur", "Impossible de créer les objets.", "error",
+            (typeof getSwalThemeClasses === 'function') ? { customClass: getSwalThemeClasses() } : {});
+        } else {
+          alert('Erreur lors de la création des objets.');
+        }
+      });
+  });

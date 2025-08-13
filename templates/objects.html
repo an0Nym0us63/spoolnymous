@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% import "macros.html" as macros %}
+
+{% block content %}
+
+<!-- Boutons flottants (identiques au reste) -->
+<div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
+  <button class="btn btn-sm btn-primary rounded-circle" type="button"
+          data-bs-toggle="offcanvas" data-bs-target="#paginationOffcanvas" aria-controls="paginationOffcanvas">📄</button>
+</div>
+<div class="position-fixed bottom-0 start-0 m-3" style="z-index:1030;">
+  <button class="btn btn-sm btn-primary rounded-circle" type="button"
+          data-bs-toggle="offcanvas" data-bs-target="#filtersOffcanvas" aria-controls="filtersOffcanvas">🔍</button>
+</div>
+
+<h4 class="mb-3">Objets</h4>
+
+{% if objects|length == 0 %}
+  <div class="alert alert-light border d-flex align-items-center" role="alert">
+    <i class="bi bi-inbox me-2"></i>
+    <div>Aucun objet ne correspond aux filtres.</div>
+  </div>
+{% endif %}
+
+<div class="accordion" id="objectsAccordion">
+  {% for o in objects %}
+  {% set collapse_id = "obj_" ~ o.id %}
+  <div class="card mb-2">
+    <div class="card-header d-flex align-items-center justify-content-between"
+         id="heading_{{ o.id }}" role="button"
+         data-bs-toggle="collapse" data-bs-target="#{{ collapse_id }}"
+         aria-expanded="false" aria-controls="{{ collapse_id }}">
+
+      <div class="d-flex align-items-center gap-2">
+        {% if o.thumbnail %}
+          <img src="{{ o.thumbnail }}" alt="" class="rounded" style="width:36px;height:36px;object-fit:cover;">
+        {% else %}
+          <div class="bg-secondary rounded" style="width:36px;height:36px;opacity:.2;"></div>
+        {% endif %}
+
+        <div>
+          <div class="fw-semibold">{{ o.name }}</div>
+          <div class="small text-muted">
+            Source : {{ 'Print' if o.parent_type == 'print' else 'Groupe' }} #{{ o.parent_id }}
+            • Créé le {{ o.created_at }}
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        {% if o.sold_price is not none %}
+          <span class="badge bg-success">Vendu</span>
+        {% else %}
+          <span class="badge {{ 'bg-primary' if o.available else 'bg-secondary' }}">
+            {{ 'Disponible' if o.available else 'Indispo' }}
+          </span>
+        {% endif %}
+        <span class="badge text-bg-light">Fab: {{ "%.2f"|format(o.cost_fabrication or 0) }} €</span>
+        <span class="badge text-bg-light">Acc: {{ "%.2f"|format(o.cost_accessory or 0) }} €</span>
+        <span class="badge text-bg-light">Total: {{ "%.2f"|format(o.cost_total or 0) }} €</span>
+      </div>
+    </div>
+
+    <div id="{{ collapse_id }}" class="collapse" aria-labelledby="heading_{{ o.id }}" data-bs-parent="#objectsAccordion">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12 col-md-8">
+            <div class="mb-2">
+              <div class="small text-muted mb-1">Tags</div>
+              <div class="d-flex flex-wrap gap-1">
+                {% set tags = obj_tags.get(o.id, []) %}
+                {% if tags %}
+                  {% for t in tags %}
+                    <span class="badge bg-primary">{{ t }}</span>
+                  {% endfor %}
+                {% else %}
+                  <span class="text-muted">Aucun</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="mt-2">
+              {% if o.comment %}
+                <div class="small text-muted mb-1">Commentaire</div>
+                <div class="border rounded p-2">{{ o.comment }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <div class="small text-muted mb-1">Infos</div>
+            <ul class="list-unstyled mb-2">
+              <li>Disponible : {{ 'Oui' if o.available else 'Non' }}</li>
+              <li>Vendu : {{ 'Oui (' ~ ("%.2f"|format(o.sold_price)) ~ ' €)' if o.sold_price is not none else 'Non' }}</li>
+              {% if o.sold_date %}<li>Vendu le : {{ o.sold_date }}</li>{% endif %}
+              <li>Maj : {{ o.updated_at }}</li>
+            </ul>
+
+            <!-- Zone d’actions (placeholder pour plus tard : renommer, vendre, accessoires...) -->
+            <div class="d-flex flex-wrap gap-2">
+              <a class="btn btn-sm btn-outline-secondary"
+                 href="/print_history?{{ 'focus_group_id=' ~ o.parent_id if o.parent_type=='group' else 'focus_print_id=' ~ o.parent_id }}"
+                 title="Voir l’origine dans l’historique">
+                Voir l’origine
+              </a>
+              <!-- Les autres actions viendront ici quand on les branchera -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Offcanvas filtres -->
+<div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="filtersOffcanvas">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">Filtres</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form method="get" class="row g-2">
+      {{ macros.render_filtered_args(args, ['search','sold_filter','source_type','available','page']) }}
+      <div class="col-12 col-md-4">
+        <label class="form-label">Recherche</label>
+        <input type="text" name="search" class="form-control" value="{{ filters.search or '' }}" placeholder="Nom de l’objet…">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label">Vente</label>
+        <select name="sold_filter" class="form-select">
+          <option value="">— Tous —</option>
+          <option value="yes" {% if filters.sold_filter=='yes' %}selected{% endif %}>Vendus</option>
+          <option value="no"  {% if filters.sold_filter=='no'  %}selected{% endif %}>Non vendus</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label">Dispo</label>
+        <select name="available" class="form-select">
+          <option value="">— Toutes —</option>
+          <option value="yes" {% if filters.available=='yes' %}selected{% endif %}>Disponibles</option>
+          <option value="no"  {% if filters.available=='no'  %}selected{% endif %}>Indispo</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label">Source</label>
+        <select name="source_type" class="form-select">
+          <option value="">— Indifférent —</option>
+          <option value="print" {% if filters.source_type=='print' %}selected{% endif %}>Print</option>
+          <option value="group" {% if filters.source_type=='group' %}selected{% endif %}>Groupe</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-2 align-self-end text-end">
+        <button class="btn btn-primary" type="submit">Appliquer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Offcanvas pagination -->
+<div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="paginationOffcanvas">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">Pagination</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body text-center">
+    <div class="d-inline-flex flex-wrap gap-1 align-items-center justify-content-center">
+      {% if page > 1 %}
+        <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo;</a>
+        <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo;</a>
+      {% endif %}
+
+      <form method="get" class="d-inline-flex align-items-center mx-2">
+        {{ macros.render_filtered_args(args, ['page']) }}
+        <input type="number" min="1" max="{{ total_pages }}" name="page" value="{{ page }}"
+               class="form-control form-control-sm" style="width: 56px;">
+        <button type="submit" class="btn btn-sm btn-primary ms-1">Aller</button>
+      </form>
+
+      <span>/{{ total_pages }}</span>
+
+      {% if page < total_pages %}
+        <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">&rsaquo;</a>
+        <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">&raquo;</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Smooth scroll quand on ouvre un item, même logique que tes autres pages
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".card-header[data-bs-toggle='collapse']").forEach(header => {
+      header.addEventListener("click", () => {
+        const targetSelector = header.getAttribute("data-bs-target");
+        const target = document.querySelector(targetSelector);
+        if (!target.classList.contains("show")) {
+          setTimeout(() => {
+            const y = header.getBoundingClientRect().top + window.scrollY - 20;
+            window.scrollTo({ top: y, behavior: "smooth" });
+          }, 350);
+        }
+      });
+    });
+  });
+
+  // Raccourcis F/P si ton JS global n'est pas chargé ici
+  (function(){
+    function uiBusy(){
+      const a = document.activeElement;
+      const tag = a && a.tagName;
+      return (tag === 'INPUT' || tag === 'TEXTAREA' || (a && a.isContentEditable))
+             || document.querySelector('.select2-container--open')
+             || document.querySelector('.swal2-container.swal2-shown')
+             || document.querySelector('.modal.show');
+    }
+    function toggleOffcanvas(id){
+      const el = document.getElementById(id); if(!el) return;
+      let oc = bootstrap.Offcanvas.getInstance(el); if(!oc) oc = new bootstrap.Offcanvas(el);
+      if (el.classList.contains('show')) oc.hide(); else oc.show();
+    }
+    document.addEventListener('keydown', (e)=>{
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (uiBusy()) return;
+      const k = (e.key||'').toLowerCase();
+      if (k==='f'){ e.preventDefault(); toggleOffcanvas('filtersOffcanvas'); }
+      if (k==='p'){ e.preventDefault(); toggleOffcanvas('paginationOffcanvas'); }
+    });
+  })();
+</script>
+{% endblock %}
