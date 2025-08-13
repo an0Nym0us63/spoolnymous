@@ -37,7 +37,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -1854,5 +1854,17 @@ def objects_page():
         obj_tags=obj_tags,
         page_title="Objets"
     )
+
+@app.post("/objects/<int:object_id>/rename")
+def objects_rename(object_id):
+    new_name = (request.form.get("name") or "").strip()
+    if new_name:
+        rename_object(object_id, new_name)
+    return redirect(url_for("objects_page", **request.args.to_dict(flat=True)))
+
+@app.post("/objects/<int:object_id>/delete")
+def objects_delete(object_id):
+    delete_object(object_id)
+    return redirect(url_for("objects_page", **request.args.to_dict(flat=True)))
 
 app.register_blueprint(auth_bp)

@@ -39,7 +39,7 @@
           <div class="fw-semibold">{{ o.name }}</div>
           <div class="small text-muted">
             Source : {{ 'Print' if o.parent_type == 'print' else 'Groupe' }} #{{ o.parent_id }}
-            • Créé le {{ o.created_at }}
+            • Créé le {{ o.created_at | datetimeformat('fr')}}
           </div>
         </div>
       </div>
@@ -60,6 +60,25 @@
 
     <div id="{{ collapse_id }}" class="collapse" aria-labelledby="heading_{{ o.id }}" data-bs-parent="#objectsAccordion">
       <div class="card-body">
+		<div class="dropdown float-end mt-1" data-requires-write>
+  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+    Actions
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li>
+      <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#renameModal_{{ o.id }}">
+        📝 Renommer
+      </a>
+    </li>
+    <li>
+      <form class="m-0 p-0" method="post" action="{{ url_for('objects_delete', object_id=o.id) }}"
+            onsubmit="return confirm('Supprimer cet objet ?');">
+        {{ macros.render_filtered_args(args) }}
+        <button type="submit" class="dropdown-item text-danger">🗑 Supprimer</button>
+      </form>
+    </li>
+  </ul>
+</div>
         <div class="row g-3">
           <div class="col-12 col-md-8">
             <div class="mb-2">
@@ -90,7 +109,7 @@
               <li>Disponible : {{ 'Oui' if o.available else 'Non' }}</li>
               <li>Vendu : {{ 'Oui (' ~ ("%.2f"|format(o.sold_price)) ~ ' €)' if o.sold_price is not none else 'Non' }}</li>
               {% if o.sold_date %}<li>Vendu le : {{ o.sold_date }}</li>{% endif %}
-              <li>Maj : {{ o.updated_at }}</li>
+              <li>Maj : {{ o.updated_at | datetimeformat('fr')}}</li>
             </ul>
 
             <!-- Zone d’actions (placeholder pour plus tard : renommer, vendre, accessoires...) -->
@@ -184,6 +203,24 @@
   </div>
 </div>
 
+<div class="modal fade" id="renameModal_{{ o.id }}" tabindex="-1" aria-labelledby="renameLabel_{{ o.id }}">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('objects_rename', object_id=o.id) }}">
+      {{ macros.render_filtered_args(args) }}
+      <div class="modal-header">
+        <h5 class="modal-title" id="renameLabel_{{ o.id }}">Renommer l’objet</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" class="form-control" name="name" value="{{ o.name }}" required>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}

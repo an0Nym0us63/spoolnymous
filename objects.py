@@ -1,5 +1,6 @@
 import sqlite3
 from typing import Optional, Dict, Any, List, Tuple, NamedTuple, Literal
+from datetime import datetime, timezone
 
 # On réutilise la config DB telle qu'elle existe déjà dans le projet
 from print_history import db_config
@@ -282,12 +283,11 @@ def update_object_fields(object_id: int, **fields) -> None:
     conn.commit()
     conn.close()
 
-
-def set_sold_info(object_id: int, sold_price: Optional[float], sold_date_iso: Optional[str] = None, comment: Optional[str] = None) -> None:
-    """
-    Marque un objet comme vendu, fixe le prix de vente et la date (ISO).
-    Met available=0 par défaut (retiré du stock).
-    """
+def set_sold_info(object_id: int, sold_price: Optional[float],
+                  sold_date_iso: Optional[str] = None, comment: Optional[str] = None) -> None:
+    if sold_date_iso is None:
+        # ISO UTC, secondes, suffixe Z (cohérent avec la plupart des parseurs)
+        sold_date_iso = datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z')
     fields = {
         "sold_price": float(sold_price) if sold_price is not None else None,
         "sold_date": sold_date_iso,
@@ -511,5 +511,15 @@ def list_objects(filters: dict, page: int, per_page: int = 30) -> Tuple[List[Dic
     rows = [dict(zip(cols, r)) for r in cur.fetchall()]
     conn.close()
     return rows, total_pages
+
+def rename_object(object_id: int, new_name: str) -> None:
+    update_object_fields(int(object_id), name=(new_name or "").strip())
+
+def delete_object(object_id: int) -> None:
+    conn = _connect()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM objects WHERE id = ?", (int(object_id),))
+    conn.commit()
+    conn.close()
 
 ensure_schema()
