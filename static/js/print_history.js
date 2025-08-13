@@ -549,28 +549,37 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 });
+(function () {
+  // Ne pas déclencher si on tape dans un champ, si Select2 est ouvert, ou si une modale SweetAlert/Bootstrap est ouverte
+  function uiIsBusy() {
+    const tag = document.activeElement?.tagName;
+    const typing = tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable;
+    const select2Open = !!document.querySelector('.select2-container--open');
+    const swalOpen = !!document.querySelector('.swal2-container.swal2-shown');
+    const modalOpen = !!document.querySelector('.modal.show');
+    return typing || select2Open || swalOpen || modalOpen;
+  }
 
-document.addEventListener('keydown', function (event) {
-    // Empêche de déclencher si on est en train d'écrire dans un champ texte
-    const isInputActive = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) 
-        || document.activeElement.isContentEditable;
-    if (isInputActive) return;
+  function toggleOffcanvas(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let oc = bootstrap.Offcanvas.getInstance(el);
+    if (!oc) oc = new bootstrap.Offcanvas(el);
+    if (el.classList.contains('show')) oc.hide(); else oc.show();
+  }
 
-    // Touche F => filtre
-    if (event.key.toLowerCase() === 'f') {
-        event.preventDefault();
-        const filterPanel = document.querySelector('#filterPanel'); // à adapter selon ton ID réel
-        if (filterPanel) {
-            filterPanel.classList.toggle('d-none'); // ou ton système d'affichage
-        }
+  document.addEventListener('keydown', function (event) {
+    // ignore touches avec modifieurs (Ctrl/Cmd/Alt) et si UI occupée
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (uiIsBusy()) return;
+
+    const k = event.key?.toLowerCase();
+    if (k === 'f') {
+      event.preventDefault();
+      toggleOffcanvas('filtersOffcanvas');       // ✅ ID réel
+    } else if (k === 'p') {
+      event.preventDefault();
+      toggleOffcanvas('paginationOffcanvas');    // ✅ ID réel
     }
-
-    // Touche P => pagination
-    if (event.key.toLowerCase() === 'p') {
-        event.preventDefault();
-        const paginationPanel = document.querySelector('#paginationPanel'); // à adapter selon ton ID réel
-        if (paginationPanel) {
-            paginationPanel.classList.toggle('d-none');
-        }
-    }
-});
+  });
+})();
