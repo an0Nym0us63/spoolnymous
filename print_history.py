@@ -735,7 +735,7 @@ def update_print_field_with_job_id(job_id: int, field: str, value) -> None:
     if field == "status":
         try:
             cursor.execute("""
-                SELECT print_date, duration, original_duration
+                SELECT print_date,status, duration, original_duration
                 FROM prints
                 WHERE job_id = ?
                 LIMIT 1
@@ -757,8 +757,8 @@ def update_print_field_with_job_id(job_id: int, field: str, value) -> None:
 
                     # 2) La nouvelle durée doit être dans ±20% de l'ancienne, si old est exploitable
                     if isinstance(old, (int, float)) and old is not None and old > 0:
-                        lower = 0.8 * float(old)
-                        upper = 1.2 * float(old)
+                        lower = 0.001 * float(old)
+                        upper = 1.3 * float(old)
                         if lower <= new_duration <= upper:
                             can_update_duration = True
                     else:
@@ -768,16 +768,23 @@ def update_print_field_with_job_id(job_id: int, field: str, value) -> None:
                 if can_update_duration:
                     cursor.execute("""
                         UPDATE prints
-                        SET status = ?, duration = ?
+                        SET duration = ?
                         WHERE job_id = ?
-                    """, (value, new_duration, job_id))
+                    """, (new_duration, job_id))
+                    if row["status"] == 'IN_PROGRESS':
+                        cursor.execute("""
+                            UPDATE prints
+                            SET status = ?
+                            WHERE job_id = ?
+                        """, (value, job_id))
                 else:
-                    # On ne touche pas à duration : on met à jour uniquement le statut
-                    cursor.execute("""
-                        UPDATE prints
-                        SET status = ?
-                        WHERE job_id = ?
-                    """, (value, job_id))
+                    if row["status"] == 'IN_PROGRESS':
+                        # On ne touche pas à duration : on met à jour uniquement le statut
+                        cursor.execute("""
+                            UPDATE prints
+                            SET status = ?
+                            WHERE job_id = ?
+                        """, (value, job_id))
             else:
                 # Pas de print_date -> mise à jour uniquement du statut
                 cursor.execute("""
