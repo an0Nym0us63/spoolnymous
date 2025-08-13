@@ -1,6 +1,7 @@
 import sqlite3
 from typing import Optional, Dict, Any, List, Tuple, NamedTuple, Literal
 from datetime import datetime, timezone
+from collections.abc import Iterable
 
 # On réutilise la config DB telle qu'elle existe déjà dans le projet
 from print_history import db_config
@@ -534,7 +535,7 @@ def create_objects_from_source(source_type: SourceType, source_id: int, qty: int
     finally:
         conn.close()
 
-def get_object_counts_by_parent(parent_type: str, parent_ids: Iterable[int]) -> Dict[int, int]:
+def get_object_counts_by_parent(parent_type: str, parent_ids: Iterable[int]) -> dict[int, int]:
     ids = [int(x) for x in set(parent_ids) if x]
     if not ids:
         return {}
