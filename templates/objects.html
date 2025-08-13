@@ -126,6 +126,24 @@
       </div>
     </div>
   </div>
+  <div class="modal fade" id="renameModal_{{ o.id }}" tabindex="-1" aria-labelledby="renameLabel_{{ o.id }}">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('objects_rename', object_id=o.id) }}">
+      {{ macros.render_filtered_args(args) }}
+      <div class="modal-header">
+        <h5 class="modal-title" id="renameLabel_{{ o.id }}">Renommer l’objet</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" class="form-control" name="name" value="{{ o.name }}" required>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
   {% endfor %}
 </div>
 
@@ -200,25 +218,6 @@
         <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">&raquo;</a>
       {% endif %}
     </div>
-  </div>
-</div>
-
-<div class="modal fade" id="renameModal_{{ o.id }}" tabindex="-1" aria-labelledby="renameLabel_{{ o.id }}">
-  <div class="modal-dialog">
-    <form class="modal-content" method="post" action="{{ url_for('objects_rename', object_id=o.id) }}">
-      {{ macros.render_filtered_args(args) }}
-      <div class="modal-header">
-        <h5 class="modal-title" id="renameLabel_{{ o.id }}">Renommer l’objet</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-      </div>
-      <div class="modal-body">
-        <input type="text" class="form-control" name="name" value="{{ o.name }}" required>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-        <button type="submit" class="btn btn-primary">Enregistrer</button>
-      </div>
-    </form>
   </div>
 </div>
 {% endblock %}
