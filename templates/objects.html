@@ -128,6 +128,13 @@
               <li>Vendu : {{ 'Oui (' ~ ("%.2f"|format(o.sold_price)) ~ ' €)' if o.sold_price is not none else 'Non' }}</li>
               {% if o.sold_date %}<li>Vendu le : {{ o.sold_date }}</li>{% endif %}
               <li>Maj : {{ o.updated_at | datetimeformat('fr')}}</li>
+			  <li>Marge :
+  {% if o.margin is not none %}
+    {{ '%.2f'|format(o.margin) }} {{ currencysymbol }}
+  {% else %}
+    —
+  {% endif %}
+</li>
             </ul>
           </div>
         </div>

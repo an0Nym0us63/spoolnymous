@@ -51,6 +51,23 @@ def ensure_schema() -> None:
     cols = {r[1] for r in cur.fetchall()}
     if "thumbnail" not in cols:
         cur.execute("ALTER TABLE objects ADD COLUMN thumbnail TEXT")
+    if "margin" not in cols:
+        cur.execute("ALTER TABLE objects ADD COLUMN margin REAL")
+        # backfill initial : calcule la marge existante si sold_price défini
+        cur.execute("""
+            UPDATE objects
+            SET margin = CASE
+                WHEN sold_price IS NOT NULL THEN
+                    sold_price - COALESCE(cost_total, COALESCE(cost_accessory,0) + COALESCE(cost_fabrication,0))
+                ELSE NULL
+            END
+        """)
+    cur.execute("DROP TRIGGER IF EXISTS trg_sync_obj_cost_after_print_update")
+    cur.execute("DROP TRIGGER IF EXISTS trg_sync_obj_cost_after_group_update")
+    cur.execute("DROP TRIGGER IF EXISTS trg_obj_sync_after_print_cost")
+    cur.execute("DROP TRIGGER IF EXISTS trg_obj_sync_after_group_cost")
+    cur.execute("DROP TRIGGER IF EXISTS trg_obj_recompute_after_components")
+    cur.execute("DROP TRIGGER IF EXISTS trg_obj_recompute_after_sold_price")
 
     # Index utiles
     cur.execute("""CREATE INDEX IF NOT EXISTS idx_objects_parent
@@ -74,6 +91,97 @@ def ensure_schema() -> None:
                    ON tag_objects(object_id)""")
     cur.execute("""CREATE INDEX IF NOT EXISTS idx_tag_objects_tag
                    ON tag_objects(tag)""")
+     # --- helper SQL commun : coût unitaire de la source -------------------
+    # unit = NEW.full_cost_by_item
+    #      ou (NEW.full_cost si number_of_items=1)
+    #      sinon NULL (on ne change pas le coût côté objets)
+    unit_sql = """
+        COALESCE(
+            NEW.full_cost_by_item,
+            CASE WHEN COALESCE(NEW.number_of_items,1)=1 THEN COALESCE(NEW.full_cost,0) END
+        )
+    """
+
+    # --- PRINTS : recalc des objets liés quand coûts changent -------------
+    cur.execute(f"""
+        CREATE TRIGGER IF NOT EXISTS trg_obj_sync_after_print_cost
+        AFTER UPDATE OF full_cost_by_item, full_cost, number_of_items ON prints
+        WHEN
+              (NEW.full_cost_by_item IS NOT OLD.full_cost_by_item)
+           OR (COALESCE(NEW.number_of_items,1)=1 AND NEW.full_cost IS NOT OLD.full_cost)
+           OR (COALESCE(NEW.number_of_items,1) != COALESCE(OLD.number_of_items,1))
+        BEGIN
+            UPDATE objects
+            SET
+                cost_fabrication = COALESCE({unit_sql}, cost_fabrication),
+                cost_total       = COALESCE(cost_accessory,0) + COALESCE({unit_sql}, cost_fabrication),
+                margin           = CASE
+                                      WHEN sold_price IS NOT NULL THEN
+                                          sold_price - (COALESCE(cost_accessory,0) + COALESCE({unit_sql}, cost_fabrication))
+                                      ELSE NULL
+                                   END,
+                updated_at       = datetime('now')
+            WHERE parent_type='print' AND parent_id=NEW.id;
+        END;
+    """)
+
+    # --- GROUPES : recalc des objets liés quand coûts changent ------------
+    cur.execute(f"""
+        CREATE TRIGGER IF NOT EXISTS trg_obj_sync_after_group_cost
+        AFTER UPDATE OF full_cost_by_item, full_cost, number_of_items ON print_groups
+        WHEN
+              (NEW.full_cost_by_item IS NOT OLD.full_cost_by_item)
+           OR (COALESCE(NEW.number_of_items,1)=1 AND NEW.full_cost IS NOT OLD.full_cost)
+           OR (COALESCE(NEW.number_of_items,1) != COALESCE(OLD.number_of_items,1))
+        BEGIN
+            UPDATE objects
+            SET
+                cost_fabrication = COALESCE({unit_sql}, cost_fabrication),
+                cost_total       = COALESCE(cost_accessory,0) + COALESCE({unit_sql}, cost_fabrication),
+                margin           = CASE
+                                      WHEN sold_price IS NOT NULL THEN
+                                          sold_price - (COALESCE(cost_accessory,0) + COALESCE({unit_sql}, cost_fabrication))
+                                      ELSE NULL
+                                   END,
+                updated_at       = datetime('now')
+            WHERE parent_type='group' AND parent_id=NEW.id;
+        END;
+    """)
+
+    # --- OBJECTS : garder cost_total & margin alignés quand on modifie les composants
+    cur.execute("""
+        CREATE TRIGGER IF NOT EXISTS trg_obj_recompute_after_components
+        AFTER UPDATE OF cost_accessory, cost_fabrication ON objects
+        BEGIN
+            UPDATE objects
+            SET
+                cost_total = COALESCE(NEW.cost_accessory,0) + COALESCE(NEW.cost_fabrication,0),
+                margin     = CASE
+                                WHEN NEW.sold_price IS NOT NULL
+                                  THEN NEW.sold_price - (COALESCE(NEW.cost_accessory,0) + COALESCE(NEW.cost_fabrication,0))
+                                ELSE NULL
+                             END,
+                updated_at = datetime('now')
+            WHERE id = NEW.id;
+        END;
+    """)
+
+    # --- OBJECTS : recalculer margin quand sold_price change --------------
+    cur.execute("""
+        CREATE TRIGGER IF NOT EXISTS trg_obj_recompute_after_sold_price
+        AFTER UPDATE OF sold_price ON objects
+        BEGIN
+            UPDATE objects
+            SET
+                margin     = CASE
+                                WHEN NEW.sold_price IS NOT NULL
+                                  THEN NEW.sold_price - COALESCE(NEW.cost_total, COALESCE(NEW.cost_accessory,0)+COALESCE(NEW.cost_fabrication,0))
+                                ELSE NULL
+                             END,
+                updated_at = datetime('now')
+            WHERE id = NEW.id;
+        END;
+    """)
 
     conn.commit()
     conn.close()
