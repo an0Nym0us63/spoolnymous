@@ -1197,9 +1197,6 @@ def print_history():
     
     return render_template("print_history.html", **context)
 
-
-
-
 @app.route("/print_select_spool")
 def print_select_spool():
 
