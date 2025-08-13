@@ -378,7 +378,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
  document.getElementById('resetFiltersBtn').addEventListener('click', function () {
-    const form = document.querySelector('#filamentFilters form');
+    const form = document.querySelector('#filtersOffcanvas form');
 
     form.querySelectorAll('input[type="text"], input[type="hidden"], select').forEach(el => {
       if (el.type === 'hidden' && el.name === 'page') return;
