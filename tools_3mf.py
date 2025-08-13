@@ -81,43 +81,39 @@ def download3mfFromFTP(filename, taskname, destFile):
       - vérifie la stabilité (taille + mtime) sur 3 cycles,
       - télécharge,
       - timeout global: 240s.
-
-    Retourne le chemin local du fichier téléchargé (destFile.name) si OK.
-    Lève TimeoutError si non stable/non frais après 180s.
-    Relève l’exception pycurl.error en cas d’erreur de transfert.
     """
-    # Paramètres de contrôle
     CHECK_INTERVAL   = 5           # secondes entre sondes
     TIMEOUT_SEC      = 240         # timeout global
     STABLE_CYCLES    = 3           # cycles identiques requis
     FRESH_MAX_AGE_S  = 60          # fichier "frais" = mtime <= 60s
     MDTM_RE          = re.compile(r"(?:^|[\r\n])\s*\d{3}\s+(\d{14})(?:\.\d+)?\b", re.IGNORECASE)
-    
+    BACKOFF_ON_SIZE_CHANGE = 0.25  # s — backoff avant MDTM si la taille vient de changer
+    RECREATE_AFTER_STALE   = 2     # cycles consécutifs avec size_ok && mtime=None -> recreate session
+
     ftp_host = get_app_setting("PRINTER_IP","")
     ftp_user = "bblp"
     ftp_pass = get_app_setting("PRINTER_ACCESS_CODE","")
 
     logger.info("Downloading 3MF file from FTP...")
-    # Encodage minimal du taskname
     taskname = encode_custom_hex(taskname)
 
-    # Chemins/URLs
     remote_dir  = "/cache"
     remote_name = f"{taskname}.gcode.3mf"
-    remote_name_enc = urllib.parse.quote(remote_name)           # pour l’URL de transfert
-    url      = f"ftps://{ftp_host}{remote_dir}/{remote_name_enc}"
-    raw_path = f"{remote_dir}/{remote_name}"                    # pour QUOTE MDTM (non encodé)
+    remote_name_enc = urllib.parse.quote(remote_name)
+    url       = f"ftps://{ftp_host}{remote_dir}/{remote_name_enc}"
+    raw_path  = f"{remote_dir}/{remote_name}"          # pour QUOTE MDTM (non encodé)
     local_path = destFile.name
 
     logger.debug(f"Waiting for file to appear and stabilize: {url}")
 
     start = time.time()
-    last_sig = None  # (size, mtime) avec -1 si None
+    last_sig = None          # (size, mtime) avec -1 si None
+    last_size = None         # pour détecter un changement de taille
     stable = 0
+    size_ok_mtime_none_streak = 0
 
-    c = pycurl.Curl()
-    try:
-        # Connexion FTPS de base
+    def _init_curl():
+        c = pycurl.Curl()
         c.setopt(c.URL, url)
         c.setopt(c.USERPWD, f"{ftp_user}:{ftp_pass}")
         c.setopt(c.SSL_VERIFYPEER, 0)
@@ -125,12 +121,14 @@ def download3mfFromFTP(filename, taskname, destFile):
         c.setopt(c.FTP_SSL, c.FTPSSL_ALL)
         c.setopt(c.FTPSSLAUTH, c.FTPAUTH_TLS)
         c.setopt(c.FTP_FILEMETHOD, c.FTPMETHOD_NOCWD)
-        c.setopt(c.TRANSFERTEXT, False)          # binaire
+        c.setopt(c.TRANSFERTEXT, False)      # binaire
         c.setopt(c.CONNECTTIMEOUT, 10)
         c.setopt(c.TIMEOUT, CHECK_INTERVAL)
         c.setopt(c.NOBODY, True)
+        return c
 
-        # Boucle d’attente + stabilisation
+    c = _init_curl()
+    try:
         while time.time() - start < TIMEOUT_SEC:
             size = None
             mtime = None
@@ -143,7 +141,12 @@ def download3mfFromFTP(filename, taskname, destFile):
             except pycurl.error:
                 pass  # pas encore disponible
 
-            # 2) MDTM (on capture le transcript via DEBUGFUNCTION)
+            # 2) MDTM (transcript)
+            # Backoff si la taille vient de changer (fenêtre de course fs/rename)
+            if last_size is not None and size is not None and size != last_size:
+                logger.debug(f"⏳ Backoff {BACKOFF_ON_SIZE_CHANGE*1000:.0f}ms avant MDTM (changement de taille détecté)")
+                time.sleep(BACKOFF_ON_SIZE_CHANGE)
+
             buf = []
             def _dbg(_t, m):
                 try:
@@ -159,8 +162,7 @@ def download3mfFromFTP(filename, taskname, destFile):
             except pycurl.error:
                 pass
             finally:
-                # IMPORTANT: pas de None pour "désactiver" des options PycURL
-                c.setopt(c.QUOTE, [])                         # efface la liste de QUOTE
+                c.setopt(c.QUOTE, [])
                 c.setopt(c.VERBOSE, False)
                 c.setopt(c.DEBUGFUNCTION, (lambda *a, **k: None))
 
@@ -173,18 +175,36 @@ def download3mfFromFTP(filename, taskname, destFile):
                 except Exception:
                     mtime = None
 
-            # Conditions minimales
+            # 3) Fraîcheur / stabilité
             now_utc = int(datetime.now(timezone.utc).timestamp())
-            age_s = None
-            if mtime is not None:
-                age_s = now_utc - mtime
-            
+            age_s = (now_utc - mtime) if mtime is not None else None
             fresh_ok = (mtime is not None) and (0 <= age_s <= FRESH_MAX_AGE_S)
             size_ok  = (size is not None and size > 0)
-            
-            sig = (size if size is not None else -1, mtime if mtime is not None else -1)
-            logger.debug(f"📏 size={size}  🕒 mtime={mtime}  ⏳age={age_s}s  ✅fresh={fresh_ok}")
 
+            sig = (size if size is not None else -1, mtime if mtime is not None else -1)
+            logger.debug(f"📏 size={size}  🕒 mtime={mtime}  ⏳age={str(age_s)+'s' if age_s is not None else '—'}  ✅fresh={fresh_ok}")
+
+            # 4) Détection du cas "session sourde à MDTM" → recréer la connexion
+            if size_ok and (mtime is None):
+                size_ok_mtime_none_streak += 1
+                if size_ok_mtime_none_streak >= RECREATE_AFTER_STALE:
+                    logger.warning("🔌 Session FTPS possiblement 'sourde' à MDTM — recréation de la connexion…")
+                    try:
+                        c.close()
+                    except Exception:
+                        pass
+                    c = _init_curl()
+                    size_ok_mtime_none_streak = 0
+                    last_sig = None
+                    stable = 0
+                    # petit délai pour laisser la session serveur se poser
+                    time.sleep(0.2)
+                    last_size = size  # mémorise le dernier size vu
+                    continue
+            else:
+                size_ok_mtime_none_streak = 0
+
+            # 5) Stabilisation
             if size_ok and fresh_ok:
                 if sig == last_sig:
                     stable += 1
@@ -201,16 +221,16 @@ def download3mfFromFTP(filename, taskname, destFile):
                     stable = 0
                     logger.debug("⏳ Pas prêt (taille/mtime). Reset compteur -> 0")
 
+            last_size = size
             time.sleep(CHECK_INTERVAL)
         else:
             raise TimeoutError("Timeout 180s: fichier introuvable/non frais ou taille non stable.")
 
-        # Téléchargement (même connexion)
+        # Téléchargement (même logique)
         logger.info("📥 Fichier stable. Lancement du download...")
         c.setopt(c.NOBODY, False)
         c.setopt(c.TIMEOUT, 0)  # pas de petit timeout pendant le download
 
-        # Retries ciblés (RETR 550 / code 78)
         for attempt in range(1, 4):
             try:
                 with open(local_path, "wb") as f:
@@ -228,6 +248,7 @@ def download3mfFromFTP(filename, taskname, destFile):
                 raise
     finally:
         c.close()
+
 
 def download3mfFromLocalFilesystem(path, destFile):
   with open(path, "rb") as src_file:
