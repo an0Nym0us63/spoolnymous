@@ -37,7 +37,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -1123,6 +1123,37 @@ def print_history():
     for e in entries.values():
         if e.get("type") == "group" and isinstance(e.get("tags"), set):
             e["tags"] = sorted(e["tags"], key=lambda s: s.lower())
+    all_print_ids = [p["id"] for p in raw_prints]  # tu l'as déjà créé plus haut
+    counts_print = get_object_counts_by_parent("print", all_print_ids)
+    
+    # 2) Comptes existants pour les groupes présents dans `entries`
+    group_ids = [e["id"] for e in entries.values() if e["type"] == "group"]
+    counts_group = get_object_counts_by_parent("group", group_ids)
+    
+    # 3) Annotation des dispos dans entries + prints
+    for e in entries.values():
+        if e["type"] == "group":
+            total = int(e.get("number_of_items") or 1)
+            created = counts_group.get(e["id"], 0)
+            avail = max(0, total - created)
+            e["available_units"] = avail
+            e["unit_badge"] = f"{avail}/{total}" if avail < total else f"{total}"
+    
+            # chaque print du groupe a aussi son badge (au cas où des objets aient été créés au niveau print)
+            for p in e.get("prints", []):
+                ptot = int(p.get("number_of_items") or 1)
+                pcreated = counts_print.get(p["id"], 0)
+                pavail = max(0, ptot - pcreated)
+                p["available_units"] = pavail
+                p["unit_badge"] = f"{pavail}/{ptot}" if pavail < ptot else f"{ptot}"
+    
+        else:  # single print
+            p = e["print"]
+            total = int(p.get("number_of_items") or 1)
+            created = counts_print.get(p["id"], 0)
+            avail = max(0, total - created)
+            p["available_units"] = avail
+            p["unit_badge"] = f"{avail}/{total}" if avail < total else f"{total}"
     total_pages = (len(entries_list) + per_page - 1) // per_page
     paged_entries = entries_list[(page - 1) * per_page : page * per_page]
 

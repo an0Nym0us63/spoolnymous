@@ -63,6 +63,12 @@
           {{ print.number_of_items }}
         </span>
         {% endif %}
+		 {% if print.unit_badge  > 1 %}
+        <span class="badge bg-info rounded-pill"
+              style="position: absolute; bottom: 4px; right: 0px; font-size: 0.6rem; padding: 0.15em 0.4em;">
+          {{ print.unit_badge  }}
+        </span>
+        {% endif %}
       </div>
       {% else %}
         <span class="text-muted">—</span>
@@ -100,6 +106,7 @@
     🧾 Changer statut
   </a>
 </li>
+{% if not print.group_id %}
 <li>
   <a class="dropdown-item text-success" href="#"
      data-bs-toggle="modal"
@@ -107,6 +114,7 @@
     🧩 Créer des objets
   </a>
 </li>
+{% endif %}
           {% if not print.group_id %}
           <li>
             <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#groupModal_{{ print.id }}">

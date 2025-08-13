@@ -534,6 +534,22 @@ def create_objects_from_source(source_type: SourceType, source_id: int, qty: int
     finally:
         conn.close()
 
+def get_object_counts_by_parent(parent_type: str, parent_ids: Iterable[int]) -> Dict[int, int]:
+    ids = [int(x) for x in set(parent_ids) if x]
+    if not ids:
+        return {}
+    conn = _connect(); cur = conn.cursor()
+    marks = ",".join("?" for _ in ids)
+    cur.execute(
+        f"""SELECT parent_id, COUNT(*) AS n
+            FROM objects
+            WHERE parent_type = ? AND parent_id IN ({marks})
+            GROUP BY parent_id""",
+        tuple([parent_type] + ids)
+    )
+    out: Dict[int, int] = {int(r[0]): int(r[1]) for r in cur.fetchall()}
+    conn.close()
+    return out
 
 
 # ---------------------------------------------------------------------------
