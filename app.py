@@ -1123,37 +1123,30 @@ def print_history():
     for e in entries.values():
         if e.get("type") == "group" and isinstance(e.get("tags"), set):
             e["tags"] = sorted(e["tags"], key=lambda s: s.lower())
-    all_print_ids = [p["id"] for p in raw_prints]  # tu l'as déjà créé plus haut
+    all_print_ids = [p["id"] for p in raw_prints]
     counts_print = get_object_counts_by_parent("print", all_print_ids)
     
-    # 2) Comptes existants pour les groupes présents dans `entries`
     group_ids = [e["id"] for e in entries.values() if e["type"] == "group"]
     counts_group = get_object_counts_by_parent("group", group_ids)
     
-    # 3) Annotation des dispos dans entries + prints
+    # Annoter uniquement available_units (entier) – pas de "4/5" côté back
     for e in entries.values():
         if e["type"] == "group":
             total = int(e.get("number_of_items") or 1)
             created = counts_group.get(e["id"], 0)
-            avail = max(0, total - created)
-            e["available_units"] = avail
-            e["unit_badge"] = f"{avail}/{total}" if avail < total else f"{total}"
+            e["available_units"] = max(0, total - created)
     
-            # chaque print du groupe a aussi son badge (au cas où des objets aient été créés au niveau print)
+            # on annote aussi chaque print du groupe (utile si tu veux un badge par print)
             for p in e.get("prints", []):
                 ptot = int(p.get("number_of_items") or 1)
                 pcreated = counts_print.get(p["id"], 0)
-                pavail = max(0, ptot - pcreated)
-                p["available_units"] = pavail
-                p["unit_badge"] = f"{pavail}/{ptot}" if pavail < ptot else f"{ptot}"
+                p["available_units"] = max(0, ptot - pcreated)
     
         else:  # single print
             p = e["print"]
             total = int(p.get("number_of_items") or 1)
             created = counts_print.get(p["id"], 0)
-            avail = max(0, total - created)
-            p["available_units"] = avail
-            p["unit_badge"] = f"{avail}/{total}" if avail < total else f"{total}"
+            p["available_units"] = max(0, total - created)
     total_pages = (len(entries_list) + per_page - 1) // per_page
     paged_entries = entries_list[(page - 1) * per_page : page * per_page]
 
