@@ -675,9 +675,15 @@ def list_objects(filters: dict, page: int, per_page: int = 30) -> Tuple[List[Dic
     cur.execute(
         f"""
         SELECT id, name, parent_type, parent_id, thumbnail,
-               cost_fabrication, cost_accessory, cost_total,
-               available, sold_price, sold_date, comment,
-               created_at, updated_at
+            cost_fabrication, cost_accessory, cost_total,
+            available, sold_price, sold_date, comment,
+            created_at, updated_at,
+            margin,
+            CASE
+                WHEN sold_price IS NOT NULL THEN
+                sold_price - COALESCE(cost_total, COALESCE(cost_accessory,0) + COALESCE(cost_fabrication,0))
+                ELSE NULL
+            END AS margin_calc
         FROM objects
         {where}
         {order_by}
@@ -686,7 +692,14 @@ def list_objects(filters: dict, page: int, per_page: int = 30) -> Tuple[List[Dic
         tuple(params + [per_page, offset])
     )
     cols = [d[0] for d in cur.description]
-    rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+    rows = []
+    for r in cur.fetchall():
+        row = dict(zip(cols, r))
+        # fallback : si margin est NULL ou absent, on prend margin_calc
+        if "margin" not in row or row["margin"] is None:
+            row["margin"] = row.get("margin_calc")
+        row.pop("margin_calc", None)
+        rows.append(row)
     conn.close()
     return rows, total_pages
 

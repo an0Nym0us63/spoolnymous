@@ -129,7 +129,7 @@
               {% if o.sold_date %}<li>Vendu le : {{ o.sold_date }}</li>{% endif %}
               <li>Maj : {{ o.updated_at | datetimeformat('fr')}}</li>
 			  <li>Marge :
-  {% if o.margin is not none %}
+  {% if o.margin is defined and o.margin is not none %}
     {{ '%.2f'|format(o.margin) }} {{ currencysymbol }}
   {% else %}
     —
