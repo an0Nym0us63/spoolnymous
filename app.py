@@ -33,7 +33,7 @@ from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel,insert_manual_print
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool, archive_spool, reajust_spool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings,fetchSpools
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print,get_all_tray_spool_mappings,set_tray_spool_map,delete_all_tray_spool_mappings
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print,get_all_tray_spool_mappings,set_tray_spool_map,delete_all_tray_spool_mappings, get_tags_for_prints, get_tags_for_group, add_tag_to_group, remove_tag_from_group
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
@@ -981,6 +981,9 @@ def print_history():
 
     groups_list = get_print_groups()
     groups_by_id = {g['id']: g for g in groups_list}
+    
+    all_print_ids = [p["id"] for p in raw_prints]
+    tags_by_print = get_tags_for_prints(all_print_ids)
 
     for p in raw_prints:
         p["duration"] = float(p.get("duration") or 0.0) / 3600  # pour compatibilité templates
@@ -1032,10 +1035,13 @@ def print_history():
                     "full_normal_cost_by_item": group_data.get("full_normal_cost_by_item", 0),
                     "margin": group_data.get("margin", 0),
                     "max_print_id": 0,  # initialisation pour le max print
+                    "tags": set(),
                 }
                 entries[entry_key] = entry
         
             entry["prints"].append(p)
+            for t in tags_by_print.get(p["id"], []):
+                entry["tags"].add(t)
             entry["total_duration"] += p["duration"]
         
             if parse_print_date(p["print_date"]) > parse_print_date(entry["latest_date"]):
@@ -1107,6 +1113,9 @@ def print_history():
             total_weight += p.get("total_weight", 0)
             total_cost += p.get("full_cost", 0)
     entries_list = sorted(entries.values(), key=lambda e: parse_print_date(e["latest_date"] if e["type"] == "group" else e["print"]["print_date"]), reverse=True)
+    for e in entries.values():
+        if e.get("type") == "group" and isinstance(e.get("tags"), set):
+            e["tags"] = sorted(e["tags"], key=lambda s: s.lower())
     total_pages = (len(entries_list) + per_page - 1) // per_page
     paged_entries = entries_list[(page - 1) * per_page : page * per_page]
 
@@ -1283,6 +1292,25 @@ def remove_tag(print_id):
     if tag:
         remove_tag_from_print(print_id, tag)
     return jsonify({"status": "ok"})
+    
+@app.route("/history/group/<int:group_id>/tags", methods=["GET"])
+def get_group_tags(group_id):
+    return jsonify(get_tags_for_group(group_id))
+
+@app.route("/history/group/<int:group_id>/tags/add", methods=["POST"])
+def add_group_tag(group_id):
+    tag_input = request.form.get("tag", "")
+    tags = [t.strip() for t in re.split(r'[;,]', tag_input) if t.strip()]
+    for tag in tags:
+        add_tag_to_group(group_id, tag)
+    return redirect_with_context("print_history", focus_group_id=group_id)
+
+@app.route("/history/group/<int:group_id>/tags/remove", methods=["POST"])
+def remove_group_tag(group_id):
+    tag = request.form.get("tag", "")
+    if tag:
+        remove_tag_from_group(group_id, tag)
+    return redirect_with_context("print_history", focus_group_id=group_id)
     
 @app.route("/filaments")
 def filaments():

@@ -228,7 +228,35 @@
 
 
             <hr>
+<div class="mt-2">
+  <div class="small text-muted">Tags du groupe :</div>
+  <div class="d-flex flex-wrap gap-1 align-items-center">
+    {% if entry.tags and entry.tags|length > 0 %}
+      {% for tag in entry.tags %}
+        <span class="badge bg-primary">
+          {{ tag }}
+          <form class="d-inline" method="post"
+                action="{{ url_for('remove_group_tag', group_id=entry.id) }}"
+                data-requires-write>
+            <input type="hidden" name="tag" value="{{ tag }}" />
+            <button type="submit" class="btn-close btn-close-white btn-sm ms-1"
+                    aria-label="Supprimer le tag « {{ tag }} »"></button>
+          </form>
+        </span>
+      {% endfor %}
+    {% else %}
+      <span class="text-muted">Aucun</span>
+    {% endif %}
+  </div>
 
+  <form class="input-group mt-1" style="max-width: 300px;"
+        method="post" action="{{ url_for('add_group_tag', group_id=entry.id) }}"
+        data-requires-write>
+    <input type="text" class="form-control form-control-sm"
+           name="tag" placeholder="Nouveau tag… (sépare par , ou ;)">
+    <button class="btn btn-sm btn-success" type="submit">✚ Ajouter</button>
+  </form>
+</div>
             <div id="group_accordion_{{ entry.id }}">
   {% for print in entry.prints %}
     {% set print = print %}

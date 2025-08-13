@@ -846,6 +846,73 @@ def remove_tag_from_print(print_id: int, tag: str):
     conn.commit()
     conn.close()
 
+# --- TAGS : batch & groupes -----------------------------------------------
+
+def get_tags_for_prints(print_ids: list[int]) -> dict[int, list[str]]:
+    """Retourne un mapping {print_id: [tags]} pour un ensemble de prints."""
+    if not print_ids:
+        return {}
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    q_marks = ",".join("?" for _ in print_ids)
+    cursor.execute(f"SELECT print_id, tag FROM print_tags WHERE print_id IN ({q_marks})", tuple(print_ids))
+    tags_by_print = defaultdict(list)
+    for pid, tag in cursor.fetchall():
+        tags_by_print[pid].append(tag)
+    conn.close()
+    return tags_by_print
+
+def get_group_print_ids(group_id: int) -> list[int]:
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM prints WHERE group_id = ?", (group_id,))
+    ids = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return ids
+
+def get_tags_for_group(group_id: int) -> list[str]:
+    """Union des tags de tous les prints du groupe."""
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT DISTINCT pt.tag
+        FROM print_tags pt
+        JOIN prints p ON p.id = pt.print_id
+        WHERE p.group_id = ?
+    """, (group_id,))
+    tags = sorted([r[0] for r in cursor.fetchall()], key=lambda s: s.lower())
+    conn.close()
+    return tags
+
+def add_tag_to_group(group_id: int, tag: str) -> None:
+    """Ajoute un tag à tous les prints du groupe (sans doublon)."""
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    # Insère pour les prints du groupe qui ne l'ont pas déjà
+    cursor.execute("""
+        INSERT INTO print_tags (print_id, tag)
+        SELECT p.id, ?
+        FROM prints p
+        WHERE p.group_id = ?
+          AND NOT EXISTS (
+              SELECT 1 FROM print_tags pt WHERE pt.print_id = p.id AND pt.tag = ?
+          )
+    """, (tag, group_id, tag))
+    conn.commit()
+    conn.close()
+
+def remove_tag_from_group(group_id: int, tag: str) -> None:
+    """Supprime un tag de tous les prints du groupe."""
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    cursor.execute("""
+        DELETE FROM print_tags
+        WHERE tag = ?
+          AND print_id IN (SELECT id FROM prints WHERE group_id = ?)
+    """, (tag, group_id))
+    conn.commit()
+    conn.close()
+
 def update_print_history_field(print_id: int, field: str, value) -> None:
     """
     Met à jour un champ donné pour une impression de l'historique.

@@ -273,6 +273,33 @@ if (name === 'status') {
             })
             .fail(() => alert('Erreur lors de la suppression du tag.'));
     });
+	// --- TAGS GROUPES ----------------------------------------------------
+$('.add-group-tag-btn').on('click', function () {
+  const btn = $(this);
+  const groupId = btn.data('group-id');
+  const input = btn.siblings('.add-group-tag-input');
+  const tag = input.val().trim();
+  if (!tag) return;
+
+  $.post(`/history/group/${groupId}/tags/add`, { tag })
+    .done(() => {
+      const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
+      window.location.href = `/print_history?page=${currentPage}&focus_group_id=${groupId}`;
+    })
+    .fail(() => alert('Erreur lors de l’ajout du tag au groupe.'));
+});
+
+$('.remove-group-tag').on('click', function () {
+  const btn = $(this);
+  const groupId = btn.data('group-id');
+  const tag = btn.data('tag');
+  $.post(`/history/group/${groupId}/tags/remove`, { tag })
+    .done(() => {
+      const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
+      window.location.href = `/print_history?page=${currentPage}&focus_group_id=${groupId}`;
+    })
+    .fail(() => alert('Erreur lors de la suppression du tag du groupe.'));
+});
 
     window.confirmReajust = function (printId) {
         askRestockRatioPerFilament(printId, false);
