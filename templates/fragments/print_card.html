@@ -200,9 +200,11 @@
       </div>
 
       {% if print.image_file %}
-      <div class="thumb" style="--thumb-size: 200px;display:block;margin-inline:auto;">
+	  <div class="text-center">
+      <div class="thumb" style="--thumb-size: 200px;">
         <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
              alt="Print Image" class="thumb-img" />
+      </div>
       </div>
       {% endif %}
 {% if print.translated_name or print.original_name or print.status_note %}
