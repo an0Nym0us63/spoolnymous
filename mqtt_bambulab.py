@@ -492,7 +492,7 @@ def safe_update_status(data):
     fields["tray_ams_id"] = None
 
     # Map AMS -> extrudeur (aligne avec LEFT/RIGHT_* ci-dessus)
-    ams_extruder_map = {0: LEFT_NOZZLE_ID, 1: RIGHT_NOZZLE_ID}
+    ams_extruder_map = {0: RIGHT_NOZZLE_ID, 1: LEFT_NOZZLE_ID}
 
     if tray_now is not None and isinstance(ams_list, list) and tray_now != 255:
         candidate_trays = []
