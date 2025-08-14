@@ -719,4 +719,52 @@ def delete_object(object_id: int) -> None:
     conn.commit()
     conn.close()
 
+from __future__ import annotations
+
+import sqlite3
+from typing import Optional
+
+# On réutilise le chemin DB centralisé
+from print_history import db_config
+_DB_PATH = db_config["db_path"]
+
+
+def update_object_sale(object_id: int, sold_price: float, sold_date: str, comment: Optional[str]) -> None:
+    """
+    Enregistre la vente / le don d'un objet.
+
+    Paramètres :
+      - object_id   : ID de l'objet (ligne dans la table `objects`)
+      - sold_price  : prix de vente >= 0 (0 = don/cadeau)
+      - sold_date   : date ou datetime ISO (ex. '2025-08-14' ou '2025-08-14T10:20:30')
+      - comment     : commentaire optionnel (None pour ne rien mettre)
+
+    Effets :
+      - marque l'objet comme indisponible (available = 0)
+      - met à jour les champs sold_price, sold_date, comment
+      - met à jour updated_at = datetime('now')
+    """
+    conn = sqlite3.connect(_DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE objects
+           SET sold_price = ?,
+               sold_date  = ?,
+               comment    = ?,
+               available  = 0,
+               updated_at = datetime('now')
+         WHERE id = ?
+        """,
+        (sold_price, sold_date, comment, object_id),
+    )
+    if cur.rowcount == 0:
+        conn.rollback()
+        conn.close()
+        raise ValueError(f"Objet introuvable (id={object_id})")
+
+    conn.commit()
+    conn.close()
+
+
 ensure_schema()

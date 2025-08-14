@@ -38,7 +38,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale  
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -1957,5 +1957,50 @@ def objects_rename(object_id):
 def objects_delete(object_id):
     delete_object(object_id)
     return redirect(url_for("objects_page", **request.args.to_dict(flat=True)))
+
+@app.route("/objects/<int:object_id>/sell", methods=["POST"])
+@login_required  # retire-le si tu ne protèges pas cette page
+def objects_sell(object_id: int):
+    """
+    Enregistre une vente / un don pour l'objet `object_id`.
+    - sold_price : float >= 0 (0 = don)
+    - sold_date  : YYYY-MM-DD (défaut = aujourd’hui si vide)
+    - sold_comment : str optionnelle
+    """
+    # Récupération & normalisation des champs
+    raw_price = (request.form.get("sold_price") or "").strip()
+    raw_date  = (request.form.get("sold_date") or "").strip()
+    comment   = (request.form.get("sold_comment") or "").strip() or None
+
+    # Prix : vide => 0 (don), sinon parse float
+    try:
+        price = 0.0 if raw_price == "" else float(raw_price)
+    except ValueError:
+        flash("Prix invalide. Utilisez un nombre (0 pour un don).", "danger")
+        return redirect(request.referrer or url_for("objects"))
+
+    if price < 0:
+        flash("Le prix ne peut pas être négatif.", "danger")
+        return redirect(request.referrer or url_for("objects"))
+
+    # Date : défaut = aujourd'hui (ISO)
+    sold_date = raw_date or date.today().isoformat()
+
+    # Appel logique métier (DB) — reste dans objects.py
+    try:
+        update_object_sale(
+            object_id=object_id,
+            sold_price=price,
+            sold_date=sold_date,
+            comment=comment,
+        )
+    # optionnel : attrape tes erreurs applicatives si tu en as (ex. ApplicationError)
+    except Exception as e:
+        # log si tu as un logger; sinon message utilisateur
+        flash(f"Échec d'enregistrement de la vente : {e}", "danger")
+        return redirect(request.referrer or url_for("objects"))
+
+    flash("Vente / don enregistré.", "success")
+    return redirect(request.referrer or url_for("objects"))
 
 app.register_blueprint(auth_bp)

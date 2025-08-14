@@ -44,25 +44,26 @@
       </div>
 
       <div class="d-flex align-items-center gap-2">
-        <!-- Chip coût total -->
-        <span class="badge rounded-pill text-bg-light border">
-          💸 {{ "%.2f"|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
-        </span>
+  <!-- Chip coût total (toujours affichée) -->
+  <span class="badge rounded-pill text-bg-secondary">
+    💸 {{ "%.2f"|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
+  </span>
 
-        {% if o.sold_price is not none %}
-          <!-- Chip prix de vente -->
-          <span class="badge rounded-pill text-bg-light border">
-            💰 {{ "%.2f"|format(o.sold_price) }} {{ currencysymbol or '€' }}
-          </span>
-          {% set _total = (o.cost_total or 0) %}
-          {% set _margin = (o.margin if o.margin is not none else (o.sold_price - _total)) %}
-          {% set _pos = _margin >= 0 %}
-          <!-- Chip marge (couleur selon signe) -->
-          <span class="badge rounded-pill {{ 'text-bg-success' if _pos else 'text-bg-danger' }}">
-            {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol or '€' }}
-          </span>
-        {% endif %}
-      </div>
+  {% if o.sold_price is not none %}
+    <!-- Chip prix de vente -->
+    <span class="badge rounded-pill text-bg-primary">
+      💰 {{ "%.2f"|format(o.sold_price) }} {{ currencysymbol or '€' }}
+    </span>
+
+    {% set _total = (o.cost_total or 0) %}
+    {% set _margin = (o.margin if o.margin is not none else (o.sold_price - _total)) %}
+    {% set _pos = _margin >= 0 %}
+    <!-- Chip marge (couleur selon signe) -->
+    <span class="badge rounded-pill {{ 'text-bg-success' if _pos else 'text-bg-danger' }}">
+      {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol or '€' }}
+    </span>
+  {% endif %}
+</div>
     </div>
 
     <div id="{{ collapse_id }}" class="collapse" aria-labelledby="heading_{{ o.id }}" data-bs-parent="#objectsAccordion">
@@ -77,6 +78,11 @@
         📝 Renommer
       </a>
     </li>
+	<li>
+  <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sellModal_{{ o.id }}">
+    💳 Vente / don
+  </a>
+</li>
 	{% if o.parent_type == 'print' %}
   <li>
     <a class="dropdown-item" href="{{ url_for('print_history') }}?ref_print_id={{ o.parent_id }}&focus_print_id={{ o.parent_id }}">
@@ -169,6 +175,44 @@
     </form>
   </div>
 </div>
+<div class="modal fade" id="sellModal_{{ o.id }}" tabindex="-1" aria-labelledby="sellLabel_{{ o.id }}">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('objects_sell', object_id=o.id) }}">
+      {{ macros.render_filtered_args(args) }}
+      <div class="modal-header">
+        <h5 class="modal-title" id="sellLabel_{{ o.id }}">Vente / don</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Prix de vente</label>
+          <div class="input-group">
+            <input type="number" name="sold_price" class="form-control" min="0" step="0.01"
+                   value="{{ o.sold_price if o.sold_price is not none else '' }}"
+                   placeholder="0.00">
+            <span class="input-group-text">{{ currencysymbol or '€' }}</span>
+          </div>
+          <div class="form-text">Mettre <strong>0</strong> pour un don / cadeau.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Date de vente</label>
+          <input type="date" name="sold_date" class="form-control" value="{{ o.sold_date or '' }}">
+          <div class="form-text">Par défaut : aujourd’hui.</div>
+        </div>
+
+        <div class="mb-0">
+          <label class="form-label">Commentaire (optionnel)</label>
+          <textarea name="sold_comment" class="form-control" rows="3" placeholder="Détails de la vente / du don…"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
   {% endfor %}
 </div>
 
@@ -249,6 +293,15 @@
 
 {% block scripts %}
 <script>
+ document.addEventListener('shown.bs.modal', function (e) {
+    const modal = e.target;
+    if (!modal.id || !modal.id.startsWith('sellModal_')) return;
+    const input = modal.querySelector('input[name="sold_date"]');
+    if (input && !input.value) {
+      const today = new Date().toISOString().slice(0, 10);
+      input.value = today;
+    }
+  });
   // Smooth scroll quand on ouvre un item, même logique que tes autres pages
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".card-header[data-bs-toggle='collapse']").forEach(header => {
@@ -327,5 +380,6 @@
       if (confirm('Supprimer "' + name + '" ?')) doSubmit();
     }
   });
+  
 </script>
 {% endblock %}
