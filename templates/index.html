@@ -3,7 +3,20 @@
 {% block content %}
 {% if printer_status %}
 <style>
-  .nowrap { white-space: nowrap; } /* empêche les coupures dans chaque bloc */
+  /* Le conteneur des valeurs buse devient un inline-flex qui peut retourner à la ligne
+     uniquement entre ses items (G et D). */
+  #status-nozzle {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: .25rem;               /* petit espacement entre G et D */
+    align-items: baseline;
+  }
+  /* Empêche la casse à l'intérieur de chaque groupe "valeur/target" */
+  .nowrap { white-space: nowrap; }
+
+  /* Ajoute le séparateur " |" à la fin du bloc de gauche.
+     Ainsi, si ça coupe, le pipe termine la première ligne (et jamais au début de la suivante). */
+  .with-sep::after { content: " |"; padding: 0 .25rem; }
 </style>
 <div x-data="{ open: false }"
      class="mb-4 rounded-xl overflow-hidden shadow-md"
@@ -395,22 +408,25 @@ statusTextEl.innerText = status;
         document.getElementById('status-layers').innerText = data.print_layer && data.total_layers ? `${data.print_layer}/${data.total_layers}` : '';
 
          // 🔥 Buse(s)
-        const leftStr  = fmt(data.nozzle_left_temp,  data.target_nozzle_left_temp);
-        const rightStr = fmt(data.nozzle_right_temp, data.target_nozzle_right_temp);
-        const monoStr  = fmt(data.nozzle_temp,       data.target_nozzle_temp);
+const leftStr  = fmt(data.nozzle_left_temp,  data.target_nozzle_left_temp);
+const rightStr = fmt(data.nozzle_right_temp, data.target_nozzle_right_temp);
+const monoStr  = fmt(data.nozzle_temp,       data.target_nozzle_temp);
 
-        const nozzleEl = document.getElementById('status-nozzle');
-        if ((leftStr !== '—') || (rightStr !== '—')) {
+const nozzleEl = document.getElementById('status-nozzle');
+if ((leftStr !== '—') || (rightStr !== '—')) {
   if (leftStr !== '—' && rightStr !== '—') {
-    // autorise la coupure UNIQUEMENT entre gauche et droite
-    nozzleEl.innerHTML =`<span class="nowrap">G: ${leftStr}</span><wbr><span class="nowrap"> | D: ${rightStr}</span>`;
+    // Double extrudeur : le séparateur " |" est rattaché au bloc gauche
+    nozzleEl.innerHTML =
+      `<span class="nowrap with-sep">G: ${leftStr}</span>` +
+      `<span class="nowrap">D: ${rightStr}</span>`;
   } else if (leftStr !== '—') {
     nozzleEl.innerHTML = `<span class="nowrap">G: ${leftStr}</span>`;
   } else {
     nozzleEl.innerHTML = `<span class="nowrap">D: ${rightStr}</span>`;
   }
 } else {
-  nozzleEl.textContent = monoStr; // mono-buse inchangé
+  // Mono
+  nozzleEl.textContent = monoStr;
 }
 
         // 🛏️ Bed
