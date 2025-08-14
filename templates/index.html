@@ -393,7 +393,7 @@ if (trayGraphic) {
 
   document.addEventListener('DOMContentLoaded', () => {
 // Formateur HTML: "123°C" + cible en exposant petit "/200"
-const fmtTemp = (cur, tgt) => {
+const fmtSup = (cur, tgt) => {
   const hasCur = cur !== undefined && cur !== null;
   const hasTgt = tgt !== undefined && tgt !== null;
   if (!hasCur && !hasTgt) return '—';
@@ -480,8 +480,8 @@ if ((leftCur ?? null) !== null || (rightCur ?? null) !== null) {
   nozzleEl.innerHTML = `<div class="whitespace-nowrap">${fmtSup(monoCur, monoTgt)}</div>`;
 }
 
-document.getElementById('status-bed').innerHTML     = fmtTemp(data.bed_temp,     data.target_bed_temp);
-document.getElementById('status-chamber').innerHTML = fmtTemp(data.chamber_temp, data.target_chamber_temp);
+document.getElementById('status-bed').innerHTML     = fmtSup(data.bed_temp,     data.target_bed_temp);
+document.getElementById('status-chamber').innerHTML = fmtSup(data.chamber_temp, data.target_chamber_temp);
 
         const nameEl = document.getElementById('status-print-name');
 if (nameEl) {
