@@ -338,6 +338,7 @@ def color_distance(hex1: str, hex2: str) -> float:
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(lab1, lab2)))
 
 def safe_update_status(data):
+    logging.debug(str(data))
     fields = {
         "status": data.get("gcode_state"),
         "progress": data.get("mc_percent"),
