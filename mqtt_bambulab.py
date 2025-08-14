@@ -338,6 +338,7 @@ def color_distance(hex1: str, hex2: str) -> float:
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(lab1, lab2)))
 
 def safe_update_status(data):
+    # ---------- Utils ----------
     def _to_int(val):
         try:
             return int(val)
@@ -356,6 +357,11 @@ def safe_update_status(data):
         target = (v >> 16) & 0xFFFF
         return current, target
 
+    # ---------- Mapping buse ↔ côté physique (H2) ----------
+    LEFT_NOZZLE_ID  = 1  # gauche
+    RIGHT_NOZZLE_ID = 0  # droite
+
+    # ---------- Champs de base ----------
     fields = {
         "status": data.get("gcode_state"),
         "progress": data.get("mc_percent"),
@@ -367,10 +373,8 @@ def safe_update_status(data):
         "tray_now": data.get("ams", {}).get("tray_now"),
     }
 
-    # ----- BED TEMP (nouveau firmware: device.bed.info.temp combiné) -----
-    bed_temp_raw = (
-        data.get("device", {}).get("bed", {}).get("info", {}).get("temp", None)
-    )
+    # ---------- BED TEMP (nouveaux firmwares: device.bed.info.temp 32 bits) ----------
+    bed_temp_raw = data.get("device", {}).get("bed", {}).get("info", {}).get("temp")
     if bed_temp_raw is not None:
         bed_cur, bed_tgt = _split_low_high(bed_temp_raw)
         if bed_cur is not None:
@@ -378,7 +382,6 @@ def safe_update_status(data):
         if bed_tgt is not None:
             fields["target_bed_temp"] = bed_tgt
     else:
-        # Rétro-compat
         bt = _to_int(data.get("bed_temper"))
         btt = _to_int(data.get("bed_target_temper"))
         if bt is not None:
@@ -386,12 +389,9 @@ def safe_update_status(data):
         if btt is not None:
             fields["target_bed_temp"] = btt
 
-    # ----- CHAMBER TEMP (nouveau firmware: device.ctc.info.temp) -----
-    chamber_temp_raw = (
-        data.get("device", {}).get("ctc", {}).get("info", {}).get("temp", None)
-    )
+    # ---------- CHAMBER TEMP (expose la target si présente) ----------
+    chamber_temp_raw = data.get("device", {}).get("ctc", {}).get("info", {}).get("temp")
     if chamber_temp_raw is not None:
-        # Certains firmwares ne mettent pas de cible chambre; si le high word est non nul on l’expose.
         c_cur, c_tgt = _split_low_high(chamber_temp_raw)
         if c_cur is not None:
             fields["chamber_temp"] = c_cur
@@ -401,44 +401,39 @@ def safe_update_status(data):
         ct = _to_int(data.get("chamber_temper"))
         if ct is not None:
             fields["chamber_temp"] = ct
-        # On expose aussi l’ancienne cible si un firmware la fournit
         ctt = _to_int(data.get("chamber_target_temper"))
-        if ctt is not None:
+        if ctt not in (None, 0):
             fields["target_chamber_temp"] = ctt
 
-    # ----- EXTRUDER / NOZZLES -----
-    # État extrudeur pour compter les buses et identifier l’active.
+    # ---------- EXTRUDER / NOZZLES ----------
     # state: bits 0..3 = nb d’extrudeurs ; bits 4..7 = index actif
     extruder_state = (
-        data.get("device", {}).get("extruder", {}).get("state", None)
+        data.get("device", {}).get("extruder", {}).get("state")
         if isinstance(data.get("device", {}).get("extruder", {}), dict)
         else None
     )
     if extruder_state is None:
         extruder_state = data.get("extruder", {}).get("state")
-    nozzle_count = (extruder_state & 0xF) if extruder_state is not None else None
+
     active_nozzle_index = ((extruder_state >> 4) & 0xF) if extruder_state is not None else 0
     fields["active_nozzle"] = active_nozzle_index
 
-    # Nouveau firmware (dual) : device.extruder.info = liste d’objets {id, temp}
+    # Nouveaux firmwares (dual) : liste d’objets {id, temp} sous device.extruder.info
     dev_extr_info = data.get("device", {}).get("extruder", {}).get("info")
     parsed_nozzles = False
 
     if isinstance(dev_extr_info, list) and dev_extr_info:
-        # On récolte id 0 et 1 si présents
-        left_cur = left_tgt = right_cur = right_tgt = None
+        by_id = {}
         for entry in dev_extr_info:
-            if not isinstance(entry, dict):
-                continue
-            nid = entry.get("id")
-            t = entry.get("temp")
-            cur, tgt = _split_low_high(t)
-            if nid == 0:
-                left_cur, left_tgt = cur, tgt
-            elif nid == 1:
-                right_cur, right_tgt = cur, tgt
+            if isinstance(entry, dict):
+                nid = _to_int(entry.get("id"))
+                if nid is not None:
+                    cur, tgt = _split_low_high(entry.get("temp"))
+                    by_id[nid] = (cur, tgt)
 
-        # On pose les champs si on a des données
+        left_cur,  left_tgt  = by_id.get(LEFT_NOZZLE_ID,  (None, None))
+        right_cur, right_tgt = by_id.get(RIGHT_NOZZLE_ID, (None, None))
+
         if left_cur is not None:
             fields["nozzle_left_temp"] = left_cur
         if left_tgt is not None:
@@ -448,10 +443,11 @@ def safe_update_status(data):
         if right_tgt is not None:
             fields["target_nozzle_right_temp"] = right_tgt
 
-        # Pour compat: nozzle_temp/target_nozzle_temp = buse active si dispo, sinon priorité gauche
-        active_cur = None
-        active_tgt = None
-        if active_nozzle_index == 1 and right_cur is not None:
+        # Compat: nozzle_temp/target_nozzle_temp = buse active (fallback: gauche puis droite)
+        active_cur = active_tgt = None
+        if active_nozzle_index == LEFT_NOZZLE_ID and left_cur is not None:
+            active_cur, active_tgt = left_cur, left_tgt
+        elif active_nozzle_index == RIGHT_NOZZLE_ID and right_cur is not None:
             active_cur, active_tgt = right_cur, right_tgt
         elif left_cur is not None:
             active_cur, active_tgt = left_cur, left_tgt
@@ -465,7 +461,7 @@ def safe_update_status(data):
 
         parsed_nozzles = True
 
-    # Cas mono-buse (nouveaux firmwares): extruder.info.temp ailleurs (top-level)
+    # Cas mono-buse (nouveaux firmwares top-level)
     if not parsed_nozzles:
         top_extr_info = data.get("extruder", {}).get("info", {})
         if isinstance(top_extr_info, dict) and "temp" in top_extr_info:
@@ -485,10 +481,9 @@ def safe_update_status(data):
         if ntt is not None:
             fields["target_nozzle_temp"] = ntt
 
-    # ----- AMS / TRAY MAPPING (inchangé sauf robustesse conversions) -----
-    tray_now_raw = data.get("ams", {}).get("tray_now")
+    # ---------- AMS / TRAY MAPPING ----------
     try:
-        tray_now = int(tray_now_raw)
+        tray_now = int(data.get("ams", {}).get("tray_now"))
     except (TypeError, ValueError):
         tray_now = None
 
@@ -496,11 +491,8 @@ def safe_update_status(data):
     fields["tray_local_id"] = None
     fields["tray_ams_id"] = None
 
-    # Mapping logique AMS ↔ extrudeur (ajustez selon votre machine si besoin)
-    ams_extruder_map = {
-        0: 0,  # AMS 0 → extrudeur gauche
-        1: 1   # AMS 1 → extrudeur droit
-    }
+    # Map AMS -> extrudeur (aligne avec LEFT/RIGHT_* ci-dessus)
+    ams_extruder_map = {0: LEFT_NOZZLE_ID, 1: RIGHT_NOZZLE_ID}
 
     if tray_now is not None and isinstance(ams_list, list) and tray_now != 255:
         candidate_trays = []
@@ -509,50 +501,43 @@ def safe_update_status(data):
                 ams_id = int(ams.get("id"))
             except (TypeError, ValueError):
                 continue
-            trays = ams.get("tray", [])
-            for tray in trays:
+            for tray in ams.get("tray", []):
                 try:
                     tray_id = int(tray.get("id"))
                 except (TypeError, ValueError):
                     continue
                 if tray_id == tray_now:
                     candidate_trays.append((ams_id, tray_id))
-        # Un seul AMS → pas de conflit
+
         if len(ams_list) == 1 and candidate_trays:
             fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
-        # Plusieurs AMS → choisir celui de l’extrudeur actif
         elif len(ams_list) > 1:
             for ams_id, tray_id in candidate_trays:
                 if ams_extruder_map.get(ams_id) == active_nozzle_index:
                     fields["tray_ams_id"] = ams_id
                     fields["tray_local_id"] = tray_id
                     break
-        # Fallback : premier match
         if fields["tray_ams_id"] is None and candidate_trays:
             fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
+
     elif tray_now is not None and isinstance(ams_list, list) and tray_now == 255:
-        # External spool / pas d’AMS
+        # Bobine externe
         fields["tray_ams_id"] = 255
         fields["tray_local_id"] = 0
 
-    # ----- Temps restant / ETA -----
+    # ---------- Temps restant / ETA ----------
     remaining = fields.get("remaining_time")
     if isinstance(remaining, (int, float)):
         if remaining > 0:
             estimated_end = datetime.now() + timedelta(minutes=remaining)
             fields["estimated_end"] = estimated_end.strftime("%H:%M")
-
         hours = int(remaining // 60)
         minutes = int(remaining % 60)
-        if hours > 0:
-            fields["remaining_time_str"] = f"{hours}h {minutes:02d}min"
-        else:
-            fields["remaining_time_str"] = f"{minutes}min"
+        fields["remaining_time_str"] = f"{hours}h {minutes:02d}min" if hours > 0 else f"{minutes}min"
 
-    # ----- Détection fin/échec (antirebond) -----
+    # ---------- Détection fin/échec (antirebond) ----------
     job_id = data.get("job_id")
     status = (fields.get("status") or "").upper()
-
     if job_id and status in {"FINISH", "FAILED"}:
         now = time.time()
         if job_id not in PROCESSED_JOBS:
@@ -569,7 +554,7 @@ def safe_update_status(data):
                 else:
                     PENDING_JOBS[job_id] = (status, now)
 
-    # N’envoie que les champs renseignés
+    # ---------- Publication ----------
     update_status({k: v for k, v in fields.items() if v is not None})
 
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970

@@ -2,6 +2,9 @@
 
 {% block content %}
 {% if printer_status %}
+<style>
+  .nowrap { white-space: nowrap; } /* empêche les coupures dans chaque bloc */
+</style>
 <div x-data="{ open: false }"
      class="mb-4 rounded-xl overflow-hidden shadow-md"
      style="
@@ -398,12 +401,17 @@ statusTextEl.innerText = status;
 
         const nozzleEl = document.getElementById('status-nozzle');
         if ((leftStr !== '—') || (rightStr !== '—')) {
-          // Double extrudeur : affiche les deux (ne répète pas “D” si pas de droite)
-          nozzleEl.innerText = `G: ${leftStr}${rightStr !== '—' ? ` | D: ${rightStr}` : ''}`;
-        } else {
-          // Mono
-          nozzleEl.innerText = monoStr;
-        }
+  if (leftStr !== '—' && rightStr !== '—') {
+    // autorise la coupure UNIQUEMENT entre gauche et droite
+    nozzleEl.innerHTML =`<span class="nowrap">G: ${leftStr}</span><wbr><span class="nowrap"> | D: ${rightStr}</span>`;
+  } else if (leftStr !== '—') {
+    nozzleEl.innerHTML = `<span class="nowrap">G: ${leftStr}</span>`;
+  } else {
+    nozzleEl.innerHTML = `<span class="nowrap">D: ${rightStr}</span>`;
+  }
+} else {
+  nozzleEl.textContent = monoStr; // mono-buse inchangé
+}
 
         // 🛏️ Bed
         document.getElementById('status-bed').innerText =
