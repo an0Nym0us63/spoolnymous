@@ -350,7 +350,7 @@ def create_object(
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            parent_type, int(parent_id), name.strip(),translated_name.strip()
+            parent_type, int(parent_id), name.strip(),translated_name.strip(),
             float(cost_fabrication or 0), float(cost_accessory or 0), cost_total,
             1 if available else 0,
             float(sold_price) if sold_price is not None else None,
