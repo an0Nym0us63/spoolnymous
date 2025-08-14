@@ -95,7 +95,7 @@
   <!-- Contenu déplié -->
   <div x-show="open" x-transition class="border-t border-gray-700 p-4 text-sm text-light space-y-4" style="background: transparent;">
     <!-- Infos grille -->
-	<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+	<div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
 
   {# 🔥 Buse(s) : valeur/target et double tête #}
   <div>
@@ -153,7 +153,7 @@
   >
     <span class="me-1">📄</span>
     <span id="status-print-name">
-      {{ printer_status.print_name or printer_status.print_file or 'N/A' }}
+      {{ printer_status.printName or printer_status.print_name or 'N/A' }}
     </span>
   </span>
 </div>
@@ -432,7 +432,7 @@ if ((leftStr !== '—') || (rightStr !== '—')) {
   if (leftStr !== '—' && rightStr !== '—') {
     // Double extrudeur : le séparateur " |" est rattaché au bloc gauche
     nozzleEl.innerHTML =
-      `<span class="nowrap with-sep">G: ${leftStr}</span>` +
+      `<span class="nowrap">G: ${leftStr}</span>` +
       `<span class="nowrap">D: ${rightStr}</span>`;
   } else if (leftStr !== '—') {
     nozzleEl.innerHTML = `<span class="nowrap">G: ${leftStr}</span>`;
@@ -454,7 +454,7 @@ if ((leftStr !== '—') || (rightStr !== '—')) {
 
         const nameEl = document.getElementById('status-print-name');
 if (nameEl) {
-  const nameVal = (data.print_name ?? data.printName ?? data.print_file ?? '').toString();
+  const nameVal = (data.printName ?? data.print_name ?? data.print_file ?? '').toString();
   if (nameVal) nameEl.textContent = nameVal;
 }
 
