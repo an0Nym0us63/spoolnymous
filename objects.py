@@ -246,7 +246,7 @@ def _snapshot_from_print(print_id: int) -> SourceSnapshot:
     tags = [r[0] for r in cur.fetchall()]
     conn.close()
 
-    return SourceSnapshot(row["name"], max(1, units), full_unit, thumb, tags, created_at)
+    return SourceSnapshot(row["name"],row["translated_name"], max(1, units), full_unit, thumb, tags, created_at)
 
 def _snapshot_from_group(group_id: int) -> SourceSnapshot:
     conn = _connect(); cur = conn.cursor()
