@@ -51,33 +51,37 @@
   </div>
 </div>
     <!-- Colonne droite : miniature -->
-    <div class="text-end">
-      {% if print.image_file %}
-      <div style="position: relative; display: inline-block;">
-        <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
-             alt="Print Image" style="width:50px; height:auto;filter: brightness(1.3) contrast(1.1);" class="rounded shadow-sm">
+<div class="text-end">
+  <div class="thumb-wrap">
+    <div class="thumb-matte">
+      <div class="thumb-box">
+        {% if print.image_file %}
+          <img
+            src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
+            alt="Print Image" class="thumb-img">
+        {% else %}
+          <div class="thumb-ph" title="Aucune image"></div>
+        {% endif %}
 
         {% if print.number_of_items > 1 %}
-        <span class="badge bg-info rounded-pill"
-              style="position: absolute; top: 4px; right: 0px; font-size: 0.6rem; padding: 0.15em 0.4em;">
-          {{ print.number_of_items }}
-        </span>
+          <span class="badge bg-info rounded-pill thumb-badge-items">
+            {{ print.number_of_items }}
+          </span>
         {% endif %}
-		{% set used  = (print.used_units or 0)|int %}
-{% set total = (print.number_of_items or 1)|int %}
 
-{% if total > 1 and used > 0 %}
-  <span class="badge {% if used >= total %}text-bg-danger{% else %}text-bg-warning{% endif %} rounded-pill"
-        style="position: absolute; bottom: 4px; right: 0; font-size: 0.5rem; padding: 0.15em 0.4em;"
-        title="{{ used }} utilisé(s) / {{ total }}">
-    {{ used }}
-  </span>
-{% endif %}
+        {% set used  = (print.used_units or 0)|int %}
+        {% set total = (print.number_of_items or 1)|int %}
+        {% if total > 1 and used > 0 %}
+          <span class="badge {{ 'text-bg-danger' if used >= total else 'text-bg-warning' }} rounded-pill
+                       thumb-badge-used"
+                title="{{ used }} utilisé(s) / {{ total }}">
+            {{ used }}
+          </span>
+        {% endif %}
       </div>
-      {% else %}
-        <span class="text-muted">—</span>
-      {% endif %}
     </div>
+  </div>
+</div>
   </div>
 
   <div id="details_{{ print.id }}" class="collapse {% if focus_print_id == print.id|int %}show{% endif %}"
