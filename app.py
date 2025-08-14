@@ -618,7 +618,7 @@ def camera_snapshot():
         return _svg_fallback("IP et/ou code d'accès manquants.")
 
     # Essaye /1 puis /0 (certains firmwares n'exposent qu'un seul track)
-    url= [
+    urls= [
         f"rtsps://bblp:{code}@{ip}:322/streaming/live/1"
     ]
     return _serve_snapshot(urls)
