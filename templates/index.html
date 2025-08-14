@@ -398,7 +398,7 @@ const fmtSup = (cur, tgt, unit) => {
   const hasTgt = tgt !== undefined && tgt !== null;
   if (!hasCur && !hasTgt) return '—';
   let html = hasCur ? `<span class="value">${cur}</span><span class="unit">${unit}</span>` : '—';
-  if (hasTgt) html += `<️span class="tgt">➡️${tgt}${unit}</span>`;
+  if (hasTgt) html += `<span class="tgt">➡️${tgt}${unit}</span>`;
   return html;
 };
 
