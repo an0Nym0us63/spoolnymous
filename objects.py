@@ -303,7 +303,7 @@ def _snapshot_from_group(group_id: int) -> SourceSnapshot:
     tags = [r[0] for r in cur.fetchall()]
 
     conn.close()
-    return SourceSnapshot(row["name"], max(1, units), full_unit, thumb, tags, created_at)
+    return SourceSnapshot(row["name"],row["name"], max(1, units), full_unit, thumb, tags, created_at)
 
 def snapshot_source(source_type: SourceType, source_id: int) -> SourceSnapshot:
     if source_type == "print":
