@@ -3,26 +3,61 @@
 
 {% block content %}
 <style>
-  /* Cadre de vignette pour mieux ressortir les images sombres */
-  .thumb-wrap{
-    padding:2px; border-radius:.6rem; flex-shrink:0;
-    background: var(--bs-body-bg);
-    /* double anneau discret qui marche en clair/sombre */
-    box-shadow:
-      0 0 0 1px rgba(0,0,0,.08),
-      0 0 0 3px rgba(255,255,255,.55);
+	  /* Header responsive & propre */
+  .obj-hdr{cursor:pointer;user-select:none}
+  .obj-thumb{width:56px;height:56px;object-fit:cover;border-radius:.5rem;flex-shrink:0}
+  .obj-main{min-width:0;flex:1 1 auto}             /* autorise le wrap */
+  .title-badge{
+    display:inline-block;max-width:100%;
+    white-space:normal;line-height:1.15;
+    border:1px solid var(--bs-border-color);
+    background:var(--bs-secondary-bg);
+    color:var(--bs-body-color);
+    padding:.25rem .5rem;border-radius:999px;font-weight:600;
   }
+  .chips{display:flex;flex-wrap:wrap;gap:.25rem;justify-content:flex-end}
+  .chips .badge{font-weight:500}
+  .obj-status i{font-size:1.25rem}
+  /* Passe-partout gradient autour des vignettes */
+  .thumb-wrap{
+    padding:4px;                 /* épaisseur du passe-partout */
+    border-radius:.7rem;
+    /* dégradé doux basé sur les couleurs Bootstrap */
+    background: linear-gradient(
+      135deg,
+      rgba(var(--bs-primary-rgb), .35),
+      rgba(var(--bs-success-rgb), .35)
+    );
+    flex-shrink:0;
+  }
+  /* Pour dark: un peu moins saturé */
   @media (prefers-color-scheme: dark){
     .thumb-wrap{
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,.18),
-        0 0 0 3px rgba(255,255,255,.08);
+      background: linear-gradient(
+        135deg,
+        rgba(var(--bs-primary-rgb), .25),
+        rgba(var(--bs-success-rgb), .25)
+      );
     }
   }
-  .thumb-img{ width:56px; height:56px; object-fit:cover; border-radius:.5rem; display:block;
+  /* “Passe-partout” interne pour que l'image ne touche pas le gradient */
+  .thumb-matte{
+    background: var(--bs-body-bg);
+    border-radius:.6rem;
+    padding:2px;
+  }
+  /* Image : lisible même si sombre */
+  .thumb-img{
+    width:56px; height:56px; aspect-ratio:1/1;
+    object-fit:cover; border-radius:.5rem; display:block;
     filter: brightness(1.06) contrast(1.04) saturate(1.02);
   }
-  .thumb-ph{ width:56px; height:56px; border-radius:.5rem; opacity:.25; background:#6c757d; }
+  /* Placeholder si pas d’image */
+  .thumb-ph{
+    width:56px; height:56px; aspect-ratio:1/1;
+    border-radius:.5rem; opacity:.24;
+    background: repeating-linear-gradient(45deg,#6c757d22 0 8px,#6c757d33 8px 16px);
+  }
 </style>
 <!-- Boutons flottants (identiques au reste) -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
@@ -52,11 +87,13 @@
   <!-- Gauche : thumbnail -->
  <div class="d-flex align-items-center gap-2 flex-shrink-0">
   <div class="thumb-wrap">
-    {% if o.thumbnail %}
-      <img src="{{ o.thumbnail }}" alt="" class="thumb-img">
-    {% else %}
-      <div class="thumb-ph"></div>
-    {% endif %}
+    <div class="thumb-matte">
+      {% if o.thumbnail %}
+        <img src="{{ o.thumbnail }}" alt="" class="thumb-img">
+      {% else %}
+        <div class="thumb-ph"></div>
+      {% endif %}
+    </div>
   </div>
 </div>
 
