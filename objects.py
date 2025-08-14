@@ -37,6 +37,7 @@ def ensure_schema() -> None:
             parent_type      TEXT    NOT NULL CHECK (parent_type IN ('print','group')),
             parent_id        INTEGER NOT NULL,
             name             TEXT    NOT NULL,
+            translated_name  TEXT    NOT NULL,
             cost_fabrication REAL    NOT NULL DEFAULT 0,   -- coût de fabrication (main d'œuvre/élec agrégé selon ton calcul)
             cost_accessory   REAL    NOT NULL DEFAULT 0,   -- coût des accessoires
             cost_total       REAL    NOT NULL DEFAULT 0,   -- coût total = fabrication + accessoires
@@ -52,6 +53,8 @@ def ensure_schema() -> None:
     cols = {r[1] for r in cur.fetchall()}
     if "thumbnail" not in cols:
         cur.execute("ALTER TABLE objects ADD COLUMN thumbnail TEXT")
+    if "translated_name" not in cols:
+        cur.execute("ALTER TABLE objects ADD COLUMN translated_name TEXT")
     if "margin" not in cols:
         cur.execute("ALTER TABLE objects ADD COLUMN margin REAL")
         # backfill initial : calcule la marge existante si sold_price défini
@@ -196,6 +199,7 @@ SourceType = Literal["print", "group"]
 
 class SourceSnapshot(NamedTuple):
     name: str
+    translated_name: str
     number_of_items: int
     full_cost_unit: float
     thumbnail: str | None
@@ -219,6 +223,7 @@ def _snapshot_from_print(print_id: int) -> SourceSnapshot:
             id,
             COALESCE(file_name, 'Print #' || id) AS name,
             COALESCE(number_of_items, 1)        AS number_of_items,
+            translated_name,
             full_cost_by_item,
             full_cost,
             image_file,
@@ -316,6 +321,7 @@ def create_object(
     parent_type: str,
     parent_id: int,
     name: str,
+    translated_name: str,
     cost_fabrication: float = 0.0,
     cost_accessory: float = 0.0,
     available: bool = True,
@@ -337,14 +343,14 @@ def create_object(
     cur.execute(
         """
         INSERT INTO objects (
-            parent_type, parent_id, name,
+            parent_type, parent_id, name,translated_name
             cost_fabrication, cost_accessory, cost_total,
             available, sold_price, sold_date, comment
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            parent_type, int(parent_id), name.strip(),
+            parent_type, int(parent_id), name.strip(),translated_name.strip()
             float(cost_fabrication or 0), float(cost_accessory or 0), cost_total,
             1 if available else 0,
             float(sold_price) if sold_price is not None else None,
@@ -491,13 +497,13 @@ def create_objects_from_source(source_type: SourceType, source_id: int, qty: int
                 cur.execute(
                     """
                     INSERT INTO objects (
-                        parent_type, parent_id, name, thumbnail,
+                        parent_type, parent_id, name,translated_name, thumbnail,
                         cost_fabrication, cost_accessory, cost_total,
                         available, sold_price, sold_date, comment
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, NULL, NULL, NULL)
+                    VALUES (?, ?, ?, ?,?, ?, ?, ?, 1, NULL, NULL, NULL)
                     """,
-                    (source_type, source_id, snap.name, snap.thumbnail,
+                    (source_type, source_id, snap.name,snap.translated_name, snap.thumbnail,
                      cost_fab, cost_acc, cost_total)
                 )
                 new_ids.append(int(cur.lastrowid))
@@ -507,14 +513,14 @@ def create_objects_from_source(source_type: SourceType, source_id: int, qty: int
                 cur.execute(
                     """
                     INSERT INTO objects (
-                        parent_type, parent_id, name, thumbnail,
+                        parent_type, parent_id, name,translated_name, thumbnail,
                         cost_fabrication, cost_accessory, cost_total,
                         available, sold_price, sold_date, comment,
                         created_at, updated_at
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 1, NULL, NULL, NULL, ?, ?)
+                    VALUES (?, ?, ?, ?, ?,?, ?, ?, 1, NULL, NULL, NULL, ?, ?)
                     """,
-                    (source_type, source_id, snap.name, snap.thumbnail,
+                    (source_type, source_id, snap.name,snap.translated_name, snap.thumbnail,
                      cost_fab, cost_acc, cost_total,
                      created_iso, created_iso)
                 )
@@ -674,7 +680,7 @@ def list_objects(filters: dict, page: int, per_page: int = 30) -> Tuple[List[Dic
     # page
     cur.execute(
         f"""
-        SELECT id, name, parent_type, parent_id, thumbnail,
+        SELECT id, name,translated_name, parent_type, parent_id, thumbnail,
             cost_fabrication, cost_accessory, cost_total,
             available, sold_price, sold_date, comment,
             created_at, updated_at,
