@@ -3,6 +3,9 @@ from typing import Optional, Dict, Any, List, Tuple, NamedTuple, Literal
 from datetime import datetime, timezone
 from collections.abc import Iterable
 
+from __future__ import annotations
+
+
 # On réutilise la config DB telle qu'elle existe déjà dans le projet
 from print_history import db_config
 
@@ -718,16 +721,6 @@ def delete_object(object_id: int) -> None:
     cur.execute("DELETE FROM objects WHERE id = ?", (int(object_id),))
     conn.commit()
     conn.close()
-
-from __future__ import annotations
-
-import sqlite3
-from typing import Optional
-
-# On réutilise le chemin DB centralisé
-from print_history import db_config
-_DB_PATH = db_config["db_path"]
-
 
 def update_object_sale(object_id: int, sold_price: float, sold_date: str, comment: Optional[str]) -> None:
     """
