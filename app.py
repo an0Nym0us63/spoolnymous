@@ -19,6 +19,7 @@ from flask import Response
 from itertools import count
 import subprocess
 import signal
+import random
 
 from flask_login import LoginManager, login_required
 from auth import auth_bp, User, get_stored_user
@@ -442,11 +443,22 @@ _root = logging.getLogger()
 
 if not any(isinstance(h, InMemoryLogHandler) for h in _root.handlers):
     _root.addHandler(InMemoryLogHandler())
-
-# --- cache court pour éviter de taper ffmpeg à gogo ---
+  
 _SNAP_LOCK = Lock()
-_SNAP = {"ts": 0.0, "data": None, "ok": False}
-_SNAP_TTL = 0.8  # seconde(s)
+_SNAP = {
+    "ts": 0.0,        # horodatage monotonic de la DERNIÈRE tentative (succès/échec)
+    "data": None,     # bytes JPEG du dernier succès
+    "ok": False,      # True si 'data' est valide et fraîche
+    "fail_count": 0,  # nb d'échecs consécutifs
+    "retry_at": 0.0,  # monotonic avant lequel on NE RETENTE PAS
+    "last_err": "",   # dernier message d'erreur
+}
+
+_SNAP_TTL_OK     = 0.8   # secondes : TTL en cas de succès (front ~1 Hz → ~1 capture/s)
+_FAIL_BASE       = 10.0  # secondes : premier palier de backoff en cas d'échec
+_FAIL_MAX        = 120.0 # plafond de backoff
+_FAIL_JITTER     = 0.20  # ±20% de jitter
+_FFMPEG_TIMEOUTS = 6.0   # cohérent avec _snapshot_once(...)
 
 def _svg_fallback(message: str) -> Response:
     svg = f"""<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 450'>
@@ -468,6 +480,85 @@ def _svg_fallback(message: str) -> Response:
     r.headers["X-Camera-Status"] = "error"
     return r
 
+def _next_backoff(fails: int) -> float:
+    """Calcule la pause avant le prochain essai après 'fails' échecs consécutifs."""
+    if fails <= 0:
+        base = _FAIL_BASE
+    else:
+        base = min(_FAIL_BASE * (2 ** (fails - 1)), _FAIL_MAX)
+    jitter = base * random.uniform(-_FAIL_JITTER, _FAIL_JITTER)
+    return max(1.0, base + jitter)
+
+def _serve_snapshot(urls) -> Response:
+    """
+    Tente de capturer une frame sur la première URL disponible.
+    - TTL succès : ressert l'image récente sans relancer ffmpeg.
+    - TTL échec  : impose un backoff progressif avant toute nouvelle tentative.
+    - Lock global: garantit au plus 1 ffmpeg à la fois (multi-threads).
+    """
+    now = time.monotonic()
+
+    with _SNAP_LOCK:
+        # 1) Cache succès encore frais → renvoyer l'image immédiatement.
+        if _SNAP["ok"] and _SNAP["data"] is not None and (now - _SNAP["ts"]) < _SNAP_TTL_OK:
+            r = Response(_SNAP["data"], mimetype="image/jpeg")
+            r.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
+            r.headers["X-Camera-Status"] = "ok"
+            r.headers["X-Snapshot-Age"] = f"{now - _SNAP['ts']:.3f}"
+            return r
+
+        # 2) En période de backoff après échec → ne pas retenter.
+        if (not _SNAP["ok"]) and now < _SNAP["retry_at"]:
+            remaining = _SNAP["retry_at"] - now
+            r = _svg_fallback(_SNAP["last_err"] or "Caméra indisponible — prochain essai différé")
+            r.headers["Retry-After"] = f"{int(remaining)}"
+            r.headers["X-Retry-After-Seconds"] = f"{remaining:.3f}"
+            r.headers["X-Camera-Status"] = "error"
+            return r
+
+        # 3) Autorisé à retenter maintenant → sérialiser ffmpeg (lock maintenu).
+        last_exc = None
+        for u in urls:
+            try:
+                jpg = _snapshot_once(u, timeout_s=_FFMPEG_TIMEOUTS)
+                # Succès: mémoriser état frais (timestamp post-capture).
+                now2 = time.monotonic()
+                _SNAP.update(ts=now2, data=jpg, ok=True, fail_count=0, retry_at=0.0, last_err="")
+                r = Response(jpg, mimetype="image/jpeg")
+                r.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
+                r.headers["X-Camera-Status"] = "ok"
+                r.headers["X-Snapshot-Age"] = "0.000"
+                return r
+
+            except subprocess.TimeoutExpired as e:
+                last_exc = e
+                logger.warning("snapshot camera timeout on %s: %s", u, e)
+
+            except subprocess.CalledProcessError as e:
+                stderr = (e.stderr.decode("utf-8", "ignore") if e.stderr else "").strip()
+                last_exc = RuntimeError(stderr or str(e))
+                logger.warning("snapshot camera ffmpeg error on %s: %s", u, stderr or e)
+
+            except Exception as e:
+                last_exc = e
+                logger.warning("snapshot camera fail on %s: %s", u, e)
+
+        # 4) Tous les essais ont échoué → activer backoff et renvoyer fallback.
+        now2 = time.monotonic()
+        _SNAP["ok"] = False
+        _SNAP["ts"] = now2
+        _SNAP["data"] = None
+        _SNAP["fail_count"] = _SNAP.get("fail_count", 0) + 1
+        _SNAP["last_err"] = (str(last_exc) if last_exc else "Erreur inconnue")[:200]
+        delay = _next_backoff(_SNAP["fail_count"])
+        _SNAP["retry_at"] = now2 + delay
+
+        r = _svg_fallback(f"{_SNAP['last_err']} — nouvel essai dans ~{int(delay)}s")
+        r.headers["Retry-After"] = f"{int(delay)}"
+        r.headers["X-Camera-Status"] = "error"
+        return r
+
+            
 def _snapshot_once(url: str, timeout_s: float = 6.0) -> bytes:
     cmd = [
         "ffmpeg",
@@ -518,7 +609,7 @@ def camera_mjpeg():
     except Exception:
         # Pas de flux/config -> 503 pour déclencher onerror du <img>
         return Response("camera unavailable", status=503)
-
+        
 @app.get("/camera/snapshot")
 def camera_snapshot():
     ip   = get_app_setting("PRINTER_IP", "")
@@ -526,34 +617,11 @@ def camera_snapshot():
     if not ip or not code:
         return _svg_fallback("IP et/ou code d'accès manquants.")
 
-    now = time.time()
-    with _SNAP_LOCK:
-        if _SNAP["data"] is not None and (now - _SNAP["ts"] < _SNAP_TTL):
-            r = Response(_SNAP["data"], mimetype=("image/jpeg" if _SNAP["ok"] else "image/svg+xml"))
-            r.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
-            r.headers["X-Camera-Status"] = "ok" if _SNAP["ok"] else "error"
-            return r
-
-    # Essaye /1 puis /0 (certains firmwares ne peuplent qu'un seul track)
+    # Essaye /1 puis /0 (certains firmwares n'exposent qu'un seul track)
     urls = [
-        f"rtsps://bblp:{code}@{ip}:322/streaming/live/1",
+        f"rtsps://bblp:{code}@{ip}:322/streaming/live/1"
     ]
-    for u in urls:
-        try:
-            data = _snapshot_once(u)
-            with _SNAP_LOCK:
-                _SNAP.update(ts=now, data=data, ok=True)
-            resp = Response(data, mimetype="image/jpeg")
-            resp.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
-            resp.headers["X-Camera-Status"] = "ok"
-            return resp
-        except Exception as e:
-            logger.warning("snapshot camera fail on %s: %s", u, e)
-
-    fb = _svg_fallback("Flux caméra injoignable pour le moment.")
-    with _SNAP_LOCK:
-        _SNAP.update(ts=now, data=fb.get_data(), ok=False)
-    return fb
+    return _serve_snapshot(url)
 
 @app.route("/logs")
 @login_required
