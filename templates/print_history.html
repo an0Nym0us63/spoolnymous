@@ -2,53 +2,81 @@
 
 {% block content %}
 <style>
-  :root{ --thumb-size: 48px; --thumb-r: 10px; --thumb-ring: 3px; }
+  /* Paramètres avec fallbacks */
+:root{
+  --thumb-size: 48px;
+  --thumb-r: 10px;
+  --thumb-ring: 4px;
+  /* Couleurs du dégradé (RGB) */
+  --thumb-grad-1: 59,130,246;  /* primary */
+  --thumb-grad-2: 16,185,129;  /* success */
+}
 
+/* Wrapper unique : ring gradient + matte interne grâce au background-clip */
 .thumb{
-  /* boîte unique = gradient ring + matte interne (truc du background-clip) */
   position: relative;
   display: inline-block;
-  border-radius: calc(var(--thumb-r) + var(--thumb-ring));
-  padding: var(--thumb-ring);                /* épaisseur du ring */
 
-  /* 2 backgrounds : 1) matte (padding-box), 2) gradient (border-box) */
+  /* épaisseur et arrondi du ring */
+  padding: var(--thumb-ring, 4px);
+  border-radius: calc(var(--thumb-r, 10px) + var(--thumb-ring, 4px));
+
+  /* 1) matte (padding-box)  2) ring gradient (border-box) */
   background:
     linear-gradient(var(--bs-body-bg), var(--bs-body-bg)) padding-box,
-    linear-gradient(135deg, rgba(59,130,246,.22), rgba(16,185,129,.22)) border-box;
+    linear-gradient(135deg,
+      rgba(var(--thumb-grad-1, 59,130,246), .30),
+      rgba(var(--thumb-grad-2, 16,185,129), .30)
+    ) border-box;
+
+  /* liserés subtils pour “joli” rendu */
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,.06),           /* bord externe discret (clair) */
+    inset 0 0 0 2px rgba(255,255,255,.35);/* liseré interne clair */
 }
+
 @media (prefers-color-scheme: dark){
   .thumb{
     background:
       linear-gradient(var(--bs-body-bg), var(--bs-body-bg)) padding-box,
-      linear-gradient(135deg, rgba(59,130,246,.18), rgba(16,185,129,.18)) border-box;
+      linear-gradient(135deg,
+        rgba(var(--thumb-grad-1, 59,130,246), .22),
+        rgba(var(--thumb-grad-2, 16,185,129), .22)
+      ) border-box;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,.10),
+      inset 0 0 0 2px rgba(255,255,255,.06);
   }
 }
 
-.thumb-img, .thumb-ph{
-  width: var(--thumb-size); height: var(--thumb-size);
-  object-fit: cover; display:block; border-radius: var(--thumb-r);
-  /* fond “dans” l’image pour PNG transparents */
+/* Image / placeholder : fond interne + boost lisibilité */
+.thumb-img,
+.thumb-ph{
+  width: var(--thumb-size, 48px);
+  height: var(--thumb-size, 48px);
+  border-radius: var(--thumb-r, 10px);
+  display: block;
+  object-fit: cover;
+
+  /* fond “dans” l’image (visible sous PNG transparents) */
   background:
     radial-gradient(120% 120% at 10% 10%, rgba(255,255,255,.15), rgba(0,0,0,0)),
     linear-gradient(135deg, rgba(108,117,125,.18), rgba(33,37,41,.12));
 }
+
 .thumb-img{
   filter: brightness(1.06) contrast(1.05) saturate(1.02);
 }
+
 .thumb-ph{
   background:
     linear-gradient(135deg,#6c757d22,#6c757d33),
     repeating-linear-gradient(45deg,#6c757d22 0 8px,#6c757d33 8px 16px);
-  border-radius: var(--thumb-r);
 }
 
-/* Badges overlay */
-.thumb .thumb-badge-items{
-  position:absolute; top:4px; right:4px; font-size:.6rem; padding:.15em .4em;
-}
-.thumb .thumb-badge-used{
-  position:absolute; bottom:4px; right:4px; font-size:.55rem; padding:.15em .4em;
-}
+/* Badges overlay (si tu en mets sur le thumb) */
+.thumb .thumb-badge-items{ position:absolute; top:4px; right:4px; font-size:.6rem; padding:.15em .4em; }
+.thumb .thumb-badge-used { position:absolute; bottom:4px; right:4px; font-size:.55rem; padding:.15em .4em; }
 </style>
 {% import 'macros/hidden_args.jinja2' as macros %}
 <!-- Bouton flottant pagination -->
