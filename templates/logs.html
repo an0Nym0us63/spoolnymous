@@ -57,7 +57,6 @@
 /* Couleur par défaut lisible + wrap propre */
 #logs { color: #e0e0e0; }
 #logs .log-line { margin: 3px 0; opacity: 1; line-height: 1.25; border-radius: 10px; padding: 2px 6px; }
-#logs .log-line:hover { background: rgba(255,255,255,.04); }
 
 /* Badges */
 .badge {
@@ -94,11 +93,6 @@
 
 /* Message */
 .msg { white-space: pre-wrap; word-break: break-word; }
-
-/* (facultatif) animation douce d’apparition */
-@keyframes fadeIn { from { opacity: 0; transform: translateY(-1px); } to { opacity: 1; transform: none; } }
-.log-line.flash { animation: fadeIn 120ms ease-out; }
-
 </style>
 <script>
 (() => {
