@@ -99,19 +99,24 @@
 
   {# 🔥 Buse(s) : valeur/target et double tête #}
   <div>
-    <strong>🔥</strong>
-    <span id="status-nozzle">
+  <div class="flex items-center gap-2">
+    <span class="text-base sm:text-lg leading-none select-none">🔥</span>
+    <div id="status-nozzle" class="flex flex-col leading-tight">
       {% if printer_status.nozzle_left_temp is not none or printer_status.nozzle_right_temp is not none %}
         {# Double extrudeur #}
-        {% set left = (printer_status.nozzle_left_temp ~ ( '/' ~ printer_status.target_nozzle_left_temp if printer_status.target_nozzle_left_temp is not none else '')) if printer_status.nozzle_left_temp is not none else '—' %}
+        {% set left  = (printer_status.nozzle_left_temp ~ ( '/' ~ printer_status.target_nozzle_left_temp if printer_status.target_nozzle_left_temp is not none else '')) if printer_status.nozzle_left_temp is not none else '—' %}
         {% set right = (printer_status.nozzle_right_temp ~ ( '/' ~ printer_status.target_nozzle_right_temp if printer_status.target_nozzle_right_temp is not none else '')) if printer_status.nozzle_right_temp is not none else '—' %}
-        G: {{ left }}{% if right != '—' %} | D: {{ right }}{% endif %}
+        <div class="whitespace-nowrap">G: {{ left }} °C</div>
+        <div class="whitespace-nowrap">D: {{ right }} °C</div>
       {% else %}
         {# Mono-extrudeur #}
-        {{ (printer_status.nozzle_temp if printer_status.nozzle_temp is not none else '—') ~ ( '/' ~ printer_status.target_nozzle_temp if printer_status.target_nozzle_temp is not none else '') }}
+        <div class="whitespace-nowrap">
+          {{ (printer_status.nozzle_temp if printer_status.nozzle_temp is not none else '—') ~ ( '/' ~ printer_status.target_nozzle_temp if printer_status.target_nozzle_temp is not none else '') }} °C
+        </div>
       {% endif %}
-    </span> °C
+    </div>
   </div>
+</div>
 
   {# 🛏️ Bed : valeur/target #}
   <div>
@@ -141,7 +146,17 @@
          style="object-fit:cover;">
   </div>
 </div>
-  <div><strong>📄</strong> <span id="status-print-name">{{ printer_status.print_printName or 'N/A' }}</span></div>
+  <div class="text-center mt-2 d-flex flex-column align-items-center">
+  <span
+    class="badge d-inline-block bg-secondary bg-opacity-10 border rounded-pill px-3 py-1"
+    style="font-size: 0.65rem; max-width: 90vw; white-space: normal; word-break: break-word;"
+  >
+    <span class="me-1">📄</span>
+    <span id="status-print-name">
+      {{ printer_status.print_name or printer_status.print_file or 'N/A' }}
+    </span>
+  </span>
+</div>
   </div>
 </div>
 {% endif %}
@@ -437,9 +452,11 @@ if ((leftStr !== '—') || (rightStr !== '—')) {
         document.getElementById('status-chamber').innerText =
           fmt(data.chamber_temp, data.target_chamber_temp);
 
-        if (data.printName && document.getElementById('status-print-name')) {
-          document.getElementById('status-print-name').innerText = data.printName;
-        }
+        const nameEl = document.getElementById('status-print-name');
+if (nameEl) {
+  const nameVal = (data.print_name ?? data.printName ?? data.print_file ?? '').toString();
+  if (nameVal) nameEl.textContent = nameVal;
+}
 
         if (data.thumbnail && document.getElementById('status-thumbnail')) {
           document.getElementById('status-thumbnail').src = `/static/prints/${data.thumbnail}`;
