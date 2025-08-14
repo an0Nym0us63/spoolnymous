@@ -1959,20 +1959,15 @@ def objects_delete(object_id):
     return redirect(url_for("objects_page", **request.args.to_dict(flat=True)))
 
 @app.route("/objects/<int:object_id>/sell", methods=["POST"])
-@login_required  # retire-le si tu ne protèges pas cette page
 def objects_sell(object_id: int):
-    """
-    Enregistre une vente / un don pour l'objet `object_id`.
-    - sold_price : float >= 0 (0 = don)
-    - sold_date  : YYYY-MM-DD (défaut = aujourd’hui si vide)
-    - sold_comment : str optionnelle
-    """
-    # Récupération & normalisation des champs
     raw_price = (request.form.get("sold_price") or "").strip()
     raw_date  = (request.form.get("sold_date") or "").strip()
     comment   = (request.form.get("sold_comment") or "").strip() or None
 
-    # Prix : vide => 0 (don), sinon parse float
+    # --- TRACE pour vérifier que la route est bien appelée
+    logger.debug(f"[objects_sell] object_id={object_id} price='{raw_price}' date='{raw_date}'")
+
+    # Prix : vide => 0 (don)
     try:
         price = 0.0 if raw_price == "" else float(raw_price)
     except ValueError:
@@ -1983,10 +1978,8 @@ def objects_sell(object_id: int):
         flash("Le prix ne peut pas être négatif.", "danger")
         return redirect(request.referrer or url_for("objects"))
 
-    # Date : défaut = aujourd'hui (ISO)
     sold_date = raw_date or date.today().isoformat()
 
-    # Appel logique métier (DB) — reste dans objects.py
     try:
         update_object_sale(
             object_id=object_id,
@@ -1994,9 +1987,8 @@ def objects_sell(object_id: int):
             sold_date=sold_date,
             comment=comment,
         )
-    # optionnel : attrape tes erreurs applicatives si tu en as (ex. ApplicationError)
     except Exception as e:
-        # log si tu as un logger; sinon message utilisateur
+        logger.error(f"[objects_sell][ERROR] {e}")
         flash(f"Échec d'enregistrement de la vente : {e}", "danger")
         return redirect(request.referrer or url_for("objects"))
 
