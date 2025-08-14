@@ -130,8 +130,6 @@
   </div>
 
   <div><strong>🧱️</strong> <span id="status-layers">{{ printer_status.print_layer }}/{{ printer_status.total_layers }}</span></div>
-  </br>
-  <div><strong>📄</strong> <span id="status-print-name">{{ printer_status.print_printName or 'N/A' }}</span></div>
 </div>
 
 <div style="width:100%; max-width:720px; margin:0 auto;">
@@ -143,6 +141,7 @@
          style="object-fit:cover;">
   </div>
 </div>
+  <div><strong>📄</strong> <span id="status-print-name">{{ printer_status.print_printName or 'N/A' }}</span></div>
   </div>
 </div>
 {% endif %}
