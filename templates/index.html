@@ -38,6 +38,15 @@
     .metric-pill, .metric-block{ font-size:.8rem; }
     #status-nozzle .whitespace-nowrap{ font-size:.78rem; }
   }
+    /* Superscript pour la target */
+  .tgt {
+    font-size: 0.7em;
+    opacity: .85;
+    vertical-align: super;
+    margin-left: 2px;
+  }
+  .value { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+  .unit  { opacity:.8; margin-left:.1rem; }
 </style>
 <div x-data="{ open: false }"
      class="mb-4 rounded-xl overflow-hidden shadow-md"
@@ -119,34 +128,50 @@
 	<div class="grid grid-cols-2 sm:grid-cols-4 metrics-grid">
 
   {# 🔥 Buse(s) : valeur/target et double tête #}
-<div class="metric-block">
-  <span class="metric-icon">🔥</span>
-  <div id="status-nozzle">
-    {% if printer_status.nozzle_left_temp is not none or printer_status.nozzle_right_temp is not none %}
-      {% set left  = (printer_status.nozzle_left_temp ~ ( '/' ~ printer_status.target_nozzle_left_temp if printer_status.target_nozzle_left_temp is not none else '')) if printer_status.nozzle_left_temp is not none else '—' %}
-      {% set right = (printer_status.nozzle_right_temp ~ ( '/' ~ printer_status.target_nozzle_right_temp if printer_status.target_nozzle_right_temp is not none else '')) if printer_status.nozzle_right_temp is not none else '—' %}
-      <div class="whitespace-nowrap">G: <span class="value">{{ left }}</span><span class="unit"> °C</span></div>
-      <div class="whitespace-nowrap">D: <span class="value">{{ right }}</span><span class="unit"> °C</span></div>
-    {% else %}
-      <div class="whitespace-nowrap">
-        <span class="value">
-          {{ (printer_status.nozzle_temp if printer_status.nozzle_temp is not none else '—') ~ ( '/' ~ printer_status.target_nozzle_temp if printer_status.target_nozzle_temp is not none else '') }}
-        </span><span class="unit"> °C</span>
-      </div>
-    {% endif %}
+<div>
+  <div class="flex items-center gap-2">
+    <span class="text-base sm:text-lg leading-none select-none">🔥</span>
+    <div id="status-nozzle" class="flex flex-col leading-tight">
+      {% if printer_status.nozzle_left_temp is not none or printer_status.nozzle_right_temp is not none %}
+        <div class="whitespace-nowrap">
+          <span class="value">{{ printer_status.nozzle_left_temp if printer_status.nozzle_left_temp is not none else '—' }}</span>
+          {% if printer_status.nozzle_left_temp is not none %}<span class="unit">°C</span>{% endif %}
+          {% if printer_status.target_nozzle_left_temp is not none %}<sup class="tgt">/{{ printer_status.target_nozzle_left_temp }}</sup>{% endif %}
+        </div>
+        <div class="whitespace-nowrap">
+          <span class="value">{{ printer_status.nozzle_right_temp if printer_status.nozzle_right_temp is not none else '—' }}</span>
+          {% if printer_status.nozzle_right_temp is not none %}<span class="unit">°C</span>{% endif %}
+          {% if printer_status.target_nozzle_right_temp is not none %}<sup class="tgt">/{{ printer_status.target_nozzle_right_temp }}</sup>{% endif %}
+        </div>
+      {% else %}
+        <div class="whitespace-nowrap">
+          <span class="value">{{ printer_status.nozzle_temp if printer_status.nozzle_temp is not none else '—' }}</span>
+          {% if printer_status.nozzle_temp is not none %}<span class="unit">°C</span>{% endif %}
+          {% if printer_status.target_nozzle_temp is not none %}<sup class="tgt">/{{ printer_status.target_nozzle_temp }}</sup>{% endif %}
+        </div>
+      {% endif %}
+    </div>
   </div>
 </div>
 
   {# 🛏️ Bed : valeur/target #}
 <div class="metric-pill">
   <span class="metric-icon">🛏️</span>
-  <span class="value"><span id="status-bed">{{ (printer_status.bed_temp if printer_status.bed_temp is not none else '—') ~ ( '/' ~ printer_status.target_bed_temp if printer_status.target_bed_temp is not none else '') }}</span><span class="unit"> °C</span></span>
+  <span class="value" id="status-bed">
+    {{ printer_status.bed_temp if printer_status.bed_temp is not none else '—' }}
+  </span>
+  {% if printer_status.bed_temp is not none %}<span class="unit">°C</span>{% endif %}
+  {% if printer_status.target_bed_temp is not none %}<sup class="tgt">/{{ printer_status.target_bed_temp }}</sup>{% endif %}
 </div>
 
   {# 🌡️ Chambre : valeur/target (target facultatif) #}
 <div class="metric-pill">
   <span class="metric-icon">🌡️</span>
-  <span class="value"><span id="status-chamber">{{ (printer_status.chamber_temp if printer_status.chamber_temp is not none else '—') ~ ( '/' ~ printer_status.target_chamber_temp if printer_status.target_chamber_temp is not none else '') }}</span><span class="unit"> °C</span></span>
+  <span class="value" id="status-chamber">
+    {{ printer_status.chamber_temp if printer_status.chamber_temp is not none else '—' }}
+  </span>
+  {% if printer_status.chamber_temp is not none %}<span class="unit">°C</span>{% endif %}
+  {% if printer_status.target_chamber_temp is not none %}<sup class="tgt">/{{ printer_status.target_chamber_temp }}</sup>{% endif %}
 </div>
 
 <div class="metric-pill">
@@ -155,7 +180,7 @@
 </div>
 </div>
 
-<div style="width:100%; max-width:720px; margin:0 auto;">
+<div style="width:100%; max-width:720px; margin:0 auto;" class="mt-3">
   <div class="ratio ratio-16x9 bg-black rounded overflow-hidden position-relative">
     <img id="printer-cam"
          src="{{ url_for('camera_snapshot') }}"
@@ -375,12 +400,14 @@ if (trayGraphic) {
 
 
   document.addEventListener('DOMContentLoaded', () => {
-  const fmt = (cur, tgt) => {
-      const hasCur = cur !== undefined && cur !== null;
-      const hasTgt = tgt !== undefined && tgt !== null;
-      if (!hasCur && !hasTgt) return '—';
-      return `${hasCur ? cur : '—'}${hasTgt ? `/${tgt}` : ''}`;
-    };
+const fmtSup = (cur, tgt) => {
+  const hasCur = cur !== undefined && cur !== null;
+  const hasTgt = tgt !== undefined && tgt !== null;
+  if (!hasCur && !hasTgt) return '—';
+  let html = hasCur ? `<span class="value">${cur}</span><span class="unit">°C</span>` : '—';
+  if (hasTgt) html += `<sup class="tgt">/${tgt}</sup>`;
+  return html;
+};
     async function refreshPrinterStatus() {
       try {
         const res = await fetch('/printer_status');
@@ -441,34 +468,29 @@ statusTextEl.innerText = status;
         document.getElementById('status-layers').innerText = data.print_layer && data.total_layers ? `${data.print_layer}/${data.total_layers}` : '';
 
          // 🔥 Buse(s)
-const leftStr  = fmt(data.nozzle_left_temp,  data.target_nozzle_left_temp);
-const rightStr = fmt(data.nozzle_right_temp, data.target_nozzle_right_temp);
-const monoStr  = fmt(data.nozzle_temp,       data.target_nozzle_temp);
+const leftCur  = data.nozzle_left_temp,  leftTgt  = data.target_nozzle_left_temp;
+const rightCur = data.nozzle_right_temp, rightTgt = data.target_nozzle_right_temp;
+const monoCur  = data.nozzle_temp,       monoTgt  = data.target_nozzle_temp;
 
 const nozzleEl = document.getElementById('status-nozzle');
-if ((leftStr !== '—') || (rightStr !== '—')) {
-  if (leftStr !== '—' && rightStr !== '—') {
-    // Double extrudeur : le séparateur " |" est rattaché au bloc gauche
-    nozzleEl.innerHTML =
-      `<span class="nowrap">G: ${leftStr}</span>` +
-      `<span class="nowrap">D: ${rightStr}</span>`;
-  } else if (leftStr !== '—') {
-    nozzleEl.innerHTML = `<span class="nowrap">G: ${leftStr}</span>`;
-  } else {
-    nozzleEl.innerHTML = `<span class="nowrap">D: ${rightStr}</span>`;
+if ((leftCur ?? null) !== null || (rightCur ?? null) !== null) {
+  let html = '';
+  if (leftCur !== undefined || leftTgt !== undefined) {
+    html += `<div class="whitespace-nowrap">G: ${fmtSup(leftCur, leftTgt)}</div>`;
   }
+  if (rightCur !== undefined || rightTgt !== undefined) {
+    html += `<div class="whitespace-nowrap">D: ${fmtSup(rightCur, rightTgt)}</div>`;
+  }
+  nozzleEl.innerHTML = html || `<div class="whitespace-nowrap">—</div>`;
 } else {
-  // Mono
-  nozzleEl.textContent = monoStr;
+  nozzleEl.innerHTML = `<div class="whitespace-nowrap">${fmtSup(monoCur, monoTgt)}</div>`;
 }
 
-        // 🛏️ Bed
-        document.getElementById('status-bed').innerText =
-          fmt(data.bed_temp, data.target_bed_temp);
+// 🛏️ Bed
+document.getElementById('status-bed').innerHTML = fmtSup(data.bed_temp, data.target_bed_temp);
 
-        // 🌡️ Chambre
-        document.getElementById('status-chamber').innerText =
-          fmt(data.chamber_temp, data.target_chamber_temp);
+// 🌡️ Chambre
+document.getElementById('status-chamber').innerHTML = fmtSup(data.chamber_temp, data.target_chamber_temp);
 
         const nameEl = document.getElementById('status-print-name');
 if (nameEl) {
