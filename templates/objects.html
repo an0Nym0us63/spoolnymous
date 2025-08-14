@@ -155,6 +155,12 @@
 </li>
   </ul>
 </div>
+{% if o.thumbnail %}
+      <div class="thumb" style="--thumb-size: 200px;display:block;margin-inline:auto;">
+        <img src="{{o.thumbnail }}"
+             alt="Print Image" class="thumb-img" />
+      </div>
+      {% endif %}
         <div class="row g-3">
           <div class="col-12 col-md-8">
             <div class="mb-2">
