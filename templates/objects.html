@@ -3,79 +3,38 @@
 
 {% block content %}
 <style>
-	  /* Header responsive & propre */
-  .obj-hdr{cursor:pointer;user-select:none}
-  .obj-thumb{width:56px;height:56px;object-fit:cover;border-radius:.5rem;flex-shrink:0}
-  .obj-main{min-width:0;flex:1 1 auto}             /* autorise le wrap */
-  .title-badge{
-    display:inline-block;max-width:100%;
-    white-space:normal;line-height:1.15;
-    border:1px solid var(--bs-border-color);
-    background:var(--bs-secondary-bg);
-    color:var(--bs-body-color);
-    padding:.25rem .5rem;border-radius:999px;font-weight:600;
-  }
-  .chips{display:flex;flex-wrap:wrap;gap:.25rem;justify-content:flex-end}
-  .chips .badge{font-weight:500}
-  .obj-status i{font-size:1.25rem}
-  /* Passe-partout gradient autour des vignettes */
-  .thumb-wrap{
-    padding:4px;                 /* épaisseur du passe-partout */
-    border-radius:.7rem;
-    /* dégradé doux basé sur les couleurs Bootstrap */
-    background: linear-gradient(
-      135deg,
-      rgba(var(--bs-primary-rgb), .35),
-      rgba(var(--bs-success-rgb), .35)
-    );
-    flex-shrink:0;
-  }
-  /* Passe-partout autour du thumb */
-  .thumb-wrap{
-    padding:6px; border-radius:.8rem; flex-shrink:0;
-    background: linear-gradient(135deg,
-      rgba(59,130,246,.35),   /* ~bs-primary */
-      rgba(16,185,129,.35)    /* ~bs-success */
-    );
-  }
-  @media (prefers-color-scheme: dark){
-    .thumb-wrap{
-      background: linear-gradient(135deg,
-        rgba(59,130,246,.28),
-        rgba(16,185,129,.28)
-      );
-    }
-  }
-  /* Mat interne (sépare grad. / image) */
-  .thumb-matte{
-    background: var(--bs-body-bg);
-    border-radius:.7rem;
-    padding:3px;
-  }
+  /* Header en grille 3 colonnes */
+  .obj-hdr       { cursor:pointer; user-select:none; }
+  .obj-grid      { display:grid; grid-template-columns:auto 1fr auto; gap:.6rem; align-items:center; }
+  .obj-main      { min-width:0; display:flex; flex-direction:column; gap:.25rem; }
 
-  /* Image : 
-     - fond GRADIENT *dans l'img* => visible sous les pixels transparents,
-     - boost léger pour ressortir les images sombres. */
-  .thumb-img{
-    width:56px; height:56px; aspect-ratio:1/1;
-    object-fit:cover; border-radius:.6rem; display:block;
-
-    /* <<< le fond derrière l'image (si transparente) >>> */
-    background:
-      radial-gradient(120% 120% at 10% 10%, rgba(255,255,255,.15), rgba(0,0,0,0)),
-      linear-gradient(135deg, rgba(108,117,125,.25), rgba(33,37,41,.15));
-
-    /* lisibilité images sombres */
-    filter: brightness(1.06) contrast(1.05) saturate(1.02);
+  /* Thumb : passe-partout plus fin + image réduite */
+  .thumb-wrap    { padding:3px; border-radius:.7rem; background:linear-gradient(135deg, rgba(59,130,246,.22), rgba(16,185,129,.22)); }
+  @media (prefers-color-scheme:dark){
+    .thumb-wrap  { background:linear-gradient(135deg, rgba(59,130,246,.18), rgba(16,185,129,.18)); }
   }
+  .thumb-matte   { background:var(--bs-body-bg); border-radius:.6rem; padding:2px; }
+  .thumb-img     { width:48px; height:48px; aspect-ratio:1/1; object-fit:cover; border-radius:.5rem; display:block;
+                   background:
+                     radial-gradient(120% 120% at 10% 10%, rgba(255,255,255,.15), rgba(0,0,0,0)),
+                     linear-gradient(135deg, rgba(108,117,125,.18), rgba(33,37,41,.12));
+                   filter:brightness(1.06) contrast(1.05) saturate(1.02); }
+  .thumb-ph      { width:48px; height:48px; border-radius:.5rem; background:
+                     linear-gradient(135deg,#6c757d22,#6c757d33),
+                     repeating-linear-gradient(45deg,#6c757d22 0 8px,#6c757d33 8px 16px); }
 
-  /* Placeholder si pas de thumb */
-  .thumb-ph{
-    width:56px; height:56px; border-radius:.6rem;
-    background:
-      linear-gradient(135deg,#6c757d22,#6c757d33),
-      repeating-linear-gradient(45deg,#6c757d22 0 8px,#6c757d33 8px 16px);
-  }
+  /* Titre très compact dans un badge */
+  .title-badge   { display:inline-block; max-width:100%; white-space:normal; line-height:1.1;
+                   border:1px solid var(--bs-border-color); background:var(--bs-secondary-bg);
+                   color:var(--bs-body-color); padding:.15rem .5rem; border-radius:999px;
+                   font-weight:600; font-size:.9rem; } /* taille réduite */
+
+  /* Chips sous le titre, à droite, sans débordement */
+  .chips         { display:flex; flex-wrap:wrap; gap:.25rem; justify-content:flex-end; max-width:100%; }
+  .chips .badge  { font-weight:600; font-size:.75rem; padding:.35em .55em; white-space:nowrap; }
+  /* Icône statut à droite */
+  .obj-status i  { font-size:1.2rem; }
+
 </style>
 <!-- Boutons flottants (identiques au reste) -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
@@ -97,73 +56,70 @@
   {% for o in objects %}
   {% set collapse_id = "obj_" ~ o.id %}
   <div class="card mb-2">
-    <div class="card-header obj-hdr d-flex align-items-center gap-2 justify-content-between"
+    <div class="card-header obj-hdr"
      id="heading_{{ o.id }}" role="button"
      data-bs-toggle="collapse" data-bs-target="#{{ collapse_id }}"
      aria-expanded="false" aria-controls="{{ collapse_id }}">
 
-  <!-- Gauche : thumbnail -->
- <div class="d-flex align-items-center gap-2 flex-shrink-0">
-  <div class="thumb-wrap">
-    <div class="thumb-matte">
-      {% if o.thumbnail %}
-        <img src="{{ o.thumbnail }}" alt="" class="thumb-img">
+  <div class="obj-grid">
+    <!-- Colonne gauche : thumbnail -->
+    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+      <div class="thumb-wrap">
+        <div class="thumb-matte">
+          {% if o.thumbnail %}
+            <img src="{{ o.thumbnail }}" alt="" class="thumb-img">
+          {% else %}
+            <div class="thumb-ph"></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Colonne centre : titre (ligne 1) + chips (ligne 2) -->
+    <div class="obj-main">
+      <div class="d-flex"><span class="title-badge">{{ o.name }}</span></div>
+      <div class="chips">
+        <!-- Coût total : toujours -->
+        <span class="badge rounded-pill text-bg-secondary">
+          🛠️ {{ "%.2f"|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
+        </span>
+
+        {% if o.sold_price is not none %}
+          {% if o.sold_price == 0 %}
+            <!-- Don : pas de prix ni marge -->
+            <span class="badge rounded-pill text-bg-info">🎁 Offert</span>
+          {% else %}
+            <!-- Vente : prix + marge -->
+            <span class="badge rounded-pill text-bg-primary">
+              💰 {{ "%.2f"|format(o.sold_price) }} {{ currencysymbol or '€' }}
+            </span>
+            {% set _total  = (o.cost_total or 0) %}
+            {% set _margin = (o.margin if (o.margin is not none) else (o.sold_price - _total)) %}
+            {% set _pos    = _margin >= 0 %}
+            <span class="badge rounded-pill {{ 'text-bg-success' if _pos else 'text-bg-danger' }}">
+              {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol or '€' }}
+            </span>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Colonne droite : statut -->
+    <div class="obj-status d-flex align-items-center justify-content-end ms-2 flex-shrink-0">
+      {% if o.sold_price is not none %}
+        {% if o.sold_price == 0 %}
+          <i class="bi bi-gift-fill text-info" title="Offert"></i>
+        {% else %}
+          <i class="bi bi-bag-check-fill text-warning" title="Vendu"></i>
+        {% endif %}
       {% else %}
-        <div class="thumb-ph"></div>
+        {% if o.available %}
+          <i class="bi bi-box-seam text-success" title="Disponible (en stock)"></i>
+        {% else %}
+          <i class="bi bi-slash-circle-fill text-secondary" title="Indisponible"></i>
+        {% endif %}
       {% endif %}
     </div>
-  </div>
-</div>
-
-  <!-- Centre : titre (badge) + chips en-dessous, qui s'adaptent au mobile -->
-  <div class="obj-main d-flex flex-column gap-1">
-    <div class="d-flex">
-      <span class="title-badge">{{ o.name }}</span>
-    </div>
-    <div class="chips">
-  <!-- Coût total : toujours -->
-  <span class="badge rounded-pill text-bg-secondary">
-    🛠️ {{ "%.2f"|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
-  </span>
-
-  {% if o.sold_price is not none %}
-    {% if o.sold_price == 0 %}
-      <!-- Don : pas de prix de vente ni de marge -->
-      <span class="badge rounded-pill text-bg-info">🎁 Offert</span>
-    {% else %}
-      <!-- Vente : prix + marge -->
-      <span class="badge rounded-pill text-bg-primary">
-        💰 {{ "%.2f"|format(o.sold_price) }} {{ currencysymbol or '€' }}
-      </span>
-      {% set _total = (o.cost_total or 0) %}
-      {% set _margin = (o.margin if (o.margin is not none) else (o.sold_price - _total)) %}
-      {% set _pos = _margin >= 0 %}
-      <span class="badge rounded-pill {{ 'text-bg-success' if _pos else 'text-bg-danger' }}">
-        {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol or '€' }}
-      </span>
-    {% endif %}
-  {% endif %}
-</div>
-    <div class="small text-muted">
-      Créé le {{ o.created_at | datetimeformat('fr')}}
-    </div>
-  </div>
-
-  <!-- Droite : icône statut (dispo / vendu / offert) -->
-  <div class="obj-status d-flex align-items-center ms-2 flex-shrink-0">
-    {% if o.sold_price is not none %}
-      {% if o.sold_price == 0 %}
-        <i class="bi bi-gift-fill text-info" title="Offert"></i>
-      {% else %}
-        <i class="bi bi-bag-check-fill text-warning" title="Vendu"></i>
-      {% endif %}
-    {% else %}
-      {% if o.available %}
-        <i class="bi bi-box2-fill text-success" title="Disponible (en stock)"></i>
-      {% else %}
-        <i class="bi bi-slash-circle-fill text-secondary" title="Indisponible"></i>
-      {% endif %}
-    {% endif %}
   </div>
 </div>
 
