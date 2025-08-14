@@ -30,31 +30,38 @@
 
       <div class="d-flex align-items-center gap-2">
         {% if o.thumbnail %}
-          <img src="{{ o.thumbnail }}" alt="" class="rounded" style="width:36px;height:36px;object-fit:cover;">
+          <img src="{{ o.thumbnail }}" alt="" class="rounded" style="width:48px;height:48px;object-fit:cover;">
         {% else %}
-          <div class="bg-secondary rounded" style="width:36px;height:36px;opacity:.2;"></div>
+          <div class="bg-secondary rounded" style="width:48px;height:48px;opacity:.2;"></div>
         {% endif %}
 
         <div>
           <div class="fw-semibold">{{ o.name }}</div>
           <div class="small text-muted">
-            Source : {{ 'Print' if o.parent_type == 'print' else 'Groupe' }} #{{ o.parent_id }}
-            • Créé le {{ o.created_at | datetimeformat('fr')}}
+            Créé le {{ o.created_at | datetimeformat('fr')}}
           </div>
         </div>
       </div>
 
       <div class="d-flex align-items-center gap-2">
+        <!-- Chip coût total -->
+        <span class="badge rounded-pill text-bg-light border">
+          💸 {{ "%.2f"|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
+        </span>
+
         {% if o.sold_price is not none %}
-          <span class="badge bg-success">Vendu</span>
-        {% else %}
-          <span class="badge {{ 'bg-primary' if o.available else 'bg-secondary' }}">
-            {{ 'Disponible' if o.available else 'Indispo' }}
+          <!-- Chip prix de vente -->
+          <span class="badge rounded-pill text-bg-light border">
+            💰 {{ "%.2f"|format(o.sold_price) }} {{ currencysymbol or '€' }}
+          </span>
+          {% set _total = (o.cost_total or 0) %}
+          {% set _margin = (o.margin if o.margin is not none else (o.sold_price - _total)) %}
+          {% set _pos = _margin >= 0 %}
+          <!-- Chip marge (couleur selon signe) -->
+          <span class="badge rounded-pill {{ 'text-bg-success' if _pos else 'text-bg-danger' }}">
+            {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol or '€' }}
           </span>
         {% endif %}
-        <span class="badge text-bg-light">Fab: {{ "%.2f"|format(o.cost_fabrication or 0) }} €</span>
-        <span class="badge text-bg-light">Acc: {{ "%.2f"|format(o.cost_accessory or 0) }} €</span>
-        <span class="badge text-bg-light">Total: {{ "%.2f"|format(o.cost_total or 0) }} €</span>
       </div>
     </div>
 
@@ -125,12 +132,12 @@
             <div class="small text-muted mb-1">Infos</div>
             <ul class="list-unstyled mb-2">
               <li>Disponible : {{ 'Oui' if o.available else 'Non' }}</li>
-              <li>Vendu : {{ 'Oui (' ~ ("%.2f"|format(o.sold_price)) ~ ' €)' if o.sold_price is not none else 'Non' }}</li>
+              <li>Vendu : {{ 'Oui (' ~ ("%.2f"|format(o.sold_price)) ~ ' ' ~ (currencysymbol or '€') ~ ')' if o.sold_price is not none else 'Non' }}</li>
               {% if o.sold_date %}<li>Vendu le : {{ o.sold_date }}</li>{% endif %}
               <li>Maj : {{ o.updated_at | datetimeformat('fr')}}</li>
 			  <li>Marge :
   {% if o.margin is defined and o.margin is not none %}
-    {{ '%.2f'|format(o.margin) }} {{ currencysymbol }}
+    {{ '%.2f'|format(o.margin) }} {{ currencysymbol or '€' }}
   {% else %}
     —
   {% endif %}
@@ -283,8 +290,8 @@
   })();
 
  function escapeHtml(str) {
-    return (str || '').replace(/[&<>"']/g, s => (
-      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]
+    return (str || '').replace(/[&<>\"']/g, s => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'" : '&#39;' }[s]
     ));
   }
 
