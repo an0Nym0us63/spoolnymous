@@ -48,108 +48,84 @@
   <!-- Zone logs -->
   <div class="card bg-black border-secondary">
     <div id="logs" class="card-body font-monospace"
-         style="white-space: pre-wrap; line-height: 1.2; min-height: 50vh; max-height: 70vh; overflow: auto;">
-
-      <!-- lignes insérées ici -->
-
-    </div>
+     style="white-space: pre-wrap; line-height: 1.2; min-height: 50vh; max-height: 70vh; overflow: auto;">
+  <div id="placeholder" class="text-secondary">En attente de données…</div>
+</div>
   </div>
 </div>
-
 <style>
-  /* Couleurs par niveau */
-  .log-line       { margin: 2px 0; opacity: 0; animation: fadeIn 200ms ease-out forwards; }
-  .lvl-DEBUG      { color: #00bcd4; }
-  .lvl-INFO       { color: #8bc34a; }
-  .lvl-WARNING    { color: #ffc107; }
-  .lvl-ERROR      { color: #ff5252; font-weight: 600; }
-  .lvl-CRITICAL   { color: #ff1744; font-weight: 700; text-decoration: underline; }
-
-  .ts             { color: #9e9e9e; margin-right: .5rem; }
-  .logger.badge   { background: #2b2b2b; border: 1px solid #444; color: #cfcfcf; }
-
-  /* Séparateur de date (changement de jour) */
-  .day-sep { color:#bdbdbd; border-top:1px dashed #555; margin:.5rem 0 .5rem; padding-top:.3rem; font-size:.9rem; }
-
-  /* Highlight court pour nouvelles lignes */
+  .log-line     { margin: 2px 0; opacity: 0; animation: fadeIn 150ms ease-out forwards; }
+  .lvl-DEBUG    { color: #00bcd4; }
+  .lvl-INFO     { color: #8bc34a; }
+  .lvl-WARNING  { color: #ffc107; }
+  .lvl-ERROR    { color: #ff5252; font-weight: 600; }
+  .lvl-CRITICAL { color: #ff1744; font-weight: 700; text-decoration: underline; }
+  .ts           { color: #9e9e9e; margin-right: .5rem; }
+  .logger.badge { background: #2b2b2b; border: 1px solid #444; color: #cfcfcf; }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   .flash { animation: flashBg 1200ms ease-out 1; }
-  @keyframes flashBg {
-    0%   { background: rgba(255,255,255,.06); }
-    100% { background: transparent; }
-  }
-
-  .control-label { font-size: .9rem; }
+  @keyframes flashBg { 0% { background: rgba(255,255,255,.06);} 100%{ background: transparent;} }
 </style>
-
 <script>
 (() => {
-  const logEl       = document.getElementById('logs');
-  const levelEl     = document.getElementById('level');
-  const qEl         = document.getElementById('q');
-  const applyBtn    = document.getElementById('apply');
-  const pauseBtn    = document.getElementById('pause');
-  const clearBtn    = document.getElementById('clear');
-  const statsEl     = document.getElementById('stats');
-  const autoscrollCk= document.getElementById('autoscroll');
+  const logEl        = document.getElementById('logs');
+  const placeholder  = document.getElementById('placeholder');
+  const levelEl      = document.getElementById('level');
+  const filterInput  = document.getElementById('filter') || document.getElementById('q'); // compat
+  const applyBtn     = document.getElementById('apply');
+  const pauseBtn     = document.getElementById('pause');
+  const clearBtn     = document.getElementById('clear');
+  const autoscrollCk = document.getElementById('autoscroll');
 
-  // Regex pour parser le format:
-  // "YYYY-MM-DD HH:MM:SS,mmm [LEVEL] logger: message"
-  const LINE_RE = /^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+\[(\w+)\]\s+([^:]+):\s*(.*)$/;
+  // Format back‑end : "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+  // Exemple typique : "2025-08-14 12:34:56,123 [INFO] mqtt_bambulab: Ready"
+  // Regex tolérante : millis optionnels, espaces tolérants, name jusqu'à ':'
+  const LINE_RE = /^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:[.,]\d{3})?)\s+\[(\w+)\]\s+([^:]+):\s*(.*)$/;
 
-  let lastId   = 0;
-  let paused   = false;
-  let timer    = null;
-  let lastDay  = null;
-  let rendered = 0;
+  let last   = 0;
+  let paused = false;
+  let timer  = null;
 
-  function dayKey(tsStr) {
-    // prend "2025-08-14 12:34:56,123" -> "2025-08-14"
-    return tsStr ? tsStr.substring(0, 10) : "";
+  function removePlaceholderOnce() {
+    if (placeholder && placeholder.parentNode) {
+      placeholder.remove();
+    }
   }
 
-  function addDaySeparatorIfNeeded(tsStr) {
-    const dk = dayKey(tsStr);
-    if (!dk) return;
-    if (lastDay !== dk) {
-      lastDay = dk;
-      const sep = document.createElement('div');
-      sep.className = 'day-sep';
-      sep.textContent = `— ${dk} —`;
-      logEl.appendChild(sep);
-    }
+  function classForLevel(level) {
+    return `lvl-${(level || 'INFO').toUpperCase()}`;
+  }
+
+  function renderRawLine(raw, levelHint = 'INFO') {
+    const div = document.createElement('div');
+    div.className = `log-line ${classForLevel(levelHint)} flash`;
+    div.textContent = raw;
+    logEl.appendChild(div);
   }
 
   function renderLine(raw) {
-    // Fallback : si la ligne ne matche pas, on la rend brute
     const m = raw.match(LINE_RE);
-
     if (!m) {
-      const div = document.createElement('div');
-      div.className = 'log-line lvl-INFO flash';
-      div.textContent = raw;
-      logEl.appendChild(div);
+      // Fallback : on affiche quand même la ligne brute
+      renderRawLine(raw, 'INFO');
       return;
     }
-
     const [, ts, level, logger, msg] = m;
 
-    addDaySeparatorIfNeeded(ts);
-
     const div = document.createElement('div');
-    div.className = `log-line lvl-${level} flash`;
+    div.className = `log-line ${classForLevel(level)} flash`;
 
     const spanTs = document.createElement('span');
     spanTs.className = 'ts';
     spanTs.textContent = ts;
 
-    const badge = document.createElement('span');
-    badge.className = 'badge rounded-pill logger me-2';
-    badge.textContent = logger;
-
     const spanLvl = document.createElement('span');
     spanLvl.className = 'me-2';
     spanLvl.textContent = `[${level}]`;
+
+    const badge = document.createElement('span');
+    badge.className = 'badge rounded-pill logger me-2';
+    badge.textContent = logger;
 
     const spanMsg = document.createElement('span');
     spanMsg.textContent = msg;
@@ -162,60 +138,72 @@
     logEl.appendChild(div);
   }
 
-  function poll() {
-    if (paused) return;
-    const params = new URLSearchParams({
-      since: String(lastId || 0),
-      level: levelEl.value || 'INFO',
-      q: qEl.value || ''
-    });
-    fetch(`/logs/poll?${params.toString()}`, { cache: 'no-store' })
-      .then(r => r.json())
-      .then(({lines, last}) => {
-        if (Array.isArray(lines) && lines.length) {
-          for (const line of lines) renderLine(line);
-          rendered += lines.length;
-          lastId = last || lastId;
-          statsEl.textContent = `${rendered} ligne(s) affichée(s) – last=${lastId}`;
-          if (autoscrollCk.checked) {
-            logEl.scrollTop = logEl.scrollHeight;
-          }
-        }
-      })
-      .catch(() => {/* silence */});
+  async function pollOnce() {
+    const params = new URLSearchParams();
+    params.set('since', String(last || 0));
+    params.set('level', (levelEl && levelEl.value) ? levelEl.value : 'INFO');
+    const qVal = filterInput && filterInput.value ? filterInput.value.trim() : '';
+    if (qVal) params.set('q', qVal);
+
+    let res;
+    try {
+      res = await fetch('/logs/poll?' + params.toString(), { cache: 'no-store' });
+    } catch (e) {
+      removePlaceholderOnce();
+      renderRawLine(`(poll error réseau) ${e}`, 'ERROR');
+      return;
+    }
+
+    if (!res.ok) {
+      removePlaceholderOnce();
+      renderRawLine(`(poll HTTP ${res.status})`, 'ERROR');
+      return;
+    }
+
+    let payload;
+    try {
+      payload = await res.json();
+    } catch (e) {
+      removePlaceholderOnce();
+      renderRawLine(`(poll JSON invalide) ${e}`, 'ERROR');
+      return;
+    }
+
+    const { lines, last: newLast } = payload || {};
+    if (Array.isArray(lines) && lines.length) {
+      removePlaceholderOnce();
+      for (const line of lines) renderLine(line);
+      last = (typeof newLast === 'number') ? newLast : last;
+      if (autoscrollCk && autoscrollCk.checked) {
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+    }
   }
 
   function start() {
     stop();
-    poll();
-    timer = setInterval(poll, 900);
+    pollOnce();
+    timer = setInterval(() => { if (!paused) pollOnce(); }, 900);
   }
 
   function stop() {
     if (timer) { clearInterval(timer); timer = null; }
   }
 
-  applyBtn.addEventListener('click', () => {
-    // reset pagination & rendu
-    lastId = 0;
-    rendered = 0;
-    logEl.textContent = '';
-    lastDay = null;
-    poll();
-  });
+  // Controls
+  if (applyBtn) {
+    applyBtn.addEventListener('click', () => { last = 0; logEl.textContent = ''; start(); });
+  }
+  if (pauseBtn) {
+    pauseBtn.addEventListener('click', () => {
+      paused = !paused;
+      pauseBtn.textContent = paused ? '▶️ Reprendre' : '⏸️ Pause';
+    });
+  }
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => { logEl.textContent = ''; });
+  }
 
-  pauseBtn.addEventListener('click', () => {
-    paused = !paused;
-    pauseBtn.textContent = paused ? "▶️ Reprendre" : "⏸️ Pause";
-  });
-
-  clearBtn.addEventListener('click', () => {
-    logEl.textContent = '';
-    rendered = 0;
-    lastDay = null;
-  });
-
-  // Lancement
   start();
   window.addEventListener('beforeunload', stop);
 })();
