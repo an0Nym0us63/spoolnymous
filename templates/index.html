@@ -46,17 +46,18 @@
   }
   .value { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
   .unit  { opacity:.8; margin-left:.1rem; }
-  /* Accentuation de la buse active */
-.nozzle-row.is-active .value {
-  font-weight: 700;              /* gras visible */
-  color: #fbbf24;                /* amber-400 (bonne lisibilité sur fond sombre) */
+/* Accentuation de toute la ligne de la buse active */
+.nozzle-row.is-active {
+  font-weight: 700;         /* gras sur toute la ligne */
+  color: #fbbf24;           /* amber-400 : bien lisible sur fond sombre */
   filter: drop-shadow(0 0 2px rgba(251,191,36,.35));
 }
-/* On laisse unité et cible non-gras, non colorées */
-.nozzle-row.is-active .unit,
-.nozzle-row.is-active .tgt {
-  font-weight: 400;
-  color: inherit;
+
+/* (facultatif) petit fond pour surligner encore plus la ligne active */
+.nozzle-row.is-active {
+  background: rgba(251,191,36,0.08);
+  border-radius: .35rem;
+  padding: .05rem .25rem;
 }
 </style>
 <div x-data="{ open: false }"
@@ -481,6 +482,7 @@ const rightCur = data.nozzle_right_temp, rightTgt = data.target_nozzle_right_tem
 const monoCur  = data.nozzle_temp,       monoTgt  = data.target_nozzle_temp;
 
 const nozzleEl = document.getElementById('status-nozzle');
+const rawAct = data.active_nozzle;
 const act = (rawAct === 0 || rawAct === 1 || rawAct === '0' || rawAct === '1')
   ? Number(rawAct) : -1;  // -1 = pas d'actif
 
