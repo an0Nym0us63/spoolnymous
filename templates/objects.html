@@ -188,8 +188,8 @@
           <label class="form-label">Prix de vente</label>
           <div class="input-group">
             <input type="number" name="sold_price" class="form-control" min="0" step="0.01"
-                   value="{{ o.sold_price if o.sold_price is not none else '' }}"
-                   placeholder="0.00">
+       value="{% if o.sold_price is not none %}{{ '%.2f'|format(o.sold_price) }}{% endif %}"
+       placeholder="0.00">
             <span class="input-group-text">{{ currencysymbol or '€' }}</span>
           </div>
           <div class="form-text">Mettre <strong>0</strong> pour un don / cadeau.</div>
@@ -197,19 +197,29 @@
 
         <div class="mb-3">
           <label class="form-label">Date de vente</label>
-          <input type="date" name="sold_date" class="form-control" value="{{ o.sold_date or '' }}">
+          <input type="date" name="sold_date" class="form-control"
+       value="{{ (o.sold_date[:10]) if o.sold_date else '' }}">
           <div class="form-text">Par défaut : aujourd’hui.</div>
         </div>
 
         <div class="mb-0">
           <label class="form-label">Commentaire (optionnel)</label>
-          <textarea name="sold_comment" class="form-control" rows="3" placeholder="Détails de la vente / du don…"></textarea>
+          <textarea name="sold_comment" class="form-control" rows="3"
+          placeholder="Détails de la vente / du don…">{{ o.comment or '' }}</textarea>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-        <button type="submit" class="btn btn-primary">Enregistrer</button>
-      </div>
+  <!-- Soumet le même formulaire vers la route d'annulation -->
+  <button type="submit"
+          class="btn btn-outline-danger me-auto"
+          formmethod="post"
+          formaction="{{ url_for('objects_unsell', object_id=o.id) }}">
+    ❌ Annuler la vente
+  </button>
+
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+  <button type="submit" class="btn btn-primary">Enregistrer</button>
+</div>
     </form>
   </div>
 </div>

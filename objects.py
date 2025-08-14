@@ -756,5 +756,34 @@ def update_object_sale(object_id: int, sold_price: float, sold_date: str, commen
     conn.commit()
     conn.close()
 
+def clear_object_sale(object_id: int) -> None:
+    """
+    Annule la vente/don d'un objet :
+      - sold_price = NULL
+      - sold_date  = NULL
+      - available  = 1 (remis en stock)
+      - updated_at = now
+    """
+    conn = _connect()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE objects
+           SET sold_price = NULL,
+               sold_date  = NULL,
+               available  = 1,
+               comment = NULL,
+               updated_at = datetime('now')
+         WHERE id = ?
+        """,
+        (object_id,),
+    )
+    if cur.rowcount == 0:
+        conn.rollback()
+        conn.close()
+        raise ValueError(f"Objet introuvable (id={object_id})")
+
+    conn.commit()
+    conn.close()
 
 ensure_schema()

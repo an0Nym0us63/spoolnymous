@@ -1995,4 +1995,16 @@ def objects_sell(object_id: int):
     flash("Vente / don enregistré.", "success")
     return redirect(request.referrer or url_for("objects"))
 
+@app.route("/objects/<int:object_id>/unsell", methods=["POST"])
+def objects_unsell(object_id: int):
+    try:
+        clear_object_sale(object_id)
+    except Exception as e:
+        # log(...) si tu as un logger
+        flash(f"Échec de l'annulation de la vente : {e}", "danger")
+        return redirect(request.referrer or url_for("objects"))
+
+    flash("Vente annulée.", "success")
+    return redirect(request.referrer or url_for("objects"))
+
 app.register_blueprint(auth_bp)
