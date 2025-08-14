@@ -139,7 +139,11 @@
 	<div class="grid grid-cols-2 sm:grid-cols-4 metrics-grid">
 
   {# 🔥 Buse(s) : valeur/target et double tête #}
-{% set act = printer_status.active_nozzle %}
+<div class="metric-pill">
+  <div class="flex items-center gap-2">
+    <span class="text-base sm:text-lg leading-none select-none">🔥</span>
+    <div id="status-nozzle" class="flex flex-col leading-tight">
+     {% set act = printer_status.active_nozzle %}
 
 {% if printer_status.nozzle_left_temp is not none or printer_status.nozzle_right_temp is not none %}
   <div class="whitespace-nowrap nozzle-row {{ 'is-active' if act == 1 else '' }}">
@@ -160,6 +164,9 @@
     {% if printer_status.target_nozzle_temp is not none %}<sup class="tgt">/{{ printer_status.target_nozzle_temp }}</sup>{% endif %}
   </div>
 {% endif %}
+    </div>
+  </div>
+</div>
 
 {# 🛏️ Bed #}
 <div class="metric-pill">
