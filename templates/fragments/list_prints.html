@@ -51,34 +51,32 @@
     </span>
   </div>
 </div>
-
 <div class="text-end">
-{% if entry.thumbnail %}
-    <div style="position: relative; display: inline-block;">
-      <img src="{{ url_for('static', filename='prints/' ~ entry.thumbnail) }}"
-           alt="Group Image" style="width:50px; height:auto;" class="rounded shadow-sm">
+  <div class="thumb" style="--thumb-size: 50px;">{# ajuste 48/50/56 selon ton goût #}
+    {% if entry.thumbnail %}
+      <img
+        src="{{ url_for('static', filename='prints/' ~ entry.thumbnail) }}"
+        alt="Group Image"
+        class="thumb-img">
+    {% else %}
+      <div class="thumb-ph" title="Aucune image"></div>
+    {% endif %}
 
-      {% if entry.number_of_items > 1 %}
-      <span class="badge bg-info rounded-pill"
-      style="position: absolute; top: 4px; right: -2px; font-size: 0.6rem; padding: 0.15em 0.4em;">
-  {{ entry.number_of_items }}
-</span>
-      {% endif %}
-	  
-		 {% set used  = (entry.used_units or 0)|int %}
-{% set total = (entry.number_of_items or 1)|int %}
+    {% if entry.number_of_items > 1 %}
+      <span class="badge bg-info rounded-pill thumb-badge-items">
+        {{ entry.number_of_items }}
+      </span>
+    {% endif %}
 
-{% if used > 0 %}
-  <span class="badge {% if used >= total %}text-bg-danger{% else %}text-bg-warning{% endif %} rounded-pill"
-        style="position: absolute; bottom: 4px; right: -2px; font-size: 0.5rem; padding: 0.15em 0.4em;"
-        title="{{ used }} utilisé(s) / {{ total }}">
-    {{ used }}
-  </span>
-{% endif %}
-    </div>
-  {% else %}
-    <span class="text-muted">—</span>
-  {% endif %}
+    {% set used  = (entry.used_units or 0)|int %}
+    {% set total = (entry.number_of_items or 1)|int %}
+    {% if used > 0 %}
+      <span class="badge {{ 'text-bg-danger' if used >= total else 'text-bg-warning' }} rounded-pill thumb-badge-used"
+            title="{{ used }} utilisé(s) / {{ total }}">
+        {{ used }}
+      </span>
+    {% endif %}
+  </div>
 </div>
         </div>
 
