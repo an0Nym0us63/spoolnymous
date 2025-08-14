@@ -79,13 +79,44 @@
   <!-- Contenu déplié -->
   <div x-show="open" x-transition class="border-t border-gray-700 p-4 text-sm text-light space-y-4" style="background: transparent;">
     <!-- Infos grille -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-      <div><strong>📄</strong> <span id="status-print-name">{{ printer_status.print_printName or 'N/A' }}</span></div>
-      <div><strong>🔥</strong> <span id="status-nozzle">{{ printer_status.nozzle_temp or '—' }}</span> °C</div>
-      <div><strong>🛏️</strong> <span id="status-bed">{{ printer_status.bed_temp or '—' }}</span> °C</div>
-      <div><strong>🌡️</strong> <span id="status-chamber">{{ printer_status.chamber_temp or '—' }}</span> °C</div>
-      <div><strong>🧱️</strong> <span id="status-layers">{{ printer_status.print_layer }}/{{ printer_status.total_layers }}</span></div>
-    </div>
+	<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+  <div><strong>📄</strong> <span id="status-print-name">{{ printer_status.print_printName or 'N/A' }}</span></div>
+
+  {# 🔥 Buse(s) : valeur/target et double tête #}
+  <div>
+    <strong>🔥</strong>
+    <span id="status-nozzle">
+      {% if printer_status.nozzle_left_temp is not none or printer_status.nozzle_right_temp is not none %}
+        {# Double extrudeur #}
+        {% set left = (printer_status.nozzle_left_temp ~ ( '/' ~ printer_status.target_nozzle_left_temp if printer_status.target_nozzle_left_temp is not none else '')) if printer_status.nozzle_left_temp is not none else '—' %}
+        {% set right = (printer_status.nozzle_right_temp ~ ( '/' ~ printer_status.target_nozzle_right_temp if printer_status.target_nozzle_right_temp is not none else '')) if printer_status.nozzle_right_temp is not none else '—' %}
+        G: {{ left }}{% if right != '—' %} | D: {{ right }}{% endif %}
+      {% else %}
+        {# Mono-extrudeur #}
+        {{ (printer_status.nozzle_temp if printer_status.nozzle_temp is not none else '—') ~ ( '/' ~ printer_status.target_nozzle_temp if printer_status.target_nozzle_temp is not none else '') }}
+      {% endif %}
+    </span> °C
+  </div>
+
+  {# 🛏️ Bed : valeur/target #}
+  <div>
+    <strong>🛏️</strong>
+    <span id="status-bed">
+      {{ (printer_status.bed_temp if printer_status.bed_temp is not none else '—') ~ ( '/' ~ printer_status.target_bed_temp if printer_status.target_bed_temp is not none else '') }}
+    </span> °C
+  </div>
+
+  {# 🌡️ Chambre : valeur/target (target facultatif) #}
+  <div>
+    <strong>🌡️</strong>
+    <span id="status-chamber">
+      {{ (printer_status.chamber_temp if printer_status.chamber_temp is not none else '—') ~ ( '/' ~ printer_status.target_chamber_temp if printer_status.target_chamber_temp is not none else '') }}
+    </span> °C
+  </div>
+
+  <div><strong>🧱️</strong> <span id="status-layers">{{ printer_status.print_layer }}/{{ printer_status.total_layers }}</span></div>
+</div>
+
 <div style="width:100%; max-width:720px; margin:0 auto;">
   <div class="ratio ratio-16x9 bg-black rounded overflow-hidden position-relative">
     <img id="printer-cam"
@@ -295,6 +326,12 @@ if (trayGraphic) {
 
 
   document.addEventListener('DOMContentLoaded', () => {
+  const fmt = (cur, tgt) => {
+      const hasCur = cur !== undefined && cur !== null;
+      const hasTgt = tgt !== undefined && tgt !== null;
+      if (!hasCur && !hasTgt) return '—';
+      return `${hasCur ? cur : '—'}${hasTgt ? `/${tgt}` : ''}`;
+    };
     async function refreshPrinterStatus() {
       try {
         const res = await fetch('/printer_status');
@@ -354,9 +391,27 @@ statusTextEl.innerText = status;
 
         document.getElementById('status-layers').innerText = data.print_layer && data.total_layers ? `${data.print_layer}/${data.total_layers}` : '';
 
-        document.getElementById('status-nozzle').innerText = data.nozzle_temp || '—';
-        document.getElementById('status-bed').innerText = data.bed_temp || '—';
-        document.getElementById('status-chamber').innerText = data.chamber_temp || '—';
+         // 🔥 Buse(s)
+        const leftStr  = fmt(data.nozzle_left_temp,  data.target_nozzle_left_temp);
+        const rightStr = fmt(data.nozzle_right_temp, data.target_nozzle_right_temp);
+        const monoStr  = fmt(data.nozzle_temp,       data.target_nozzle_temp);
+
+        const nozzleEl = document.getElementById('status-nozzle');
+        if ((leftStr !== '—') || (rightStr !== '—')) {
+          // Double extrudeur : affiche les deux (ne répète pas “D” si pas de droite)
+          nozzleEl.innerText = `G: ${leftStr}${rightStr !== '—' ? ` | D: ${rightStr}` : ''}`;
+        } else {
+          // Mono
+          nozzleEl.innerText = monoStr;
+        }
+
+        // 🛏️ Bed
+        document.getElementById('status-bed').innerText =
+          fmt(data.bed_temp, data.target_bed_temp);
+
+        // 🌡️ Chambre
+        document.getElementById('status-chamber').innerText =
+          fmt(data.chamber_temp, data.target_chamber_temp);
 
         if (data.printName && document.getElementById('status-print-name')) {
           document.getElementById('status-print-name').innerText = data.printName;
