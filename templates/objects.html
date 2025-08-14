@@ -8,21 +8,6 @@
   .obj-grid      { display:grid; grid-template-columns:auto 1fr auto; gap:.6rem; align-items:center; }
   .obj-main      { min-width:0; display:flex; flex-direction:column; gap:.25rem; }
 
-  /* Thumb : passe-partout plus fin + image réduite */
-  .thumb-wrap    { padding:3px; border-radius:.7rem; background:linear-gradient(135deg, rgba(59,130,246,.22), rgba(16,185,129,.22)); }
-  @media (prefers-color-scheme:dark){
-    .thumb-wrap  { background:linear-gradient(135deg, rgba(59,130,246,.18), rgba(16,185,129,.18)); }
-  }
-  .thumb-matte   { background:var(--bs-body-bg); border-radius:.6rem; padding:2px; }
-  .thumb-img     { width:48px; height:48px; aspect-ratio:1/1; object-fit:cover; border-radius:.5rem; display:block;
-                   background:
-                     radial-gradient(120% 120% at 10% 10%, rgba(255,255,255,.15), rgba(0,0,0,0)),
-                     linear-gradient(135deg, rgba(108,117,125,.18), rgba(33,37,41,.12));
-                   filter:brightness(1.06) contrast(1.05) saturate(1.02); }
-  .thumb-ph      { width:48px; height:48px; border-radius:.5rem; background:
-                     linear-gradient(135deg,#6c757d22,#6c757d33),
-                     repeating-linear-gradient(45deg,#6c757d22 0 8px,#6c757d33 8px 16px); }
-
   /* Titre très compact dans un badge */
   .title-badge   { display:inline-block; max-width:100%; white-space:normal; line-height:1.1;
                    border:1px solid var(--bs-border-color); background:var(--bs-secondary-bg);
@@ -62,20 +47,24 @@
      aria-expanded="false" aria-controls="{{ collapse_id }}">
 
   <div class="obj-grid">
-    <!-- Colonne gauche : thumbnail -->
-    <div class="d-flex align-items-center gap-2 flex-shrink-0">
-      <div class="thumb-wrap">
-        <div class="thumb-matte">
-          {% if o.thumbnail %}
-            <img src="{{ o.thumbnail }}" alt="" class="thumb-img">
-          {% else %}
-            <div class="thumb-ph"></div>
-          {% endif %}
-        </div>
-      </div>
+    <!-- Colonne gauche : statut (vente / offert / dispo / indispo) -->
+    <div class="obj-status d-flex align-items-center justify-content-start me-1 flex-shrink-0">
+      {% if o.sold_price is not none %}
+        {% if o.sold_price == 0 %}
+          <i class="bi bi-gift-fill text-info" title="Offert"></i>
+        {% else %}
+          <i class="bi bi-bag-check-fill text-warning" title="Vendu"></i>
+        {% endif %}
+      {% else %}
+        {% if o.available %}
+          <i class="bi bi-box2-fill text-success" title="Disponible (en stock)"></i>
+        {% else %}
+          <i class="bi bi-slash-circle-fill text-secondary" title="Indisponible"></i>
+        {% endif %}
+      {% endif %}
     </div>
 
-    <!-- Colonne centre : titre (ligne 1) + chips (ligne 2) -->
+    <!-- Colonne centre : titre + chips -->
     <div class="obj-main">
       <div class="d-flex"><span class="title-badge">{{ o.name }}</span></div>
       <div class="chips">
@@ -104,21 +93,15 @@
       </div>
     </div>
 
-    <!-- Colonne droite : statut -->
-    <div class="obj-status d-flex align-items-center justify-content-end ms-2 flex-shrink-0">
-      {% if o.sold_price is not none %}
-        {% if o.sold_price == 0 %}
-          <i class="bi bi-gift-fill text-info" title="Offert"></i>
+    <!-- Colonne droite : thumbnail avec composant global `.thumb` -->
+    <div class="text-end flex-shrink-0">
+      <div class="thumb" style="--thumb-size: 48px;">
+        {% if o.thumbnail %}
+          <img src="{{ o.thumbnail }}" alt="" class="thumb-img">
         {% else %}
-          <i class="bi bi-bag-check-fill text-warning" title="Vendu"></i>
+          <div class="thumb-ph" title="Aucune image"></div>
         {% endif %}
-      {% else %}
-        {% if o.available %}
-          <i class="bi bi-box2-fill text-success" title="Disponible (en stock)"></i>
-        {% else %}
-          <i class="bi bi-slash-circle-fill text-secondary" title="Indisponible"></i>
-        {% endif %}
-      {% endif %}
+      </div>
     </div>
   </div>
 </div>
