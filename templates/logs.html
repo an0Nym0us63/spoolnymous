@@ -1,9 +1,9 @@
 {% extends "base.html" %}
+
 {% block content %}
 <div class="container my-4" style="max-width: 1100px;">
-
   <!-- Toolbar -->
-  <div class="card bg-dark border-secondary mb-3" id="logs-toolbar">
+  <div class="card bg-dark border-secondary mb-3" id="logs-toolbar" style="position: sticky; top: 0; z-index: 1030;">
     <div class="card-body">
       <form id="controls" class="row row-cols-1 row-cols-sm-auto g-2 align-items-center">
         <div class="col">
@@ -18,28 +18,21 @@
         </div>
 
         <div class="col">
-          <label class="col-form-label text-light control-label" for="q">Filtre (regex)</label>
-          <input id="q" type="text" class="form-control" placeholder="ex: (nozzle|MQTT|ERROR)">
+          <label class="col-form-label text-light control-label" for="filter">Filtre (regex)</label>
+          <input id="filter" class="form-control" placeholder="Filtre regex (ex: MQTT|ERROR)" />
         </div>
 
-        <div class="col d-flex gap-2 align-items-end">
-          <button type="button" id="apply" class="btn btn-primary">
-            <i class="bi bi-funnel"></i> Appliquer
-          </button>
-          <button type="button" id="pause" class="btn btn-outline-warning">
-            ⏸️ Pause
-          </button>
-          <button type="button" id="clear" class="btn btn-outline-danger">
-            🧹 Clear
-          </button>
-          <div class="form-check ms-2">
+        <div class="col d-flex gap-2">
+          <button class="btn btn-primary" id="apply" type="button">Appliquer</button>
+          <button class="btn btn-secondary" id="pause" type="button" data-paused="false">⏸️ Pause</button>
+          <button class="btn btn-outline-light" id="clear" type="button">🧹 Clear</button>
+        </div>
+
+        <div class="col">
+          <div class="form-check form-switch mt-1">
             <input class="form-check-input" type="checkbox" id="autoscroll" checked>
-            <label class="form-check-label text-light" for="autoscroll">Auto‑scroll</label>
+            <label class="form-check-label text-light" for="autoscroll">Autoscroll</label>
           </div>
-        </div>
-
-        <div class="col ms-auto text-secondary small">
-          <span id="stats">—</span>
         </div>
       </form>
     </div>
@@ -47,37 +40,140 @@
 
   <!-- Zone logs -->
   <div class="card bg-black border-secondary">
-    <div id="logs" class="card-body font-monospace"
-         style="white-space: pre-wrap; line-height: 1.2; min-height: 50vh; max-height: 70vh; overflow: auto;">
-
-      <!-- lignes insérées ici -->
-
+    <div id="log-container" class="card-body p-2" style="
+      height: 60dvh; overflow: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .92rem;">
+      <pre id="log" class="m-0 text-light" style="white-space: pre-wrap; word-wrap: break-word; word-break: break-word;"></pre>
     </div>
   </div>
 </div>
 
 <style>
-  /* Couleurs par niveau */
   .log-line       { margin: 2px 0; opacity: 0; animation: fadeIn 200ms ease-out forwards; }
   .lvl-DEBUG      { color: #00bcd4; }
   .lvl-INFO       { color: #8bc34a; }
   .lvl-WARNING    { color: #ffc107; }
   .lvl-ERROR      { color: #ff5252; font-weight: 600; }
   .lvl-CRITICAL   { color: #ff1744; font-weight: 700; text-decoration: underline; }
-
   .ts             { color: #9e9e9e; margin-right: .5rem; }
   .logger.badge   { background: #2b2b2b; border: 1px solid #444; color: #cfcfcf; }
-
-  /* Séparateur de date (changement de jour) */
   .day-sep { color:#bdbdbd; border-top:1px dashed #555; margin:.5rem 0 .5rem; padding-top:.3rem; font-size:.9rem; }
-
-  /* Highlight court pour nouvelles lignes */
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   .flash { animation: flashBg 1200ms ease-out 1; }
-  @keyframes flashBg {
-    0%   { background: rgba(255,255,255,.06); }
-    100% { background: transparent; }
+  @keyframes flashBg { 0% { background: rgba(255,255,255,.06);} 100%{ background: transparent;} }
+  @media (max-width: 576px){ .control-label { display: none; } }
+</style>
+
+<script>
+(() => {
+  const logEl       = document.getElementById('log');
+  const levelEl     = document.getElementById('level');
+  const filterEl    = document.getElementById('filter');
+  const applyBtn    = document.getElementById('apply');
+  const pauseBtn    = document.getElementById('pause');
+  const clearBtn    = document.getElementById('clear');
+  const autoscrollCk= document.getElementById('autoscroll');
+
+  // Format attendu: "YYYY-MM-DD HH:MM:SS,mmm [LEVEL] logger: message"
+  const LINE_RE = /^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+\[(\w+)\]\s+([^:]+):\s*(.*)$/;
+
+  let last   = 0;
+  let paused = false;
+  let timer  = null;
+
+  function dayKey(tsStr){ return tsStr ? tsStr.substring(0,10) : ""; }
+
+  function renderLinePretty(raw) {
+    const m = raw.match(LINE_RE);
+
+    // fallback brut si ça ne matche pas
+    if (!m) {
+      const div = document.createElement('div');
+      div.className = 'log-line lvl-INFO flash';
+      div.textContent = raw;
+      logEl.appendChild(div);
+      return;
+    }
+
+    const [, ts, level, logger, msg] = m;
+
+    const div = document.createElement('div');
+    div.className = `log-line lvl-${level} flash`;
+
+    const spanTs = document.createElement('span');
+    spanTs.className = 'ts';
+    spanTs.textContent = ts;
+
+    const spanLvl = document.createElement('span');
+    spanLvl.className = 'me-2';
+    spanLvl.textContent = `[${level}]`;
+
+    const badge = document.createElement('span');
+    badge.className = 'badge rounded-pill logger me-2';
+    badge.textContent = logger;
+
+    const spanMsg = document.createElement('span');
+    spanMsg.textContent = msg;
+
+    div.appendChild(spanTs);
+    div.appendChild(spanLvl);
+    div.appendChild(badge);
+    div.appendChild(spanMsg);
+
+    logEl.appendChild(div);
   }
 
-  .control-label { font-size: .9rem; }
-</style>
+  async function pollOnce() {
+    const params = new URLSearchParams();
+    params.set('level', levelEl.value);
+    const q = filterEl.value.trim();
+    if (q) params.set('q', q);
+    params.set('since', String(last));
+
+    const res = await fetch('/logs/poll?' + params.toString(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const { lines, last: newLast } = await res.json();
+
+    if (Array.isArray(lines) && lines.length) {
+      for (const line of lines) renderLinePretty(line);
+      last = newLast ?? last;
+      if (autoscrollCk.checked) {
+        const container = document.getElementById('log-container');
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+  }
+
+  function startPolling() {
+    stopPolling();
+    pollOnce();
+    timer = setInterval(() => { if (!paused) pollOnce(); }, 900);
+  }
+
+  function stopPolling() {
+    if (timer) { clearInterval(timer); timer = null; }
+  }
+
+  function resetAndStart() {
+    last = 0;
+    logEl.textContent = '';
+    startPolling();
+  }
+
+  applyBtn.addEventListener('click', resetAndStart);
+
+  pauseBtn.addEventListener('click', () => {
+    paused = !paused;
+    pauseBtn.dataset.paused = String(paused);
+    pauseBtn.textContent = paused ? "▶️ Reprendre" : "⏸️ Pause";
+  });
+
+  clearBtn.addEventListener('click', () => {
+    logEl.textContent = "";
+  });
+
+  startPolling();
+  window.addEventListener('beforeunload', stopPolling);
+})();
+</script>
+{% endblock %}
