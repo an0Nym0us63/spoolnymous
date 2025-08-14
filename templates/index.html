@@ -46,6 +46,18 @@
   }
   .value { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
   .unit  { opacity:.8; margin-left:.1rem; }
+  /* Accentuation de la buse active */
+.nozzle-row.is-active .value {
+  font-weight: 700;              /* gras visible */
+  color: #fbbf24;                /* amber-400 (bonne lisibilité sur fond sombre) */
+  filter: drop-shadow(0 0 2px rgba(251,191,36,.35));
+}
+/* On laisse unité et cible non-gras, non colorées */
+.nozzle-row.is-active .unit,
+.nozzle-row.is-active .tgt {
+  font-weight: 400;
+  color: inherit;
+}
 </style>
 <div x-data="{ open: false }"
      class="mb-4 rounded-xl overflow-hidden shadow-md"
@@ -127,32 +139,27 @@
 	<div class="grid grid-cols-2 sm:grid-cols-4 metrics-grid">
 
   {# 🔥 Buse(s) : valeur/target et double tête #}
-<div class="metric-pill">
-  <div class="flex items-center gap-2">
-    <span class="text-base sm:text-lg leading-none select-none">🔥</span>
-    <div id="status-nozzle" class="flex flex-col leading-tight">
-      {% set act = printer_status.active_nozzle %}
-      {% if printer_status.nozzle_left_temp is not none or printer_status.nozzle_right_temp is not none %}
-        <div class="whitespace-nowrap {{ 'font-semibold' if act == 1 else '' }}">
-          <span class="value">{{ printer_status.nozzle_left_temp if printer_status.nozzle_left_temp is not none else '—' }}</span>
-          {% if printer_status.nozzle_left_temp is not none %}<span class="unit">°C</span>{% endif %}
-          {% if printer_status.target_nozzle_left_temp is not none %}<sup class="tgt">/{{ printer_status.target_nozzle_left_temp }}</sup>{% endif %}
-        </div>
-        <div class="whitespace-nowrap {{ 'font-semibold' if act == 0 else '' }}">
-          <span class="value">{{ printer_status.nozzle_right_temp if printer_status.nozzle_right_temp is not none else '—' }}</span>
-          {% if printer_status.nozzle_right_temp is not none %}<span class="unit">°C</span>{% endif %}
-          {% if printer_status.target_nozzle_right_temp is not none %}<sup class="tgt">/{{ printer_status.target_nozzle_right_temp }}</sup>{% endif %}
-        </div>
-      {% else %}
-        <div class="whitespace-nowrap">
-          <span class="value">{{ printer_status.nozzle_temp if printer_status.nozzle_temp is not none else '—' }}</span>
-          {% if printer_status.nozzle_temp is not none %}<span class="unit">°C</span>{% endif %}
-          {% if printer_status.target_nozzle_temp is not none %}<sup class="tgt">/{{ printer_status.target_nozzle_temp }}</sup>{% endif %}
-        </div>
-      {% endif %}
-    </div>
+{% set act = printer_status.active_nozzle %}
+
+{% if printer_status.nozzle_left_temp is not none or printer_status.nozzle_right_temp is not none %}
+  <div class="whitespace-nowrap nozzle-row {{ 'is-active' if act == 1 else '' }}">
+    <span class="value">{{ printer_status.nozzle_left_temp if printer_status.nozzle_left_temp is not none else '—' }}</span>
+    {% if printer_status.nozzle_left_temp is not none %}<span class="unit">°C</span>{% endif %}
+    {% if printer_status.target_nozzle_left_temp is not none %}<sup class="tgt">/{{ printer_status.target_nozzle_left_temp }}</sup>{% endif %}
   </div>
-</div>
+
+  <div class="whitespace-nowrap nozzle-row {{ 'is-active' if act == 0 else '' }}">
+    <span class="value">{{ printer_status.nozzle_right_temp if printer_status.nozzle_right_temp is not none else '—' }}</span>
+    {% if printer_status.nozzle_right_temp is not none %}<span class="unit">°C</span>{% endif %}
+    {% if printer_status.target_nozzle_right_temp is not none %}<sup class="tgt">/{{ printer_status.target_nozzle_right_temp }}</sup>{% endif %}
+  </div>
+{% else %}
+  <div class="whitespace-nowrap nozzle-row">
+    <span class="value">{{ printer_status.nozzle_temp if printer_status.nozzle_temp is not none else '—' }}</span>
+    {% if printer_status.nozzle_temp is not none %}<span class="unit">°C</span>{% endif %}
+    {% if printer_status.target_nozzle_temp is not none %}<sup class="tgt">/{{ printer_status.target_nozzle_temp }}</sup>{% endif %}
+  </div>
+{% endif %}
 
 {# 🛏️ Bed #}
 <div class="metric-pill">
@@ -467,22 +474,24 @@ const rightCur = data.nozzle_right_temp, rightTgt = data.target_nozzle_right_tem
 const monoCur  = data.nozzle_temp,       monoTgt  = data.target_nozzle_temp;
 
 const nozzleEl = document.getElementById('status-nozzle');
-const act = Number(data.active_nozzle); // 1 = gauche, 0 = droite
+const act = (rawAct === 0 || rawAct === 1 || rawAct === '0' || rawAct === '1')
+  ? Number(rawAct) : -1;  // -1 = pas d'actif
+
 if ((leftCur ?? null) !== null || (rightCur ?? null) !== null) {
   let html = '';
   // gauche (1)
   if (leftCur !== undefined || leftTgt !== undefined) {
-    const leftBoldCls = (act === 1) ? ' font-semibold' : '';
-    html += `<div class="whitespace-nowrap${leftBoldCls}">${fmtSup(leftCur, leftTgt,'°C')}</div>`;
+    const cls = (act === 1) ? ' nozzle-row is-active' : ' nozzle-row';
+    html += `<div class="whitespace-nowrap${cls}">${fmtSup(leftCur, leftTgt,'°C')}</div>`;
   }
   // droite (0)
   if (rightCur !== undefined || rightTgt !== undefined) {
-    const rightBoldCls = (act === 0) ? ' font-semibold' : '';
-    html += `<div class="whitespace-nowrap${rightBoldCls}">${fmtSup(rightCur, rightTgt,'°C')}</div>`;
+    const cls = (act === 0) ? ' nozzle-row is-active' : ' nozzle-row';
+    html += `<div class="whitespace-nowrap${cls}">${fmtSup(rightCur, rightTgt,'°C')}</div>`;
   }
-  nozzleEl.innerHTML = html || `<div class="whitespace-nowrap">—</div>`;
+  nozzleEl.innerHTML = html || `<div class="whitespace-nowrap nozzle-row">—</div>`;
 } else {
-  nozzleEl.innerHTML = `<div class="whitespace-nowrap">${fmtSup(monoCur, monoTgt,'°C')}</div>`;
+  nozzleEl.innerHTML = `<div class="whitespace-nowrap nozzle-row">${fmtSup(monoCur, monoTgt,'°C')}</div>`;
 }
 
 document.getElementById('status-bed').innerHTML     = fmtSup(data.bed_temp,     data.target_bed_temp,'°C');
