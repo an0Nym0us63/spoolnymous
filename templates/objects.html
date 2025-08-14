@@ -2,7 +2,23 @@
 {% import 'macros/hidden_args.jinja2' as macros %}
 
 {% block content %}
-
+<style>
+  /* Header responsive & propre */
+  .obj-hdr{cursor:pointer;user-select:none}
+  .obj-thumb{width:56px;height:56px;object-fit:cover;border-radius:.5rem;flex-shrink:0}
+  .obj-main{min-width:0;flex:1 1 auto}             /* autorise le wrap */
+  .title-badge{
+    display:inline-block;max-width:100%;
+    white-space:normal;line-height:1.15;
+    border:1px solid var(--bs-border-color);
+    background:var(--bs-secondary-bg);
+    color:var(--bs-body-color);
+    padding:.25rem .5rem;border-radius:999px;font-weight:600;
+  }
+  .chips{display:flex;flex-wrap:wrap;gap:.25rem;justify-content:flex-end}
+  .chips .badge{font-weight:500}
+  .obj-status i{font-size:1.25rem}
+</style>
 <!-- Boutons flottants (identiques au reste) -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
   <button class="btn btn-sm btn-primary rounded-circle" type="button"
@@ -23,48 +39,67 @@
   {% for o in objects %}
   {% set collapse_id = "obj_" ~ o.id %}
   <div class="card mb-2">
-    <div class="card-header d-flex align-items-center justify-content-between"
-         id="heading_{{ o.id }}" role="button"
-         data-bs-toggle="collapse" data-bs-target="#{{ collapse_id }}"
-         aria-expanded="false" aria-controls="{{ collapse_id }}">
+    <div class="card-header obj-hdr d-flex align-items-center gap-2 justify-content-between"
+     id="heading_{{ o.id }}" role="button"
+     data-bs-toggle="collapse" data-bs-target="#{{ collapse_id }}"
+     aria-expanded="false" aria-controls="{{ collapse_id }}">
 
-      <div class="d-flex align-items-center gap-2">
-        {% if o.thumbnail %}
-          <img src="{{ o.thumbnail }}" alt="" class="rounded" style="width:48px;height:48px;object-fit:cover;">
-        {% else %}
-          <div class="bg-secondary rounded" style="width:48px;height:48px;opacity:.2;"></div>
-        {% endif %}
+  <!-- Gauche : thumbnail -->
+  <div class="d-flex align-items-center gap-2 flex-shrink-0">
+    {% if o.thumbnail %}
+      <img src="{{ o.thumbnail }}" alt="" class="obj-thumb">
+    {% else %}
+      <div class="bg-secondary rounded obj-thumb" style="opacity:.2;"></div>
+    {% endif %}
+  </div>
 
-        <div>
-          <div class="fw-semibold">{{ o.name }}</div>
-          <div class="small text-muted">
-            Créé le {{ o.created_at | datetimeformat('fr')}}
-          </div>
-        </div>
-      </div>
-
-      <div class="d-flex align-items-center gap-2">
-  <!-- Chip coût total (toujours affichée) -->
-  <span class="badge rounded-pill text-bg-secondary">
-    💸 {{ "%.2f"|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
-  </span>
-
-  {% if o.sold_price is not none %}
-    <!-- Chip prix de vente -->
-    <span class="badge rounded-pill text-bg-primary">
-      💰 {{ "%.2f"|format(o.sold_price) }} {{ currencysymbol or '€' }}
-    </span>
-
-    {% set _total = (o.cost_total or 0) %}
-    {% set _margin = (o.margin if o.margin is not none else (o.sold_price - _total)) %}
-    {% set _pos = _margin >= 0 %}
-    <!-- Chip marge (couleur selon signe) -->
-    <span class="badge rounded-pill {{ 'text-bg-success' if _pos else 'text-bg-danger' }}">
-      {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol or '€' }}
-    </span>
-  {% endif %}
-</div>
+  <!-- Centre : titre (badge) + chips en-dessous, qui s'adaptent au mobile -->
+  <div class="obj-main d-flex flex-column gap-1">
+    <div class="d-flex">
+      <span class="title-badge">{{ o.name }}</span>
     </div>
+    <div class="chips">
+      {# Coût total : toujours #}
+      <span class="badge rounded-pill text-bg-secondary">
+        💸 {{ "%.2f"|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
+      </span>
+
+      {# Vente/don + marge : seulement si sold_price renseigné (0 accepté = don) #}
+      {% if o.sold_price is not none %}
+        <span class="badge rounded-pill text-bg-primary">
+          {{ '🎁' if o.sold_price == 0 else '💰' }}
+          {{ "%.2f"|format(o.sold_price) }} {{ currencysymbol or '€' }}
+        </span>
+        {% set _total = (o.cost_total or 0) %}
+        {% set _margin = (o.margin if (o.margin is not none) else (o.sold_price - _total)) %}
+        {% set _pos = _margin >= 0 %}
+        <span class="badge rounded-pill {{ 'text-bg-success' if _pos else 'text-bg-danger' }}">
+          {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol or '€' }}
+        </span>
+      {% endif %}
+    </div>
+    <div class="small text-muted">
+      Créé le {{ o.created_at | datetimeformat('fr')}}
+    </div>
+  </div>
+
+  <!-- Droite : icône statut (dispo / vendu / offert) -->
+  <div class="obj-status d-flex align-items-center ms-2 flex-shrink-0">
+    {% if o.sold_price is not none %}
+      {% if o.sold_price == 0 %}
+        <i class="bi bi-gift-fill text-info" title="Offert"></i>
+      {% else %}
+        <i class="bi bi-bag-check-fill text-warning" title="Vendu"></i>
+      {% endif %}
+    {% else %}
+      {% if o.available %}
+        <i class="bi bi-circle-fill text-success" title="Disponible"></i>
+      {% else %}
+        <i class="bi bi-slash-circle-fill text-secondary" title="Indisponible"></i>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
 
     <div id="{{ collapse_id }}" class="collapse" aria-labelledby="heading_{{ o.id }}" data-bs-parent="#objectsAccordion">
       <div class="card-body">
