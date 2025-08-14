@@ -30,33 +30,51 @@
     );
     flex-shrink:0;
   }
-  /* Pour dark: un peu moins saturé */
+  /* Passe-partout autour du thumb */
+  .thumb-wrap{
+    padding:6px; border-radius:.8rem; flex-shrink:0;
+    background: linear-gradient(135deg,
+      rgba(59,130,246,.35),   /* ~bs-primary */
+      rgba(16,185,129,.35)    /* ~bs-success */
+    );
+  }
   @media (prefers-color-scheme: dark){
     .thumb-wrap{
-      background: linear-gradient(
-        135deg,
-        rgba(var(--bs-primary-rgb), .25),
-        rgba(var(--bs-success-rgb), .25)
+      background: linear-gradient(135deg,
+        rgba(59,130,246,.28),
+        rgba(16,185,129,.28)
       );
     }
   }
-  /* “Passe-partout” interne pour que l'image ne touche pas le gradient */
+  /* Mat interne (sépare grad. / image) */
   .thumb-matte{
     background: var(--bs-body-bg);
-    border-radius:.6rem;
-    padding:2px;
+    border-radius:.7rem;
+    padding:3px;
   }
-  /* Image : lisible même si sombre */
+
+  /* Image : 
+     - fond GRADIENT *dans l'img* => visible sous les pixels transparents,
+     - boost léger pour ressortir les images sombres. */
   .thumb-img{
     width:56px; height:56px; aspect-ratio:1/1;
-    object-fit:cover; border-radius:.5rem; display:block;
-    filter: brightness(1.06) contrast(1.04) saturate(1.02);
+    object-fit:cover; border-radius:.6rem; display:block;
+
+    /* <<< le fond derrière l'image (si transparente) >>> */
+    background:
+      radial-gradient(120% 120% at 10% 10%, rgba(255,255,255,.15), rgba(0,0,0,0)),
+      linear-gradient(135deg, rgba(108,117,125,.25), rgba(33,37,41,.15));
+
+    /* lisibilité images sombres */
+    filter: brightness(1.06) contrast(1.05) saturate(1.02);
   }
-  /* Placeholder si pas d’image */
+
+  /* Placeholder si pas de thumb */
   .thumb-ph{
-    width:56px; height:56px; aspect-ratio:1/1;
-    border-radius:.5rem; opacity:.24;
-    background: repeating-linear-gradient(45deg,#6c757d22 0 8px,#6c757d33 8px 16px);
+    width:56px; height:56px; border-radius:.6rem;
+    background:
+      linear-gradient(135deg,#6c757d22,#6c757d33),
+      repeating-linear-gradient(45deg,#6c757d22 0 8px,#6c757d33 8px 16px);
   }
 </style>
 <!-- Boutons flottants (identiques au reste) -->
