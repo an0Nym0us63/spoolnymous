@@ -96,7 +96,6 @@
   <div x-show="open" x-transition class="border-t border-gray-700 p-4 text-sm text-light space-y-4" style="background: transparent;">
     <!-- Infos grille -->
 	<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-  <div><strong>📄</strong> <span id="status-print-name">{{ printer_status.print_printName or 'N/A' }}</span></div>
 
   {# 🔥 Buse(s) : valeur/target et double tête #}
   <div>
@@ -131,6 +130,8 @@
   </div>
 
   <div><strong>🧱️</strong> <span id="status-layers">{{ printer_status.print_layer }}/{{ printer_status.total_layers }}</span></div>
+  </br>
+  <div><strong>📄</strong> <span id="status-print-name">{{ printer_status.print_printName or 'N/A' }}</span></div>
 </div>
 
 <div style="width:100%; max-width:720px; margin:0 auto;">
