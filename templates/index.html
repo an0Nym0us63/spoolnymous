@@ -393,12 +393,12 @@ if (trayGraphic) {
 
   document.addEventListener('DOMContentLoaded', () => {
 // Formateur HTML: "123°C" + cible en exposant petit "/200"
-const fmtSup = (cur, tgt) => {
+const fmtSup = (cur, tgt, unit) => {
   const hasCur = cur !== undefined && cur !== null;
   const hasTgt = tgt !== undefined && tgt !== null;
   if (!hasCur && !hasTgt) return '—';
-  let html = hasCur ? `<span class="value">${cur}</span><span class="unit">°C</span>` : '—';
-  if (hasTgt) html += `<sup class="tgt">/${tgt}</sup>`;
+  let html = hasCur ? `<span class="value">${cur}</span><span class="unit">${unit}</span>` : '—';
+  if (hasTgt) html += `<sup class="tgt">${tgt}${unit}</sup>`;
   return html;
 };
 
@@ -459,7 +459,7 @@ statusTextEl.innerText = status;
           document.getElementById('status-remaining').innerHTML = '';
         }
 
-        document.getElementById('status-layers').innerText = data.print_layer && data.total_layers ? `${data.print_layer}/${data.total_layers}` : '';
+        document.getElementById('status-layers').innerHTML = fmtSup(data.print_layer,data.total_layers,'');
 
          // 🔥 Buse(s)
 const leftCur  = data.nozzle_left_temp,  leftTgt  = data.target_nozzle_left_temp;
@@ -470,18 +470,18 @@ const nozzleEl = document.getElementById('status-nozzle');
 if ((leftCur ?? null) !== null || (rightCur ?? null) !== null) {
   let html = '';
   if (leftCur !== undefined || leftTgt !== undefined) {
-    html += `<div class="whitespace-nowrap">G: ${fmtSup(leftCur, leftTgt)}</div>`;
+    html += `<div class="whitespace-nowrap">${fmtSup(leftCur, leftTgt,'°C')}</div>`;
   }
   if (rightCur !== undefined || rightTgt !== undefined) {
-    html += `<div class="whitespace-nowrap">D: ${fmtSup(rightCur, rightTgt)}</div>`;
+    html += `<div class="whitespace-nowrap">${fmtSup(rightCur, rightTgt,'°C')}</div>`;
   }
   nozzleEl.innerHTML = html || `<div class="whitespace-nowrap">—</div>`;
 } else {
-  nozzleEl.innerHTML = `<div class="whitespace-nowrap">${fmtSup(monoCur, monoTgt)}</div>`;
+  nozzleEl.innerHTML = `<div class="whitespace-nowrap">${fmtSup(monoCur, monoTgt,'°C')}</div>`;
 }
 
-document.getElementById('status-bed').innerHTML     = fmtSup(data.bed_temp,     data.target_bed_temp);
-document.getElementById('status-chamber').innerHTML = fmtSup(data.chamber_temp, data.target_chamber_temp);
+document.getElementById('status-bed').innerHTML     = fmtSup(data.bed_temp,     data.target_bed_temp,'°C');
+document.getElementById('status-chamber').innerHTML = fmtSup(data.chamber_temp, data.target_chamber_temp,'°C');
 
         const nameEl = document.getElementById('status-print-name');
 if (nameEl) {
