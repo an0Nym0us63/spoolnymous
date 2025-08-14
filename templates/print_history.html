@@ -2,62 +2,53 @@
 
 {% block content %}
 <style>
-  /* Paramètre unique si tu veux ajuster la taille */
-  :root { --thumb-size: 48px; }
+  :root{ --thumb-size: 48px; --thumb-r: 10px; --thumb-ring: 3px; }
 
-  /* Passe-partout gradient autour de la vignette */
-  .thumb-wrap{
-    padding:3px; border-radius:.7rem; flex-shrink:0;
-    background: linear-gradient(135deg,
-      rgba(59,130,246,.22),   /* primary */
-      rgba(16,185,129,.22)    /* success */
-    );
-  }
-  @media (prefers-color-scheme: dark){
-    .thumb-wrap{
-      background: linear-gradient(135deg,
-        rgba(59,130,246,.18),
-        rgba(16,185,129,.18)
-      );
-    }
-  }
-  /* Matte interne (sépare gradient / image) */
-  .thumb-matte{
-    background: var(--bs-body-bg);
-    border-radius:.6rem;
-    padding:2px;
-  }
-  /* Boîte positionnée pour les badges overlay */
-  .thumb-box{
-    position: relative; display: inline-block;
-    width: var(--thumb-size); height: var(--thumb-size);
-    border-radius:.5rem; overflow: hidden; /* coupe les badges qui dépassent */
-  }
-  /* Image : fond interne (PNG transparents) + boost lisibilité */
-  .thumb-img{
-    width: 100%; height: 100%;
-    object-fit: cover; display:block; border-radius:.5rem;
+.thumb{
+  /* boîte unique = gradient ring + matte interne (truc du background-clip) */
+  position: relative;
+  display: inline-block;
+  border-radius: calc(var(--thumb-r) + var(--thumb-ring));
+  padding: var(--thumb-ring);                /* épaisseur du ring */
+
+  /* 2 backgrounds : 1) matte (padding-box), 2) gradient (border-box) */
+  background:
+    linear-gradient(var(--bs-body-bg), var(--bs-body-bg)) padding-box,
+    linear-gradient(135deg, rgba(59,130,246,.22), rgba(16,185,129,.22)) border-box;
+}
+@media (prefers-color-scheme: dark){
+  .thumb{
     background:
-      radial-gradient(120% 120% at 10% 10%, rgba(255,255,255,.15), rgba(0,0,0,0)),
-      linear-gradient(135deg, rgba(108,117,125,.18), rgba(33,37,41,.12));
-    filter: brightness(1.06) contrast(1.05) saturate(1.02);
+      linear-gradient(var(--bs-body-bg), var(--bs-body-bg)) padding-box,
+      linear-gradient(135deg, rgba(59,130,246,.18), rgba(16,185,129,.18)) border-box;
   }
-  /* Placeholder s'il n'y a pas d'image */
-  .thumb-ph{
-    width: 100%; height: 100%; border-radius:.5rem;
-    background:
-      linear-gradient(135deg,#6c757d22,#6c757d33),
-      repeating-linear-gradient(45deg,#6c757d22 0 8px,#6c757d33 8px 16px);
-  }
-  /* Badges overlay */
-  .thumb-badge-items{
-    position: absolute; top: 4px; right: 4px;
-    font-size: .6rem; padding: .15em .4em;
-  }
-  .thumb-badge-used{
-    position: absolute; bottom: 4px; right: 4px;
-    font-size: .55rem; padding: .15em .4em;
-  }
+}
+
+.thumb-img, .thumb-ph{
+  width: var(--thumb-size); height: var(--thumb-size);
+  object-fit: cover; display:block; border-radius: var(--thumb-r);
+  /* fond “dans” l’image pour PNG transparents */
+  background:
+    radial-gradient(120% 120% at 10% 10%, rgba(255,255,255,.15), rgba(0,0,0,0)),
+    linear-gradient(135deg, rgba(108,117,125,.18), rgba(33,37,41,.12));
+}
+.thumb-img{
+  filter: brightness(1.06) contrast(1.05) saturate(1.02);
+}
+.thumb-ph{
+  background:
+    linear-gradient(135deg,#6c757d22,#6c757d33),
+    repeating-linear-gradient(45deg,#6c757d22 0 8px,#6c757d33 8px 16px);
+  border-radius: var(--thumb-r);
+}
+
+/* Badges overlay */
+.thumb .thumb-badge-items{
+  position:absolute; top:4px; right:4px; font-size:.6rem; padding:.15em .4em;
+}
+.thumb .thumb-badge-used{
+  position:absolute; bottom:4px; right:4px; font-size:.55rem; padding:.15em .4em;
+}
 </style>
 {% import 'macros/hidden_args.jinja2' as macros %}
 <!-- Bouton flottant pagination -->
