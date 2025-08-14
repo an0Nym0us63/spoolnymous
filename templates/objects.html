@@ -140,6 +140,11 @@
     💳 Vente / don
   </a>
 </li>
+<li>
+  <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#commentModal_{{ o.id }}">
+    💬 Modifier le commentaire
+  </a>
+</li>
 	{% if o.parent_type == 'print' %}
   <li>
     <a class="dropdown-item" href="{{ url_for('print_history') }}?ref_print_id={{ o.parent_id }}&focus_print_id={{ o.parent_id }}">
@@ -277,6 +282,27 @@
   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
   <button type="submit" class="btn btn-primary">Enregistrer</button>
 </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal fade" id="commentModal_{{ o.id }}" tabindex="-1" aria-labelledby="commentLabel_{{ o.id }}">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('objects_update_comment', object_id=o.id) }}">
+      {{ macros.render_filtered_args(args) }}
+      <div class="modal-header">
+        <h5 class="modal-title" id="commentLabel_{{ o.id }}">Modifier le commentaire</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <textarea name="comment" class="form-control" rows="5"
+                  placeholder="Saisissez un commentaire pour cet objet…">{{ o.comment or '' }}</textarea>
+        <div class="form-text">Laissez vide pour effacer le commentaire.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
     </form>
   </div>
 </div>

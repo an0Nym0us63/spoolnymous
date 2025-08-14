@@ -38,7 +38,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -2005,6 +2005,19 @@ def objects_unsell(object_id: int):
         return redirect(request.referrer or url_for("objects"))
 
     flash("Vente annulée.", "success")
+    return redirect(request.referrer or url_for("objects"))
+
+@app.route("/objects/<int:object_id>/comment", methods=["POST"])
+def objects_update_comment(object_id: int):
+    comment = (request.form.get("comment") or "").strip()
+    # None = on efface ; chaîne non vide = on enregistre
+    try:
+        update_object_comment(object_id, comment if comment else None)
+    except Exception as e:
+        flash(f"Échec de la mise à jour du commentaire : {e}", "danger")
+        return redirect(request.referrer or url_for("objects"))
+
+    flash("Commentaire mis à jour.", "success")
     return redirect(request.referrer or url_for("objects"))
 
 app.register_blueprint(auth_bp)

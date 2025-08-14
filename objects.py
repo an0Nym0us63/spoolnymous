@@ -786,4 +786,26 @@ def clear_object_sale(object_id: int) -> None:
     conn.commit()
     conn.close()
 
+def update_object_comment(object_id: int, comment: Optional[str]) -> None:
+    """
+    Met à jour (ou efface) le commentaire d'un objet.
+    - comment=None => efface le commentaire
+    - met à jour updated_at = now
+    """
+    conn = _connect()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE objects
+           SET comment    = ?,
+               updated_at = datetime('now')
+         WHERE id = ?
+        """,
+        (comment, object_id),
+    )
+    if cur.rowcount == 0:
+        conn.rollback(); conn.close()
+        raise ValueError(f"Objet introuvable (id={object_id})")
+    conn.commit(); conn.close()
+
 ensure_schema()
