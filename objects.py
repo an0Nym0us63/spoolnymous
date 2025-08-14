@@ -734,7 +734,7 @@ def update_object_sale(object_id: int, sold_price: float, sold_date: str, commen
       - met à jour les champs sold_price, sold_date, comment
       - met à jour updated_at = datetime('now')
     """
-    conn = sqlite3.connect(_DB_PATH)
+    conn = _connect()
     cur = conn.cursor()
     cur.execute(
         """
