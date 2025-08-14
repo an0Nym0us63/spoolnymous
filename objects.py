@@ -3,9 +3,6 @@ from typing import Optional, Dict, Any, List, Tuple, NamedTuple, Literal
 from datetime import datetime, timezone
 from collections.abc import Iterable
 
-from __future__ import annotations
-
-
 # On réutilise la config DB telle qu'elle existe déjà dans le projet
 from print_history import db_config
 
