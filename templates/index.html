@@ -3,20 +3,41 @@
 {% block content %}
 {% if printer_status %}
 <style>
-  /* Le conteneur des valeurs buse devient un inline-flex qui peut retourner à la ligne
-     uniquement entre ses items (G et D). */
-  #status-nozzle {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: .25rem;               /* petit espacement entre G et D */
-    align-items: baseline;
+  /* --- Chips métriques (nozzle/bed/chamber/layers) --- */
+  .metrics-grid { gap:.5rem; }
+  .metric-pill, .metric-block{
+    background: linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    border: 1px solid rgba(255,255,255,.12);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: .75rem;
+    box-shadow: inset 0 0 2px rgba(255,255,255,.05);
+    color: #e5e7eb;
+    font-size: .85rem; /* un poil plus petit */
+    line-height: 1.2;
   }
-  /* Empêche la casse à l'intérieur de chaque groupe "valeur/target" */
-  .nowrap { white-space: nowrap; }
+  .metric-pill{ display:flex; align-items:center; padding:.35rem .6rem; }
+  .metric-block{ display:flex; align-items:center; padding:.35rem .6rem; }
 
-  /* Ajoute le séparateur " |" à la fin du bloc de gauche.
-     Ainsi, si ça coupe, le pipe termine la première ligne (et jamais au début de la suivante). */
-  .with-sep::after { content: " |"; padding: 0 .25rem; }
+  .metric-icon{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:1.25rem; margin-right:.4rem; filter: drop-shadow(0 0 1px rgba(0,0,0,.35));
+  }
+  .value{
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    letter-spacing:.02em;
+  }
+  .unit{ opacity:.75; margin-left:.1rem; }
+
+  /* Nozzle = 2 lignes empilées */
+  #status-nozzle{ display:flex; flex-direction:column; gap:2px; }
+  #status-nozzle .whitespace-nowrap{ font-size:.82rem; }
+
+  @media (max-width:640px){
+    .metric-pill, .metric-block{ font-size:.8rem; }
+    #status-nozzle .whitespace-nowrap{ font-size:.78rem; }
+  }
 </style>
 <div x-data="{ open: false }"
      class="mb-4 rounded-xl overflow-hidden shadow-md"
@@ -95,46 +116,43 @@
   <!-- Contenu déplié -->
   <div x-show="open" x-transition class="border-t border-gray-700 p-4 text-sm text-light space-y-4" style="background: transparent;">
     <!-- Infos grille -->
-	<div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+	<div class="grid grid-cols-2 sm:grid-cols-4 metrics-grid">
 
   {# 🔥 Buse(s) : valeur/target et double tête #}
-  <div>
-  <div class="flex items-center gap-2">
-    <span class="text-base sm:text-lg leading-none select-none">🔥</span>
-    <div id="status-nozzle" class="flex flex-col leading-tight">
-      {% if printer_status.nozzle_left_temp is not none or printer_status.nozzle_right_temp is not none %}
-        {# Double extrudeur #}
-        {% set left  = (printer_status.nozzle_left_temp ~ ( '/' ~ printer_status.target_nozzle_left_temp if printer_status.target_nozzle_left_temp is not none else '')) if printer_status.nozzle_left_temp is not none else '—' %}
-        {% set right = (printer_status.nozzle_right_temp ~ ( '/' ~ printer_status.target_nozzle_right_temp if printer_status.target_nozzle_right_temp is not none else '')) if printer_status.nozzle_right_temp is not none else '—' %}
-        <div class="whitespace-nowrap">G: {{ left }} °C</div>
-        <div class="whitespace-nowrap">D: {{ right }} °C</div>
-      {% else %}
-        {# Mono-extrudeur #}
-        <div class="whitespace-nowrap">
-          {{ (printer_status.nozzle_temp if printer_status.nozzle_temp is not none else '—') ~ ( '/' ~ printer_status.target_nozzle_temp if printer_status.target_nozzle_temp is not none else '') }} °C
-        </div>
-      {% endif %}
-    </div>
+<div class="metric-block">
+  <span class="metric-icon">🔥</span>
+  <div id="status-nozzle">
+    {% if printer_status.nozzle_left_temp is not none or printer_status.nozzle_right_temp is not none %}
+      {% set left  = (printer_status.nozzle_left_temp ~ ( '/' ~ printer_status.target_nozzle_left_temp if printer_status.target_nozzle_left_temp is not none else '')) if printer_status.nozzle_left_temp is not none else '—' %}
+      {% set right = (printer_status.nozzle_right_temp ~ ( '/' ~ printer_status.target_nozzle_right_temp if printer_status.target_nozzle_right_temp is not none else '')) if printer_status.nozzle_right_temp is not none else '—' %}
+      <div class="whitespace-nowrap">G: <span class="value">{{ left }}</span><span class="unit"> °C</span></div>
+      <div class="whitespace-nowrap">D: <span class="value">{{ right }}</span><span class="unit"> °C</span></div>
+    {% else %}
+      <div class="whitespace-nowrap">
+        <span class="value">
+          {{ (printer_status.nozzle_temp if printer_status.nozzle_temp is not none else '—') ~ ( '/' ~ printer_status.target_nozzle_temp if printer_status.target_nozzle_temp is not none else '') }}
+        </span><span class="unit"> °C</span>
+      </div>
+    {% endif %}
   </div>
 </div>
 
   {# 🛏️ Bed : valeur/target #}
-  <div>
-    <strong>🛏️</strong>
-    <span id="status-bed">
-      {{ (printer_status.bed_temp if printer_status.bed_temp is not none else '—') ~ ( '/' ~ printer_status.target_bed_temp if printer_status.target_bed_temp is not none else '') }}
-    </span> °C
-  </div>
+<div class="metric-pill">
+  <span class="metric-icon">🛏️</span>
+  <span class="value"><span id="status-bed">{{ (printer_status.bed_temp if printer_status.bed_temp is not none else '—') ~ ( '/' ~ printer_status.target_bed_temp if printer_status.target_bed_temp is not none else '') }}</span><span class="unit"> °C</span></span>
+</div>
 
   {# 🌡️ Chambre : valeur/target (target facultatif) #}
-  <div>
-    <strong>🌡️</strong>
-    <span id="status-chamber">
-      {{ (printer_status.chamber_temp if printer_status.chamber_temp is not none else '—') ~ ( '/' ~ printer_status.target_chamber_temp if printer_status.target_chamber_temp is not none else '') }}
-    </span> °C
-  </div>
+<div class="metric-pill">
+  <span class="metric-icon">🌡️</span>
+  <span class="value"><span id="status-chamber">{{ (printer_status.chamber_temp if printer_status.chamber_temp is not none else '—') ~ ( '/' ~ printer_status.target_chamber_temp if printer_status.target_chamber_temp is not none else '') }}</span><span class="unit"> °C</span></span>
+</div>
 
-  <div><strong>🧱️</strong> <span id="status-layers">{{ printer_status.print_layer }}/{{ printer_status.total_layers }}</span></div>
+<div class="metric-pill">
+  <span class="metric-icon">🧱️</span>
+  <span class="value" id="status-layers">{{ printer_status.print_layer }}/{{ printer_status.total_layers }}</span>
+</div>
 </div>
 
 <div style="width:100%; max-width:720px; margin:0 auto;">
