@@ -46,18 +46,22 @@
   }
   .value { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
   .unit  { opacity:.8; margin-left:.1rem; }
-/* Accentuation de toute la ligne de la buse active */
-.nozzle-row.is-active {
-  font-weight: 700;         /* gras sur toute la ligne */
-  color: #fbbf24;           /* amber-400 : bien lisible sur fond sombre */
-  filter: drop-shadow(0 0 2px rgba(251,191,36,.35));
+/* Normaliser le layout des lignes */
+.nozzle-row {
+  padding: 0;              /* pas de retrait */
+  background: none;        /* pas de fond par défaut */
 }
 
-/* (facultatif) petit fond pour surligner encore plus la ligne active */
+/* Ligne active : gras + couleur cyan, sans fond */
 .nozzle-row.is-active {
-  background: rgba(251,191,36,0.08);
-  border-radius: .35rem;
-  padding: .05rem .25rem;
+  color: #22d3ee;          /* cyan-400 ; alternatives: #06b6d4 (cyan-500) */
+  filter: none;            /* pas de glow qui pourrait gêner la lisibilité */
+}
+
+/* Monter l’opacité pour que unit/tgt suivent la couleur de la ligne */
+.nozzle-row.is-active .unit,
+.nozzle-row.is-active .tgt {
+  opacity: 1;
 }
 </style>
 <div x-data="{ open: false }"
