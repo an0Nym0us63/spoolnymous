@@ -127,17 +127,18 @@
 	<div class="grid grid-cols-2 sm:grid-cols-4 metrics-grid">
 
   {# 🔥 Buse(s) : valeur/target et double tête #}
-<div  class="metric-pill">
+<div class="metric-pill">
   <div class="flex items-center gap-2">
     <span class="text-base sm:text-lg leading-none select-none">🔥</span>
     <div id="status-nozzle" class="flex flex-col leading-tight">
+      {% set act = printer_status.active_nozzle %}
       {% if printer_status.nozzle_left_temp is not none or printer_status.nozzle_right_temp is not none %}
-        <div class="whitespace-nowrap">
+        <div class="whitespace-nowrap {{ 'font-semibold' if act == 1 else '' }}">
           <span class="value">{{ printer_status.nozzle_left_temp if printer_status.nozzle_left_temp is not none else '—' }}</span>
           {% if printer_status.nozzle_left_temp is not none %}<span class="unit">°C</span>{% endif %}
           {% if printer_status.target_nozzle_left_temp is not none %}<sup class="tgt">/{{ printer_status.target_nozzle_left_temp }}</sup>{% endif %}
         </div>
-        <div class="whitespace-nowrap">
+        <div class="whitespace-nowrap {{ 'font-semibold' if act == 0 else '' }}">
           <span class="value">{{ printer_status.nozzle_right_temp if printer_status.nozzle_right_temp is not none else '—' }}</span>
           {% if printer_status.nozzle_right_temp is not none %}<span class="unit">°C</span>{% endif %}
           {% if printer_status.target_nozzle_right_temp is not none %}<sup class="tgt">/{{ printer_status.target_nozzle_right_temp }}</sup>{% endif %}
@@ -466,13 +467,18 @@ const rightCur = data.nozzle_right_temp, rightTgt = data.target_nozzle_right_tem
 const monoCur  = data.nozzle_temp,       monoTgt  = data.target_nozzle_temp;
 
 const nozzleEl = document.getElementById('status-nozzle');
+const act = Number(data.active_nozzle); // 1 = gauche, 0 = droite
 if ((leftCur ?? null) !== null || (rightCur ?? null) !== null) {
   let html = '';
+  // gauche (1)
   if (leftCur !== undefined || leftTgt !== undefined) {
-    html += `<div class="whitespace-nowrap">${fmtSup(leftCur, leftTgt,'°C')}</div>`;
+    const leftBoldCls = (act === 1) ? ' font-semibold' : '';
+    html += `<div class="whitespace-nowrap${leftBoldCls}">${fmtSup(leftCur, leftTgt,'°C')}</div>`;
   }
+  // droite (0)
   if (rightCur !== undefined || rightTgt !== undefined) {
-    html += `<div class="whitespace-nowrap">${fmtSup(rightCur, rightTgt,'°C')}</div>`;
+    const rightBoldCls = (act === 0) ? ' font-semibold' : '';
+    html += `<div class="whitespace-nowrap${rightBoldCls}">${fmtSup(rightCur, rightTgt,'°C')}</div>`;
   }
   nozzleEl.innerHTML = html || `<div class="whitespace-nowrap">—</div>`;
 } else {
