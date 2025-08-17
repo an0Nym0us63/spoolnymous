@@ -716,9 +716,18 @@ def list_objects(filters: dict, page: int, per_page: int = 30):
     # Récupérer les lignes (triées par date desc si dispo)
     offset = (page - 1) * per_page
     cur.execute(f"""
-        SELECT id, name, parent_type, sold_price, available,
-               cost_total, cost_accessory, cost_fabrication,
-               margin, created_at
+        SELECT
+            id,
+            name,
+            parent_type,
+            sold_price,
+            available,
+            cost_total,
+            cost_accessory,
+            cost_fabrication,
+            margin,
+            created_at,
+            updated_at       -- <-- important : présent pour le template
         FROM objects
         {where}
         ORDER BY created_at DESC
@@ -728,6 +737,7 @@ def list_objects(filters: dict, page: int, per_page: int = 30):
 
     conn.close()
     return rows, total_pages
+
 
 
 def rename_object(object_id: int, new_name: str) -> None:
