@@ -240,7 +240,7 @@
                     class="btn btn-sm btn-outline-primary ms-2"
                     onclick="toggleTagAdd('{{ item_id }}')">+ Tag</button>
 
-            <form class="tag-add-inline ms-1" id="tagAdd-{{ item_id }}" method="post" action="{{ url_for('add_object_tag') }}">
+            <form class="tag-add-inline ms-1" id="tagAdd-{{ item_id }}" method="post" ><!--action="{{ url_for('add_object_tag') }}"-->
               <input type="hidden" name="object_id" value="{{ o.id }}">
               <div class="input-group input-group-sm">
                 <input type="text" name="tag" class="form-control" placeholder="Nouveau tag…" required>
