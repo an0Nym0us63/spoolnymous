@@ -49,13 +49,6 @@ for name in ("urllib3", "urllib3.connectionpool", "requests.packages.urllib3"):
     lg = logging.getLogger(name)
     lg.setLevel(logging.WARNING)
 
-ACCESSORY_UPLOAD_DIR = os.path.join(app.static_folder, "uploads", "accessories")
-os.makedirs(ACCESSORY_UPLOAD_DIR, exist_ok=True)
-
-ALLOWED_IMG_EXT = {"png", "jpg", "jpeg", "webp", "gif"}
-def _allowed_image(filename: str) -> bool:
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMG_EXT
-
 COLOR_FAMILIES = {
     # Neutres
     'Black': (0, 0, 0),
@@ -606,6 +599,13 @@ app.config.update(
     SESSION_COOKIE_SECURE=True             # requis avec SameSite=None
 )
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+ACCESSORY_UPLOAD_DIR = os.path.join(app.static_folder, "uploads", "accessories")
+os.makedirs(ACCESSORY_UPLOAD_DIR, exist_ok=True)
+
+ALLOWED_IMG_EXT = {"png", "jpg", "jpeg", "webp", "gif"}
+def _allowed_image(filename: str) -> bool:
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMG_EXT
 
 @app.get("/camera/mjpeg")
 def camera_mjpeg():
