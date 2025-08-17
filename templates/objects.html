@@ -130,50 +130,44 @@
     </div>
 
     <!-- Colonne centre : titre + chips -->
-<div class="obj-main text-center mx-auto" style="max-width: 100%; width: 100%;">
-  <div class="d-flex justify-content-center">
-    <div class="text-center" style="max-width: 100%;">
-      {% if o.sold_price is not none %}
-        {% if o.sold_price == 0 %}
-          <span class="badge bg-info text-dark small fw-semibold text-break">{{ o.name }}</span>
-        {% else %}
-          <span class="badge bg-success text-white small fw-semibold text-break">{{ o.name }}</span>
-        {% endif %}
+<div class="obj-main d-flex flex-column align-items-center text-center px-1" style="max-width: 100%;">
+  <div class="w-100" style="max-width: 200px;">
+    {% if o.sold_price is not none %}
+      {% if o.sold_price == 0 %}
+        <span class="badge bg-info text-dark small fw-semibold d-inline-block w-100 text-break">{{ o.name }}</span>
       {% else %}
-        {% if o.available %}
-          <span class="badge bg-warning text-dark small fw-semibold text-break">{{ o.name }}</span>
-        {% else %}
-          <span class="badge bg-secondary text-light small fw-semibold text-break">{{ o.name }}</span>
-        {% endif %}
+        <span class="badge bg-success text-white small fw-semibold d-inline-block w-100 text-break">{{ o.name }}</span>
       {% endif %}
-    </div>
+    {% else %}
+      {% if o.available %}
+        <span class="badge bg-warning text-dark small fw-semibold d-inline-block w-100 text-break">{{ o.name }}</span>
+      {% else %}
+        <span class="badge bg-secondary text-light small fw-semibold d-inline-block w-100 text-break">{{ o.name }}</span>
+      {% endif %}
+    {% endif %}
   </div>
-  <div class="chips justify-content-center mt-1 flex-wrap">
-    <!-- Coût total : toujours -->
-    <span class="badge rounded-pill bg-secondary-subtle text-dark border small fw-normal">
+  <div class="chips justify-content-center flex-wrap mt-1 gap-1 w-100" style="max-width: 220px;">
+    <span class="badge rounded-pill bg-secondary-subtle text-dark border small fw-normal px-2 py-1">
       🛠️ {{ "%.2f"|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
     </span>
 
     {% if o.sold_price is not none %}
       {% if o.sold_price == 0 %}
-        <!-- Don : pas de prix ni marge -->
-        <span class="badge rounded-pill bg-info-subtle text-dark border small fw-normal">🎁 Offert</span>
+        <span class="badge rounded-pill bg-info-subtle text-dark border small fw-normal px-2 py-1">🎁 Offert</span>
       {% else %}
-        <!-- Vente : prix + marge -->
-        <span class="badge rounded-pill bg-primary-subtle text-dark border small fw-normal">
+        <span class="badge rounded-pill bg-primary-subtle text-dark border small fw-normal px-2 py-1">
           💰 {{ "%.2f"|format(o.sold_price) }} {{ currencysymbol or '€' }}
         </span>
         {% set _total  = (o.cost_total or 0) %}
         {% set _margin = (o.margin if (o.margin is not none) else (o.sold_price - _total)) %}
         {% set _pos    = _margin >= 0 %}
-        <span class="badge rounded-pill {{ 'bg-success-subtle text-success' if _pos else 'bg-danger-subtle text-danger' }} border small fw-normal">
+        <span class="badge rounded-pill {{ 'bg-success-subtle text-success' if _pos else 'bg-danger-subtle text-danger' }} border small fw-normal px-2 py-1">
           {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol or '€' }}
         </span>
       {% endif %}
     {% endif %}
   </div>
 </div>
-
 
     <!-- Colonne droite : thumbnail avec composant global `.thumb` -->
     <div class="text-end flex-shrink-0">
