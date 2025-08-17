@@ -16,7 +16,7 @@
 
   /* Chips sous le titre, à droite, sans débordement */
   .chips         { display:flex; flex-wrap:wrap; gap:.25rem; justify-content:flex-end; max-width:100%; }
-  .chips .badge  { font-weight:600; font-size:.75rem; padding:.35em .55em; white-space:nowrap; }
+  .chips .badge  { font-weight:600; font-size:.55rem; padding:.35em .55em; white-space:nowrap; }
   /* Icône statut à droite */
   .obj-status i  { font-size:1.2rem; }
   @media (max-width: 575.98px) {
@@ -130,23 +130,25 @@
     </div>
 
     <!-- Colonne centre : titre + chips -->
-<div class="obj-main text-center">
-  <div>
-    {% if o.sold_price is not none %}
-      {% if o.sold_price == 0 %}
-        <span class="badge bg-info text-dark small fw-semibold">{{ o.name }}</span>
+<div class="obj-main text-center mx-auto" style="max-width: 100%; width: 100%;">
+  <div class="d-flex justify-content-center">
+    <div class="text-center" style="max-width: 100%;">
+      {% if o.sold_price is not none %}
+        {% if o.sold_price == 0 %}
+          <span class="badge bg-info text-dark small fw-semibold text-break">{{ o.name }}</span>
+        {% else %}
+          <span class="badge bg-success text-white small fw-semibold text-break">{{ o.name }}</span>
+        {% endif %}
       {% else %}
-        <span class="badge bg-success text-white small fw-semibold">{{ o.name }}</span>
+        {% if o.available %}
+          <span class="badge bg-warning text-dark small fw-semibold text-break">{{ o.name }}</span>
+        {% else %}
+          <span class="badge bg-secondary text-light small fw-semibold text-break">{{ o.name }}</span>
+        {% endif %}
       {% endif %}
-    {% else %}
-      {% if o.available %}
-        <span class="badge bg-warning text-dark small fw-semibold">{{ o.name }}</span>
-      {% else %}
-        <span class="badge bg-secondary text-light small fw-semibold">{{ o.name }}</span>
-      {% endif %}
-    {% endif %}
+    </div>
   </div>
-  <div class="chips justify-content-center mt-1">
+  <div class="chips justify-content-center mt-1 flex-wrap">
     <!-- Coût total : toujours -->
     <span class="badge rounded-pill bg-secondary-subtle text-dark border small fw-normal">
       🛠️ {{ "%.2f"|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
@@ -171,6 +173,7 @@
     {% endif %}
   </div>
 </div>
+
 
     <!-- Colonne droite : thumbnail avec composant global `.thumb` -->
     <div class="text-end flex-shrink-0">
@@ -454,6 +457,7 @@
     </div>
   </div>
 </div>
+<div style="height: 4rem;"></div>
 {% endblock %}
 
 {% block scripts %}
