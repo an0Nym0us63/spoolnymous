@@ -1,378 +1,528 @@
 {% extends "base.html" %}
 {% import 'macros/hidden_args.jinja2' as macros %}
 
-{% block title %}Objets{% endblock %}
-
-{% block head_extra %}
-<style>
-  /* Mise en forme locale */
-  .accordion-body { position: relative; overflow: hidden; }
-  .fab-actions { position: absolute; top: .5rem; right: .5rem; z-index: 2; }
-  .object-thumb { max-height: 260px; width: auto; object-fit: contain; }
-  .comment-block { max-width: 760px; }
-  .tile .card-body { padding: .5rem .5rem; }
-  .tile .metric { font-weight: 700; }
-  .badge-tag { background: var(--bs-light); color: var(--bs-body-color); border: 1px solid var(--bs-border-color); }
-  .tag-add-inline { display: none; min-width: 220px; }
-  .tag-controls { gap: .5rem; }
-</style>
-{% endblock %}
-
 {% block content %}
+<style>
+  /* Header en grille 3 colonnes */
+  .obj-hdr       { cursor:pointer; user-select:none; }
+  .obj-grid      { display:grid; grid-template-columns:auto 1fr auto; gap:.6rem; align-items:center; }
+  .obj-main      { min-width:0; display:flex; flex-direction:column; gap:.25rem; }
 
-<div class="d-flex align-items-center justify-content-between mb-3">
-  <h2 class="h4 mb-0">Objets</h2>
+  /* Titre très compact dans un badge */
+  .title-badge   { display:inline-block; max-width:100%; white-space:normal; line-height:1.1;
+                   border:1px solid var(--bs-border-color); background:var(--bs-secondary-bg);
+                   color:var(--bs-body-color); padding:.15rem .5rem; border-radius:999px;
+                   font-weight:600; font-size:.9rem; } /* taille réduite */
+
+  /* Chips sous le titre, à droite, sans débordement */
+  .chips         { display:flex; flex-wrap:wrap; gap:.25rem; justify-content:flex-end; max-width:100%; }
+  .chips .badge  { font-weight:600; font-size:.75rem; padding:.35em .55em; white-space:nowrap; }
+  /* Icône statut à droite */
+  .obj-status i  { font-size:1.2rem; }
+
+</style>
+<!-- Boutons flottants (identiques au reste) -->
+<div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
+  <button class="btn btn-sm btn-primary rounded-circle" type="button"
+          data-bs-toggle="offcanvas" data-bs-target="#paginationOffcanvas" aria-controls="paginationOffcanvas">📄</button>
+</div>
+<div class="position-fixed bottom-0 start-0 m-3" style="z-index:1030;">
+  <button class="btn btn-sm btn-primary rounded-circle" type="button"
+          data-bs-toggle="offcanvas" data-bs-target="#filtersOffcanvas" aria-controls="filtersOffcanvas">🔍</button>
+</div>
+{% if objects|length == 0 %}
+  <div class="alert alert-light border d-flex align-items-center" role="alert">
+    <i class="bi bi-inbox me-2"></i>
+    <div>Aucun objet ne correspond aux filtres.</div>
+  </div>
+{% endif %}
+{% if objects|length != 0 %}
+<!-- Tuiles statistiques (alignées sur print_history) -->
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-6 g-2 mb-3 text-center align-items-stretch">
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">📦</div>
+        <div class="small fw-bold">{{ total_objects }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">🛒</div>
+        <div class="small fw-bold">{{ sold_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">🎁</div>
+        <div class="small fw-bold">{{ gifted_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">✅</div>
+        <div class="small fw-bold">{{ available_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">💶</div>
+        <div class="small fw-bold">
+          {{ '%.2f'|format(sum_sold_price) }} {{ currencysymbol or '€' }}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">📈</div>
+        <div class="small fw-bold">
+          {{ '%.2f'|format(sum_positive_margin) }} {{ currencysymbol or '€' }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="accordion" id="objectsAccordion">
+  {% for o in objects %}
+  {% set collapse_id = "obj_" ~ o.id %}
+  <div class="card mb-2">
+    <div class="card-header obj-hdr"
+     id="heading_{{ o.id }}" role="button"
+     data-bs-toggle="collapse" data-bs-target="#{{ collapse_id }}"
+     aria-expanded="false" aria-controls="{{ collapse_id }}">
+
+  <div class="obj-grid">
+    <!-- Colonne gauche : statut (vente / offert / dispo / indispo) -->
+    <div class="obj-status d-flex align-items-center justify-content-start me-1 flex-shrink-0">
+      {% if o.sold_price is not none %}
+        {% if o.sold_price == 0 %}
+          <i class="bi bi-gift-fill text-info" title="Offert"></i>
+        {% else %}
+          <i class="bi bi-bag-check-fill text-warning" title="Vendu"></i>
+        {% endif %}
+      {% else %}
+        {% if o.available %}
+          <i class="bi bi-box2-fill text-success" title="Disponible (en stock)"></i>
+        {% else %}
+          <i class="bi bi-slash-circle-fill text-secondary" title="Indisponible"></i>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    <!-- Colonne centre : titre + chips -->
+    <div class="obj-main">
+      <div class="d-flex"><span class="title-badge">{{ o.name }}</span></div>
+      <div class="chips">
+        <!-- Coût total : toujours -->
+        <span class="badge rounded-pill text-bg-secondary">
+          🛠️ {{ "%.2f"|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
+        </span>
+
+        {% if o.sold_price is not none %}
+          {% if o.sold_price == 0 %}
+            <!-- Don : pas de prix ni marge -->
+            <span class="badge rounded-pill text-bg-info">🎁 Offert</span>
+          {% else %}
+            <!-- Vente : prix + marge -->
+            <span class="badge rounded-pill text-bg-primary">
+              💰 {{ "%.2f"|format(o.sold_price) }} {{ currencysymbol or '€' }}
+            </span>
+            {% set _total  = (o.cost_total or 0) %}
+            {% set _margin = (o.margin if (o.margin is not none) else (o.sold_price - _total)) %}
+            {% set _pos    = _margin >= 0 %}
+            <span class="badge rounded-pill {{ 'text-bg-success' if _pos else 'text-bg-danger' }}">
+              {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol or '€' }}
+            </span>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Colonne droite : thumbnail avec composant global `.thumb` -->
+    <div class="text-end flex-shrink-0">
+      <div class="thumb" style="--thumb-size: 48px;">
+        {% if o.thumbnail %}
+          <img src="{{ o.thumbnail }}" alt="" class="thumb-img">
+        {% else %}
+          <div class="thumb-ph" title="Aucune image"></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 </div>
 
-<form method="get" class="mb-3">
-{{ macros.render_filtered_args(args, ['search', 'sale_filter', 'source_type','page']) }}
-  <div class="row g-2 align-items-end">
-    <!-- Recherche -->
-    <div class="col-12 col-md-5 col-lg-4">
-      <label for="search" class="form-label mb-1">Recherche</label>
-      <input type="text" class="form-control" id="search" name="search" value="{{ args.get('search','') }}" placeholder="Nom de l'objet...">
-    </div>
+    <div id="{{ collapse_id }}" class="collapse" aria-labelledby="heading_{{ o.id }}" data-bs-parent="#objectsAccordion">
+      <div class="card-body">
+		<div class="dropdown float-end mt-1" data-requires-write>
+  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+    Actions
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li>
+      <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#renameModal_{{ o.id }}">
+        📝 Renommer
+      </a>
+    </li>
+	<li>
+  <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sellModal_{{ o.id }}">
+    💳 Vente / don
+  </a>
+</li>
+<li>
+  <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#commentModal_{{ o.id }}">
+    💬 Modifier le commentaire
+  </a>
+</li>
+	{% if o.parent_type == 'print' %}
+  <li>
+    <a class="dropdown-item" href="{{ url_for('print_history') }}?ref_print_id={{ o.parent_id }}&focus_print_id={{ o.parent_id }}">
+      🔎 Voir la référence
+    </a>
+  </li>
+{% else %}
+  <li>
+    <a class="dropdown-item" href="{{ url_for('print_history') }}?ref_group_id={{ o.parent_id }}&focus_group_id={{ o.parent_id }}">
+      🔎 Voir la référence
+    </a>
+  </li>
+{% endif %}
+    <li>
+  <a href="#"
+     class="dropdown-item text-danger object-delete-btn"
+     data-object-id="{{ o.id }}"
+     data-object-name="{{ o.name|e }}">
+    🗑 Supprimer
+  </a>
+  <form id="deleteForm_{{ o.id }}" class="d-none m-0 p-0"
+        method="post" action="{{ url_for('objects_delete', object_id=o.id) }}">
+    {{ macros.render_filtered_args(args) }}
+  </form>
+</li>
+  </ul>
+</div>
+{% if o.thumbnail %}
+	  <div class="text-center">
+      <div class="thumb" style="--thumb-size: 200px;">
+        <img src="{{o.thumbnail }}"
+             alt="Print Image" class="thumb-img" />
+      </div>
+      </div>
+      {% endif %}
+        <div class="row g-3">
+          <div class="col-12 col-md-8">
+            <div class="mb-2">
+              <div class="small text-muted mb-1">Tags</div>
+              <div class="d-flex flex-wrap gap-1">
+                {% set tags = obj_tags.get(o.id, []) %}
+                {% if tags %}
+                  {% for t in tags %}
+                    <span class="badge bg-primary">{{ t }}</span>
+                  {% endfor %}
+                {% else %}
+                  <span class="text-muted">Aucun</span>
+                {% endif %}
+              </div>
+            </div>
 
-    <!-- Type de source -->
-    <div class="col-6 col-md-3 col-lg-2">
-      <label for="source_type" class="form-label mb-1">Type</label>
-      <select id="source_type" name="source_type" class="form-select">
-        <option value="" {{ '' == args.get('source_type','') and 'selected' or '' }}>Tous</option>
-        <option value="print" {{ 'print' == args.get('source_type','') and 'selected' or '' }}>Impressions</option>
-        <option value="group" {{ 'group' == args.get('source_type','') and 'selected' or '' }}>Groupes</option>
-      </select>
-    </div>
+            <div class="mt-2">
+              {% if o.comment %}
+                <div class="small text-muted mb-1">Commentaire</div>
+                <div class="border rounded p-2">{{ o.comment }}</div>
+              {% endif %}
+            </div>
+          </div>
 
-    <!-- Filtre Vente -->
-    <div class="col-6 col-md-3 col-lg-2">
-      <label for="sale_filter" class="form-label mb-1">Vente</label>
+          <div class="col-12 col-md-4">
+            <div class="small text-muted mb-1">Infos</div>
+            <ul class="list-unstyled mb-2">
+              <li>Disponible : {{ 'Oui' if o.available else 'Non' }}</li>
+              <li>Vendu : {{ 'Oui (' ~ ("%.2f"|format(o.sold_price)) ~ ' ' ~ (currencysymbol or '€') ~ ')' if o.sold_price is not none else 'Non' }}</li>
+              {% if o.sold_date %}<li>Vendu le : {{ o.sold_date }}</li>{% endif %}
+              <li>Maj : {{ o.updated_at | datetimeformat('fr')}}</li>
+			  <li>Marge :
+  {% if o.margin is defined and o.margin is not none %}
+    {{ '%.2f'|format(o.margin) }} {{ currencysymbol or '€' }}
+  {% else %}
+    —
+  {% endif %}
+</li>
+<li>Translate :
+  {{ o.translated_name or '' }}
+</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="renameModal_{{ o.id }}" tabindex="-1" aria-labelledby="renameLabel_{{ o.id }}">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('objects_rename', object_id=o.id) }}">
+      {{ macros.render_filtered_args(args) }}
+      <div class="modal-header">
+        <h5 class="modal-title" id="renameLabel_{{ o.id }}">Renommer l’objet</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" class="form-control" name="name" value="{{ o.name }}" required>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="modal fade" id="sellModal_{{ o.id }}" tabindex="-1" aria-labelledby="sellLabel_{{ o.id }}">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('objects_sell', object_id=o.id) }}">
+      {{ macros.render_filtered_args(args) }}
+      <div class="modal-header">
+        <h5 class="modal-title" id="sellLabel_{{ o.id }}">Vente / don</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Prix de vente</label>
+          <div class="input-group">
+            <input type="number" name="sold_price" class="form-control" min="0" step="0.01"
+       value="{% if o.sold_price is not none %}{{ '%.2f'|format(o.sold_price) }}{% endif %}"
+       placeholder="0.00">
+            <span class="input-group-text">{{ currencysymbol or '€' }}</span>
+          </div>
+          <div class="form-text">Mettre <strong>0</strong> pour un don / cadeau.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Date de vente</label>
+          <input type="date" name="sold_date" class="form-control"
+       value="{{ (o.sold_date[:10]) if o.sold_date else '' }}">
+          <div class="form-text">Par défaut : aujourd’hui.</div>
+        </div>
+
+        <div class="mb-0">
+          <label class="form-label">Commentaire (optionnel)</label>
+          <textarea name="sold_comment" class="form-control" rows="3"
+          placeholder="Détails de la vente / du don…">{{ o.comment or '' }}</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+  <!-- Soumet le même formulaire vers la route d'annulation -->
+  <button type="submit"
+          class="btn btn-outline-danger me-auto"
+          formmethod="post"
+          formaction="{{ url_for('objects_unsell', object_id=o.id) }}">
+    ❌ Annuler la vente
+  </button>
+
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+  <button type="submit" class="btn btn-primary">Enregistrer</button>
+</div>
+    </form>
+  </div>
+</div>
+
+<div class="modal fade" id="commentModal_{{ o.id }}" tabindex="-1" aria-labelledby="commentLabel_{{ o.id }}">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('objects_update_comment', object_id=o.id) }}">
+      {{ macros.render_filtered_args(args) }}
+      <div class="modal-header">
+        <h5 class="modal-title" id="commentLabel_{{ o.id }}">Modifier le commentaire</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <textarea name="comment" class="form-control" rows="5"
+                  placeholder="Saisissez un commentaire pour cet objet…">{{ o.comment or '' }}</textarea>
+        <div class="form-text">Laissez vide pour effacer le commentaire.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+  {% endfor %}
+</div>
+
+<!-- Offcanvas filtres -->
+<div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="filtersOffcanvas">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">Filtres</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body">
+    <form method="get" class="row g-2">
+      {{ macros.render_filtered_args(args, ['search','sale_filter','source_type','available','page']) }}
+      <div class="col-12 col-md-4">
+        <label class="form-label">Recherche</label>
+        <input type="text" name="search" class="form-control" value="{{ filters.search or '' }}" placeholder="Nom de l’objet…">
+      </div>
+	    <div class="col-6 col-md-3">
+    <label for="sale_filter" class="form-label mb-1">Vente</label>
+    <select id="sale_filter" name="sale_filter" class="form-select">
       {% set curr_sale = args.get('sale_filter','') %}
       {% if not curr_sale %}
-        {# rétro-compat: si ancien sold_filter/available encore dans l’URL #}
+        {# rétro-compat: si ancien sold_filter/available présents #}
         {% set old_sold = args.get('sold_filter','') %}
         {% set old_av   = args.get('available','') %}
         {% if old_sold == 'yes' %}{% set curr_sale = 'vendus' %}
         {% elif old_av == 'yes' %}{% set curr_sale = 'dispo' %}
         {% endif %}
       {% endif %}
-      <select id="sale_filter" name="sale_filter" class="form-select">
-        <option value="" {{ '' == curr_sale and 'selected' or '' }}>Tous</option>
-        <option value="vendus" {{ 'vendus' == curr_sale and 'selected' or '' }}>Vendus</option>
-        <option value="dispo"  {{ 'dispo'  == curr_sale and 'selected' or '' }}>Disponibles</option>
-        <option value="offert" {{ 'offert' == curr_sale and 'selected' or '' }}>Offerts</option>
-      </select>
-    </div>
-
-    <!-- Bouton appliquer -->
-    <div class="col-12 col-md-3 col-lg-2 d-grid">
-      <label class="form-label mb-1 opacity-0">Appliquer</label>
-      <button type="submit" class="btn btn-primary">Filtrer</button>
-    </div>
+      <option value="" {{ '' == curr_sale and 'selected' or '' }}>Tous</option>
+      <option value="vendus" {{ 'vendus' == curr_sale and 'selected' or '' }}>Vendus</option>
+      <option value="dispo"  {{ 'dispo'  == curr_sale and 'selected' or '' }}>Disponibles</option>
+      <option value="offert" {{ 'offert' == curr_sale and 'selected' or '' }}>Offerts</option>
+    </select>
   </div>
-</form>
-
-<!-- Tuiles statistiques -->
-<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-6 g-2 mb-3 text-center align-items-stretch">
-  <div class="col tile">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body d-flex flex-column justify-content-center align-items-center">
-        <div>📦</div>
-        <div class="metric">{{ total_objects }}</div>
+      <div class="col-6 col-md-2">
+        <label class="form-label">Source</label>
+        <select name="source_type" class="form-select">
+          <option value="">— Indifférent —</option>
+          <option value="print" {% if filters.source_type=='print' %}selected{% endif %}>Print</option>
+          <option value="group" {% if filters.source_type=='group' %}selected{% endif %}>Groupe</option>
+        </select>
       </div>
-    </div>
-  </div>
-  <div class="col tile">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body d-flex flex-column justify-content-center align-items-center">
-        <div>🛒</div>
-        <div class="metric">{{ sold_count }}</div>
+      <div class="col-12 col-md-2 align-self-end text-end">
+        <button class="btn btn-primary" type="submit">Appliquer</button>
       </div>
-    </div>
-  </div>
-  <div class="col tile">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body d-flex flex-column justify-content-center align-items-center">
-        <div>✅</div>
-        <div class="metric">{{ available_count }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col tile">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body d-flex flex-column justify-content-center align-items-center">
-        <div>🎁</div>
-        <div class="metric">{{ gifted_count }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col tile">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body d-flex flex-column justify-content-center align-items-center">
-        <div>💶</div>
-        <div class="metric">{{ '%.2f'|format(sum_sold_price) }} {{ currencysymbol or '€' }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col tile">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body d-flex flex-column justify-content-center align-items-center">
-        <div>📈</div>
-        <div class="metric">{{ '%.2f'|format(sum_positive_margin) }} {{ currencysymbol or '€' }}</div>
-      </div>
-    </div>
+    </form>
   </div>
 </div>
 
-<!-- Liste (accordéon) -->
-<div class="accordion" id="objectsAccordion">
-  {% if objects|length == 0 %}
-    <div class="text-center text-muted py-5">Aucun objet avec ces filtres.</div>
-  {% endif %}
+<!-- Offcanvas pagination -->
+<div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="paginationOffcanvas">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title">Pagination</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body text-center">
+    <div class="d-inline-flex flex-wrap gap-1 align-items-center justify-content-center">
+      {% if page > 1 %}
+        <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo;</a>
+        <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo;</a>
+      {% endif %}
 
-  {% for o in objects %}
-    {% set item_id = 'obj' ~ o.id %}
-    <div class="accordion-item">
-      <h2 class="accordion-header" id="heading-{{ item_id }}">
-        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                data-bs-target="#collapse-{{ item_id }}" aria-expanded="false" aria-controls="collapse-{{ item_id }}">
-          <div class="d-flex flex-wrap align-items-center w-100 gap-2">
-            <span class="fw-semibold me-2">{{ o.name }}</span>
-            {% if o.sold_price is not none and o.sold_price > 0 %}
-              <span class="badge text-bg-success">Vendu</span>
-            {% elif o.sold_price == 0 %}
-              <span class="badge text-bg-warning text-dark">Offert</span>
-            {% elif o.available %}
-              <span class="badge text-bg-info text-dark">Disponible</span>
-            {% else %}
-              <span class="badge text-bg-secondary">Indisponible</span>
-            {% endif %}
-            <span class="ms-auto small text-muted">
-              Créé : {{ o.created_at | datetimeformat('fr') }}
-              {% if o.updated_at %} · Maj : {{ o.updated_at | datetimeformat('fr') }}{% endif %}
-            </span>
-          </div>
-        </button>
-      </h2>
-      <div id="collapse-{{ item_id }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ item_id }}" data-bs-parent="#objectsAccordion">
-        <div class="accordion-body">
+      <form method="get" class="d-inline-flex align-items-center mx-2">
+        {{ macros.render_filtered_args(args, ['page']) }}
+        <input type="number" min="1" max="{{ total_pages }}" name="page" value="{{ page }}"
+               class="form-control form-control-sm" style="width: 56px;">
+        <button type="submit" class="btn btn-sm btn-primary ms-1">Aller</button>
+      </form>
 
-          <!-- Bouton(s) d’actions flottant(s) : conteneur pour éviter tout débordement -->
-          <div class="fab-actions">
-            {# ⬇️ Recoller ici ton bloc d’actions existant (menu, icônes...). #}
-            {# Exemple si tu as un include: {% include 'fragments/object_actions.html' %} #}
-          </div>
+      <span>/{{ total_pages }}</span>
 
-          <!-- Aperçu centré -->
-          <div class="text-center my-2">
-            {% if o.thumbnail %}
-              <img
-                src="{{ o.thumbnail if o.thumbnail.startswith('http') else url_for('static', filename='prints/' ~ o.thumbnail) }}"
-                class="img-fluid rounded shadow-sm object-thumb"
-                alt="Aperçu {{ o.name }}"
-              >
-            {% else %}
-              <div class="text-muted small fst-italic">Aucun aperçu disponible</div>
-            {% endif %}
-          </div>
-
-          <!-- Commentaire façon print_history -->
-          {% if o.comment %}
-            <div class="alert alert-secondary comment-block mx-auto mb-3">
-              <div class="d-flex align-items-start">
-                <div class="me-2">📝</div>
-                <div class="small">{{ o.comment | replace('\n', '<br>') | safe }}</div>
-              </div>
-            </div>
-          {% endif %}
-
-          <!-- Infos en 2 colonnes -->
-          <div class="row g-3 mb-3">
-            <div class="col-12 col-md-6">
-              <ul class="list-unstyled small mb-0">
-                <li><span class="text-muted">Nom :</span> {{ o.name }}</li>
-                <li><span class="text-muted">Type :</span> {{ o.parent_type or '—' }}</li>
-                <li><span class="text-muted">Disponible :</span> {{ 'Oui' if o.available else 'Non' }}</li>
-                <li><span class="text-muted">Créé :</span> {{ o.created_at | datetimeformat('fr') }}</li>
-                <li><span class="text-muted">Maj :</span> {{ (o.updated_at | default(o.created_at) | default('')) | datetimeformat('fr') }}</li>
-              </ul>
-            </div>
-            <div class="col-12 col-md-6">
-              <ul class="list-unstyled small mb-0">
-                <li>
-                  <span class="text-muted">Prix de vente :</span>
-                  {% if o.sold_price is not none %}
-                    {{ '%.2f'|format(o.sold_price) }} {{ currencysymbol or '€' }}
-                  {% else %} — {% endif %}
-                </li>
-                <li>
-                  <span class="text-muted">Coût :</span>
-                  {% set cost = o.cost_total if o.cost_total is not none else ((o.cost_accessory or 0) + (o.cost_fabrication or 0)) %}
-                  {{ '%.2f'|format(cost or 0) }} {{ currencysymbol or '€' }}
-                </li>
-                <li>
-                  <span class="text-muted">Marge :</span>
-                  {% if o.margin is not none %}
-                    {{ '%.2f'|format(o.margin) }} {{ currencysymbol or '€' }}
-                  {% else %}
-                    {% if o.sold_price is not none %}
-                      {% set m = (o.sold_price or 0) - (cost or 0) %}
-                      {{ '%.2f'|format(m) }} {{ currencysymbol or '€' }}
-                    {% else %} — {% endif %}
-                  {% endif %}
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <!-- Tags (style list_prints/print_card) -->
-<div class="d-flex flex-wrap align-items-center tag-controls" id="tags-line-{{ item_id }}">
-  {% set tags = obj_tags.get(o.id, []) %}
-  <div class="d-flex flex-wrap align-items-center gap-2 me-2" data-role="badges">
-  {% if tags and tags|length %}
-    {% for t in tags %}
-      <span class="badge badge-tag d-inline-flex align-items-center" data-tag="{{ t }}">
-        <span class="me-1">{{ t }}</span>
-        <button
-          type="button"
-          class="btn btn-sm btn-link p-0 text-muted"
-          aria-label="Supprimer le tag"
-          onclick="removeObjectTag({{ o.id }}, {{ t|tojson }}, {{ item_id|tojson }})"
-        >✕</button>
-      </span>
-    {% endfor %}
-  {% else %}
-    <span class="text-muted small" data-role="empty">Aucun tag</span>
-  {% endif %}
-</div>
-
-  <!-- Ajout inline -->
-  <form class="tag-add-inline ms-1" id="tagAdd-{{ item_id }}" method="post"
-        action="{{ url_for('add_object_tag', object_id=o.id) }}"
-        onsubmit="return submitAddObjectTag(event, '{{ item_id }}');">
-    <div class="input-group input-group-sm">
-      <input type="text" name="tag" class="form-control" placeholder="Nouveau tag… (séparez par , ou ;)" required>
-      <button class="btn btn-primary" type="submit">OK</button>
-      <button class="btn btn-outline-secondary" type="button" onclick="toggleTagAdd('{{ item_id }}', false)">Annuler</button>
+      {% if page < total_pages %}
+        <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">&rsaquo;</a>
+        <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">&raquo;</a>
+      {% endif %}
     </div>
-  </form>
-
-  <button type="button"
-          class="btn btn-sm btn-outline-primary ms-2"
-          onclick="toggleTagAdd('{{ item_id }}')">+ Tag</button>
+  </div>
 </div>
-
-        </div>
-      </div>
-    </div>
-  {% endfor %}
-</div>
-
-<!-- Pagination simple -->
-{% if total_pages > 1 %}
-<nav class="mt-3">
-  <ul class="pagination justify-content-center">
-    <li class="page-item {{ 1 == page and 'disabled' or '' }}">
-      <a class="page-link"
-         href="?page={{ page-1 }}&search={{ args.get('search','') }}&source_type={{ args.get('source_type','') }}&sale_filter={{ args.get('sale_filter','') }}"
-         tabindex="-1">Précédent</a>
-    </li>
-    <li class="page-item disabled"><span class="page-link">Page {{ page }} / {{ total_pages }}</span></li>
-    <li class="page-item {{ page == total_pages and 'disabled' or '' }}">
-      <a class="page-link"
-         href="?page={{ page+1 }}&search={{ args.get('search','') }}&source_type={{ args.get('source_type','') }}&sale_filter={{ args.get('sale_filter','') }}">Suivant</a>
-    </li>
-  </ul>
-</nav>
-{% endif %}
-
 {% endblock %}
 
-{% block body_end_extra %}
+{% block scripts %}
 <script>
-  function toggleTagAdd(id, show) {
-    const form = document.getElementById('tagAdd-' + id);
-    if (!form) return;
-    if (show === undefined) {
-      form.style.display = (form.style.display === 'inline-block') ? 'none' : 'inline-block';
+ document.addEventListener('shown.bs.modal', function (e) {
+    const modal = e.target;
+    if (!modal.id || !modal.id.startsWith('sellModal_')) return;
+    const input = modal.querySelector('input[name="sold_date"]');
+    if (input && !input.value) {
+      const today = new Date().toISOString().slice(0, 10);
+      input.value = today;
+    }
+  });
+  // Smooth scroll quand on ouvre un item, même logique que tes autres pages
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".card-header[data-bs-toggle='collapse']").forEach(header => {
+      header.addEventListener("click", () => {
+        const targetSelector = header.getAttribute("data-bs-target");
+        const target = document.querySelector(targetSelector);
+        if (!target.classList.contains("show")) {
+          setTimeout(() => {
+            const y = header.getBoundingClientRect().top + window.scrollY - 20;
+            window.scrollTo({ top: y, behavior: "smooth" });
+          }, 350);
+        }
+      });
+    });
+  });
+
+  // Raccourcis F/P si ton JS global n'est pas chargé ici
+  (function(){
+    function uiBusy(){
+      const a = document.activeElement;
+      const tag = a && a.tagName;
+      return (tag === 'INPUT' || tag === 'TEXTAREA' || (a && a.isContentEditable))
+             || document.querySelector('.select2-container--open')
+             || document.querySelector('.swal2-container.swal2-shown')
+             || document.querySelector('.modal.show');
+    }
+    function toggleOffcanvas(id){
+      const el = document.getElementById(id); if(!el) return;
+      let oc = bootstrap.Offcanvas.getInstance(el); if(!oc) oc = new bootstrap.Offcanvas(el);
+      if (el.classList.contains('show')) oc.hide(); else oc.show();
+    }
+    document.addEventListener('keydown', (e)=>{
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (uiBusy()) return;
+      const k = (e.key||'').toLowerCase();
+      if (k==='f'){ e.preventDefault(); toggleOffcanvas('filtersOffcanvas'); }
+      if (k==='p'){ e.preventDefault(); toggleOffcanvas('paginationOffcanvas'); }
+    });
+  })();
+
+ function escapeHtml(str) {
+    return (str || '').replace(/[&<>\"']/g, s => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'" : '&#39;' }[s]
+    ));
+  }
+
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.object-delete-btn');
+    if (!btn) return;
+
+    e.preventDefault();
+    const id   = btn.getAttribute('data-object-id');
+    const name = btn.getAttribute('data-object-name') || ('Objet #' + id);
+
+    const doSubmit = () => {
+      const form = document.getElementById('deleteForm_' + id);
+      if (form) form.submit();
+    };
+
+    if (window.Swal) {
+      const classes = (typeof getSwalThemeClasses === 'function') ? getSwalThemeClasses() : {};
+      Swal.fire({
+        title: "Supprimer l’objet ?",
+        html: `Confirmer la suppression de <strong>${escapeHtml(name)}</strong> ?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Supprimer",
+        cancelButtonText: "Annuler",
+        reverseButtons: true,
+        customClass: classes
+      }).then(res => {
+        if (res.isConfirmed) doSubmit();
+      });
     } else {
-      form.style.display = show ? 'inline-block' : 'none';
+      // Fallback si Swal n’est pas chargé
+      if (confirm('Supprimer "' + name + '" ?')) doSubmit();
     }
-    if (form.style.display !== 'none') {
-      const input = form.querySelector('input[name="tag"]');
-      if (input) { input.focus(); }
-    }
-  }
-
-  async function submitAddObjectTag(ev, itemId) {
-    ev.preventDefault();
-    const form = ev.currentTarget;
-    const url = form.getAttribute('action');
-    const fd = new FormData(form);
-
-    const res = await fetch(url, { method: 'POST', body: fd });
-    const data = await res.json();
-    if (data?.status === 'ok') {
-      renderTagsLine(itemId, data.tags);
-      form.reset();
-      toggleTagAdd(itemId, false);
-    }
-    return false;
-  }
-
-  async function removeObjectTag(objectId, tag, itemId) {
-    const url = `/objects/${objectId}/tags/remove`;
-    const fd = new FormData();
-    fd.append('tag', tag);
-
-    const res = await fetch(url, { method: 'POST', body: fd });
-    const data = await res.json();
-    if (data?.status === 'ok') {
-      renderTagsLine(itemId, data.tags);
-    }
-  }
-
-  function renderTagsLine(itemId, tags) {
-    const line = document.getElementById('tags-line-' + itemId);
-    if (!line) return;
-    const badgesWrap = line.querySelector('[data-role="badges"]');
-    const empty = line.querySelector('[data-role="empty"]');
-
-    // reset badges
-    badgesWrap.innerHTML = '';
-    if (empty) { empty.remove(); }
-
-    if (!tags || !tags.length) {
-      const span = document.createElement('span');
-      span.className = 'text-muted small';
-      span.setAttribute('data-role', 'empty');
-      span.textContent = 'Aucun tag';
-      badgesWrap.appendChild(span);
-      return;
-    }
-
-    for (const t of tags) {
-      const badge = document.createElement('span');
-      badge.className = 'badge badge-tag d-inline-flex align-items-center';
-      badge.setAttribute('data-tag', t);
-
-      const txt = document.createElement('span');
-      txt.className = 'me-1';
-      txt.textContent = t;
-
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn btn-sm btn-link p-0 text-muted';
-      btn.setAttribute('aria-label', 'Supprimer le tag');
-      btn.textContent = '✕';
-      // on a besoin de l'objectId => on peut le récupérer depuis le DOM :
-      // l'itemId est 'obj<id>'
-      const objectId = itemId.replace(/^obj/, '');
-      btn.onclick = () => removeObjectTag(objectId, t, itemId);
-
-      badge.appendChild(txt);
-      badge.appendChild(btn);
-      badgesWrap.appendChild(badge);
-    }
-  }
+  });
+  
 </script>
 {% endblock %}
