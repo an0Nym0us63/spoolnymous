@@ -156,7 +156,8 @@ def download3mfFromFTP(filename, taskname, destFile):
 
             c.setopt(c.VERBOSE, True)
             c.setopt(c.DEBUGFUNCTION, _dbg)
-            c.setopt(c.QUOTE, [f"MDTM {raw_path}"])
+            quote_cmd = f"MDTM {raw_path}".encode("utf-8")
+            c.setopt(c.QUOTE, [quote_cmd])
             try:
                 c.perform()
             except pycurl.error:
