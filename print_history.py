@@ -672,9 +672,7 @@ def get_prints_with_filament(filters=None, search=None) -> list:
 
     query = f"""
         SELECT p.*, pg.name as group_name, pg.number_of_items as group_number_of_items,
-               pg.primary_print_id as group_primary_print_id,
-               pg.sold_units as group_sold_units,
-               pg.sold_price_total as group_sold_price_total
+               pg.primary_print_id as group_primary_print_id
         FROM prints p
         LEFT JOIN print_groups pg ON p.group_id = pg.id
         LEFT JOIN filament_usage f ON p.id = f.print_id
