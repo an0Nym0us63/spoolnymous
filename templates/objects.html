@@ -130,33 +130,47 @@
     </div>
 
     <!-- Colonne centre : titre + chips -->
-    <div class="obj-main">
-      <div class="d-flex"><span class="title-badge">{{ o.name }}</span></div>
-      <div class="chips">
-        <!-- Coût total : toujours -->
-        <span class="badge rounded-pill text-bg-secondary">
-          🛠️ {{ "%.2f"|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
-        </span>
+<div class="obj-main text-center">
+  <div>
+    {% if o.sold_price is not none %}
+      {% if o.sold_price == 0 %}
+        <span class="badge bg-info text-dark small fw-semibold">{{ o.name }}</span>
+      {% else %}
+        <span class="badge bg-success text-white small fw-semibold">{{ o.name }}</span>
+      {% endif %}
+    {% else %}
+      {% if o.available %}
+        <span class="badge bg-warning text-dark small fw-semibold">{{ o.name }}</span>
+      {% else %}
+        <span class="badge bg-secondary text-light small fw-semibold">{{ o.name }}</span>
+      {% endif %}
+    {% endif %}
+  </div>
+  <div class="chips justify-content-center mt-1">
+    <!-- Coût total : toujours -->
+    <span class="badge rounded-pill bg-secondary-subtle text-dark border small fw-normal">
+      🛠️ {{ "%.2f"|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
+    </span>
 
-        {% if o.sold_price is not none %}
-          {% if o.sold_price == 0 %}
-            <!-- Don : pas de prix ni marge -->
-            <span class="badge rounded-pill text-bg-info">🎁 Offert</span>
-          {% else %}
-            <!-- Vente : prix + marge -->
-            <span class="badge rounded-pill text-bg-primary">
-              💰 {{ "%.2f"|format(o.sold_price) }} {{ currencysymbol or '€' }}
-            </span>
-            {% set _total  = (o.cost_total or 0) %}
-            {% set _margin = (o.margin if (o.margin is not none) else (o.sold_price - _total)) %}
-            {% set _pos    = _margin >= 0 %}
-            <span class="badge rounded-pill {{ 'text-bg-success' if _pos else 'text-bg-danger' }}">
-              {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol or '€' }}
-            </span>
-          {% endif %}
-        {% endif %}
-      </div>
-    </div>
+    {% if o.sold_price is not none %}
+      {% if o.sold_price == 0 %}
+        <!-- Don : pas de prix ni marge -->
+        <span class="badge rounded-pill bg-info-subtle text-dark border small fw-normal">🎁 Offert</span>
+      {% else %}
+        <!-- Vente : prix + marge -->
+        <span class="badge rounded-pill bg-primary-subtle text-dark border small fw-normal">
+          💰 {{ "%.2f"|format(o.sold_price) }} {{ currencysymbol or '€' }}
+        </span>
+        {% set _total  = (o.cost_total or 0) %}
+        {% set _margin = (o.margin if (o.margin is not none) else (o.sold_price - _total)) %}
+        {% set _pos    = _margin >= 0 %}
+        <span class="badge rounded-pill {{ 'bg-success-subtle text-success' if _pos else 'bg-danger-subtle text-danger' }} border small fw-normal">
+          {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol or '€' }}
+        </span>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
 
     <!-- Colonne droite : thumbnail avec composant global `.thumb` -->
     <div class="text-end flex-shrink-0">
