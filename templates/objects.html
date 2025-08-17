@@ -25,6 +25,7 @@
 </div>
 
 <form method="get" class="mb-3">
+{{ macros.render_filtered_args(args, ['search', 'sale_filter', 'source_type','page']) }}
   <div class="row g-2 align-items-end">
     <!-- Recherche -->
     <div class="col-12 col-md-5 col-lg-4">
@@ -65,7 +66,6 @@
     <!-- Bouton appliquer -->
     <div class="col-12 col-md-3 col-lg-2 d-grid">
       <label class="form-label mb-1 opacity-0">Appliquer</label>
-      {{ macros.hidden_args(args, exclude=['page']) }}
       <button type="submit" class="btn btn-primary">Filtrer</button>
     </div>
   </div>
