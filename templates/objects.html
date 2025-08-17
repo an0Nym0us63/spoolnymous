@@ -283,10 +283,10 @@
     {% endif %}
   </div>
   <div class="col-6">
-  <strong>Ajouté le :</strong> {{ o.created_at.strftime("%d/%m/%Y") if o.created_at else "?" }}
+  <strong>Ajouté le :</strong> {{ o.created_at[:10] if o.created_at else "?" }}
 </div>
 <div class="col-6">
-  <strong>Modifié le :</strong> {{ o.updated_at.strftime("%d/%m/%Y") if o.updated_at else "?" }}
+  <strong>Modifié le :</strong> {{ o.updated_at[:10] if o.updated_at else "?" }}
 </div>
 </div>
 
