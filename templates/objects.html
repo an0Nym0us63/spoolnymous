@@ -253,20 +253,21 @@
   </span>
   </div>
   {% endif %}
-        <div class="row text-muted small gx-3 gy-2 mb-3">
-  <div class="col-6">
-    <strong>Coût total :</strong> {{ '%.2f'|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
+       <div class="row text-muted small gx-3 gy-2 mb-3 row-cols-2 row-cols-md-3">
+  <div class="col">
+    <strong>📦</strong>
+    {{ '%.2f'|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
   </div>
-  <div class="col-6">
-    <strong>Prix de vente :</strong>
+  <div class="col">
+    <strong>💰</strong>
     {% if o.sold_price is not none %}
       {{ '%.2f'|format(o.sold_price) }} {{ currencysymbol or '€' }}
     {% else %}
       <span class="text-muted fst-italic">non vendu</span>
     {% endif %}
   </div>
-  <div class="col-6">
-    <strong>Marge :</strong>
+  <div class="col">
+    <strong>📈</strong>
     {% if o.sold_price %}
       {% set _margin = o.margin if o.margin is not none else (o.sold_price - (o.cost_total or 0)) %}
       {{ '%.2f'|format(_margin) }} {{ currencysymbol or '€' }}
@@ -274,13 +275,16 @@
       <span class="text-muted fst-italic">n/a</span>
     {% endif %}
   </div>
-  <div class="col-6">
-  <strong>Ajouté le :</strong> {{ o.created_at[:10] if o.created_at else "?" }}
+  <div class="col">
+    <strong>🗓️</strong>
+    {{ o.created_at[:10] if o.created_at else "?" }}
+  </div>
+  <div class="col">
+    <strong>🛍️</strong>
+    {{ o.sold_date[:10] if o.sold_date else "non vendu" }}
+  </div>
 </div>
-<div class="col-6">
-  <strong>Modifié le :</strong> {{ o.updated_at[:10] if o.updated_at else "?" }}
-</div>
-</div>
+
 
 <!-- Tags -->
 {% set tags = obj_tags.get(o.id, []) %}
