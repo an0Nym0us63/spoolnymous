@@ -2111,7 +2111,7 @@ def objects_add_accessory(object_id: int):
         flash("Accessoire ajouté à l’objet.", "success")
     except Exception as e:
         flash(f"Erreur lors de l’ajout d’accessoire : {e}", "danger")
-    return redirect(url_for("objects"))
+    return redirect(url_for("objects_page"))
 
 @app.route("/objects/<int:object_id>/remove_accessory", methods=["POST"])
 def objects_remove_accessory(object_id: int):
@@ -2123,6 +2123,6 @@ def objects_remove_accessory(object_id: int):
         flash("Accessoire retiré de l’objet.", "success")
     except Exception as e:
         flash(f"Erreur lors du retrait d’accessoire : {e}", "danger")
-    return redirect(url_for("objects"))
+    return redirect(url_for("objects_page"))
 
 app.register_blueprint(auth_bp)
