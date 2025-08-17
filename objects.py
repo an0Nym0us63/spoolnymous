@@ -6,6 +6,75 @@ from collections.abc import Iterable
 # On réutilise la config DB telle qu'elle existe déjà dans le projet
 from print_history import db_config
 
+def _normalize_sale_filter(filters: dict) -> str:
+    """
+    Harmonise la valeur du filtre 'Vente' en une des valeurs: 'vendus' | 'dispo' | 'offert' | ''.
+    Rétro-compatibilité:
+      - sold_filter=yes  -> 'vendus'
+      - available=yes    -> 'dispo'
+      - sold_filter=no   -> '' (pas de contrainte)
+      - available=no     -> '' (pas de contrainte)
+    """
+    val = (filters.get("sale_filter") or "").strip().lower()
+
+    if not val:
+        # rétro-compat
+        sf = (filters.get("sold_filter") or "").strip().lower()
+        av = (filters.get("available") or "").strip().lower()
+        if sf == "yes":
+            val = "vendus"
+        elif av == "yes":
+            val = "dispo"
+        elif sf == "no":
+            val = ""
+        elif av == "no":
+            val = ""
+        else:
+            val = ""
+
+    # alias tolérés
+    if val in ("sold", "payes", "payés"):
+        val = "vendus"
+    if val in ("available", "disponible", "disponibles"):
+        val = "dispo"
+    if val in ("gifted", "don", "dons"):
+        val = "offert"
+
+    return val
+
+
+def _build_objects_where(filters: dict):
+    """
+    Construit (where_sql, params) à partir des filtres: search, source_type, sale_filter.
+    """
+    clauses = []
+    params = []
+
+    s = (filters.get("search") or "").strip()
+    if s:
+        clauses.append("LOWER(name) LIKE ?")
+        params.append(f"%{s.lower()}%")
+
+    st = (filters.get("source_type") or "").strip()
+    if st in ("print", "group"):
+        clauses.append("parent_type = ?")
+        params.append(st)
+
+    sale = _normalize_sale_filter(filters)
+    if sale == "vendus":
+        clauses.append("sold_price > 0")
+    elif sale == "dispo":
+        clauses.append("available = 1")
+    elif sale == "offert":
+        clauses.append("sold_price = 0")
+
+    where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+    return where, tuple(params)
+
+
+def _extend_where(base_where: str, extra: str) -> str:
+    return f"{base_where} AND {extra}" if base_where else f"WHERE {extra}"
+
 # ---------------------------------------------------------------------------
 # Connexion
 # ---------------------------------------------------------------------------
@@ -630,84 +699,36 @@ def get_tags_for_objects(object_ids: List[int]) -> Dict[int, List[str]]:
         res[k] = sorted(res[k], key=lambda s: s.lower())
     return res
 
-
-def list_objects(filters: dict, page: int, per_page: int = 30) -> Tuple[List[Dict], int]:
+def list_objects(filters: dict, page: int, per_page: int = 30):
     """
-    Retourne (rows, total_pages) avec filtres simples:
-      - search: sous-chaîne dans name (case-insensitive)
-      - sold_filter: 'yes' / 'no' / '' (tous)
-      - source_type: 'print' / 'group' / '' (tous)
-      - available: 'yes' / 'no' / '' (tous)
+    Retourne une page d'objets filtrés avec total_pages.
     """
-    clauses = []
-    params: list = []
-
-    s = (filters.get("search") or "").strip()
-    if s:
-        clauses.append("LOWER(name) LIKE ?")
-        params.append(f"%{s.lower()}%")
-
-    sf = (filters.get("sold_filter") or "").strip()
-    if sf == "yes":
-        clauses.append("sold_price IS NOT NULL")
-    elif sf == "no":
-        clauses.append("sold_price IS NULL")
-
-    st = (filters.get("source_type") or "").strip()
-    if st in ("print", "group"):
-        clauses.append("parent_type = ?")
-        params.append(st)
-
-    av = (filters.get("available") or "").strip()
-    if av == "yes":
-        clauses.append("available = 1")
-    elif av == "no":
-        clauses.append("available = 0")
-
-    where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
-    order_by = "ORDER BY created_at DESC, id DESC"
+    where, params = _build_objects_where(filters)
 
     conn = _connect()
     cur = conn.cursor()
 
-    # total
-    cur.execute(f"SELECT COUNT(*) FROM objects {where}", tuple(params))
-    total = int(cur.fetchone()[0]) if cur.fetchone is not None else 0
-    total_pages = max(1, (total + per_page - 1) // per_page)
-    page = max(1, min(page, total_pages))
-    offset = (page - 1) * per_page
+    # Compter le total
+    cur.execute(f"SELECT COUNT(*) FROM objects {where}", params)
+    total_count = cur.fetchone()[0]
+    total_pages = max(1, (total_count + per_page - 1) // per_page)
 
-    # page
-    cur.execute(
-        f"""
-        SELECT id, name,translated_name, parent_type, parent_id, thumbnail,
-            cost_fabrication, cost_accessory, cost_total,
-            available, sold_price, sold_date, comment,
-            created_at, updated_at,
-            margin,
-            CASE
-                WHEN sold_price IS NOT NULL THEN
-                sold_price - COALESCE(cost_total, COALESCE(cost_accessory,0) + COALESCE(cost_fabrication,0))
-                ELSE NULL
-            END AS margin_calc
+    # Récupérer les lignes (triées par date desc si dispo)
+    offset = (page - 1) * per_page
+    cur.execute(f"""
+        SELECT id, name, parent_type, sold_price, available,
+               cost_total, cost_accessory, cost_fabrication,
+               margin, created_at
         FROM objects
         {where}
-        {order_by}
+        ORDER BY created_at DESC
         LIMIT ? OFFSET ?
-        """,
-        tuple(params + [per_page, offset])
-    )
-    cols = [d[0] for d in cur.description]
-    rows = []
-    for r in cur.fetchall():
-        row = dict(zip(cols, r))
-        # fallback : si margin est NULL ou absent, on prend margin_calc
-        if "margin" not in row or row["margin"] is None:
-            row["margin"] = row.get("margin_calc")
-        row.pop("margin_calc", None)
-        rows.append(row)
+    """, params + (per_page, offset))
+    rows = cur.fetchall()
+
     conn.close()
     return rows, total_pages
+
 
 def rename_object(object_id: int, new_name: str) -> None:
     update_object_fields(int(object_id), name=(new_name or "").strip())
@@ -816,75 +837,41 @@ class ObjectsSummary(TypedDict):
     sum_sold_price: float
     sum_positive_margin: float
 
+
 def summarize_objects(filters: dict) -> ObjectsSummary:
     """
-    Calcule des agrégats sur la table objects selon les filtres fournis :
-    - total_objects             : COUNT(*)
-    - sold_count                : COUNT(*) WHERE sold_price IS NOT NULL
-    - available_count           : COUNT(*) WHERE available = 1
-    - gifted_count              : COUNT(*) WHERE sold_price = 0
-    - sum_sold_price            : SUM(sold_price) WHERE sold_price IS NOT NULL
-    - sum_positive_margin       : SUM(margin or (sold_price - cost_total)) WHERE sold_price > 0 AND marge > 0
+    Calcule des agrégats sur la table objects selon les filtres fournis.
     """
-    clauses = []
-    params: list = []
-
-    s = (filters.get("search") or "").strip()
-    if s:
-        clauses.append("LOWER(name) LIKE ?")
-        params.append(f"%{s.lower()}%")
-
-    sf = (filters.get("sold_filter") or "").strip()
-    if sf == "yes":
-        clauses.append("sold_price IS NOT NULL")
-    elif sf == "no":
-        clauses.append("sold_price IS NULL")
-
-    st = (filters.get("source_type") or "").strip()
-    if st in ("print", "group"):
-        clauses.append("parent_type = ?")
-        params.append(st)
-
-    av = (filters.get("available") or "").strip()
-    if av == "yes":
-        clauses.append("available = 1")
-    elif av == "no":
-        clauses.append("available = 0")
-
-    where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+    where, params = _build_objects_where(filters)
 
     conn = _connect()
     cur = conn.cursor()
 
-    # Total objets
-    cur.execute(f"SELECT COUNT(*) FROM objects {where}", tuple(params))
+    # Total
+    cur.execute(f"SELECT COUNT(*) FROM objects {where}", params)
     total_objects = int(cur.fetchone()[0])
 
-    # Vendus
-    cur.execute(f"SELECT COUNT(*) FROM objects {where} AND sold_price > 0" if where else
-                "SELECT COUNT(*) FROM objects WHERE sold_price > 0", tuple(params))
+    # Vendus (sold_price > 0)
+    cur.execute(f"SELECT COUNT(*) FROM objects {_extend_where(where, 'sold_price > 0')}", params)
     sold_count = int(cur.fetchone()[0])
 
     # Disponibles
-    cur.execute(f"SELECT COUNT(*) FROM objects {where} AND available = 1" if where else
-                "SELECT COUNT(*) FROM objects WHERE available = 1", tuple(params))
+    cur.execute(f"SELECT COUNT(*) FROM objects {_extend_where(where, 'available = 1')}", params)
     available_count = int(cur.fetchone()[0])
 
-    # Offerts (sold_price = 0)
-    cur.execute(f"SELECT COUNT(*) FROM objects {where} AND sold_price = 0" if where else
-                "SELECT COUNT(*) FROM objects WHERE sold_price = 0", tuple(params))
+    # Offerts
+    cur.execute(f"SELECT COUNT(*) FROM objects {_extend_where(where, 'sold_price = 0')}", params)
     gifted_count = int(cur.fetchone()[0])
 
-    # Somme des prix de vente (inclut 0 si don, ne compte pas NULL)
+    # Somme des prix de vente (NULL exclus, inclut 0 et >0)
     cur.execute(f"""
         SELECT COALESCE(SUM(sold_price), 0)
         FROM objects
-        {where} {"AND" if where else "WHERE"} sold_price IS NOT NULL
-    """, tuple(params))
+        {_extend_where(where, 'sold_price IS NOT NULL')}
+    """, params)
     sum_sold_price = float(cur.fetchone()[0] or 0.0)
 
-    # Somme des marges positives (on ignore dons et marges ≤ 0)
-    # On se base sur la colonne margin si présente, sinon on recalcule (sold_price - cost_total).
+    # Somme des marges positives (ignore dons et marges ≤ 0)
     cur.execute(f"""
         SELECT COALESCE(SUM(
             CASE
@@ -902,7 +889,7 @@ def summarize_objects(filters: dict) -> ObjectsSummary:
         ), 0)
         FROM objects
         {where}
-    """, tuple(params))
+    """, params)
     sum_positive_margin = float(cur.fetchone()[0] or 0.0)
 
     conn.close()
@@ -914,5 +901,6 @@ def summarize_objects(filters: dict) -> ObjectsSummary:
         sum_sold_price=sum_sold_price,
         sum_positive_margin=sum_positive_margin,
     )
+
 
 ensure_schema()

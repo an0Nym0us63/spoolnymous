@@ -36,6 +36,7 @@
     <div>Aucun objet ne correspond aux filtres.</div>
   </div>
 {% endif %}
+{% if objects|length != 0 %}
 <!-- Tuiles statistiques (alignées sur print_history) -->
 <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-6 g-2 mb-3 text-center align-items-stretch">
   <div class="col">
@@ -91,7 +92,7 @@
     </div>
   </div>
 </div>
-
+{% endif %}
 
 <div class="accordion" id="objectsAccordion">
   {% for o in objects %}
@@ -364,27 +365,29 @@
   </div>
   <div class="offcanvas-body">
     <form method="get" class="row g-2">
-      {{ macros.render_filtered_args(args, ['search','sold_filter','source_type','available','page']) }}
+      {{ macros.render_filtered_args(args, ['search','sale_filter','source_type','available','page']) }}
       <div class="col-12 col-md-4">
         <label class="form-label">Recherche</label>
         <input type="text" name="search" class="form-control" value="{{ filters.search or '' }}" placeholder="Nom de l’objet…">
       </div>
-      <div class="col-6 col-md-2">
-        <label class="form-label">Vente</label>
-        <select name="sold_filter" class="form-select">
-          <option value="">— Tous —</option>
-          <option value="yes" {% if filters.sold_filter=='yes' %}selected{% endif %}>Vendus</option>
-          <option value="no"  {% if filters.sold_filter=='no'  %}selected{% endif %}>Non vendus</option>
-        </select>
-      </div>
-      <div class="col-6 col-md-2">
-        <label class="form-label">Dispo</label>
-        <select name="available" class="form-select">
-          <option value="">— Toutes —</option>
-          <option value="yes" {% if filters.available=='yes' %}selected{% endif %}>Disponibles</option>
-          <option value="no"  {% if filters.available=='no'  %}selected{% endif %}>Indispo</option>
-        </select>
-      </div>
+	    <div class="col-6 col-md-3">
+    <label for="sale_filter" class="form-label mb-1">Vente</label>
+    <select id="sale_filter" name="sale_filter" class="form-select">
+      {% set curr_sale = args.get('sale_filter','') %}
+      {% if not curr_sale %}
+        {# rétro-compat: si ancien sold_filter/available présents #}
+        {% set old_sold = args.get('sold_filter','') %}
+        {% set old_av   = args.get('available','') %}
+        {% if old_sold == 'yes' %}{% set curr_sale = 'vendus' %}
+        {% elif old_av == 'yes' %}{% set curr_sale = 'dispo' %}
+        {% endif %}
+      {% endif %}
+      <option value="" {{ '' == curr_sale and 'selected' or '' }}>Tous</option>
+      <option value="vendus" {{ 'vendus' == curr_sale and 'selected' or '' }}>Vendus</option>
+      <option value="dispo"  {{ 'dispo'  == curr_sale and 'selected' or '' }}>Disponibles</option>
+      <option value="offert" {{ 'offert' == curr_sale and 'selected' or '' }}>Offerts</option>
+    </select>
+  </div>
       <div class="col-6 col-md-2">
         <label class="form-label">Source</label>
         <select name="source_type" class="form-select">

@@ -1910,9 +1910,8 @@ def objects_page():
     page = int(request.args.get("page", "1") or 1)
     filters = {
         "search": request.args.get("search", ""),
-        "sold_filter": request.args.get("sold_filter", ""),    # yes/no/« »
-        "source_type": request.args.get("source_type", ""),    # print/group/« »
-        "available": request.args.get("available", ""),        # yes/no/« »
+        "source_type": request.args.get("source_type", ""),  # print | group | ''
+        "sale_filter": request.args.get("sale_filter", ""),  # '' | vendus | dispo | offert
     }
     rows, total_pages = list_objects(filters, page, per_page=30)
 
