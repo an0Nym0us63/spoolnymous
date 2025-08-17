@@ -246,48 +246,60 @@
       </div>
       {% endif %}
 	  {% if o.comment %}
+	  <div class="text-center mt-2">
   <span class="badge d-inline-block bg-warning bg-opacity-10 border border-warning rounded-pill px-3 py-1"
         style="font-size: 0.65rem; max-width: 90vw; white-space: normal; word-break: break-word;">
     <span class="text-warning">📃</span> <span class="text-muted">{{ o.comment }}</span>
   </span>
+  </div>
   {% endif %}
-        <div class="row g-3">
-          <div class="col-12 col-md-8">
-            <div class="mb-2">
-              <div class="small text-muted mb-1">Tags</div>
-              <div class="d-flex flex-wrap gap-1">
-                {% set tags = obj_tags.get(o.id, []) %}
-                {% if tags %}
-                  {% for t in tags %}
-                    <span class="badge bg-primary">{{ t }}</span>
-                  {% endfor %}
-                {% else %}
-                  <span class="text-muted">Aucun</span>
-                {% endif %}
-              </div>
-            </div>
-          </div>
+        <div class="row text-muted small gx-3 gy-2 mb-3">
+  <div class="col-6">
+    <strong>Coût total :</strong> {{ '%.2f'|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
+  </div>
+  <div class="col-6">
+    <strong>Prix de vente :</strong>
+    {% if o.sold_price is not none %}
+      {{ '%.2f'|format(o.sold_price) }} {{ currencysymbol or '€' }}
+    {% else %}
+      <span class="text-muted fst-italic">non vendu</span>
+    {% endif %}
+  </div>
+  <div class="col-6">
+    <strong>Marge :</strong>
+    {% if o.sold_price %}
+      {% set _margin = o.margin if o.margin is not none else (o.sold_price - (o.cost_total or 0)) %}
+      {{ '%.2f'|format(_margin) }} {{ currencysymbol or '€' }}
+    {% else %}
+      <span class="text-muted fst-italic">n/a</span>
+    {% endif %}
+  </div>
+  <div class="col-6">
+    <strong>Disponible :</strong>
+    {% if o.sold_price is not none %}
+      <span class="text-muted fst-italic">non</span>
+    {% else %}
+      {{ 'oui' if o.available else 'non' }}
+    {% endif %}
+  </div>
+  <div class="col-6">
+    <strong>Ajouté le :</strong> {{ o.created_at.strftime("%d/%m/%Y") if o.created_at else "?" }}
+  </div>
+  <div class="col-6">
+    <strong>Modifié le :</strong> {{ o.updated_at.strftime("%d/%m/%Y") if o.updated_at else "?" }}
+  </div>
+</div>
 
-          <div class="col-12 col-md-4">
-            <div class="small text-muted mb-1">Infos</div>
-            <ul class="list-unstyled mb-2">
-              <li>Disponible : {{ 'Oui' if o.available else 'Non' }}</li>
-              <li>Vendu : {{ 'Oui (' ~ ("%.2f"|format(o.sold_price)) ~ ' ' ~ (currencysymbol or '€') ~ ')' if o.sold_price is not none else 'Non' }}</li>
-              {% if o.sold_date %}<li>Vendu le : {{ o.sold_date }}</li>{% endif %}
-              <li>Maj : {{ o.updated_at | datetimeformat('fr')}}</li>
-			  <li>Marge :
-  {% if o.margin is defined and o.margin is not none %}
-    {{ '%.2f'|format(o.margin) }} {{ currencysymbol or '€' }}
-  {% else %}
-    —
-  {% endif %}
-</li>
-<li>Translate :
-  {{ o.translated_name or '' }}
-</li>
-            </ul>
-          </div>
-        </div>
+<!-- Tags -->
+{% if o.tags %}
+  <div class="d-flex flex-wrap gap-1">
+    {% for tag in o.tags %}
+      <span class="badge bg-light text-dark border border-secondary-subtle fw-normal small">
+        #{{ tag }}
+      </span>
+    {% endfor %}
+  </div>
+{% endif %}
       </div>
     </div>
   </div>
