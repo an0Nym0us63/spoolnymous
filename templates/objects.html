@@ -224,31 +224,39 @@
             </div>
           </div>
 
-          <!-- Tags (style inline comme list_prints / print_card) -->
-          <div class="d-flex flex-wrap align-items-center tag-controls">
-            {% set tags = obj_tags.get(o.id, []) %}
-            {% if tags and tags|length %}
-              {% for t in tags %}
-                <span class="badge badge-tag">{{ t }}</span>
-              {% endfor %}
-            {% else %}
-              <span class="text-muted small">Aucun tag</span>
-            {% endif %}
+          <!-- Tags (style list_prints/print_card) -->
+<div class="d-flex flex-wrap align-items-center tag-controls" id="tags-line-{{ item_id }}">
+  {% set tags = obj_tags.get(o.id, []) %}
+  <div class="d-flex flex-wrap align-items-center gap-2 me-2" data-role="badges">
+    {% if tags and tags|length %}
+      {% for t in tags %}
+        <span class="badge badge-tag d-inline-flex align-items-center" data-tag="{{ t }}">
+          <span class="me-1">{{ t }}</span>
+          <button type="button" class="btn btn-sm btn-link p-0 text-muted"
+                  aria-label="Supprimer le tag"
+                  onclick="removeObjectTag({{ o.id }}, '{{ t|replace(\"'\",\"\\'\") }}', '{{ item_id }}')">✕</button>
+        </span>
+      {% endfor %}
+    {% else %}
+      <span class="text-muted small" data-role="empty">Aucun tag</span>
+    {% endif %}
+  </div>
 
-            <!-- Bouton + champ inline pour ajout -->
-            <button type="button"
-                    class="btn btn-sm btn-outline-primary ms-2"
-                    onclick="toggleTagAdd('{{ item_id }}')">+ Tag</button>
+  <!-- Ajout inline -->
+  <form class="tag-add-inline ms-1" id="tagAdd-{{ item_id }}" method="post"
+        action="{{ url_for('add_object_tag', object_id=o.id) }}"
+        onsubmit="return submitAddObjectTag(event, '{{ item_id }}');">
+    <div class="input-group input-group-sm">
+      <input type="text" name="tag" class="form-control" placeholder="Nouveau tag… (séparez par , ou ;)" required>
+      <button class="btn btn-primary" type="submit">OK</button>
+      <button class="btn btn-outline-secondary" type="button" onclick="toggleTagAdd('{{ item_id }}', false)">Annuler</button>
+    </div>
+  </form>
 
-            <form class="tag-add-inline ms-1" id="tagAdd-{{ item_id }}" method="post" ><!--action="{{ url_for('add_object_tag') }}"-->
-              <input type="hidden" name="object_id" value="{{ o.id }}">
-              <div class="input-group input-group-sm">
-                <input type="text" name="tag" class="form-control" placeholder="Nouveau tag…" required>
-                <button class="btn btn-primary" type="submit">OK</button>
-                <button class="btn btn-outline-secondary" type="button" onclick="toggleTagAdd('{{ item_id }}', false)">Annuler</button>
-              </div>
-            </form>
-          </div>
+  <button type="button"
+          class="btn btn-sm btn-outline-primary ms-2"
+          onclick="toggleTagAdd('{{ item_id }}')">+ Tag</button>
+</div>
 
         </div>
       </div>
@@ -279,16 +287,88 @@
 {% block body_end_extra %}
 <script>
   function toggleTagAdd(id, show) {
-    const el = document.getElementById('tagAdd-' + id);
-    if (!el) return;
+    const form = document.getElementById('tagAdd-' + id);
+    if (!form) return;
     if (show === undefined) {
-      el.style.display = (el.style.display === 'inline-block') ? 'none' : 'inline-block';
+      form.style.display = (form.style.display === 'inline-block') ? 'none' : 'inline-block';
     } else {
-      el.style.display = show ? 'inline-block' : 'none';
+      form.style.display = show ? 'inline-block' : 'none';
     }
-    if (el.style.display !== 'none') {
-      const input = el.querySelector('input[name="tag"]');
+    if (form.style.display !== 'none') {
+      const input = form.querySelector('input[name="tag"]');
       if (input) { input.focus(); }
+    }
+  }
+
+  async function submitAddObjectTag(ev, itemId) {
+    ev.preventDefault();
+    const form = ev.currentTarget;
+    const url = form.getAttribute('action');
+    const fd = new FormData(form);
+
+    const res = await fetch(url, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data?.status === 'ok') {
+      renderTagsLine(itemId, data.tags);
+      form.reset();
+      toggleTagAdd(itemId, false);
+    }
+    return false;
+  }
+
+  async function removeObjectTag(objectId, tag, itemId) {
+    const url = `/objects/${objectId}/tags/remove`;
+    const fd = new FormData();
+    fd.append('tag', tag);
+
+    const res = await fetch(url, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data?.status === 'ok') {
+      renderTagsLine(itemId, data.tags);
+    }
+  }
+
+  function renderTagsLine(itemId, tags) {
+    const line = document.getElementById('tags-line-' + itemId);
+    if (!line) return;
+    const badgesWrap = line.querySelector('[data-role="badges"]');
+    const empty = line.querySelector('[data-role="empty"]');
+
+    // reset badges
+    badgesWrap.innerHTML = '';
+    if (empty) { empty.remove(); }
+
+    if (!tags || !tags.length) {
+      const span = document.createElement('span');
+      span.className = 'text-muted small';
+      span.setAttribute('data-role', 'empty');
+      span.textContent = 'Aucun tag';
+      badgesWrap.appendChild(span);
+      return;
+    }
+
+    for (const t of tags) {
+      const badge = document.createElement('span');
+      badge.className = 'badge badge-tag d-inline-flex align-items-center';
+      badge.setAttribute('data-tag', t);
+
+      const txt = document.createElement('span');
+      txt.className = 'me-1';
+      txt.textContent = t;
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-sm btn-link p-0 text-muted';
+      btn.setAttribute('aria-label', 'Supprimer le tag');
+      btn.textContent = '✕';
+      // on a besoin de l'objectId => on peut le récupérer depuis le DOM :
+      // l'itemId est 'obj<id>'
+      const objectId = itemId.replace(/^obj/, '');
+      btn.onclick = () => removeObjectTag(objectId, t, itemId);
+
+      badge.appendChild(txt);
+      badge.appendChild(btn);
+      badgesWrap.appendChild(badge);
     }
   }
 </script>
