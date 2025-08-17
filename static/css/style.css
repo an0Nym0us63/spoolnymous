@@ -254,10 +254,6 @@
     font-size: 0.8rem;
     padding: 0.2rem 0.4rem;
   }
-  .print-history img {
-    max-width: 40px;
-    height: auto;
-  }
 }
 * Force styles Select2 */
 .select2-container--default .select2-selection--multiple {
