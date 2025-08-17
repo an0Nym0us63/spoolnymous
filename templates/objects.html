@@ -19,7 +19,15 @@
   .chips .badge  { font-weight:600; font-size:.75rem; padding:.35em .55em; white-space:nowrap; }
   /* Icône statut à droite */
   .obj-status i  { font-size:1.2rem; }
-
+  @media (max-width: 575.98px) {
+    .card-body .fs-5,
+    .card-body .fs-md-4 {
+      font-size: 1rem !important;
+    }
+    .card-body .small.fw-bold {
+      font-size: 0.75rem;
+    }
+  }
 </style>
 <!-- Boutons flottants (identiques au reste) -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
@@ -38,7 +46,7 @@
 {% endif %}
 {% if objects|length != 0 %}
 <!-- Tuiles statistiques (alignées sur print_history) -->
-<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-6 g-2 mb-3 text-center align-items-stretch">
+<div class="row row-cols-3 row-cols-sm-3 row-cols-md-3 row-cols-lg-6">
   <div class="col">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
