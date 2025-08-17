@@ -1,5 +1,5 @@
 import sqlite3
-from typing import Optional, Dict, Any, List, Tuple, NamedTuple, Literal
+from typing import Optional, Dict, Any, List, Tuple, NamedTuple, Literal, TypedDict
 from datetime import datetime, timezone
 from collections.abc import Iterable
 
