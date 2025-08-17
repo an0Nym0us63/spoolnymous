@@ -62,7 +62,7 @@
     {% set used  = (print.used_units or 0)|int %}
     {% set total = (print.number_of_items or 1)|int %}
     {% if used > 0 %}
-      <span class="badge {{ 'text-bg-secondary' if used >= total else 'text-bg-warning' }} rounded-pill thumb-badge-used"
+      <span class="badge {{ 'text-bg-dark' if used >= total else 'text-bg-secondary' }} rounded-pill thumb-badge-used"
             title="{{ used }} utilisé(s) / {{ total }}">
         {{ used }}
       </span>
