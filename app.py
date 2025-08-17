@@ -38,7 +38,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_tag_to_object, remove_tag_from_object
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -2024,7 +2024,7 @@ def add_object_tag(object_id: int):
     tag_input = request.form.get("tag", "")
     tags = [t.strip() for t in re.split(r"[;,]", tag_input) if t.strip()]
     for tag in tags:
-        add_tag_to_object(object_id, tag)
+        add_object_tag(object_id, tag)
 
     tags_now = get_tags_for_objects([object_id]).get(object_id, [])
     return jsonify({"status": "ok", "tags": tags_now})
@@ -2034,7 +2034,7 @@ def add_object_tag(object_id: int):
 def remove_object_tag(object_id: int):
     tag = (request.form.get("tag", "")).strip()
     if tag:
-        remove_tag_from_object(object_id, tag)
+        remove_object_tag(object_id, tag)
     tags_now = get_tags_for_objects([object_id]).get(object_id, [])
     return jsonify({"status": "ok", "tags": tags_now})
 
