@@ -716,18 +716,7 @@ def list_objects(filters: dict, page: int, per_page: int = 30):
     # Récupérer les lignes (triées par date desc si dispo)
     offset = (page - 1) * per_page
     cur.execute(f"""
-        SELECT
-            id,
-            name,
-            parent_type,
-            sold_price,
-            available,
-            cost_total,
-            cost_accessory,
-            cost_fabrication,
-            margin,
-            created_at,
-            updated_at       -- <-- important : présent pour le template
+        SELECT *
         FROM objects
         {where}
         ORDER BY created_at DESC
