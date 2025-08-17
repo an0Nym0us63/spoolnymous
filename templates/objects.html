@@ -277,13 +277,22 @@
   </div>
   <div class="col">
     <strong>🗓️</strong>
-    {{ o.created_at[:10] if o.created_at else "?" }}
+    {% if o.created_at %}
+      {{ o.created_at[:10].split('-') | reverse | join('/') }}
+    {% else %}
+      ?
+    {% endif %}
   </div>
   <div class="col">
     <strong>🛍️</strong>
-    {{ o.sold_date[:10] if o.sold_date else "non vendu" }}
+    {% if o.sold_date %}
+      {{ o.sold_date[:10].split('-') | reverse | join('/') }}
+    {% else %}
+      <span class="text-muted fst-italic">non vendu</span>
+    {% endif %}
   </div>
 </div>
+
 
 
 <!-- Tags -->
