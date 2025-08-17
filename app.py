@@ -600,7 +600,7 @@ app.config.update(
 )
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-ACCESSORY_UPLOAD_DIR = os.path.join(app.static_folder, "uploads", "accessories")
+ACCESSORY_UPLOAD_DIR = os.path.join(app.static_folder, "data","uploads", "accessories")
 os.makedirs(ACCESSORY_UPLOAD_DIR, exist_ok=True)
 
 ALLOWED_IMG_EXT = {"png", "jpg", "jpeg", "webp", "gif"}
