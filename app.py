@@ -38,7 +38,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -2070,7 +2070,7 @@ def accessories_add():
         save_path = os.path.join(ACCESSORY_UPLOAD_DIR, final_name)
         file.save(save_path)
         # Chemin relatif à /static
-        image_path = f"uploads/accessories/{final_name}"
+        image_path = f"data/uploads/accessories/{final_name}"
 
     try:
         create_accessory(name=name, qty=qty, total_price=total_price, image_path=image_path)
