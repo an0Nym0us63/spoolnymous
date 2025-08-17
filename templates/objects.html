@@ -228,19 +228,22 @@
 <div class="d-flex flex-wrap align-items-center tag-controls" id="tags-line-{{ item_id }}">
   {% set tags = obj_tags.get(o.id, []) %}
   <div class="d-flex flex-wrap align-items-center gap-2 me-2" data-role="badges">
-    {% if tags and tags|length %}
-      {% for t in tags %}
-        <span class="badge badge-tag d-inline-flex align-items-center" data-tag="{{ t }}">
-          <span class="me-1">{{ t }}</span>
-          <button type="button" class="btn btn-sm btn-link p-0 text-muted"
-                  aria-label="Supprimer le tag"
-                  onclick="removeObjectTag({{ o.id }}, '{{ t|replace(\"'\",\"\\'\") }}', '{{ item_id }}')">✕</button>
-        </span>
-      {% endfor %}
-    {% else %}
-      <span class="text-muted small" data-role="empty">Aucun tag</span>
-    {% endif %}
-  </div>
+  {% if tags and tags|length %}
+    {% for t in tags %}
+      <span class="badge badge-tag d-inline-flex align-items-center" data-tag="{{ t }}">
+        <span class="me-1">{{ t }}</span>
+        <button
+          type="button"
+          class="btn btn-sm btn-link p-0 text-muted"
+          aria-label="Supprimer le tag"
+          onclick="removeObjectTag({{ o.id }}, {{ t|tojson }}, {{ item_id|tojson }})"
+        >✕</button>
+      </span>
+    {% endfor %}
+  {% else %}
+    <span class="text-muted small" data-role="empty">Aucun tag</span>
+  {% endif %}
+</div>
 
   <!-- Ajout inline -->
   <form class="tag-add-inline ms-1" id="tagAdd-{{ item_id }}" method="post"
