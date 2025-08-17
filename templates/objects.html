@@ -28,6 +28,9 @@
       font-size: 0.75rem;
     }
   }
+  .obj-grid > *:last-child {
+  flex-shrink: 0;
+}
 </style>
 <!-- Boutons flottants (identiques au reste) -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
@@ -185,52 +188,54 @@
 
     <div id="{{ collapse_id }}" class="collapse" aria-labelledby="heading_{{ o.id }}" data-bs-parent="#objectsAccordion">
       <div class="card-body">
-		<div class="dropdown float-end mt-1" data-requires-write>
-  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-    Actions
-  </button>
-  <ul class="dropdown-menu dropdown-menu-end">
-    <li>
-      <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#renameModal_{{ o.id }}">
-        📝 Renommer
-      </a>
-    </li>
-	<li>
-  <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sellModal_{{ o.id }}">
-    💳 Vente / don
-  </a>
-</li>
-<li>
-  <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#commentModal_{{ o.id }}">
-    💬 Modifier le commentaire
-  </a>
-</li>
-	{% if o.parent_type == 'print' %}
-  <li>
-    <a class="dropdown-item" href="{{ url_for('print_history') }}?ref_print_id={{ o.parent_id }}&focus_print_id={{ o.parent_id }}">
-      🔎 Voir la référence
-    </a>
-  </li>
-{% else %}
-  <li>
-    <a class="dropdown-item" href="{{ url_for('print_history') }}?ref_group_id={{ o.parent_id }}&focus_group_id={{ o.parent_id }}">
-      🔎 Voir la référence
-    </a>
-  </li>
-{% endif %}
-    <li>
-  <a href="#"
-     class="dropdown-item text-danger object-delete-btn"
-     data-object-id="{{ o.id }}"
-     data-object-name="{{ o.name|e }}">
-    🗑 Supprimer
-  </a>
-  <form id="deleteForm_{{ o.id }}" class="d-none m-0 p-0"
-        method="post" action="{{ url_for('objects_delete', object_id=o.id) }}">
-    {{ macros.render_filtered_args(args) }}
-  </form>
-</li>
-  </ul>
+		<div class="d-flex justify-content-end mb-2" style="z-index: 1;" data-requires-write>
+  <div class="dropdown">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+      Actions
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+      <li>
+        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#renameModal_{{ o.id }}">
+          📝 Renommer
+        </a>
+      </li>
+      <li>
+        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sellModal_{{ o.id }}">
+          💳 Vente / don
+        </a>
+      </li>
+      <li>
+        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#commentModal_{{ o.id }}">
+          💬 Modifier le commentaire
+        </a>
+      </li>
+      {% if o.parent_type == 'print' %}
+        <li>
+          <a class="dropdown-item" href="{{ url_for('print_history') }}?ref_print_id={{ o.parent_id }}&focus_print_id={{ o.parent_id }}">
+            🔎 Voir la référence
+          </a>
+        </li>
+      {% else %}
+        <li>
+          <a class="dropdown-item" href="{{ url_for('print_history') }}?ref_group_id={{ o.parent_id }}&focus_group_id={{ o.parent_id }}">
+            🔎 Voir la référence
+          </a>
+        </li>
+      {% endif %}
+      <li>
+        <a href="#"
+           class="dropdown-item text-danger object-delete-btn"
+           data-object-id="{{ o.id }}"
+           data-object-name="{{ o.name|e }}">
+          🗑 Supprimer
+        </a>
+        <form id="deleteForm_{{ o.id }}" class="d-none m-0 p-0"
+              method="post" action="{{ url_for('objects_delete', object_id=o.id) }}">
+          {{ macros.render_filtered_args(args) }}
+        </form>
+      </li>
+    </ul>
+  </div>
 </div>
 {% if o.thumbnail %}
 	  <div class="text-center">
@@ -240,6 +245,12 @@
       </div>
       </div>
       {% endif %}
+	  {% if o.comment %}
+  <span class="badge d-inline-block bg-warning bg-opacity-10 border border-warning rounded-pill px-3 py-1"
+        style="font-size: 0.65rem; max-width: 90vw; white-space: normal; word-break: break-word;">
+    <span class="text-warning">📃</span> <span class="text-muted">{{ o.comment }}</span>
+  </span>
+  {% endif %}
         <div class="row g-3">
           <div class="col-12 col-md-8">
             <div class="mb-2">
@@ -254,13 +265,6 @@
                   <span class="text-muted">Aucun</span>
                 {% endif %}
               </div>
-            </div>
-
-            <div class="mt-2">
-              {% if o.comment %}
-                <div class="small text-muted mb-1">Commentaire</div>
-                <div class="border rounded p-2">{{ o.comment }}</div>
-              {% endif %}
             </div>
           </div>
 
