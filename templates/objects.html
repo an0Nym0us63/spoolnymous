@@ -283,9 +283,10 @@
 </div>
 
 <!-- Tags -->
-{% if o.obj_tags %}
+{% set tags = obj_tags.get(o.id, []) %}
+{% if tags %}
   <div class="d-flex flex-wrap gap-1">
-    {% for tag in o.obj_tags %}
+    {% for tag in tags %}
       <span class="badge bg-light text-dark border border-secondary-subtle fw-normal small">
         #{{ tag }}
       </span>
