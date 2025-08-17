@@ -255,9 +255,290 @@ def ensure_schema() -> None:
             WHERE id = NEW.id;
         END;
     """)
-
+    ensure_accessories_schema(cur)
     conn.commit()
     conn.close()
+
+def ensure_accessories_schema(cur: sqlite3.Cursor) -> None:
+    """
+    Crée/upgrade les tables 'accessories' et 'object_accessories' + index + triggers.
+    Appelée depuis ensure_schema().
+    """
+    # Table des accessoires (stock global)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS accessories (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            name        TEXT    NOT NULL UNIQUE,
+            quantity    INTEGER NOT NULL DEFAULT 0,
+            unit_price  REAL    NOT NULL DEFAULT 0,  -- prix unitaire actuel (moyenne pondérée)
+            image_path  TEXT,
+            created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+            updated_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_accessories_name ON accessories(name)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_accessories_qty  ON accessories(quantity)")
+
+    # Liaisons Objet <-> Accessoire (prix unitaire figé au moment du lien)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS object_accessories (
+            id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+            object_id            INTEGER NOT NULL REFERENCES objects(id)    ON DELETE CASCADE,
+            accessory_id         INTEGER NOT NULL REFERENCES accessories(id) ON DELETE CASCADE,
+            quantity             INTEGER NOT NULL CHECK (quantity > 0),
+            unit_price_at_link   REAL    NOT NULL,  -- snapshot : ne change plus après l’affectation
+            created_at           TEXT    NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(object_id, accessory_id)        -- 1 ligne par (objet, accessoire), on cumule dans quantity
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_objacc_object ON object_accessories(object_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_objacc_acc    ON object_accessories(accessory_id)")
+
+    # --- TRIGGERS ---
+
+    # Après INSERT : décrémente le stock accessoire + recalcule cost_accessory de l'objet
+    cur.execute("""
+        CREATE TRIGGER IF NOT EXISTS trg_objacc_after_insert
+        AFTER INSERT ON object_accessories
+        BEGIN
+            UPDATE accessories
+               SET quantity = quantity - NEW.quantity,
+                   updated_at = datetime('now')
+             WHERE id = NEW.accessory_id;
+
+            UPDATE objects
+               SET cost_accessory = COALESCE((
+                        SELECT SUM(quantity * unit_price_at_link)
+                          FROM object_accessories
+                         WHERE object_id = NEW.object_id
+                    ),0),
+                   updated_at = datetime('now')
+             WHERE id = NEW.object_id;
+        END;
+    """)
+
+    # Après UPDATE de quantity : ajuste le stock par delta + recalcule cost_accessory
+    cur.execute("""
+        CREATE TRIGGER IF NOT EXISTS trg_objacc_after_update
+        AFTER UPDATE OF quantity ON object_accessories
+        BEGIN
+            UPDATE accessories
+               SET quantity = quantity - (NEW.quantity - OLD.quantity),
+                   updated_at = datetime('now')
+             WHERE id = NEW.accessory_id;
+
+            UPDATE objects
+               SET cost_accessory = COALESCE((
+                        SELECT SUM(quantity * unit_price_at_link)
+                          FROM object_accessories
+                         WHERE object_id = NEW.object_id
+                    ),0),
+                   updated_at = datetime('now')
+             WHERE id = NEW.object_id;
+        END;
+    """)
+
+    # Après DELETE : recrédite le stock + recalcule cost_accessory
+    cur.execute("""
+        CREATE TRIGGER IF NOT EXISTS trg_objacc_after_delete
+        AFTER DELETE ON object_accessories
+        BEGIN
+            UPDATE accessories
+               SET quantity = quantity + OLD.quantity,
+                   updated_at = datetime('now')
+             WHERE id = OLD.accessory_id;
+
+            UPDATE objects
+               SET cost_accessory = COALESCE((
+                        SELECT SUM(quantity * unit_price_at_link)
+                          FROM object_accessories
+                         WHERE object_id = OLD.object_id
+                    ),0),
+                   updated_at = datetime('now')
+             WHERE id = OLD.object_id;
+        END;
+    """)
+
+    # 📌 NB : ton trigger existant 'trg_obj_recompute_after_components' sur objects
+    # recalculera cost_total/margin quand cost_accessory bouge — pas besoin d’en rajouter.
+
+
+# =========================
+#  ACCESSOIRES - DAL (API Python)
+# =========================
+
+def list_accessories() -> list[dict]:
+    conn = _connect(); cur = conn.cursor()
+    cur.execute("""
+        SELECT id, name, quantity, unit_price, image_path, created_at, updated_at
+          FROM accessories
+         ORDER BY name COLLATE NOCASE
+    """)
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
+
+def get_accessory(acc_id: int) -> dict | None:
+    conn = _connect(); cur = conn.cursor()
+    cur.execute("""
+        SELECT id, name, quantity, unit_price, image_path, created_at, updated_at
+          FROM accessories
+         WHERE id = ?
+    """, (acc_id,))
+    r = cur.fetchone()
+    conn.close()
+    return dict(r) if r else None
+
+def create_accessory(name: str, qty: int, total_price: float, image_path: str | None = None) -> int:
+    """
+    Crée un accessoire avec stock initial.
+    - unit_price = total_price / qty (0 si qty=0)
+    """
+    if not name or qty < 0 or total_price < 0:
+        raise ValueError("Paramètres invalides pour create_accessory")
+    unit_price = (float(total_price) / qty) if qty > 0 else 0.0
+
+    conn = _connect(); cur = conn.cursor()
+    try:
+        cur.execute("""
+            INSERT INTO accessories(name, quantity, unit_price, image_path)
+                 VALUES (?, ?, ?, ?)
+        """, (name.strip(), int(qty), float(unit_price), image_path))
+        acc_id = cur.lastrowid
+        conn.commit()
+        return int(acc_id)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+def add_accessory_stock(acc_id: int, add_qty: int, add_total_price: float) -> None:
+    """
+    Ajoute du stock à un accessoire existant en recalculant le prix unitaire
+    par moyenne pondérée :
+      new_PU = (old_qty*old_PU + add_total_price) / (old_qty + add_qty)
+    """
+    if add_qty <= 0 or add_total_price < 0:
+        raise ValueError("add_qty doit être > 0 et add_total_price >= 0")
+
+    conn = _connect(); cur = conn.cursor()
+    try:
+        cur.execute("SELECT quantity, unit_price FROM accessories WHERE id=?", (acc_id,))
+        row = cur.fetchone()
+        if not row:
+            raise ValueError("Accessoire introuvable")
+
+        old_qty = int(row["quantity"] or 0)
+        old_pu  = float(row["unit_price"] or 0.0)
+        new_qty = old_qty + int(add_qty)
+        new_pu  = (old_qty * old_pu + float(add_total_price)) / new_qty if new_qty > 0 else 0.0
+
+        cur.execute("""
+            UPDATE accessories
+               SET quantity = ?, unit_price = ?, updated_at = datetime('now')
+             WHERE id = ?
+        """, (new_qty, new_pu, acc_id))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+def link_accessory_to_object(object_id: int, accessory_id: int, qty: int) -> int:
+    """
+    Lie un accessoire à un objet (et décrémente le stock).
+    - Snapshot du prix unitaire à l’instant T (unit_price_at_link)
+    - Si (object_id, accessory_id) existe : on incrémente quantity (UPSERT)
+    Retourne l'id de la ligne de liaison.
+    """
+    if qty <= 0:
+        raise ValueError("La quantité doit être > 0")
+
+    conn = _connect(); cur = conn.cursor()
+    try:
+        # Vérification du stock dispo et récupération du PU courant
+        cur.execute("SELECT quantity, unit_price FROM accessories WHERE id=?", (accessory_id,))
+        acc = cur.fetchone()
+        if not acc:
+            raise ValueError("Accessoire introuvable")
+        if int(acc["quantity"]) < int(qty):
+            raise ValueError("Stock insuffisant")
+
+        unit_price = float(acc["unit_price"] or 0.0)
+
+        # UPSERT grâce à UNIQUE(object_id, accessory_id)
+        cur.execute("""
+            INSERT INTO object_accessories(object_id, accessory_id, quantity, unit_price_at_link)
+                 VALUES (?, ?, ?, ?)
+            ON CONFLICT(object_id, accessory_id) DO UPDATE SET
+                 quantity = quantity + excluded.quantity
+        """, (int(object_id), int(accessory_id), int(qty), unit_price))
+
+        # Récup id de la ligne
+        cur.execute("""
+            SELECT id FROM object_accessories
+             WHERE object_id=? AND accessory_id=?
+        """, (object_id, accessory_id))
+        row = cur.fetchone()
+        conn.commit()
+        return int(row["id"])
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+def unlink_accessory_from_object(object_id: int, accessory_id: int, qty: int | None = None) -> None:
+    """
+    Supprime tout ou partie du lien d'un accessoire avec un objet, en rendant le stock.
+    - qty=None  => supprime entièrement la ligne
+    - qty>0     => décrémente la quantité ; si elle atteint 0, supprime la ligne
+    Les triggers se chargent de réajuster le stock accessoire et le coût objet.
+    """
+    conn = _connect(); cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT id, quantity FROM object_accessories
+             WHERE object_id=? AND accessory_id=?
+        """, (object_id, accessory_id))
+        row = cur.fetchone()
+        if not row:
+            return  # rien à faire
+
+        if qty is None or int(qty) >= int(row["quantity"]):
+            cur.execute("DELETE FROM object_accessories WHERE id=?", (row["id"],))
+        else:
+            new_q = int(row["quantity"]) - int(qty)
+            cur.execute("UPDATE object_accessories SET quantity=? WHERE id=?", (new_q, row["id"]))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+def list_object_accessories(object_id: int) -> list[dict]:
+    """
+    Renvoie la liste des accessoires liés à un objet (nom, qté, PU snapshot, coût total).
+    """
+    conn = _connect(); cur = conn.cursor()
+    cur.execute("""
+        SELECT oa.id,
+               oa.accessory_id,
+               a.name AS accessory_name,
+               oa.quantity,
+               oa.unit_price_at_link,
+               (oa.quantity * oa.unit_price_at_link) AS total_cost
+          FROM object_accessories oa
+          JOIN accessories a ON a.id = oa.accessory_id
+         WHERE oa.object_id = ?
+         ORDER BY a.name COLLATE NOCASE
+    """, (object_id,))
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return rows
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% import 'macros/hidden_args.jinja2' as macros %}
+
+{% block title %}Accessoires{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h5 class="m-0">🧰 Accessoires</h5>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('objects') }}" class="btn btn-sm btn-outline-secondary">↩️ Objets</a>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newAccessoryModal">➕ Nouvel accessoire</button>
+    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addStockModal">🔼 Ajouter du stock</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:72px;">Visuel</th>
+            <th>Nom</th>
+            <th class="text-end">Qté</th>
+            <th class="text-end">PU</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in accessories %}
+          <tr>
+            <td>
+              {% if a.image_path %}
+                <img src="{{ url_for('static', filename=a.image_path) }}" class="img-thumbnail" style="max-height:56px;">
+              {% else %}
+                <span class="badge bg-secondary-subtle text-secondary border">—</span>
+              {% endif %}
+            </td>
+            <td class="fw-medium">{{ a.name }}</td>
+            <td class="text-end">{{ a.quantity }}</td>
+            <td class="text-end">{{ '%.2f'|format(a.unit_price or 0) }} {{ currencysymbol or '€' }}</td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#addStockModal" data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">🔼 Stock</button>
+                <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#uploadImageModal_{{ a.id }}">🖼️ Visuel</button>
+              </div>
+              <!-- Modal upload image -->
+              <div class="modal fade" id="uploadImageModal_{{ a.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                  <form class="modal-content" method="post" action="{{ url_for('accessories_upload_image', acc_id=a.id) }}" enctype="multipart/form-data">
+                    <div class="modal-header">
+                      <h6 class="modal-title">🖼️ Mettre à jour le visuel — {{ a.name }}</h6>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="mb-3">
+                        <label class="form-label">Image (png, jpg, jpeg, webp, gif)</label>
+                        <input type="file" class="form-control" name="image" accept=".png,.jpg,.jpeg,.webp,.gif" required>
+                      </div>
+                    </div>
+                    <div class="modal-footer">
+                      <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                      <button class="btn btn-primary" type="submit">Enregistrer</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+              <!-- /Modal -->
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-center text-muted py-4">Aucun accessoire</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Nouvel accessoire -->
+<div class="modal fade" id="newAccessoryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('accessories_add') }}" enctype="multipart/form-data">
+      <div class="modal-header">
+        <h6 class="modal-title">➕ Nouvel accessoire</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {{ macros.render_filtered_args(args) }}
+        <div class="mb-2">
+          <label class="form-label">Nom</label>
+          <input type="text" name="name" class="form-control" required>
+        </div>
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label">Quantité</label>
+            <input type="number" name="qty" class="form-control" min="0" step="1" value="0" required>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Prix total</label>
+            <div class="input-group">
+              <input type="number" name="total_price" class="form-control" min="0" step="0.01" value="0" required>
+              <span class="input-group-text">{{ currencysymbol or '€' }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="mt-2">
+          <label class="form-label">Visuel (optionnel)</label>
+          <input type="file" name="image" class="form-control" accept=".png,.jpg,.jpeg,.webp,.gif">
+        </div>
+        <div class="form-text">Le prix unitaire sera calculé automatiquement : <code>PU = prix total / quantité</code>.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button class="btn btn-primary" type="submit">Créer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal : Ajouter du stock -->
+<div class="modal fade" id="addStockModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('accessories_add_stock_route') }}">
+      <div class="modal-header">
+        <h6 class="modal-title">🔼 Ajouter du stock</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {{ macros.render_filtered_args(args) }}
+        <div class="mb-2">
+          <label class="form-label">Accessoire</label>
+          <select class="form-select" name="acc_id" id="addStock_acc_select" required>
+            <option value="" selected disabled>Choisir…</option>
+            {% for a in accessories %}
+            <option value="{{ a.id }}">{{ a.name }} — stock {{ a.quantity }}, PU {{ '%.2f'|format(a.unit_price or 0) }} {{ currencysymbol or '€' }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label">Quantité à ajouter</label>
+            <input type="number" class="form-control" name="add_qty" min="1" step="1" required>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Prix total ajouté</label>
+            <div class="input-group">
+              <input type="number" class="form-control" name="add_total_price" min="0" step="0.01" required>
+              <span class="input-group-text">{{ currencysymbol or '€' }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-text">Le prix unitaire sera ajusté automatiquement par moyenne pondérée.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button class="btn btn-primary" type="submit">Ajouter</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Pré-remplir le modal "Ajouter du stock" quand on clique sur un bouton d'une ligne
+document.addEventListener('shown.bs.modal', function (ev) {
+  const modal = ev.target;
+  if (modal.id === 'addStockModal') {
+    const trigger = ev.relatedTarget;
+    if (trigger && trigger.dataset.accId) {
+      const sel = modal.querySelector('#addStock_acc_select');
+      if (sel) {
+        sel.value = trigger.dataset.accId;
+      }
+    }
+  }
+});
+</script>
+{% endblock %}

@@ -38,7 +38,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -48,6 +48,13 @@ logging.basicConfig(
 for name in ("urllib3", "urllib3.connectionpool", "requests.packages.urllib3"):
     lg = logging.getLogger(name)
     lg.setLevel(logging.WARNING)
+
+ACCESSORY_UPLOAD_DIR = os.path.join(app.static_folder, "uploads", "accessories")
+os.makedirs(ACCESSORY_UPLOAD_DIR, exist_ok=True)
+
+ALLOWED_IMG_EXT = {"png", "jpg", "jpeg", "webp", "gif"}
+def _allowed_image(filename: str) -> bool:
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMG_EXT
 
 COLOR_FAMILIES = {
     # Neutres
@@ -2037,5 +2044,85 @@ def remove_object_tag(object_id: int):
         remove_object_tag(object_id, tag)
     tags_now = get_tags_for_objects([object_id]).get(object_id, [])
     return jsonify({"status": "ok", "tags": tags_now})
+
+@app.route("/accessories")
+def accessories_list():
+    accs = list_accessories()
+    return render_template("accessories.html", accessories=accs, args=request.args)
+    
+@app.route("/accessories/add", methods=["POST"])
+def accessories_add():
+    name = (request.form.get("name") or "").strip()
+    qty = int(request.form.get("qty") or 0)
+    total_price = float(request.form.get("total_price") or 0)
+
+    image_path = None
+    file = request.files.get("image")
+    if file and file.filename and _allowed_image(file.filename):
+        fname = secure_filename(file.filename)
+        # Préfixe simple pour éviter collisions
+        final_name = f"{name.replace(' ', '_')}_{fname}"
+        save_path = os.path.join(ACCESSORY_UPLOAD_DIR, final_name)
+        file.save(save_path)
+        # Chemin relatif à /static
+        image_path = f"uploads/accessories/{final_name}"
+
+    try:
+        create_accessory(name=name, qty=qty, total_price=total_price, image_path=image_path)
+        flash("Accessoire ajouté avec succès.", "success")
+    except Exception as e:
+        flash(f"Erreur à la création de l’accessoire : {e}", "danger")
+
+    return redirect(url_for("accessories_list"))
+
+@app.route("/accessories/add_stock", methods=["POST"])
+def accessories_add_stock_route():
+    acc_id = int(request.form.get("acc_id") or 0)
+    add_qty = int(request.form.get("add_qty") or 0)
+    add_total_price = float(request.form.get("add_total_price") or 0)
+
+    try:
+        add_accessory_stock(acc_id=acc_id, add_qty=add_qty, add_total_price=add_total_price)
+        flash("Stock ajouté et prix unitaire mis à jour.", "success")
+    except Exception as e:
+        flash(f"Erreur à l’ajout de stock : {e}", "danger")
+
+    return redirect(url_for("accessories_list"))
+
+@app.route("/api/accessories/search")
+def api_accessories_search():
+    q = (request.args.get("q") or "").strip().lower()
+    rows = list_accessories()
+    if q:
+        rows = [r for r in rows if q in (r["name"] or "").lower()]
+    # Limiter à 30 entrées
+    rows = rows[:30]
+    return jsonify([
+        {"id": r["id"], "name": r["name"], "quantity": r["quantity"], "unit_price": r["unit_price"]}
+        for r in rows
+    ])
+
+@app.route("/objects/<int:object_id>/add_accessory", methods=["POST"])
+def objects_add_accessory(object_id: int):
+    accessory_id = int(request.form.get("accessory_id") or 0)
+    qty = int(request.form.get("qty") or 0)
+    try:
+        link_accessory_to_object(object_id, accessory_id, qty)
+        flash("Accessoire ajouté à l’objet.", "success")
+    except Exception as e:
+        flash(f"Erreur lors de l’ajout d’accessoire : {e}", "danger")
+    return redirect(url_for("objects"))
+
+@app.route("/objects/<int:object_id>/remove_accessory", methods=["POST"])
+def objects_remove_accessory(object_id: int):
+    accessory_id = int(request.form.get("accessory_id") or 0)
+    qty = request.form.get("qty")
+    qty = int(qty) if qty not in (None, "",) else None
+    try:
+        unlink_accessory_from_object(object_id, accessory_id, qty=qty)
+        flash("Accessoire retiré de l’objet.", "success")
+    except Exception as e:
+        flash(f"Erreur lors du retrait d’accessoire : {e}", "danger")
+    return redirect(url_for("objects"))
 
 app.register_blueprint(auth_bp)
