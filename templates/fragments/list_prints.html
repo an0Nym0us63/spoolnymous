@@ -30,9 +30,6 @@
 
 <div class="d-flex flex-column align-items-center text-center ps-2 pe-1" style="flex: 1 1 auto; max-width: calc(100% - 100px);">
   <div class="text-center small text-wrap" style="word-break: break-word;">
-    {% if (entry.total_price or 0) > 0 and (entry.sold_units or 0) > 0 %}
-      <span class="me-1" title="Vendu">💰</span>
-    {% endif %}
     <span class="badge text-white fw-normal d-inline-block px-2 py-1"
         style="background-color: #4CAF50;
                font-size: 0.75rem;
@@ -122,24 +119,6 @@
     ({{ '%.2f'|format(entry.full_normal_cost_by_item)}})
   </span></div>
 {% endif %}
-{% if (entry.total_price or 0) > 0 and (entry.sold_units or 0) > 0 %}
-  <div data-requires-write>
-    💸 {{ '%.2f'|format(entry.total_price) }} {{ currencysymbol }}
-    <span class="text-muted fst-italic" style="font-size: 0.6em;">
-      vendu
-    </span>
-  </div>
-  {% if entry.number_of_items > 1 %}
-  <div data-requires-write>
-    🧾 {{ entry.sold_units }} unité{{ 's' if entry.sold_units > 1 else '' }}
-  </div>
-  {% endif %}
-  <div data-requires-write>
-    📈 {{ '%.2f'|format(entry.margin) }} {{ currencysymbol }}
-    <span class="text-muted fst-italic" style="font-size: 0.6em;">marge</span>
-  </div>
-{% endif %}
-
             </div>
 <div style="height: 0.2rem;"></div>
             <div class="mb-3 mt-2">

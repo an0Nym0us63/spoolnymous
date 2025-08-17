@@ -58,7 +58,7 @@
 </div>
   <div class="offcanvas-body">
     <form method="get">
-	{{ macros.render_filtered_args(args, ['status', 'filament_type', 'color', 'filament_id', 'search', 'page','sold_filter']) }}
+	{{ macros.render_filtered_args(args, ['status', 'filament_type', 'color', 'filament_id', 'search', 'page']) }}
       <div class="row row-cols-1 row-cols-md-2 g-3">
 <div class="col">
   <label for="status">Statut</label>
@@ -106,15 +106,6 @@
           <label for="search" class="form-label">Texte</label>
           <input type="text" name="search" id="search" class="form-control" value="{{ search or '' }}">
         </div>
-		<div class="col">
-  <label for="sold_filter">État de vente</label>
-  <select name="sold_filter" id="sold_filter" class="form-select">
-    <option value="">— Tous —</option>
-    <option value="yes" {% if request.args.get('sold_filter') == 'yes' %}selected{% endif %}>Vendus uniquement</option>
-    <option value="no" {% if request.args.get('sold_filter') == 'no' %}selected{% endif %}>Non vendus uniquement</option>
-  </select>
-</div>
-
         <div class="col text-end align-self-end">
           <button type="submit" class="btn btn-primary">Appliquer</button>
         </div>

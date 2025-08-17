@@ -167,7 +167,7 @@ def compute_pagination_pages(page, total_pages, window=2, max_buttons=5):
     return pages
 
 DEFAULT_KEEP_KEYS = {
-    'print_history': ["page", "filament_type", "color", "filament_id", "status", "search", "sold_filter","origin","origin_label","current_label"],
+    'print_history': ["page", "filament_type", "color", "filament_id", "status", "search","origin","origin_label","current_label"],
     'filaments': ["page", "search", "color", "sort", "include_archived",
                   "assign_print_id", "assign_filament_index", "assign_filament_type","assign_filament_id","assign_sold_filter", "assign_color","assign_page", "assign_search","assign_status", "filament_usage",
                   "ams", "tray","is_assign_mode","tray_uuid","tray_info_idx","tray_color","origin","origin_label","current_label"],
@@ -1103,12 +1103,10 @@ def print_history():
                     "total_normal_cost": group_data.get("total_normal_cost", 0),
                     "total_weight": group_data.get("total_weight", 0),
                     "total_price": group_data.get("sold_price_total", 0),
-                    "sold_units": group_data.get("sold_units", 0),
                     "full_cost": group_data.get("full_cost", 0),
                     "full_normal_cost": group_data.get("full_normal_cost", 0),
                     "full_cost_by_item": group_data.get("full_cost_by_item", 0),
                     "full_normal_cost_by_item": group_data.get("full_normal_cost_by_item", 0),
-                    "margin": group_data.get("margin", 0),
                     "max_print_id": 0,  # initialisation pour le max print
                     "tags": set(),
                 }
@@ -1156,19 +1154,6 @@ def print_history():
                 "max_id": p["id"]
             }
 
-    sold_filter = request.args.get("sold_filter")
-    if sold_filter in {"yes", "no"}:
-        filtered_entries = []
-        for e in entries.values():
-            if e["type"] == "group":
-                is_sold = (e.get("total_price") or 0) > 0 and (e.get("sold_units") or 0) > 0
-            else:
-                p = e.get("print", {})
-                is_sold = (p.get("total_price") or 0) > 0 and (p.get("sold_units") or 0) > 0
-
-            if (sold_filter == "yes" and is_sold) or (sold_filter == "no" and not is_sold):
-                filtered_entries.append(e)
-        entries = {f"group_{e['id']}" if e["type"] == "group" else f"print_{e['print']['id']}": e for e in filtered_entries}
     total_prints = sum(
         1 if e["type"] == "single" else len(e.get("prints", []))
         for e in entries.values()

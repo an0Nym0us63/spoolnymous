@@ -27,10 +27,6 @@
   "TO_REDO": "#FFC107"
 } %}
     {% set color = status_colors.get(print.status, "#6c757d") %}
-
-    {% if (print.total_price or 0) > 0 and (print.sold_units or 0) > 0 %}
-      <span class="me-1" title="Vendu">💰</span>
-    {% endif %}
 <span class="badge text-white fw-normal d-inline-block px-2 py-1"
         style="background-color: {{ color }};
                font-size: 0.75rem;
@@ -182,21 +178,6 @@
     ({{ '%.2f'|format(print.full_normal_cost_by_item)}})
   </span></div>
         {% endif %}
-		{% if (print.total_price or 0) > 0 and (print.sold_units or 0) > 0 %}
-  <div data-requires-write>
-    💸 {{ '%.2f'|format(print.total_price) }} {{ currencysymbol }}
-    <span class="text-muted fst-italic" style="font-size: 0.6em;">vendu</span>
-  </div>
-  {% if print.number_of_items > 1 %}
-  <div data-requires-write>
-    🧾 {{ print.sold_units }} unité{{ 's' if print.sold_units > 1 else '' }}
-  </div>
-  {% endif %}
-  <div data-requires-write>
-    📈 {{ '%.2f'|format(print.margin) }} {{ currencysymbol }}
-    <span class="text-muted fst-italic" style="font-size: 0.6em;">marge</span>
-  </div>
-{% endif %}
       </div>
 
       {% if print.image_file %}
