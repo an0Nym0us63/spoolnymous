@@ -38,7 +38,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -606,6 +606,11 @@ os.makedirs(ACCESSORY_UPLOAD_DIR, exist_ok=True)
 ALLOWED_IMG_EXT = {"png", "jpg", "jpeg", "webp", "gif"}
 def _allowed_image(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMG_EXT
+
+def _abs_static_path(rel_path: str) -> str:
+    # rel_path ex: 'uploads/accessories/acc_12_xxx.png'
+    rel_path = rel_path.replace("\\", "/").lstrip("/")
+    return os.path.join(app.static_folder, rel_path)
 
 @app.get("/camera/mjpeg")
 def camera_mjpeg():
@@ -2125,6 +2130,31 @@ def objects_remove_accessory(object_id: int):
         flash(f"Erreur lors du retrait d’accessoire : {e}", "danger")
     return redirect(url_for("objects_page"))
 
+@app.route("/accessories/<int:acc_id>/delete", methods=["POST"])
+def accessories_delete_route(acc_id: int):
+    acc = get_accessory(acc_id)
+    if not acc:
+        flash("Accessoire introuvable.", "danger")
+        return redirect(url_for("accessories_list"))
+
+    old_rel_path = acc.get("image_path")
+    try:
+        delete_accessory(acc_id)
+        # On tente de supprimer l'ancien fichier visuel
+        if old_rel_path:
+            old_abs = _abs_static_path(old_rel_path)
+            try:
+                if os.path.exists(old_abs):
+                    os.remove(old_abs)
+            except Exception as fe:
+                app.logger.warning(f"Échec suppression visuel après delete: {old_abs} ({fe})")
+
+        flash("Accessoire supprimé.", "success")
+    except Exception as e:
+        flash(f"Erreur lors de la suppression : {e}", "danger")
+
+    return redirect(url_for("accessories_list"))
+
 @app.route("/accessories/<int:acc_id>/upload_image", methods=["POST"])
 def accessories_upload_image(acc_id: int):
     file = request.files.get("image")
@@ -2137,20 +2167,34 @@ def accessories_upload_image(acc_id: int):
         flash("Accessoire introuvable.", "danger")
         return redirect(url_for("accessories_list"))
 
+    # Sauvegarde du nouveau fichier
     fname = secure_filename(file.filename)
     final_name = f"acc_{acc_id}_{fname}"
     save_path = os.path.join(ACCESSORY_UPLOAD_DIR, final_name)
     file.save(save_path)
+    new_rel_path = f"uploads/accessories/{final_name}"
 
-    rel_path = f"uploads/accessories/{final_name}"
+    old_rel_path = acc.get("image_path")
 
     try:
-        set_accessory_image_path(acc_id, rel_path)
+        # MAJ BDD (DAL)
+        set_accessory_image_path(acc_id, new_rel_path)
+        # Suppression de l'ancien fichier si différent
+        if old_rel_path and old_rel_path != new_rel_path:
+            old_abs = _abs_static_path(old_rel_path)
+            try:
+                if os.path.exists(old_abs):
+                    os.remove(old_abs)
+            except Exception as fe:
+                # On ne bloque pas pour un échec de suppression disque
+                app.logger.warning(f"Échec suppression ancien visuel: {old_abs} ({fe})")
+
         flash("Visuel mis à jour.", "success")
     except Exception as e:
         flash(f"Erreur lors de la mise à jour du visuel : {e}", "danger")
 
     return redirect(url_for("accessories_list"))
+
 
 
 app.register_blueprint(auth_bp)

@@ -467,6 +467,55 @@ def add_accessory_stock(acc_id: int, add_qty: int, add_total_price: float) -> No
     finally:
         conn.close()
 
+def remove_accessory_stock(acc_id: int, remove_qty: int) -> None:
+    """
+    Retire du stock à un accessoire sans changer le prix unitaire.
+    - remove_qty doit être > 0 et <= quantité actuelle.
+    """
+    if remove_qty <= 0:
+        raise ValueError("remove_qty doit être > 0")
+
+    conn = _connect(); cur = conn.cursor()
+    try:
+        cur.execute("SELECT quantity FROM accessories WHERE id=?", (acc_id,))
+        row = cur.fetchone()
+        if not row:
+            raise ValueError("Accessoire introuvable")
+
+        current = int(row["quantity"] or 0)
+        if remove_qty > current:
+            raise ValueError("Quantité à retirer supérieure au stock disponible")
+
+        new_qty = current - remove_qty
+        cur.execute("""
+            UPDATE accessories
+               SET quantity=?, updated_at=datetime('now')
+             WHERE id=?
+        """, (new_qty, acc_id))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+def delete_accessory(acc_id: int) -> None:
+    """
+    Supprime l'accessoire. Les liaisons object_accessories sont supprimées
+    grâce au ON DELETE CASCADE.
+    """
+    conn = _connect(); cur = conn.cursor()
+    try:
+        cur.execute("DELETE FROM accessories WHERE id=?", (acc_id,))
+        if cur.rowcount == 0:
+            raise ValueError("Accessoire introuvable")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
 def link_accessory_to_object(object_id: int, accessory_id: int, qty: int) -> int:
     """
     Lie un accessoire à un objet (et décrémente le stock).

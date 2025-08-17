@@ -41,9 +41,11 @@
             <td class="text-end">{{ '%.2f'|format(a.unit_price or 0) }} {{ currencysymbol or '€' }}</td>
             <td class="text-end">
               <div class="btn-group btn-group-sm">
-                <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#addStockModal" data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">🔼 Stock</button>
-                <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#uploadImageModal_{{ a.id }}">🖼️ Visuel</button>
-              </div>
+  <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#addStockModal" data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">🔼 Stock</button>
+  <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#removeStockModal" data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">⬇️ Retirer</button>
+  <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteAccessoryModal" data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">🗑️ Supprimer</button>
+  <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#uploadImageModal_{{ a.id }}">🖼️ Visuel</button>
+</div>
               <!-- Modal upload image -->
               <div class="modal fade" id="uploadImageModal_{{ a.id }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
@@ -65,6 +67,7 @@
                   </form>
                 </div>
               </div>
+			 
               <!-- /Modal -->
             </td>
           </tr>
@@ -159,22 +162,77 @@
     </form>
   </div>
 </div>
-
+ <div class="modal fade" id="removeStockModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('accessories_remove_stock_route') }}">
+      <div class="modal-header">
+        <h6 class="modal-title">⬇️ Retirer du stock</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {{ macros.render_filtered_args(args) }}
+        <input type="hidden" name="acc_id" id="removeStock_acc_id">
+        <div class="mb-2">
+          <label class="form-label">Accessoire</label>
+          <input type="text" class="form-control" id="removeStock_acc_name" readonly>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Quantité à retirer</label>
+          <input type="number" class="form-control" name="remove_qty" min="1" step="1" required>
+        </div>
+        <div class="form-text">Le prix unitaire ne change pas.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button class="btn btn-primary" type="submit">Retirer</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="modal fade" id="deleteAccessoryModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="" id="deleteAccessoryForm">
+      <div class="modal-header">
+        <h6 class="modal-title">🗑️ Supprimer l’accessoire</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {{ macros.render_filtered_args(args) }}
+        <p class="mb-0">Confirmer la suppression de <strong id="deleteAccessoryName"></strong> ?</p>
+        <p class="text-muted small mb-0">Les liaisons avec les objets seront supprimées. Le visuel sera effacé.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button class="btn btn-danger" type="submit">Supprimer</button>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-// Pré-remplir le modal "Ajouter du stock" quand on clique sur un bouton d'une ligne
-document.addEventListener('shown.bs.modal', function (ev) {
+// Pré-remplir les modals selon le bouton cliqué
+document.addEventListener('show.bs.modal', function (ev) {
   const modal = ev.target;
+  const trigger = ev.relatedTarget;
+  if (!trigger) return;
+
   if (modal.id === 'addStockModal') {
-    const trigger = ev.relatedTarget;
-    if (trigger && trigger.dataset.accId) {
-      const sel = modal.querySelector('#addStock_acc_select');
-      if (sel) {
-        sel.value = trigger.dataset.accId;
-      }
-    }
+    const id = trigger.dataset.accId, name = trigger.dataset.accName;
+    modal.querySelector('select[name="acc_id"]').value = id;
+  }
+
+  if (modal.id === 'removeStockModal') {
+    modal.querySelector('#removeStock_acc_id').value = trigger.dataset.accId || "";
+    modal.querySelector('#removeStock_acc_name').value = trigger.dataset.accName || "";
+  }
+
+  if (modal.id === 'deleteAccessoryModal') {
+    const id = trigger.dataset.accId, name = trigger.dataset.accName;
+    const form = modal.querySelector('#deleteAccessoryForm');
+    form.action = "{{ url_for('accessories_delete_route', acc_id=0) }}".replace("/0/", `/${id}/`);
+    modal.querySelector('#deleteAccessoryName').textContent = name || "";
   }
 });
 </script>
