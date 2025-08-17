@@ -2185,7 +2185,7 @@ def accessories_upload_image(acc_id: int):
     final_name = f"acc_{acc_id}_{fname}"
     save_path = os.path.join(ACCESSORY_UPLOAD_DIR, final_name)
     file.save(save_path)
-    new_rel_path = f"uploads/accessories/{final_name}"
+    new_rel_path = f"data/uploads/accessories/{final_name}"
 
     old_rel_path = acc.get("image_path")
 
