@@ -69,7 +69,7 @@
     {% set total = (entry.number_of_items or 1)|int %}
     {% if used > 0 %}
       <span class="badge {{ text-bg-secondary' if used >= total else 'text-bg-light' }} rounded-pill thumb-badge-used"
-            title="{{ used }} utilisé(s) / {{ total }}">
+            title="{{ used }} utilisé(s) / {{ total }}" data-requires-write>
         {{ used }}
       </span>
     {% endif %}

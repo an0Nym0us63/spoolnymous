@@ -36,6 +36,62 @@
     <div>Aucun objet ne correspond aux filtres.</div>
   </div>
 {% endif %}
+<!-- Tuiles statistiques (alignées sur print_history) -->
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-6 g-2 mb-3 text-center align-items-stretch">
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">📦</div>
+        <div class="small fw-bold">{{ total_objects }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">🛒</div>
+        <div class="small fw-bold">{{ sold_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">✅</div>
+        <div class="small fw-bold">{{ available_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">🎁</div>
+        <div class="small fw-bold">{{ gifted_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">💶</div>
+        <div class="small fw-bold">
+          {{ '%.2f'|format(sum_sold_price) }} {{ currencysymbol or '€' }}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">📈</div>
+        <div class="small fw-bold">
+          {{ '%.2f'|format(sum_positive_margin) }} {{ currencysymbol or '€' }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <div class="accordion" id="objectsAccordion">
   {% for o in objects %}

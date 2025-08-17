@@ -808,4 +808,111 @@ def update_object_comment(object_id: int, comment: Optional[str]) -> None:
         raise ValueError(f"Objet introuvable (id={object_id})")
     conn.commit(); conn.close()
 
+class ObjectsSummary(TypedDict):
+    total_objects: int
+    sold_count: int
+    available_count: int
+    gifted_count: int
+    sum_sold_price: float
+    sum_positive_margin: float
+
+def summarize_objects(filters: dict) -> ObjectsSummary:
+    """
+    Calcule des agrégats sur la table objects selon les filtres fournis :
+    - total_objects             : COUNT(*)
+    - sold_count                : COUNT(*) WHERE sold_price IS NOT NULL
+    - available_count           : COUNT(*) WHERE available = 1
+    - gifted_count              : COUNT(*) WHERE sold_price = 0
+    - sum_sold_price            : SUM(sold_price) WHERE sold_price IS NOT NULL
+    - sum_positive_margin       : SUM(margin or (sold_price - cost_total)) WHERE sold_price > 0 AND marge > 0
+    """
+    clauses = []
+    params: list = []
+
+    s = (filters.get("search") or "").strip()
+    if s:
+        clauses.append("LOWER(name) LIKE ?")
+        params.append(f"%{s.lower()}%")
+
+    sf = (filters.get("sold_filter") or "").strip()
+    if sf == "yes":
+        clauses.append("sold_price IS NOT NULL")
+    elif sf == "no":
+        clauses.append("sold_price IS NULL")
+
+    st = (filters.get("source_type") or "").strip()
+    if st in ("print", "group"):
+        clauses.append("parent_type = ?")
+        params.append(st)
+
+    av = (filters.get("available") or "").strip()
+    if av == "yes":
+        clauses.append("available = 1")
+    elif av == "no":
+        clauses.append("available = 0")
+
+    where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+
+    conn = _connect()
+    cur = conn.cursor()
+
+    # Total objets
+    cur.execute(f"SELECT COUNT(*) FROM objects {where}", tuple(params))
+    total_objects = int(cur.fetchone()[0])
+
+    # Vendus
+    cur.execute(f"SELECT COUNT(*) FROM objects {where} AND sold_price IS NOT NULL" if where else
+                "SELECT COUNT(*) FROM objects WHERE sold_price IS NOT NULL", tuple(params))
+    sold_count = int(cur.fetchone()[0])
+
+    # Disponibles
+    cur.execute(f"SELECT COUNT(*) FROM objects {where} AND available = 1" if where else
+                "SELECT COUNT(*) FROM objects WHERE available = 1", tuple(params))
+    available_count = int(cur.fetchone()[0])
+
+    # Offerts (sold_price = 0)
+    cur.execute(f"SELECT COUNT(*) FROM objects {where} AND sold_price = 0" if where else
+                "SELECT COUNT(*) FROM objects WHERE sold_price = 0", tuple(params))
+    gifted_count = int(cur.fetchone()[0])
+
+    # Somme des prix de vente (inclut 0 si don, ne compte pas NULL)
+    cur.execute(f"""
+        SELECT COALESCE(SUM(sold_price), 0)
+        FROM objects
+        {where} {"AND" if where else "WHERE"} sold_price IS NOT NULL
+    """, tuple(params))
+    sum_sold_price = float(cur.fetchone()[0] or 0.0)
+
+    # Somme des marges positives (on ignore dons et marges ≤ 0)
+    # On se base sur la colonne margin si présente, sinon on recalcule (sold_price - cost_total).
+    cur.execute(f"""
+        SELECT COALESCE(SUM(
+            CASE
+              WHEN sold_price > 0 THEN
+                CASE
+                  WHEN margin IS NOT NULL THEN CASE WHEN margin > 0 THEN margin ELSE 0 END
+                  ELSE CASE
+                         WHEN (sold_price - COALESCE(cost_total, COALESCE(cost_accessory,0)+COALESCE(cost_fabrication,0))) > 0
+                         THEN (sold_price - COALESCE(cost_total, COALESCE(cost_accessory,0)+COALESCE(cost_fabrication,0)))
+                         ELSE 0
+                       END
+                END
+              ELSE 0
+            END
+        ), 0)
+        FROM objects
+        {where}
+    """, tuple(params))
+    sum_positive_margin = float(cur.fetchone()[0] or 0.0)
+
+    conn.close()
+    return ObjectsSummary(
+        total_objects=total_objects,
+        sold_count=sold_count,
+        available_count=available_count,
+        gifted_count=gifted_count,
+        sum_sold_price=sum_sold_price,
+        sum_positive_margin=sum_positive_margin,
+    )
+
 ensure_schema()

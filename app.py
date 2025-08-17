@@ -38,7 +38,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -1916,9 +1916,15 @@ def objects_page():
     }
     rows, total_pages = list_objects(filters, page, per_page=30)
 
+    # NEW: agrégats pour les tuiles
+    summary = summarize_objects(filters)
+
     # Tags des objets (batch)
     ids = [r["id"] for r in rows]
     obj_tags = get_tags_for_objects(ids) if ids else {}
+
+    # Devise (comme print_history)
+    spoolman_settings = getSettings(cached=True)
 
     return render_template(
         "objects.html",
@@ -1928,8 +1934,17 @@ def objects_page():
         filters=filters,
         args=request.args,
         obj_tags=obj_tags,
-        page_title="Objets"
+        page_title="Objets",
+        currencysymbol=spoolman_settings.get("currency_symbol", "€"),
+        # expose les agrégats
+        total_objects=summary["total_objects"],
+        sold_count=summary["sold_count"],
+        available_count=summary["available_count"],
+        gifted_count=summary["gifted_count"],
+        sum_sold_price=summary["sum_sold_price"],
+        sum_positive_margin=summary["sum_positive_margin"],
     )
+
 
 @app.post("/objects/<int:object_id>/rename")
 def objects_rename(object_id):
