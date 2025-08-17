@@ -600,7 +600,7 @@ app.config.update(
 )
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-ACCESSORY_UPLOAD_DIR = os.path.join(app.static_folder, "data","uploads", "accessories")
+ACCESSORY_UPLOAD_DIR = os.path.join(app.static_folder, "uploads", "accessories")
 os.makedirs(ACCESSORY_UPLOAD_DIR, exist_ok=True)
 
 ALLOWED_IMG_EXT = {"png", "jpg", "jpeg", "webp", "gif"}
@@ -2070,7 +2070,7 @@ def accessories_add():
         save_path = os.path.join(ACCESSORY_UPLOAD_DIR, final_name)
         file.save(save_path)
         # Chemin relatif à /static
-        image_path = f"data/uploads/accessories/{final_name}"
+        image_path = f"uploads/accessories/{final_name}"
 
     try:
         create_accessory(name=name, qty=qty, total_price=total_price, image_path=image_path)
@@ -2185,7 +2185,7 @@ def accessories_upload_image(acc_id: int):
     final_name = f"acc_{acc_id}_{fname}"
     save_path = os.path.join(ACCESSORY_UPLOAD_DIR, final_name)
     file.save(save_path)
-    new_rel_path = f"data/uploads/accessories/{final_name}"
+    new_rel_path = f"uploads/accessories/{final_name}"
 
     old_rel_path = acc.get("image_path")
 
