@@ -118,11 +118,11 @@
         {% if o.sold_price == 0 %}
           <i class="bi bi-gift-fill text-info" title="Offert"></i>
         {% else %}
-          <i class="bi bi-bag-check-fill text-warning" title="Vendu"></i>
+          <i class="bi bi-bag-check-fill text-success" title="Vendu"></i>
         {% endif %}
       {% else %}
         {% if o.available %}
-          <i class="bi bi-box2-fill text-success" title="Disponible (en stock)"></i>
+          <i class="bi bi-box2-fill text-warning" title="Disponible (en stock)"></i>
         {% else %}
           <i class="bi bi-slash-circle-fill text-secondary" title="Indisponible"></i>
         {% endif %}
