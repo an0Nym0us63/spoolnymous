@@ -861,8 +861,8 @@ def summarize_objects(filters: dict) -> ObjectsSummary:
     total_objects = int(cur.fetchone()[0])
 
     # Vendus
-    cur.execute(f"SELECT COUNT(*) FROM objects {where} AND sold_price IS NOT NULL" if where else
-                "SELECT COUNT(*) FROM objects WHERE sold_price IS NOT NULL", tuple(params))
+    cur.execute(f"SELECT COUNT(*) FROM objects {where} AND sold_price > 0" if where else
+                "SELECT COUNT(*) FROM objects WHERE sold_price > 0", tuple(params))
     sold_count = int(cur.fetchone()[0])
 
     # Disponibles
