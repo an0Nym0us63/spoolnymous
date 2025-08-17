@@ -454,7 +454,6 @@
   width: var(--thumb-size, 48px);
   height: var(--thumb-size, 48px);
   border-radius: var(--thumb-r, 10px);
-  max-width: none;
   display: block;
   object-fit: cover;
 

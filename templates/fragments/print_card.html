@@ -201,7 +201,7 @@
 
       {% if print.image_file %}
 	  <div class="text-center mb-2 d-flex flex-column align-items-center gap-1">
-      <div class="thumb" style="--thumb-size: 200px;flex-shrink: 0;">
+      <div class="thumb" style="--thumb-size: 200px;">
         <img src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
              alt="Print Image" class="thumb-img" />
       </div>
