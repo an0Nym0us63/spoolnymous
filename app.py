@@ -2125,4 +2125,32 @@ def objects_remove_accessory(object_id: int):
         flash(f"Erreur lors du retrait d’accessoire : {e}", "danger")
     return redirect(url_for("objects_page"))
 
+@app.route("/accessories/<int:acc_id>/upload_image", methods=["POST"])
+def accessories_upload_image(acc_id: int):
+    file = request.files.get("image")
+    if not (file and file.filename and _allowed_image(file.filename)):
+        flash("Fichier d’image invalide.", "warning")
+        return redirect(url_for("accessories_list"))
+
+    acc = get_accessory(acc_id)
+    if not acc:
+        flash("Accessoire introuvable.", "danger")
+        return redirect(url_for("accessories_list"))
+
+    fname = secure_filename(file.filename)
+    final_name = f"acc_{acc_id}_{fname}"
+    save_path = os.path.join(ACCESSORY_UPLOAD_DIR, final_name)
+    file.save(save_path)
+
+    rel_path = f"uploads/accessories/{final_name}"
+
+    try:
+        set_accessory_image_path(acc_id, rel_path)
+        flash("Visuel mis à jour.", "success")
+    except Exception as e:
+        flash(f"Erreur lors de la mise à jour du visuel : {e}", "danger")
+
+    return redirect(url_for("accessories_list"))
+
+
 app.register_blueprint(auth_bp)

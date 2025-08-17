@@ -378,6 +378,27 @@ def list_accessories() -> list[dict]:
     conn.close()
     return rows
 
+def set_accessory_image_path(acc_id: int, image_path: str | None) -> None:
+    """
+    Met à jour le chemin du visuel d'un accessoire.
+    - image_path: chemin relatif (ex: 'uploads/accessories/acc_12_xxx.png') ou None
+    Lève ValueError si l'accessoire n'existe pas.
+    """
+    conn = _connect(); cur = conn.cursor()
+    try:
+        cur.execute(
+            "UPDATE accessories SET image_path=?, updated_at=datetime('now') WHERE id=?",
+            (image_path, acc_id)
+        )
+        if cur.rowcount == 0:
+            raise ValueError("Accessoire introuvable")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
 def get_accessory(acc_id: int) -> dict | None:
     conn = _connect(); cur = conn.cursor()
     cur.execute("""
