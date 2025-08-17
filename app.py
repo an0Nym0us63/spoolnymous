@@ -2093,6 +2093,19 @@ def accessories_add_stock_route():
         flash(f"Erreur à l’ajout de stock : {e}", "danger")
 
     return redirect(url_for("accessories_list"))
+    
+@app.route("/accessories/remove_stock", methods=["POST"])
+def accessories_remove_stock_route():
+    acc_id = int(request.form.get("acc_id") or 0)
+    remove_qty = int(request.form.get("remove_qty") or 0)
+
+    try:
+        remove_accessory_stock(acc_id=acc_id, remove_qty=remove_qty)
+        flash("Stock retiré.", "success")
+    except Exception as e:
+        flash(f"Erreur au retrait de stock : {e}", "danger")
+
+    return redirect(url_for("accessories_list"))
 
 @app.route("/api/accessories/search")
 def api_accessories_search():
