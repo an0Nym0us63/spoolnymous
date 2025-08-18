@@ -43,17 +43,18 @@
   height: 1rem;
   background-size: 1rem 1rem;
 }
-/* Décalage vertical des modales sur mobile pour ne pas “se noyer” dans la navbar */
+/* Z-index sûrs */
+.navbar.fixed-top, .navbar.sticky-top { z-index: 1030; }
+.modal            { z-index: 1055; }
+.modal-backdrop   { z-index: 1050; }
+
+/* Décalage mobile : passe au-dessus de la navbar */
 @media (max-width: 575.98px) {
   .modal .modal-dialog {
-    margin: calc(var(--nav-h, 0px) + .5rem) .5rem .5rem;
+    margin: calc(var(--nav-h, 0px) + .75rem) .5rem .5rem !important;
   }
-}
-/* version plein écran optionnelle, au cas où tu utilises .modal-fullscreen-sm-down */
-@media (max-width: 575.98px) {
-  .modal.modal-fullscreen-sm-down .modal-dialog {
-    margin: 0;  /* plein écran natif */
-  }
+  /* Si tu utilises modal-dialog-centered, Bootstrap met margin:0;
+     l'!important ci-dessus gagne. */
 }
 {% if current_user.is_authenticated and current_user.is_guest %}
   [data-requires-write] {
@@ -194,23 +195,24 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-{% block scripts %}{% endblock %}
+{% block scripts %}
 
 <script>
-function openNativeSettings() {
-    if (window.Android && window.Android.openSettings) {
-      window.Android.openSettings();
-    } else {
-      // fallback : redirection vers la page web classique
-      window.location.href = "{{ url_for('auth.settings') }}";
-    }
+(function(){
+  function setNavHeightVar(){
+    const nav = document.querySelector('.navbar.fixed-top, .navbar.sticky-top');
+    const h = nav ? nav.offsetHeight : 0;
+    document.documentElement.style.setProperty('--nav-h', (h||0) + 'px');
   }
-  
-document.addEventListener('DOMContentLoaded', () => {
-  const nav = document.querySelector('.navbar.fixed-top, .navbar.sticky-top');
-  const h = nav ? nav.offsetHeight : 0;
-  document.documentElement.style.setProperty('--nav-h', h + 'px');
-});
+  setNavHeightVar();
+  window.addEventListener('resize', setNavHeightVar);
+
+  // Quand une modale s'ouvre, on (re)applique le margin selon la hauteur nav
+  document.addEventListener('show.bs.modal', (e) => {
+    setTimeout(() => setNavHeightVar(), 0);
+  });
+})();
 </script>
+{% endblock %}
 </body>
 </html>

@@ -15,53 +15,54 @@
   border-top-right-radius: .5rem;
 }
 
+/* Grille: [thumb] [contenu fluide] [actions fixes] */
 .acc-row {
   display: grid;
-  grid-template-columns: auto 1fr auto; /* vignette | centre extensible | actions */
+  grid-template-columns: auto 1fr auto;
   gap: .75rem;
   align-items: center;
-  padding: .6rem .75rem;
-  border-bottom: 1px solid var(--bs-border-color);
-  background: var(--bs-dark-bg-subtle, rgba(0,0,0,.05));
 }
 
-/* --- VIGNETTE : même style que sur Objets, mais en "contain" (pas de coupe) --- */
+/* Nom : plus petit + wrap + pas de débord vers Actions */
+.acc-main { min-width: 0; }
+.acc-name {
+  font-weight: 600;
+  line-height: 1.15;
+  font-size: .95rem;          /* plus petit */
+  white-space: normal;        /* ⬅ autorise les retours à la ligne */
+  overflow: visible;
+  text-overflow: clip;        /* pas de … */
+}
+
+/* Les chips restent sous le titre et wrap si besoin */
+.acc-chips { display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.2rem; }
+
+/* Actions : colonne non compressible */
+.acc-actions { display:flex; align-items:center; justify-content:flex-end; }
+.acc-actions .btn { white-space: nowrap; }
+
+/* Mobile : densifier encore un peu */
+@media (max-width: 575.98px) {
+  .acc-row { gap: .55rem; padding: .5rem .6rem; }
+  .acc-name { font-size: .9rem; }
+  .acc-chip { font-size: .7rem; }
+  .acc-actions .btn { padding: .25rem .35rem; }
+}
+
 .acc-row .thumb {
-  --thumb-size: 56px;
-  width: var(--thumb-size);
-  height: var(--thumb-size);
-  border-radius: .6rem;                /* même rayon */
-  overflow: hidden;
+  --thumb-size: 56px; width: var(--thumb-size); height: var(--thumb-size);
+  border-radius: .6rem; overflow: hidden;
   border: 1px solid var(--bs-border-color);
   background: var(--bs-secondary-bg);
-  display: flex; align-items: center; justify-content: center;
+  display:flex; align-items:center; justify-content:center;
+  padding: 2px; /* léger padding interne */
 }
 .acc-row .thumb .thumb-img {
   width: 100%; height: 100%;
-  object-fit: contain;                 /* 👉 pas de recadrage */
+  object-fit: contain;   /* ✅ pas de coupe */
 }
-
-/* Colonne centrale : ne jamais déborder sur le menu actions */
-.acc-main { min-width: 0; }            /* autorise le text-ellipsis */
-.acc-name {
-  font-weight: 600; line-height: 1.1;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* 👉 coupe propre */
-}
-.acc-chips { display:flex; gap:.35rem; flex-wrap:wrap; margin-top:.2rem; max-width: 100%; }
-.acc-chip  { font-size:.75rem; font-weight:600; background:var(--bs-secondary-bg);
-             border:1px solid var(--bs-border-color); padding:.2rem .45rem; border-radius:999px; }
-
-/* Colonne Actions : largeur au contenu et non compressible */
-.acc-actions { display: flex; align-items: center; justify-content: flex-end; }
-.acc-actions .btn { white-space: nowrap; }
-
-/* Mobile */
-@media (max-width: 575.98px) {
-  .acc-row { padding: .5rem .6rem; }
+@media (max-width: 575.98px){
   .acc-row .thumb { --thumb-size: 40px; border-radius: .5rem; }
-  .acc-name { font-size: .95rem; }
-  .acc-chip { font-size: .7rem; }
-  .acc-actions .btn { padding: .25rem .35rem; }
 }
 </style>
 {% macro sort_anchor(label, col) -%}
