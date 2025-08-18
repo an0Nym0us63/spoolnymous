@@ -270,12 +270,12 @@
   </div>
   <div class="col">
     <strong>🧰</strong>
-    {{ '%.2f'|format(o.cost_accessories or 0) }} {{ currencysymbol or '€' }}
+    {{ '%.2f'|format(o.cost_accessory or 0) }} {{ currencysymbol or '€' }}
   </div>
   <div class="col">
     <strong>📦</strong>
     {{ '%.2f'|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}<span class="text-muted fst-italic" style="font-size: 0.6em;">
-     ({{ '%.2f'|format((o.normal_cost_unit or 0) + (o.cost_accessories if o.cost_accessories is defined else o.cost_accessory or 0)) }})
+     ({{ '%.2f'|format((o.normal_cost_unit or 0) + (o.cost_accessory or 0)) }})
   </span>
   </div>
   <div class="col">
