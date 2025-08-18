@@ -833,8 +833,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function scrollToCard() {
     const y = card.getBoundingClientRect().top + window.scrollY - computeOffset();
     window.scrollTo({ top: y, behavior: 'smooth' });
-    card.classList.add('focus-ring');
-    setTimeout(() => card.classList.remove('focus-ring'), 1500);
     // Accessibilité : donner le focus clavier au header cliquable
     if (header) { header.setAttribute('tabindex', '-1'); header.focus({preventScroll:true}); }
   }
