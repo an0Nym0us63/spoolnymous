@@ -216,8 +216,5 @@ document.addEventListener("DOMContentLoaded", () => {
       if (input) input.focus();
     }, 0);
   });
-  $(document).on('shown.bs.modal', '#groupModal_{{ print.id }}', function () {
-  $(this).find('select.select2-ajax').select2('open');
-});
 </script>
 {% endblock %}
