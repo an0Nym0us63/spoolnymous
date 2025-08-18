@@ -502,3 +502,22 @@
 /* Option confort : quand une modale est ouverte, on masque la navbar pour éviter tout chevauchement visuel. */
 /* Décommente si tu préfères */
 // .modal-open .navbar.fixed-top, .modal-open .navbar.sticky-top { visibility: hidden; }
+
+/* Espacement entre les lignes */
+.accessory-item {
+  padding: 0.75rem 1rem;   /* plus d’air */
+  margin-bottom: 0.5rem;   /* espace entre les cartes */
+  border-radius: 0.5rem;   /* coins arrondis (comme les accordéons/objets) */
+}
+
+/* Bouton Actions moins collé */
+.accessory-actions {
+  margin-right: 0.5rem;
+}
+
+/* Pour mobile : éviter que ça touche les bords */
+@media (max-width: 576px) {
+  .accessory-item {
+    padding: 0.75rem;
+  }
+}

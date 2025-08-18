@@ -120,20 +120,22 @@
 </div>
 
         <!-- Centre: nom + chips -->
-        <div class="acc-main">
-          <div class="acc-name text-truncate" title="{{ a.name }}">{{ a.name }}</div>
-          <div class="acc-chips">
-            <span class="acc-chip">📦 {{ a.quantity }}</span>
-            <span class="acc-chip">💶 {{ '%.2f'|format(a.unit_price or 0) }} {{ currencysymbol or '€' }}</span>
-          </div>
-        </div>
-
-        <!-- Droite: menu Actions -->
-        <div class="acc-actions">
-          <div class="dropdown">
-            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-label="Actions">
-              <i class="bi bi-three-dots-vertical"></i><span class="d-none d-sm-inline ms-1">Actions</span>
-            </button>
+        <div class="d-flex align-items-center accessory-item bg-dark-subtle">
+  <img src="{{ url_for('static', filename=a.image_path) }}" 
+       class="rounded border bg-dark me-2" 
+       style="width:56px;height:56px;object-fit:contain;" alt="{{ a.name }}">
+  <div class="flex-grow-1">
+    <div class="fw-semibold small mb-1">{{ a.name }}</div>
+    <div>
+      <span class="badge bg-dark text-light">📦 {{ a.quantity }}</span>
+      <span class="badge bg-dark text-light">💶 {{ '%.2f'|format(a.unit_price or 0) }} {{ currencysymbol or '€' }}</span>
+    </div>
+  </div>
+  <div class="accessory-actions">
+    <div class="dropdown">
+      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        Actions
+      </button>
             <ul class="dropdown-menu dropdown-menu-end">
               <li>
                 <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#renameAccessoryModal_{{ a.id }}">
@@ -173,6 +175,7 @@
             </ul>
           </div>
         </div>
+</div>
 
         {# Modale Renommer (individuelle) #}
         <div class="modal fade" id="renameAccessoryModal_{{ a.id }}" tabindex="-1" aria-hidden="true">
