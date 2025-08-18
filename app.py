@@ -38,7 +38,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -2057,8 +2057,35 @@ def remove_object_tag(object_id: int):
 
 @app.route("/accessories")
 def accessories_list():
-    accs = list_accessories()
-    return render_template("accessories.html", accessories=accs, args=request.args,page_title="Accessoires")
+    q     = (request.args.get("q") or "").strip()
+    sort  = (request.args.get("sort") or "").lower()
+    order = (request.args.get("order") or "asc").lower()
+    order = "desc" if order == "desc" else "asc"
+
+    rows = list_accessories()  # ← ta fonction existante
+
+    # Filtre nom (contient, insensible à la casse)
+    if q:
+        lq = q.lower()
+        rows = [r for r in rows if lq in (r.get("name") or "").lower()]
+
+    # Tri
+    if sort == "qty":
+        rows.sort(key=lambda r: (r.get("quantity") or 0), reverse=(order == "desc"))
+    elif sort == "price":
+        rows.sort(key=lambda r: (r.get("unit_price") or 0.0), reverse=(order == "desc"))
+    else:
+        # tri par nom par défaut
+        rows.sort(key=lambda r: (r.get("name") or "").lower())
+
+    return render_template(
+        "accessories.html",
+        accessories=rows,
+        args=request.args,
+        filters={"q": q, "sort": sort, "order": order},
+        currencysymbol=current_app.config.get("CURRENCY_SYMBOL", "€"),
+        page_titel="Accessoires",  # pour le bouton contextuel dans base.html si tu l’utilises
+    )
     
 @app.route("/accessories/add", methods=["POST"])
 def accessories_add():
@@ -2137,6 +2164,26 @@ def api_accessories_search():
         }
 
     return jsonify([as_item(r) for r in rows])
+
+@app.route("/api/accessories/<int:acc_id>/usage")
+def api_accessory_usage(acc_id: int):
+    # Renvoie les objets liés à cet accessoire
+    rows = list_objects_using_accessory(acc_id)  # fonction à ajouter dans objects.py si absente
+    # Normaliser thumbnail -> URL absolue si besoin
+    items = []
+    for r in rows:
+        thumb = r.get("thumbnail") or r.get("source_thumbnail")
+        if thumb and not thumb.startswith("/"):
+            thumb = url_for("static", filename=thumb)
+        items.append({
+            "object_id": r["object_id"],
+            "object_name": r["object_name"],
+            "quantity": r.get("quantity") or 0,             # qté de cet accessoire dans l’objet
+            "thumbnail": thumb,
+            "parent_type": r.get("parent_type"),            # "print" ou "group"
+            "parent_id": r.get("parent_id"),
+        })
+    return jsonify(items)
 
 @app.route("/objects/<int:object_id>/add_accessory", methods=["POST"])
 def objects_add_accessory(object_id: int):

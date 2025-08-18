@@ -2,26 +2,49 @@
 {% import 'macros/hidden_args.jinja2' as macros %}
 
 {% block content %}
+{% macro sort_anchor(label, col) -%}
+  {%- set is_active = (filters.sort == col) -%}
+  {%- set next_order = 'desc' if (is_active and filters.order != 'desc') else 'asc' -%}
+  <a href="{{ url_for('accessories_list', q=filters.q, sort=col, order=next_order) }}"
+     class="link-body-emphasis text-decoration-none">
+    {{ label }}
+    {%- if is_active -%}
+      {{ ' ↓' if filters.order=='desc' else ' ↑' }}
+    {%- else -%}
+      <span class="text-muted"> ↕</span>
+    {%- endif -%}
+  </a>
+{%- endmacro %}
 <div class="d-flex align-items-center justify-content-between mb-3">
-  <div class="d-flex gap-2">
-    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newAccessoryModal">➕ Nouvel accessoire</button>
-    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addStockModal">🔼 Ajouter du stock</button>
-  </div>
+  <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newAccessoryModal">
+    ➕ Nouvel accessoire
+  </button>
 </div>
 
 <div class="card">
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-          <tr>
-            <th style="width:72px;">Visuel</th>
-            <th>Nom</th>
-            <th class="text-end">Qté</th>
-            <th class="text-end">PU</th>
-            <th class="text-end">Actions</th>
-          </tr>
-        </thead>
+        <thead class="table-light align-middle">
+  <tr>
+    <th style="width:72px;">Visuel</th>
+    <th>
+      <div class="d-flex flex-column gap-1">
+        <div class="fw-semibold">Nom</div>
+        <form method="get" class="d-inline-block" id="filterByNameForm">
+          {{ macros.render_filtered_args(args, ['q','sort','order']) }}
+          <input type="text" name="q" value="{{ filters.q or '' }}"
+                 class="form-control form-control-sm"
+                 placeholder="Filtrer…"
+                 style="min-width:180px; max-width:260px;">
+        </form>
+      </div>
+    </th>
+    <th class="text-end">{{ sort_anchor('Qté', 'qty') }}</th>
+    <th class="text-end">{{ sort_anchor('PU', 'price') }}</th>
+    <th class="text-end">Actions</th>
+  </tr>
+</thead>
         <tbody>
           {% for a in accessories %}
           <tr>
@@ -36,12 +59,68 @@
             <td class="text-end">{{ a.quantity }}</td>
             <td class="text-end">{{ '%.2f'|format(a.unit_price or 0) }} {{ currencysymbol or '€' }}</td>
             <td class="text-end">
-              <div class="btn-group btn-group-sm">
-  <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#addStockModal" data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">🔼 Stock</button>
-  <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#removeStockModal" data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">⬇️ Retirer</button>
-  <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteAccessoryModal" data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">🗑️ Supprimer</button>
-  <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#uploadImageModal_{{ a.id }}">🖼️ Visuel</button>
-</div>
+  <div class="dropdown">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+      Actions
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+      <li>
+        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#renameAccessoryModal_{{ a.id }}">
+          📝 Renommer
+        </a>
+      </li>
+      <li>
+        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addStockModal"
+           data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
+          🔼 Ajouter du stock
+        </a>
+      </li>
+      <li>
+        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#removeStockModal"
+           data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
+          ⬇️ Retirer du stock
+        </a>
+      </li>
+      <li>
+        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#uploadImageModal_{{ a.id }}">
+          🖼️ Mettre à jour le visuel
+        </a>
+      </li>
+      <li>
+        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#usageModal"
+           data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
+          🔎 Voir usage
+        </a>
+      </li>
+      <li><hr class="dropdown-divider"></li>
+      <li>
+        <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteAccessoryModal"
+           data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
+          🗑️ Supprimer
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  {# Modal Renommer (une par ligne) #}
+  <div class="modal fade" id="renameAccessoryModal_{{ a.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" method="post" action="{{ url_for('accessories_rename_route', acc_id=a.id) }}">
+        <div class="modal-header">
+          <h6 class="modal-title">📝 Renommer — {{ a.name }}</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          {{ macros.render_filtered_args(args) }}
+          <input type="text" class="form-control" name="name" value="{{ a.name }}" required>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button class="btn btn-primary" type="submit">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
               <!-- Modal upload image -->
               <div class="modal fade" id="uploadImageModal_{{ a.id }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
@@ -204,6 +283,23 @@
     </form>
   </div>
 </div>
+
+<div class="modal fade" id="usageModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">🔎 Usage — <span id="usageTitle"></span></h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="usageList" class="row g-3"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -216,11 +312,12 @@ document.addEventListener('show.bs.modal', function (ev) {
 
   if (modal.id === 'addStockModal') {
     const id = trigger.dataset.accId, name = trigger.dataset.accName;
-    modal.querySelector('select[name="acc_id"]').value = id;
+    const sel = modal.querySelector('select[name="acc_id"]');
+    if (sel && id) sel.value = id;
   }
 
   if (modal.id === 'removeStockModal') {
-    modal.querySelector('#removeStock_acc_id').value = trigger.dataset.accId || "";
+    modal.querySelector('#removeStock_acc_id').value   = trigger.dataset.accId || "";
     modal.querySelector('#removeStock_acc_name').value = trigger.dataset.accName || "";
   }
 
@@ -230,6 +327,60 @@ document.addEventListener('show.bs.modal', function (ev) {
     form.action = "{{ url_for('accessories_delete_route', acc_id=0) }}".replace("/0/", `/${id}/`);
     modal.querySelector('#deleteAccessoryName').textContent = name || "";
   }
+
+  // Voir usage (AJAX)
+  if (modal.id === 'usageModal') {
+    const id   = trigger.dataset.accId;
+    const name = trigger.dataset.accName || ('#' + id);
+    modal.querySelector('#usageTitle').textContent = name;
+    const list = modal.querySelector('#usageList');
+    list.innerHTML = '<div class="text-center text-muted py-3">Chargement…</div>';
+
+    fetch(`/api/accessories/${id}/usage`)
+      .then(r => r.json())
+      .then(items => {
+        if (!Array.isArray(items) || !items.length) {
+          list.innerHTML = '<div class="text-center text-muted py-3">Aucun objet n’utilise cet accessoire.</div>';
+          return;
+        }
+        list.innerHTML = items.map(it => {
+          const thumb = it.thumbnail ? `<img src="${it.thumbnail}" class="rounded border" style="width:72px;height:72px;object-fit:cover;">`
+                                     : `<div class="rounded border bg-light" style="width:72px;height:72px;"></div>`;
+          const refLink = (it.parent_type === 'print')
+            ? `{{ url_for('print_history') }}?ref_print_id=${it.parent_id}&focus_print_id=${it.parent_id}`
+            : `{{ url_for('print_history') }}?ref_group_id=${it.parent_id}&focus_group_id=${it.parent_id}`;
+          const objLink = `{{ url_for('objects_page') }}?search=${encodeURIComponent(name)}&focus_object_id=${'${it.object_id}'}`;
+
+          return `
+            <div class="col-12 d-flex align-items-center gap-2">
+              ${thumb}
+              <div class="flex-grow-1">
+                <div class="fw-semibold text-truncate">${it.object_name}</div>
+                <div class="text-muted small">Qté de cet accessoire : ×${it.quantity}</div>
+                <div class="small">
+                  <a href="${objLink}" class="link-primary">→ Voir l’objet</a>
+                  &nbsp;·&nbsp;
+                  <a href="${refLink}" class="link-secondary">Voir référence</a>
+                </div>
+              </div>
+            </div>`;
+        }).join("");
+      })
+      .catch(() => {
+        list.innerHTML = '<div class="text-center text-danger py-3">Erreur de chargement.</div>';
+      });
+  }
 });
+(function(){
+  // Auto-submit avec délai (200ms) quand on tape dans le champ "Nom"
+  const form = document.getElementById('filterByNameForm');
+  if (!form) return;
+  const input = form.querySelector('input[name="q"]');
+  let t;
+  input?.addEventListener('input', () => {
+    clearTimeout(t);
+    t = setTimeout(() => form.submit(), 200);
+  });
+})();
 </script>
 {% endblock %}

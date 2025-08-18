@@ -1174,6 +1174,27 @@ def list_objects(filters: dict, page: int, per_page: int = 30):
     conn.close()
     return rows, total_pages
 
+def list_objects_using_accessory(accessory_id: int) -> list[dict]:
+    """
+    Renvoie les objets qui utilisent l'accessoire donné, avec qté, thumbnail et référence source.
+    """
+    conn = _connect(); cur = conn.cursor()
+    cur.execute("""
+        SELECT
+            o.id               AS object_id,
+            o.name             AS object_name,
+            o.parent_type,
+            o.parent_id,
+            oa.quantity        AS quantity,
+            o.thumbnail        AS thumbnail
+        FROM object_accessories oa
+        JOIN objects o ON o.id = oa.object_id
+        WHERE oa.accessory_id = ?
+        ORDER BY o.created_at DESC, o.id DESC
+    """, (accessory_id,))
+    out = [dict(r) for r in cur.fetchall()]
+    conn.close()
+    return out
 
 
 def rename_object(object_id: int, new_name: str) -> None:
