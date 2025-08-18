@@ -185,15 +185,26 @@
 </div>
 
     <!-- Colonne droite : thumbnail avec composant global `.thumb` -->
-    <div class="text-end flex-shrink-0">
-      <div class="thumb" style="--thumb-size: 48px;">
-        {% if o.thumbnail %}
-          <img src="{{ o.thumbnail }}" alt="" class="thumb-img">
-        {% else %}
-          <div class="thumb-ph" title="Aucune image"></div>
-        {% endif %}
-      </div>
+<div class="text-end flex-shrink-0">
+  <div class="position-relative d-inline-block">
+    <div class="thumb" style="--thumb-size: 48px;">
+      {% if o.thumbnail %}
+        <img src="{{ o.thumbnail }}" alt="" class="thumb-img">
+      {% else %}
+        <div class="thumb-ph" title="Aucune image"></div>
+      {% endif %}
     </div>
+
+    {% set acc_count = (obj_accessories.get(o.id, []) | length) %}
+    {% if acc_count > 0 %}
+      <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-warning text-dark px-1 py-0"
+            style="font-size:.65rem; line-height:1;"
+            title="{{ acc_count }} accessoire{{ 's' if acc_count>1 else '' }}">
+        🧰
+      </span>
+    {% endif %}
+  </div>
+</div>
   </div>
 </div>
 
