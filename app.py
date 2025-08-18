@@ -1074,7 +1074,19 @@ def print_history():
     
     all_print_ids = [p["id"] for p in raw_prints]
     tags_by_print = get_tags_for_prints(all_print_ids)
-    total_pages=0
+    # ✅ Initialisation safe
+    entries = {}
+    entries_list = []
+    paged_entries = []
+    total_pages = 0
+    total_prints = 0
+    total_duration_seconds = 0
+    total_weight = 0
+    total_cost = 0
+    counts_print = {}
+    counts_group = {}
+    status_values = []
+    focus_group_id = focus_group_id  # (rebind pour clarté)
 
     for p in raw_prints:
         p["duration"] = float(p.get("duration") or 0.0) / 3600  # pour compatibilité templates
