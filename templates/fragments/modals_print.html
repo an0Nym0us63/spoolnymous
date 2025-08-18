@@ -205,3 +205,17 @@
     </form>
   </div>
 </div>
+
+<script>
+    // Quand un Select2 s’ouvre, focus immédiat dans le champ de recherche
+  $(document).on('select2:open', function (e) {
+    // Petite latence pour laisser le DOM du dropdown se rendre
+    setTimeout(function () {
+      const input = document.querySelector('.select2-container--open .select2-search__field');
+      if (input) input.focus();
+    }, 0);
+  });
+  $(document).on('shown.bs.modal', '#groupModal_{{ print.id }}', function () {
+  $(this).find('select.select2-ajax').select2('open');
+});
+</script>
