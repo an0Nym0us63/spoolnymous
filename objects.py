@@ -124,6 +124,48 @@ def ensure_schema() -> None:
         cur.execute("ALTER TABLE objects ADD COLUMN thumbnail TEXT")
     if "translated_name" not in cols:
         cur.execute("ALTER TABLE objects ADD COLUMN translated_name TEXT")
+    if "normal_cost_unit" not in cols:
+        cur.execute("ALTER TABLE objects ADD COLUMN normal_cost_unit REAL")
+    cur.execute("""
+    UPDATE objects
+    SET normal_cost_unit = COALESCE(
+            (SELECT CASE
+                    WHEN p.full_normal_cost_by_item IS NOT NULL
+                            THEN p.full_normal_cost_by_item
+                    WHEN p.full_normal_cost IS NOT NULL
+                            AND COALESCE(p.number_of_items,1) > 0
+                            THEN p.full_normal_cost / COALESCE(p.number_of_items,1)
+                    ELSE NULL
+                    END
+                FROM prints p
+            WHERE p.id = objects.parent_id),
+            normal_cost_unit
+        ),
+        updated_at = datetime('now')
+    WHERE parent_type = 'print'
+    AND (normal_cost_unit IS NULL OR normal_cost_unit = 0);
+    """)
+    
+    # --- Backfill des enregistrements existants (group) ---
+    cur.execute("""
+    UPDATE objects
+    SET normal_cost_unit = COALESCE(
+            (SELECT CASE
+                    WHEN g.full_normal_cost_by_item IS NOT NULL
+                            THEN g.full_normal_cost_by_item
+                    WHEN g.full_normal_cost IS NOT NULL
+                            AND COALESCE(g.number_of_items,1) > 0
+                            THEN g.full_normal_cost / COALESCE(g.number_of_items,1)
+                    ELSE NULL
+                    END
+                FROM print_groups g
+            WHERE g.id = objects.parent_id),
+            normal_cost_unit
+        ),
+        updated_at = datetime('now')
+    WHERE parent_type = 'group'
+    AND (normal_cost_unit IS NULL OR normal_cost_unit = 0);
+    """)
     if "margin" not in cols:
         cur.execute("ALTER TABLE objects ADD COLUMN margin REAL")
         # backfill initial : calcule la marge existante si sold_price défini
@@ -141,6 +183,42 @@ def ensure_schema() -> None:
     cur.execute("DROP TRIGGER IF EXISTS trg_obj_sync_after_group_cost")
     cur.execute("DROP TRIGGER IF EXISTS trg_obj_recompute_after_components")
     cur.execute("DROP TRIGGER IF EXISTS trg_obj_recompute_after_sold_price")
+    cur.execute("DROP TRIGGER IF EXISTS trg_obj_sync_norm_after_print_update")
+cur.execute("DROP TRIGGER IF EXISTS trg_obj_sync_norm_after_group_update")
+
+cur.execute("""
+CREATE TRIGGER IF NOT EXISTS trg_obj_sync_norm_after_print_update
+AFTER UPDATE OF full_normal_cost_by_item, full_normal_cost, number_of_items ON prints
+BEGIN
+    UPDATE objects
+       SET normal_cost_unit = COALESCE(
+                CASE
+                    WHEN NEW.full_normal_cost_by_item IS NOT NULL THEN NEW.full_normal_cost_by_item
+                    WHEN NEW.full_normal_cost IS NOT NULL AND COALESCE(NEW.number_of_items,1) > 0
+                         THEN NEW.full_normal_cost / COALESCE(NEW.number_of_items,1)
+                    ELSE normal_cost_unit
+                END, normal_cost_unit),
+           updated_at = datetime('now')
+     WHERE parent_type = 'print' AND parent_id = NEW.id;
+END;
+""")
+
+cur.execute("""
+CREATE TRIGGER IF NOT EXISTS trg_obj_sync_norm_after_group_update
+AFTER UPDATE OF full_normal_cost_by_item, full_normal_cost, number_of_items ON print_groups
+BEGIN
+    UPDATE objects
+       SET normal_cost_unit = COALESCE(
+                CASE
+                    WHEN NEW.full_normal_cost_by_item IS NOT NULL THEN NEW.full_normal_cost_by_item
+                    WHEN NEW.full_normal_cost IS NOT NULL AND COALESCE(NEW.number_of_items,1) > 0
+                         THEN NEW.full_normal_cost / COALESCE(NEW.number_of_items,1)
+                    ELSE normal_cost_unit
+                END, normal_cost_unit),
+           updated_at = datetime('now')
+     WHERE parent_type = 'group' AND parent_id = NEW.id;
+END;
+""")
 
     # Index utiles
     cur.execute("""CREATE INDEX IF NOT EXISTS idx_objects_parent
@@ -622,6 +700,7 @@ class SourceSnapshot(NamedTuple):
     translated_name: str
     number_of_items: int
     full_cost_unit: float
+    normal_cost_unit: float 
     thumbnail: str | None
     tags: list[str]
     created_at: str | None  # 👈 date d’origine (print_date ou dernier print du groupe)
@@ -636,6 +715,16 @@ def _compute_full_unit(units: int, full_cost_by_item, full_cost) -> float:
         pass
     return 0.0
 
+def _compute_normal_unit(units: int, normal_by_item, normal_total) -> float:
+    try:
+        if normal_by_item is not None:
+            return float(normal_by_item)
+        if normal_total is not None and units:
+            return float(normal_total) / max(1, int(units))
+    except Exception:
+        pass
+    return 0.0
+
 def _snapshot_from_print(print_id: int) -> SourceSnapshot:
     conn = _connect(); cur = conn.cursor()
     cur.execute("""
@@ -646,6 +735,8 @@ def _snapshot_from_print(print_id: int) -> SourceSnapshot:
             translated_name,
             full_cost_by_item,
             full_cost,
+            full_normal_cost_by_item,
+            full_normal_cost,
             image_file,
             print_date
         FROM prints
@@ -654,10 +745,11 @@ def _snapshot_from_print(print_id: int) -> SourceSnapshot:
     row = cur.fetchone()
     if not row:
         conn.close()
-        return SourceSnapshot(f"Print #{print_id}", 1, 0.0, None, [], None)
+        return SourceSnapshot(f"Print #{print_id}", f"Print #{print_id}", 1, 0.0, 0.0, None, [], None)
 
     units = int(row["number_of_items"] or 1)
     full_unit = _compute_full_unit(units, row["full_cost_by_item"], row["full_cost"])
+    normal_unit = _compute_normal_unit(units, row["full_normal_cost_by_item"], row["full_normal_cost"])
     thumb = f"/static/prints/{row['image_file']}" if row["image_file"] else None
     created_at = row["print_date"]  # on prend la date du print telle quelle
 
@@ -666,7 +758,7 @@ def _snapshot_from_print(print_id: int) -> SourceSnapshot:
     tags = [r[0] for r in cur.fetchall()]
     conn.close()
 
-    return SourceSnapshot(row["name"],row["translated_name"], max(1, units), full_unit, thumb, tags, created_at)
+    return SourceSnapshot(row["name"],row["translated_name"], max(1, units), full_unit, normal_unit, thumb, tags, created_at)
 
 def _snapshot_from_group(group_id: int) -> SourceSnapshot:
     conn = _connect(); cur = conn.cursor()
@@ -677,6 +769,8 @@ def _snapshot_from_group(group_id: int) -> SourceSnapshot:
             COALESCE(number_of_items, 1)    AS number_of_items,
             full_cost_by_item,
             full_cost,
+            full_normal_cost_by_item,
+            full_normal_cost,
             primary_print_id
         FROM print_groups
         WHERE id = ?
@@ -684,10 +778,11 @@ def _snapshot_from_group(group_id: int) -> SourceSnapshot:
     row = cur.fetchone()
     if not row:
         conn.close()
-        return SourceSnapshot(f"Groupe #{group_id}", 1, 0.0, None, [], None)
+        return SourceSnapshot(f"Groupe #{group_id}", f"Groupe #{group_id}", 1, 0.0, 0.0, None, [], None)
 
     units = int(row["number_of_items"] or 1)
     full_unit = _compute_full_unit(units, row["full_cost_by_item"], row["full_cost"])
+    normal_unit = _compute_normal_unit(units, row["full_normal_cost_by_item"], row["full_normal_cost"])
 
     # Thumbnail : priorité au print de référence
     thumb = None
@@ -723,7 +818,7 @@ def _snapshot_from_group(group_id: int) -> SourceSnapshot:
     tags = [r[0] for r in cur.fetchall()]
 
     conn.close()
-    return SourceSnapshot(row["name"],row["name"], max(1, units), full_unit, thumb, tags, created_at)
+    return SourceSnapshot(row["name"],row["name"], max(1, units), full_unit,normal_unit, thumb, tags, created_at)
 
 def snapshot_source(source_type: SourceType, source_id: int) -> SourceSnapshot:
     if source_type == "print":
@@ -908,6 +1003,7 @@ def create_objects_from_source(source_type: SourceType, source_id: int, qty: int
         cost_fab = float(snap.full_cost_unit or 0.0)
         cost_acc = 0.0
         cost_total = cost_fab + cost_acc
+        normal_cost_unit = float(snap.normal_cost_unit or 0.0)
         created_iso = snap.created_at  # peut être None
         new_ids: list[int] = []
 
@@ -918,13 +1014,13 @@ def create_objects_from_source(source_type: SourceType, source_id: int, qty: int
                     """
                     INSERT INTO objects (
                         parent_type, parent_id, name,translated_name, thumbnail,
-                        cost_fabrication, cost_accessory, cost_total,
+                        cost_fabrication, cost_accessory, cost_total,normal_cost_unit, 
                         available, sold_price, sold_date, comment
                     )
-                    VALUES (?, ?, ?, ?,?, ?, ?, ?, 1, NULL, NULL, NULL)
+                    VALUES (?, ?, ?, ?,?, ?, ?, ?,?, 1, NULL, NULL, NULL)
                     """,
                     (source_type, source_id, snap.name,snap.translated_name, snap.thumbnail,
-                     cost_fab, cost_acc, cost_total)
+                     cost_fab, cost_acc, cost_total,normal_cost_unit)
                 )
                 new_ids.append(int(cur.lastrowid))
         else:
@@ -934,14 +1030,14 @@ def create_objects_from_source(source_type: SourceType, source_id: int, qty: int
                     """
                     INSERT INTO objects (
                         parent_type, parent_id, name,translated_name, thumbnail,
-                        cost_fabrication, cost_accessory, cost_total,
+                        cost_fabrication, cost_accessory, cost_total,normal_cost_unit,
                         available, sold_price, sold_date, comment,
                         created_at, updated_at
                     )
-                    VALUES (?, ?, ?, ?, ?,?, ?, ?, 1, NULL, NULL, NULL, ?, ?)
+                    VALUES (?, ?, ?, ?, ?,?, ?, ?,?, 1, NULL, NULL, NULL, ?, ?)
                     """,
                     (source_type, source_id, snap.name,snap.translated_name, snap.thumbnail,
-                     cost_fab, cost_acc, cost_total,
+                     cost_fab, cost_acc, cost_total,normal_cost_unit,
                      created_iso, created_iso)
                 )
                 new_ids.append(int(cur.lastrowid))
