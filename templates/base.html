@@ -43,13 +43,24 @@
   height: 1rem;
   background-size: 1rem 1rem;
 }
+/* Décalage vertical des modales sur mobile pour ne pas “se noyer” dans la navbar */
+@media (max-width: 575.98px) {
+  .modal .modal-dialog {
+    margin: calc(var(--nav-h, 0px) + .5rem) .5rem .5rem;
+  }
+}
+/* version plein écran optionnelle, au cas où tu utilises .modal-fullscreen-sm-down */
+@media (max-width: 575.98px) {
+  .modal.modal-fullscreen-sm-down .modal-dialog {
+    margin: 0;  /* plein écran natif */
+  }
+}
 {% if current_user.is_authenticated and current_user.is_guest %}
   [data-requires-write] {
     display: none !important;
   }
 {% endif %}
 </style>
-
 </head>
 
 <body>
@@ -194,6 +205,12 @@ function openNativeSettings() {
       window.location.href = "{{ url_for('auth.settings') }}";
     }
   }
+  
+document.addEventListener('DOMContentLoaded', () => {
+  const nav = document.querySelector('.navbar.fixed-top, .navbar.sticky-top');
+  const h = nav ? nav.offsetHeight : 0;
+  document.documentElement.style.setProperty('--nav-h', h + 'px');
+});
 </script>
 </body>
 </html>

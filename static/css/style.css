@@ -476,3 +476,9 @@
 /* Badges overlay (si tu en mets sur le thumb) */
 .thumb .thumb-badge-items{ position:absolute; top:4px; right:4px; font-size:.6rem; padding:.15em .4em; }
 .thumb .thumb-badge-used { position:absolute; bottom:4px; right:4px; font-size:.55rem; padding:.15em .4em; }
+
+/* Garantir la bonne pile d’affichage (au cas où ta navbar a été surélevée) */
+.modal            { z-index: 1055; }
+.modal-backdrop   { z-index: 1050; }
+/* Si ta navbar a un z-index > 1050, tu peux aussi la redescendre un peu : */
+.navbar.fixed-top, .navbar.sticky-top { z-index: 1030; }
