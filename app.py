@@ -1933,6 +1933,7 @@ def objects_page():
     # Tags des objets (batch)
     ids = [r["id"] for r in rows]
     obj_tags = get_tags_for_objects(ids) if ids else {}
+    obj_accessories = {oid: list_object_accessories(oid) for oid in ids} if ids else {}
 
     # Devise (comme print_history)
     spoolman_settings = getSettings(cached=True)
@@ -1945,6 +1946,7 @@ def objects_page():
         filters=filters,
         args=request.args,
         obj_tags=obj_tags,
+        obj_accessories=obj_accessories,
         page_title="Objets",
         currencysymbol=spoolman_settings.get("currency_symbol", "€"),
         # expose les agrégats
@@ -2110,15 +2112,28 @@ def accessories_remove_stock_route():
 @app.route("/api/accessories/search")
 def api_accessories_search():
     q = (request.args.get("q") or "").strip().lower()
-    rows = list_accessories()
+
+    # On liste puis on filtre ici côté API pour ne renvoyer que les accessoires avec stock > 0
+    rows = [r for r in list_accessories() if (r.get("quantity") or 0) > 0]
+
     if q:
-        rows = [r for r in rows if q in (r["name"] or "").lower()]
-    # Limiter à 30 entrées
+        rows = [r for r in rows if q in (r.get("name") or "").lower()]
+
     rows = rows[:30]
-    return jsonify([
-        {"id": r["id"], "name": r["name"], "quantity": r["quantity"], "unit_price": r["unit_price"]}
-        for r in rows
-    ])
+
+    def as_item(r):
+        # image_path est stocké en relatif (ex: 'uploads/accessories/acc_12_xxx.png')
+        img_url = url_for("static", filename=r["image_path"]) if r.get("image_path") \
+                  else url_for("static", filename="placeholder.png")
+        return {
+            "id": r["id"],
+            "name": r["name"],
+            "quantity": r["quantity"],
+            "unit_price": r["unit_price"],
+            "image_url": img_url,
+        }
+
+    return jsonify([as_item(r) for r in rows])
 
 @app.route("/objects/<int:object_id>/add_accessory", methods=["POST"])
 def objects_add_accessory(object_id: int):

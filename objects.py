@@ -591,13 +591,14 @@ def unlink_accessory_from_object(object_id: int, accessory_id: int, qty: int | N
 
 def list_object_accessories(object_id: int) -> list[dict]:
     """
-    Renvoie la liste des accessoires liés à un objet (nom, qté, PU snapshot, coût total).
+    Renvoie la liste des accessoires liés à un objet (id accessoire, nom, image, qté, PU snapshot, coût total).
     """
     conn = _connect(); cur = conn.cursor()
     cur.execute("""
         SELECT oa.id,
                oa.accessory_id,
                a.name AS accessory_name,
+               a.image_path AS image_path,
                oa.quantity,
                oa.unit_price_at_link,
                (oa.quantity * oa.unit_price_at_link) AS total_cost
@@ -609,7 +610,6 @@ def list_object_accessories(object_id: int) -> list[dict]:
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
     return rows
-
 
 # ---------------------------------------------------------------------------
 # Helpers : lecture / écriture simples

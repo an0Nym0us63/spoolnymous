@@ -212,6 +212,11 @@
           💬 Modifier le commentaire
         </a>
       </li>
+	  <li>
+  <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addAccModal_{{ o.id }}">
+    ➕ Ajouter accessoire
+  </a>
+</li>
       {% if o.parent_type == 'print' %}
         <li>
           <a class="dropdown-item" href="{{ url_for('print_history') }}?ref_print_id={{ o.parent_id }}&focus_print_id={{ o.parent_id }}">
@@ -296,7 +301,36 @@
   </div>
 </div>
 
-
+{% set accs = obj_accessories.get(o.id, []) %}
+{% if accs %}
+  <div class="mb-3">
+    <div class="fw-semibold mb-2">🧰 Accessoires</div>
+    <div class="d-flex flex-wrap gap-3">
+      {% for a in accs %}
+        <div class="text-center" style="width:86px;">
+          <div class="position-relative">
+            <img
+              src="{{ url_for('static', filename=a.image_path) if a.image_path else url_for('static', filename='placeholder.png') }}"
+              class="rounded border"
+              style="width: 86px; height: 86px; object-fit: cover;"
+              alt="{{ a.accessory_name }}"
+            >
+            <button type="button"
+                    class="btn-close position-absolute top-0 end-0 bg-white rounded-circle shadow-sm acc-remove-btn"
+                    title="Retirer"
+                    data-object-id="{{ o.id }}"
+                    data-accessory-id="{{ a.accessory_id }}"
+                    data-qty="{{ a.quantity }}"
+                    style="transform: scale(.8);">
+            </button>
+          </div>
+          <div class="small mt-1 text-truncate" title="{{ a.accessory_name }}">{{ a.accessory_name }}</div>
+          <div class="small text-muted">× {{ a.quantity }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
 
 <!-- Tags -->
 {% set tags = obj_tags.get(o.id, []) %}
@@ -312,6 +346,74 @@
       </div>
     </div>
   </div>
+  <div class="modal fade" id="addAccModal_{{ o.id }}" tabindex="-1" aria-labelledby="addAccLabel_{{ o.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <form class="modal-content" method="post" action="{{ url_for('objects_add_accessory', object_id=o.id) }}">
+      {{ macros.render_filtered_args(args) }}
+      <div class="modal-header">
+        <h5 class="modal-title" id="addAccLabel_{{ o.id }}">➕ Ajouter un accessoire à « {{ o.name }} »</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Recherche + liste -->
+        <div class="mb-3">
+          <label class="form-label">Accessoire</label>
+          <input type="text" class="form-control" id="accSearch_{{ o.id }}" placeholder="Rechercher un accessoire (nom)…">
+          <div class="list-group mt-2" id="accResults_{{ o.id }}" style="max-height: 240px; overflow:auto;"></div>
+          <input type="hidden" name="accessory_id" id="accId_{{ o.id }}">
+        </div>
+
+        <!-- Sélection courante -->
+        <div id="accSelected_{{ o.id }}" class="d-none">
+          <div class="d-flex align-items-center gap-2">
+            <img id="accSelectedImg_{{ o.id }}" src="{{ url_for('static', filename='placeholder.png') }}" alt="" width="40" height="40" class="rounded border" style="object-fit:cover;">
+            <div class="flex-grow-1">
+              <div class="fw-semibold" id="accSelectedName_{{ o.id }}"></div>
+              <div class="text-muted small">Stock dispo : <span id="accAvail_{{ o.id }}">0</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quantité -->
+        <div class="mt-3">
+          <label class="form-label">Quantité</label>
+          <input type="number" class="form-control" name="qty" id="accQty_{{ o.id }}" min="1" value="1" required>
+          <div class="form-text">La quantité ne peut pas dépasser le stock disponible.</div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary" id="accSubmitBtn_{{ o.id }}" disabled>Ajouter</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="modal fade" id="rmAccModal_{{ o.id }}" tabindex="-1" aria-labelledby="rmAccLabel_{{ o.id }}" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('objects_remove_accessory', object_id=o.id) }}">
+      {{ macros.render_filtered_args(args) }}
+      <input type="hidden" name="accessory_id" id="rmAccId_{{ o.id }}">
+      <div class="modal-header">
+        <h5 class="modal-title" id="rmAccLabel_{{ o.id }}">Retirer l’accessoire</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <p id="rmAccText_{{ o.id }}" class="mb-3"></p>
+        <div id="rmAccQtyWrap_{{ o.id }}" class="d-none">
+          <label class="form-label">Quantité à retirer</label>
+          <input type="number" class="form-control" name="qty" id="rmAccQty_{{ o.id }}" min="1" value="1">
+          <div class="form-text">Vous ne pouvez pas dépasser la quantité liée à l’objet.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-danger">Retirer</button>
+      </div>
+    </form>
+  </div>
+</div>
   <div class="modal fade" id="renameModal_{{ o.id }}" tabindex="-1" aria-labelledby="renameLabel_{{ o.id }}">
   <div class="modal-dialog">
     <form class="modal-content" method="post" action="{{ url_for('objects_rename', object_id=o.id) }}">
@@ -569,6 +671,129 @@
       if (confirm('Supprimer "' + name + '" ?')) doSubmit();
     }
   });
-  
+(function() {
+  // Debounce helper
+  function debounce(fn, ms) {
+    let t; return function(...args) {
+      clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms);
+    };
+  }
+
+  // Pour chaque objet, on “branche” la modale d’ajout et celle de retrait
+  document.querySelectorAll('[id^="addAccModal_"]').forEach(modalEl => {
+    const oid = modalEl.id.split('_')[1];
+
+    const input   = document.getElementById(`accSearch_${oid}`);
+    const results = document.getElementById(`accResults_${oid}`);
+    const accId   = document.getElementById(`accId_${oid}`);
+    const qtyIn   = document.getElementById(`accQty_${oid}`);
+    const submit  = document.getElementById(`accSubmitBtn_${oid}`);
+
+    const selWrap = document.getElementById(`accSelected_${oid}`);
+    const selImg  = document.getElementById(`accSelectedImg_${oid}`);
+    const selName = document.getElementById(`accSelectedName_${oid}`);
+    const availEl = document.getElementById(`accAvail_${oid}`);
+
+    let currentMax = 1;
+
+    function setMaxQty(max) {
+      currentMax = Math.max(1, Number(max) || 1);
+      qtyIn.max = String(currentMax);
+      if (Number(qtyIn.value || 1) > currentMax) qtyIn.value = String(currentMax);
+    }
+
+    function renderResults(items) {
+      results.innerHTML = "";
+      if (!items.length) {
+        results.innerHTML = '<div class="list-group-item text-muted">Aucun accessoire disponible</div>';
+        return;
+      }
+      items.forEach(it => {
+        const a = document.createElement("button");
+        a.type = "button";
+        a.className = "list-group-item list-group-item-action d-flex align-items-center gap-2";
+        a.innerHTML = `
+          <img src="${it.image_url}" width="32" height="32" class="rounded border" style="object-fit:cover;">
+          <div class="flex-grow-1">
+            <div class="fw-semibold">${it.name}</div>
+            <div class="small text-muted">Stock: ${it.quantity}</div>
+          </div>
+        `;
+        a.addEventListener("click", () => {
+          accId.value = it.id;
+          selImg.src = it.image_url;
+          selName.textContent = it.name;
+          availEl.textContent = it.quantity;
+          selWrap.classList.remove("d-none");
+          setMaxQty(it.quantity);
+          submit.disabled = false;
+        });
+        results.appendChild(a);
+      });
+    }
+
+    const doSearch = debounce(async function() {
+      const q = (input.value || "").trim();
+      try {
+        const r = await fetch(`/api/accessories/search?q=${encodeURIComponent(q)}`);
+        const data = await r.json();
+        renderResults(data || []);
+      } catch(e) {
+        results.innerHTML = '<div class="list-group-item text-danger">Erreur de recherche</div>';
+      }
+    }, 200);
+
+    input.addEventListener("input", doSearch);
+
+    qtyIn.addEventListener("input", () => {
+      let v = Number(qtyIn.value || 1);
+      if (v < 1) v = 1;
+      if (v > currentMax) v = currentMax;
+      qtyIn.value = String(v);
+    });
+
+    // Reset à l'ouverture
+    modalEl.addEventListener("show.bs.modal", () => {
+      input.value = "";
+      results.innerHTML = "";
+      accId.value = "";
+      qtyIn.value = "1";
+      setMaxQty(1);
+      submit.disabled = true;
+      selWrap.classList.add("d-none");
+      doSearch(); // charger top 30 par défaut
+    });
+  });
+
+  // Modale de retrait d’accessoire (une générique par objet)
+  document.querySelectorAll(".acc-remove-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const oid = btn.getAttribute("data-object-id");
+      const accId = btn.getAttribute("data-accessory-id");
+      const qty = Number(btn.getAttribute("data-qty") || "1");
+
+      const modal = document.getElementById(`rmAccModal_${oid}`);
+      const idEl  = document.getElementById(`rmAccId_${oid}`);
+      const txtEl = document.getElementById(`rmAccText_${oid}`);
+      const wrap  = document.getElementById(`rmAccQtyWrap_${oid}`);
+      const qtyEl = document.getElementById(`rmAccQty_${oid}`);
+
+      idEl.value = accId;
+      if (qty > 1) {
+        wrap.classList.remove("d-none");
+        qtyEl.max = String(qty);
+        qtyEl.value = "1";
+        txtEl.textContent = `Retirer une partie ou la totalité (max ${qty}) ?`;
+      } else {
+        wrap.classList.add("d-none");
+        qtyEl.value = "1";
+        txtEl.textContent = "Confirmer la suppression de cet accessoire ?";
+      }
+
+      const bsModal = bootstrap.Modal.getOrCreateInstance(modal);
+      bsModal.show();
+    });
+  });
+})();
 </script>
 {% endblock %}
