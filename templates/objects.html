@@ -111,7 +111,7 @@
 <div class="accordion" id="objectsAccordion">
   {% for o in objects %}
   {% set collapse_id = "obj_" ~ o.id %}
-  <div class="card mb-2">
+  <div class="card mb-2" id="object_{{ o.id }}">
     <div class="card-header obj-hdr"
      id="heading_{{ o.id }}" role="button"
      data-bs-toggle="collapse" data-bs-target="#{{ collapse_id }}"
@@ -363,6 +363,7 @@
   <div class="modal-dialog modal-dialog-scrollable">
     <form class="modal-content" method="post" action="{{ url_for('objects_add_accessory', object_id=o.id) }}">
       {{ macros.render_filtered_args(args) }}
+	  <input type="hidden" name="focus_object_id" value="{{ o.id }}">
       <div class="modal-header">
         <h5 class="modal-title" id="addAccLabel_{{ o.id }}">➕ Ajouter un accessoire à « {{ o.name }} »</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
@@ -407,6 +408,7 @@
   <div class="modal-dialog">
     <form class="modal-content" method="post" action="{{ url_for('objects_remove_accessory', object_id=o.id) }}">
       {{ macros.render_filtered_args(args) }}
+	  <input type="hidden" name="focus_object_id" value="{{ o.id }}">
       <input type="hidden" name="accessory_id" id="rmAccId_{{ o.id }}">
       <div class="modal-header">
         <h5 class="modal-title" id="rmAccLabel_{{ o.id }}">Retirer l’accessoire</h5>
@@ -431,6 +433,7 @@
   <div class="modal-dialog">
     <form class="modal-content" method="post" action="{{ url_for('objects_rename', object_id=o.id) }}">
       {{ macros.render_filtered_args(args) }}
+	  <input type="hidden" name="focus_object_id" value="{{ o.id }}">
       <div class="modal-header">
         <h5 class="modal-title" id="renameLabel_{{ o.id }}">Renommer l’objet</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
@@ -449,6 +452,7 @@
   <div class="modal-dialog">
     <form class="modal-content" method="post" action="{{ url_for('objects_sell', object_id=o.id) }}">
       {{ macros.render_filtered_args(args) }}
+	  <input type="hidden" name="focus_object_id" value="{{ o.id }}">
       <div class="modal-header">
         <h5 class="modal-title" id="sellLabel_{{ o.id }}">Vente / don</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
@@ -498,6 +502,7 @@
   <div class="modal-dialog">
     <form class="modal-content" method="post" action="{{ url_for('objects_update_comment', object_id=o.id) }}">
       {{ macros.render_filtered_args(args) }}
+	  <input type="hidden" name="focus_object_id" value="{{ o.id }}">
       <div class="modal-header">
         <h5 class="modal-title" id="commentLabel_{{ o.id }}">Modifier le commentaire</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
