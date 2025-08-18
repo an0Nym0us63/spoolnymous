@@ -43,19 +43,6 @@
   height: 1rem;
   background-size: 1rem 1rem;
 }
-/* Z-index sûrs */
-.navbar.fixed-top, .navbar.sticky-top { z-index: 1030; }
-.modal            { z-index: 1055; }
-.modal-backdrop   { z-index: 1050; }
-
-/* Décalage mobile : passe au-dessus de la navbar */
-@media (max-width: 575.98px) {
-  .modal .modal-dialog {
-    margin: calc(var(--nav-h, 0px) + .75rem) .5rem .5rem !important;
-  }
-  /* Si tu utilises modal-dialog-centered, Bootstrap met margin:0;
-     l'!important ci-dessus gagne. */
-}
 {% if current_user.is_authenticated and current_user.is_guest %}
   [data-requires-write] {
     display: none !important;
