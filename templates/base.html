@@ -208,6 +208,27 @@
   // A chaque ouverture de modale, on recalcule (utile si la navbar change de taille)
   document.addEventListener('show.bs.modal', setNavHeightVar);
 })();
+document.addEventListener("DOMContentLoaded", function () {
+  const alertEl = document.querySelector('#flash-alert[data-autohide="true"]');
+  if (!alertEl) return;
+
+  // Récupère le délai en ms (fallback à 3000 ms si absent/malsaisi)
+  const delayAttr = parseInt(alertEl.getAttribute('data-autohide-delay'), 10);
+  const AUTO_HIDE_MS = Number.isFinite(delayAttr) ? delayAttr : 3000;
+
+  const bsAlert = bootstrap.Alert.getOrCreateInstance(alertEl);
+
+  // Timer de fermeture
+  let timer = setTimeout(() => bsAlert.close(), AUTO_HIDE_MS);
+
+  // Optionnel : pause si l'utilisateur survole l'alerte
+  alertEl.addEventListener("mouseenter", () => {
+    if (timer) { clearTimeout(timer); timer = null; }
+  });
+  alertEl.addEventListener("mouseleave", () => {
+    if (!timer) timer = setTimeout(() => bsAlert.close(), 1500);
+  });
+});
 </script>
 {% endblock %}
 </body>
