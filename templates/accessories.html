@@ -64,6 +64,22 @@
 @media (max-width: 575.98px){
   .acc-row .thumb { --thumb-size: 40px; border-radius: .5rem; }
 }
+/* Espacer les lignes entre elles */
+.acc-row {
+  padding: .65rem .75rem;     /* ajoute du padding vertical */
+  border-bottom: 1px solid var(--bs-border-color); /* fine séparation */
+}
+.acc-row:last-child {
+  border-bottom: none; /* pas de ligne après la dernière */
+}
+
+/* Détacher un peu le bouton Actions du bord droit */
+.acc-actions {
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  padding-right: .5rem; /* ⬅ espace à droite */
+}
 </style>
 {% macro sort_anchor(label, col) -%}
   {%- set is_active = (filters.sort == col) -%}
