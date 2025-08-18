@@ -184,41 +184,41 @@ def ensure_schema() -> None:
     cur.execute("DROP TRIGGER IF EXISTS trg_obj_recompute_after_components")
     cur.execute("DROP TRIGGER IF EXISTS trg_obj_recompute_after_sold_price")
     cur.execute("DROP TRIGGER IF EXISTS trg_obj_sync_norm_after_print_update")
-cur.execute("DROP TRIGGER IF EXISTS trg_obj_sync_norm_after_group_update")
+    cur.execute("DROP TRIGGER IF EXISTS trg_obj_sync_norm_after_group_update")
 
-cur.execute("""
-CREATE TRIGGER IF NOT EXISTS trg_obj_sync_norm_after_print_update
-AFTER UPDATE OF full_normal_cost_by_item, full_normal_cost, number_of_items ON prints
-BEGIN
-    UPDATE objects
-       SET normal_cost_unit = COALESCE(
-                CASE
-                    WHEN NEW.full_normal_cost_by_item IS NOT NULL THEN NEW.full_normal_cost_by_item
-                    WHEN NEW.full_normal_cost IS NOT NULL AND COALESCE(NEW.number_of_items,1) > 0
-                         THEN NEW.full_normal_cost / COALESCE(NEW.number_of_items,1)
-                    ELSE normal_cost_unit
-                END, normal_cost_unit),
-           updated_at = datetime('now')
-     WHERE parent_type = 'print' AND parent_id = NEW.id;
-END;
-""")
-
-cur.execute("""
-CREATE TRIGGER IF NOT EXISTS trg_obj_sync_norm_after_group_update
-AFTER UPDATE OF full_normal_cost_by_item, full_normal_cost, number_of_items ON print_groups
-BEGIN
-    UPDATE objects
-       SET normal_cost_unit = COALESCE(
-                CASE
-                    WHEN NEW.full_normal_cost_by_item IS NOT NULL THEN NEW.full_normal_cost_by_item
-                    WHEN NEW.full_normal_cost IS NOT NULL AND COALESCE(NEW.number_of_items,1) > 0
-                         THEN NEW.full_normal_cost / COALESCE(NEW.number_of_items,1)
-                    ELSE normal_cost_unit
-                END, normal_cost_unit),
-           updated_at = datetime('now')
-     WHERE parent_type = 'group' AND parent_id = NEW.id;
-END;
-""")
+    cur.execute("""
+    CREATE TRIGGER IF NOT EXISTS trg_obj_sync_norm_after_print_update
+    AFTER UPDATE OF full_normal_cost_by_item, full_normal_cost, number_of_items ON prints
+    BEGIN
+        UPDATE objects
+        SET normal_cost_unit = COALESCE(
+                    CASE
+                        WHEN NEW.full_normal_cost_by_item IS NOT NULL THEN NEW.full_normal_cost_by_item
+                        WHEN NEW.full_normal_cost IS NOT NULL AND COALESCE(NEW.number_of_items,1) > 0
+                            THEN NEW.full_normal_cost / COALESCE(NEW.number_of_items,1)
+                        ELSE normal_cost_unit
+                    END, normal_cost_unit),
+            updated_at = datetime('now')
+        WHERE parent_type = 'print' AND parent_id = NEW.id;
+    END;
+    """)
+    
+    cur.execute("""
+    CREATE TRIGGER IF NOT EXISTS trg_obj_sync_norm_after_group_update
+    AFTER UPDATE OF full_normal_cost_by_item, full_normal_cost, number_of_items ON print_groups
+    BEGIN
+        UPDATE objects
+        SET normal_cost_unit = COALESCE(
+                    CASE
+                        WHEN NEW.full_normal_cost_by_item IS NOT NULL THEN NEW.full_normal_cost_by_item
+                        WHEN NEW.full_normal_cost IS NOT NULL AND COALESCE(NEW.number_of_items,1) > 0
+                            THEN NEW.full_normal_cost / COALESCE(NEW.number_of_items,1)
+                        ELSE normal_cost_unit
+                    END, normal_cost_unit),
+            updated_at = datetime('now')
+        WHERE parent_type = 'group' AND parent_id = NEW.id;
+    END;
+    """)
 
     # Index utiles
     cur.execute("""CREATE INDEX IF NOT EXISTS idx_objects_parent
