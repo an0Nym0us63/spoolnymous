@@ -2058,7 +2058,7 @@ def remove_object_tag(object_id: int):
 @app.route("/accessories")
 def accessories_list():
     accs = list_accessories()
-    return render_template("accessories.html", accessories=accs, args=request.args)
+    return render_template("accessories.html", accessories=accs, args=request.args,page_title="Accessoires")
     
 @app.route("/accessories/add", methods=["POST"])
 def accessories_add():

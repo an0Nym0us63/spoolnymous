@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% import 'macros/hidden_args.jinja2' as macros %}
-
+{% set page_name = "objects" %}
 {% block content %}
 <style>
   /* Header en grille 3 colonnes */
@@ -49,9 +49,6 @@
   pointer-events: none; /* ne gêne pas les clics sur le header */
 }
 </style>
-<a href="{{ url_for('accessories_list') }}" class="btn btn-sm btn-outline-secondary">
-  🧰 Accessoires
-</a>
 <!-- Boutons flottants (identiques au reste) -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
   <button class="btn btn-sm btn-primary rounded-circle" type="button"
