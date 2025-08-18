@@ -187,17 +187,20 @@
 <script>
 (function(){
   function setNavHeightVar(){
-    const nav = document.querySelector('.navbar.fixed-top, .navbar.sticky-top');
-    const h = nav ? nav.offsetHeight : 0;
-    document.documentElement.style.setProperty('--nav-h', (h||0) + 'px');
+    // Prend la + haute des navbars fixes/sticky si tu en as plusieurs
+    let h = 0;
+    document.querySelectorAll('.navbar.fixed-top, .navbar.sticky-top').forEach(el => {
+      h = Math.max(h, el.offsetHeight || 0);
+    });
+    document.documentElement.style.setProperty('--nav-h', h + 'px');
   }
-  setNavHeightVar();
+
+  // Init + resize
+  document.addEventListener('DOMContentLoaded', setNavHeightVar);
   window.addEventListener('resize', setNavHeightVar);
 
-  // Quand une modale s'ouvre, on (re)applique le margin selon la hauteur nav
-  document.addEventListener('show.bs.modal', (e) => {
-    setTimeout(() => setNavHeightVar(), 0);
-  });
+  // A chaque ouverture de modale, on recalcule (utile si la navbar change de taille)
+  document.addEventListener('show.bs.modal', setNavHeightVar);
 })();
 </script>
 {% endblock %}

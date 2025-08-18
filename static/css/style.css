@@ -482,3 +482,23 @@
 .modal-backdrop   { z-index: 1050; }
 /* Si ta navbar a un z-index > 1050, tu peux aussi la redescendre un peu : */
 .navbar.fixed-top, .navbar.sticky-top { z-index: 1030; }
+
+
+/* 1) Empilement : la navbar ne doit JAMAIS passer devant une modale */
+.navbar.fixed-top, .navbar.sticky-top { z-index: 1030 !important; } /* sous les modales */
+.modal-backdrop { z-index: 1990 !important; }
+.modal          { z-index: 2000 !important; }
+
+/* 2) Décalage mobile : on laisse un espace sous la navbar */
+@media (max-width: 575.98px) {
+  /* BS remet parfois margin:0 (centered). On force !important. */
+  .modal .modal-dialog {
+    margin: calc(var(--nav-h, 0px) + .75rem) .5rem .5rem !important;
+  }
+  /* Si tu utilises modal-fullscreen-sm-down, la modale remplit l'écran => pas de marge */
+  .modal.modal-fullscreen-sm-down .modal-dialog { margin: 0 !important; }
+}
+
+/* Option confort : quand une modale est ouverte, on masque la navbar pour éviter tout chevauchement visuel. */
+/* Décommente si tu préfères */
+// .modal-open .navbar.fixed-top, .modal-open .navbar.sticky-top { visibility: hidden; }
