@@ -38,7 +38,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory,rename_accessory
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -2273,6 +2273,16 @@ def accessories_upload_image(acc_id: int):
 
     return redirect(url_for("accessories_list"))
 
+@app.post("/accessories/<int:acc_id>/rename")
+def accessories_rename_route(acc_id: int):
+    new_name = request.form.get("name", "").strip()
+    if not new_name:
+        flash("Nom requis", "danger")
+        return redirect_with_context("accessories_list")
+
+    rename_accessory(acc_id, new_name)  # fonction à créer dans accessories.py
+    flash(f"Accessoire renommé en {new_name}", "success")
+    return redirect_with_context("accessories_list", focus_acc_id=acc_id)
 
 
 app.register_blueprint(auth_bp)

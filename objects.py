@@ -1196,6 +1196,10 @@ def list_objects_using_accessory(accessory_id: int) -> list[dict]:
     conn.close()
     return out
 
+def rename_accessory(acc_id: int, new_name: str):
+    conn = _connect(); cur = conn.cursor()
+    cur.execute("UPDATE accessories SET name=? WHERE id=?", (new_name, acc_id))
+    conn.commit(); conn.close()
 
 def rename_object(object_id: int, new_name: str) -> None:
     update_object_fields(int(object_id), name=(new_name or "").strip())

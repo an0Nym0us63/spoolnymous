@@ -2,17 +2,6 @@
 
 {% block content %}
 <div class="container my-5" style="max-width: 700px;">
-	  <!-- 🔔 Flash messages -->
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show mt-4" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
   <!-- 🔧 Paramètres système -->
   <section class="mb-5">
     <h4 class="text-light mb-4">🛠️ Paramètres système</h4>
