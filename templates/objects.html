@@ -264,7 +264,9 @@
        <div class="row text-muted small gx-3 gy-2 mb-3 row-cols-2 row-cols-md-3">
   <div class="col">
     <strong>🛠️</strong>
-    {{ '%.2f'|format(o.cost_fabrication or 0) }} {{ currencysymbol or '€' }}
+    {{ '%.2f'|format(o.cost_fabrication or 0) }} {{ currencysymbol or '€' }}<span class="text-muted fst-italic" style="font-size: 0.6em;">
+    ({{ '%.2f'|format(o.normal_cost_unit or 0)}})
+  </span>
   </div>
   <div class="col">
     <strong>🧰</strong>
