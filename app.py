@@ -2084,7 +2084,7 @@ def accessories_list():
         args=request.args,
         filters={"q": q, "sort": sort, "order": order},
         currencysymbol=current_app.config.get("CURRENCY_SYMBOL", "€"),
-        page_titel="Accessoires",  # pour le bouton contextuel dans base.html si tu l’utilises
+        page_title="Accessoires",  # pour le bouton contextuel dans base.html si tu l’utilises
     )
     
 @app.route("/accessories/add", methods=["POST"])
