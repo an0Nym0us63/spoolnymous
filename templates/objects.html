@@ -197,14 +197,15 @@
 
     {% set acc_count = (obj_accessories.get(o.id, []) | length) %}
     {% if acc_count > 0 %}
-      <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-warning text-dark px-1 py-0"
-            style="font-size:.65rem; line-height:1;"
+      <span class="position-absolute top-0 end-0 me-1 mt-1"
+            style="font-size:1rem; line-height:1;"
             title="{{ acc_count }} accessoire{{ 's' if acc_count>1 else '' }}">
         🧰
       </span>
     {% endif %}
   </div>
 </div>
+
   </div>
 </div>
 
