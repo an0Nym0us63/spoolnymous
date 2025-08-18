@@ -15,7 +15,7 @@
     {%- endif -%}
   </a>
 {%- endmacro %}
-<div class="d-flex align-items-center justify-content-between mb-3">
+<div class="d-flex align-items-center justify-content-end mb-3">
   <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newAccessoryModal">
     ➕ Nouvel accessoire
   </button>
@@ -25,18 +25,22 @@
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
-        <thead class="table-light align-middle">
+<thead class="table-light align-middle">
   <tr>
     <th style="width:72px;">Visuel</th>
     <th>
       <div class="d-flex flex-column gap-1">
         <div class="fw-semibold">Nom</div>
-        <form method="get" class="d-inline-block" id="filterByNameForm">
+        <form method="get" class="d-inline-flex align-items-center gap-2" id="filterByNameForm" onsubmit="/* pas de JS bloquant */">
           {{ macros.render_filtered_args(args, ['q','sort','order']) }}
-          <input type="text" name="q" value="{{ filters.q or '' }}"
+          <input type="text"
+                 name="q"
+                 value="{{ filters.q or '' }}"
                  class="form-control form-control-sm"
                  placeholder="Filtrer…"
+                 {% if filters.q %}autofocus{% endif %}
                  style="min-width:180px; max-width:260px;">
+          <button class="btn btn-sm btn-outline-secondary" type="submit">OK</button>
         </form>
       </div>
     </th>
@@ -48,17 +52,23 @@
         <tbody>
           {% for a in accessories %}
           <tr>
-            <td>
-              {% if a.image_path %}
-                <img src="{{ url_for('static', filename=a.image_path) }}" class="img-thumbnail" style="max-height:56px;">
-              {% else %}
-                <span class="badge bg-secondary-subtle text-secondary border">—</span>
-              {% endif %}
-            </td>
-            <td class="fw-medium">{{ a.name }}</td>
-            <td class="text-end">{{ a.quantity }}</td>
-            <td class="text-end">{{ '%.2f'|format(a.unit_price or 0) }} {{ currencysymbol or '€' }}</td>
-            <td class="text-end">
+            <td style="width:72px;">
+  {% if a.image_path %}
+    <img src="{{ url_for('static', filename=a.image_path) }}"
+         class="img-thumbnail acc-thumb" alt="{{ a.name }}">
+  {% else %}
+    <span class="badge bg-secondary-subtle text-secondary border">—</span>
+  {% endif %}
+</td>
+
+<td class="fw-medium acc-name">
+  {{ a.name }}
+</td>
+
+<td class="text-end">{{ a.quantity }}</td>
+<td class="text-end">{{ '%.2f'|format(a.unit_price or 0) }} {{ currencysymbol or '€' }}</td>
+
+<td class="text-end">
   <div class="dropdown">
     <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
       Actions

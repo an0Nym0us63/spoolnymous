@@ -476,3 +476,33 @@
 /* Badges overlay (si tu en mets sur le thumb) */
 .thumb .thumb-badge-items{ position:absolute; top:4px; right:4px; font-size:.6rem; padding:.15em .4em; }
 .thumb .thumb-badge-used { position:absolute; bottom:4px; right:4px; font-size:.55rem; padding:.15em .4em; }
+
+/* Accessoires : vignette + nom responsives */
+.img-thumbnail.acc-thumb {
+  max-height: 56px;
+  width: auto;
+}
+
+/* Le nom doit pouvoir se couper/aller à la ligne */
+.acc-name {
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Mobile : réduire la vignette, conserver lisibilité, actions utilisables */
+@media (max-width: 575.98px) {
+  .img-thumbnail.acc-thumb {
+    max-height: 40px;
+  }
+  table.table td, table.table th {
+    padding: .5rem .5rem;
+  }
+  /* Rendre le bouton Actions plus facile à cliquer */
+  td.text-end .btn.btn-sm {
+    padding: .25rem .5rem;
+  }
+  /* Si très étroit, autoriser le wrap sur l'en-tête pour éviter les débords */
+  thead .fw-semibold {
+    font-size: .9rem;
+  }
+}
