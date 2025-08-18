@@ -489,28 +489,25 @@
   word-break: break-word;
 }
 
-/* Mobile : réduire la vignette, conserver lisibilité, actions utilisables */
-@media (max-width: 575.98px) {
-  .img-thumbnail.acc-thumb {
-    max-height: 40px;
-  }
-  table.table td, table.table th {
-    padding: .5rem .5rem;
-  }
-  /* Rendre le bouton Actions plus facile à cliquer */
-  td.text-end .btn.btn-sm {
-    padding: .25rem .5rem;
-  }
-  /* Si très étroit, autoriser le wrap sur l'en-tête pour éviter les débords */
-  thead .fw-semibold {
-    font-size: .9rem;
-  }
-}
-
 .table-head-muted thead {
   background-color: var(--bs-secondary-bg);
   border-bottom: 1px solid var(--bs-border-color);
 }
 .table-head-muted thead th {
   color: var(--bs-body-color);
+}
+
+/* Colonnes nom/qté/prix/actions + thumb */
+.acc-name { white-space: normal; word-break: break-word; }
+.img-thumbnail.acc-thumb { max-height: 56px; width: auto; }
+.col-qty, .col-price { white-space: nowrap; }
+
+/* Compact mobile */
+@media (max-width: 575.98px) {
+  table.table td, table.table th { padding: .45rem .5rem; font-size: .9rem; }
+  .img-thumbnail.acc-thumb { max-height: 32px; }      /* vignette + petite */
+  .acc-name { max-width: 52vw; }                      /* laisse la place aux nombres */
+  .col-qty, .col-price { width: 18%; text-align: right; }
+  .col-actions { width: 1%; text-align: right; }
+  .col-actions .btn { padding: .25rem .35rem; }       /* mini bouton */
 }

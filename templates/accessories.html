@@ -25,7 +25,7 @@
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0 table-head-muted">
-<thead class="align-middle" style="background-color: var(--bs-secondary-bg); border-bottom:1px solid var(--bs-border-color);">
+<thead class="align-middle bg-secondary-subtle border-bottom border-secondary" style="background-color: var(--bs-secondary-bg); border-bottom:1px solid var(--bs-border-color);">
   <tr>
     <th style="width:72px;">Visuel</th>
     <th>
@@ -44,9 +44,9 @@
         </form>
       </div>
     </th>
-    <th class="text-end">{{ sort_anchor('Qté', 'qty') }}</th>
-    <th class="text-end">{{ sort_anchor('PU', 'price') }}</th>
-    <th class="text-end">Actions</th>
+    <th class="text-end col-qty">{{ sort_anchor('Qté', 'qty') }}</th>
+    <th class="text-end col-price">{{ sort_anchor('PU', 'price') }}</th>
+    <th class="text-end col-actions">Actions</th>
   </tr>
 </thead>
         <tbody>
@@ -65,10 +65,10 @@
   {{ a.name }}
 </td>
 
-<td class="text-end">{{ a.quantity }}</td>
-<td class="text-end">{{ '%.2f'|format(a.unit_price or 0) }} {{ currencysymbol or '€' }}</td>
+<td class="text-end col-qty">{{ a.quantity }}</td>
+<td class="text-end col-price">{{ '%.2f'|format(a.unit_price or 0) }} {{ currencysymbol or '€' }}</td>
 
-<td class="text-end">
+<td class="text-end col-actions">
   <div class="dropdown">
     <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
       Actions
@@ -392,5 +392,16 @@ document.addEventListener('show.bs.modal', function (ev) {
     t = setTimeout(() => form.submit(), 200);
   });
 })();
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(location.search);
+  const q = params.get('q');
+  if (!q) return;
+  const input = document.querySelector('#filterByNameForm input[name="q"]');
+  if (input) {
+    input.focus({ preventScroll: true });
+    const len = input.value.length;
+    try { input.setSelectionRange(len, len); } catch(e) {}
+  }
+});
 </script>
 {% endblock %}
