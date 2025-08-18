@@ -189,23 +189,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-(function(){
-  function setNavHeightVar(){
-    // Prend la + haute des navbars fixes/sticky si tu en as plusieurs
-    let h = 0;
-    document.querySelectorAll('.navbar.fixed-top, .navbar.sticky-top').forEach(el => {
-      h = Math.max(h, el.offsetHeight || 0);
-    });
-    document.documentElement.style.setProperty('--nav-h', h + 'px');
-  }
 
-  // Init + resize
-  document.addEventListener('DOMContentLoaded', setNavHeightVar);
-  window.addEventListener('resize', setNavHeightVar);
-
-  // A chaque ouverture de modale, on recalcule (utile si la navbar change de taille)
-  document.addEventListener('show.bs.modal', setNavHeightVar);
-})();
 document.addEventListener("DOMContentLoaded", function () {
   const alertEl = document.querySelector('#flash-alert[data-autohide="true"]');
   if (!alertEl) return;
@@ -228,5 +212,27 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 </script>
+{% block scripts %}
+
+<script>
+(function(){
+  function setNavHeightVar(){
+    // Prend la + haute des navbars fixes/sticky si tu en as plusieurs
+    let h = 0;
+    document.querySelectorAll('.navbar.fixed-top, .navbar.sticky-top').forEach(el => {
+      h = Math.max(h, el.offsetHeight || 0);
+    });
+    document.documentElement.style.setProperty('--nav-h', h + 'px');
+  }
+
+  // Init + resize
+  document.addEventListener('DOMContentLoaded', setNavHeightVar);
+  window.addEventListener('resize', setNavHeightVar);
+
+  // A chaque ouverture de modale, on recalcule (utile si la navbar change de taille)
+  document.addEventListener('show.bs.modal', setNavHeightVar);
+})();
+</script>
+{% endblock %}
 </body>
 </html>
