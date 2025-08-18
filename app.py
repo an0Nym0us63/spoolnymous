@@ -172,6 +172,9 @@ DEFAULT_KEEP_KEYS = {
                   "assign_print_id", "assign_filament_index", "assign_filament_type","assign_filament_id","assign_sold_filter", "assign_color","assign_page", "assign_search","assign_status", "filament_usage",
                   "ams", "tray","is_assign_mode","tray_uuid","tray_info_idx","tray_color","origin","origin_label","current_label"],
     'stats': ["period","search","filament_type","color","origin","origin_label","current_label"],
+    'objects_page': [
+        "page", "search", "source_type", "sale_filter", "focus_object_id"
+    ],
 }
 
 def _merge_context_args(keep=None, drop=None, endpoint=None, **new_args):
@@ -1985,11 +1988,11 @@ def objects_sell(object_id: int):
         price = 0.0 if raw_price == "" else float(raw_price)
     except ValueError:
         flash("Prix invalide. Utilisez un nombre (0 pour un don).", "danger")
-        return redirect(request.referrer or url_for("objects"))
+        return redirect_with_context("objects_page", focus_object_id=object_id)
 
     if price < 0:
         flash("Le prix ne peut pas être négatif.", "danger")
-        return redirect(request.referrer or url_for("objects"))
+        return redirect_with_context("objects_page", focus_object_id=object_id)
 
     sold_date = raw_date or date.today().isoformat()
 
@@ -2003,10 +2006,10 @@ def objects_sell(object_id: int):
     except Exception as e:
         logger.error(f"[objects_sell][ERROR] {e}")
         flash(f"Échec d'enregistrement de la vente : {e}", "danger")
-        return redirect(request.referrer or url_for("objects"))
+        return redirect_with_context("objects_page", focus_object_id=object_id)
 
     flash("Vente / don enregistré.", "success")
-    return redirect(request.referrer or url_for("objects"))
+    return redirect_with_context("objects_page", focus_object_id=object_id)
 
 @app.route("/objects/<int:object_id>/unsell", methods=["POST"])
 def objects_unsell(object_id: int):
@@ -2015,10 +2018,10 @@ def objects_unsell(object_id: int):
     except Exception as e:
         # log(...) si tu as un logger
         flash(f"Échec de l'annulation de la vente : {e}", "danger")
-        return redirect(request.referrer or url_for("objects"))
+        return redirect_with_context("objects_page", focus_object_id=object_id)
 
     flash("Vente annulée.", "success")
-    return redirect(request.referrer or url_for("objects"))
+    return redirect_with_context("objects_page", focus_object_id=object_id)
 
 @app.route("/objects/<int:object_id>/comment", methods=["POST"])
 def objects_update_comment(object_id: int):
@@ -2028,10 +2031,10 @@ def objects_update_comment(object_id: int):
         update_object_comment(object_id, comment if comment else None)
     except Exception as e:
         flash(f"Échec de la mise à jour du commentaire : {e}", "danger")
-        return redirect(request.referrer or url_for("objects"))
+        return redirect_with_context("objects_page", focus_object_id=object_id)
 
     flash("Commentaire mis à jour.", "success")
-    return redirect(request.referrer or url_for("objects"))
+    return redirect_with_context("objects_page", focus_object_id=object_id)
 
 @app.route("/objects/<int:object_id>/tags/add", methods=["POST"])
 def add_object_tag(object_id: int):
@@ -2144,7 +2147,7 @@ def objects_add_accessory(object_id: int):
         flash("Accessoire ajouté à l’objet.", "success")
     except Exception as e:
         flash(f"Erreur lors de l’ajout d’accessoire : {e}", "danger")
-    return redirect(url_for("objects_page"))
+    return redirect_with_context("objects_page", focus_object_id=object_id)
 
 @app.route("/objects/<int:object_id>/remove_accessory", methods=["POST"])
 def objects_remove_accessory(object_id: int):
@@ -2156,7 +2159,7 @@ def objects_remove_accessory(object_id: int):
         flash("Accessoire retiré de l’objet.", "success")
     except Exception as e:
         flash(f"Erreur lors du retrait d’accessoire : {e}", "danger")
-    return redirect(url_for("objects_page"))
+    return redirect_with_context("objects_page", focus_object_id=object_id)
 
 @app.route("/accessories/<int:acc_id>/delete", methods=["POST"])
 def accessories_delete_route(acc_id: int):
