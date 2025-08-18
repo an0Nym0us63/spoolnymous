@@ -262,38 +262,18 @@
   </div>
   {% endif %}
        <div class="row text-muted small gx-3 gy-2 mb-3 row-cols-2 row-cols-md-3">
-{% set cout_fab = o.cost_fabrication 
-                  if o.cost_fabrication is defined 
-                  else (o.material_cost if o.material_cost is defined else 0) %}
-{% set cout_acc = o.cost_accessories 
-                  if o.cost_accessories is defined 
-                  else (o.cost_accessory if o.cost_accessory is defined else 0) %}
-{% set cout_obj = o.cost_total 
-                  if o.cost_total is defined 
-                  else (o.cost if o.cost is defined else (cout_fab + cout_acc)) %}
-
-<div class="row g-2 align-items-center mb-2">
-  <div class="col-12 col-md">
-    <span class="badge bg-light border text-dark me-2">
-      🧪 Coût fabrication :
-      <span class="fw-semibold">{{ '%.2f' % cout_fab }}&nbsp;€</span>
-    </span>
-    <span class="badge bg-light border text-dark">
-      🧰 Coût accessoires :
-      <span class="fw-semibold">{{ '%.2f' % cout_acc }}&nbsp;€</span>
-    </span>
+  <div class="col">
+    <strong>🛠️</strong>
+    {{ '%.2f'|format(o.cost_fabrication or 0) }} {{ currencysymbol or '€' }}
   </div>
-</div>
-
-{# Ligne existante "Coût de l’objet" — on la laisse, ou on peut la remplacer par : #}
-<div class="row g-2 align-items-center mb-2">
-  <div class="col-12">
-    <span class="badge bg-primary-subtle border border-primary text-primary">
-      💰 Coût total de l’objet :
-      <span class="fw-semibold">{{ '%.2f' % cout_obj }}&nbsp;€</span>
-    </span>
+  <div class="col">
+    <strong>🧰</strong>
+    {{ '%.2f'|format(o.cost_accessories or 0) }} {{ currencysymbol or '€' }}
   </div>
-</div>
+  <div class="col">
+    <strong>📦</strong>
+    {{ '%.2f'|format(o.cost_total or 0) }} {{ currencysymbol or '€' }}
+  </div>
   <div class="col">
     <strong>💰</strong>
     {% if o.sold_price is not none %}
@@ -337,12 +317,13 @@
       {% for a in accs %}
         <div class="text-center" style="width:86px;">
           <div class="position-relative">
-            <img
-              src="{{ url_for('static', filename=a.image_path) if a.image_path else url_for('static', filename='placeholder.png') }}"
-              class="rounded border"
-              style="width: 86px; height: 86px; object-fit: cover;"
-              alt="{{ a.accessory_name }}"
-            >
+            <div class="rounded border overflow-hidden d-flex align-items-center justify-content-center"
+     style="width: 86px; height: 86px;">
+  <img
+    src="{{ url_for('static', filename=a.image_path) if a.image_path else url_for('static', filename='placeholder.png') }}"
+    alt="{{ a.accessory_name }}"
+    style="max-width: 100%; max-height: 100%; object-fit: contain;">
+</div>
             <button type="button"
                     class="btn-close position-absolute top-0 end-0 bg-white rounded-circle shadow-sm acc-remove-btn"
                     title="Retirer"

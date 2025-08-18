@@ -71,7 +71,7 @@ def download3mfFromCloud(url, destFile):
   destFile.write(response.content)
 
 def encode_custom_hex(filename):
-    return ''.join(f"{ord(c):02x}" if c in "/:" else c for c in filename)
+    return ''.join(f"{ord(c):02x}" if c in "/:*" else c for c in filename)
 
 def download3mfFromFTP(filename, taskname, destFile):
     """
