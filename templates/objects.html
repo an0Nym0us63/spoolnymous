@@ -31,11 +31,6 @@
   .obj-grid > *:last-child {
   flex-shrink: 0;
 }
-.focus-ring {
-  outline: 2px solid var(--bs-primary);
-  box-shadow: 0 0 0 .25rem rgba(13,110,253,.25);
-  border-radius: .5rem;
-}
 </style>
 <a href="{{ url_for('accessories_list') }}" class="btn btn-sm btn-outline-secondary">
   🧰 Accessoires
@@ -818,19 +813,40 @@ document.addEventListener('DOMContentLoaded', () => {
   const focusId = usp.get('focus_object_id');
   if (!focusId) return;
 
-  const card = document.getElementById('object_' + focusId);
-  const header = document.getElementById('heading_' + focusId);
+  const card     = document.getElementById('object_' + focusId);
+  const header   = document.getElementById('heading_' + focusId);
   const collapse = document.getElementById('obj_' + focusId);
 
-  if (card) {
-    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    card.classList.add('focus-ring');
-    setTimeout(() => card.classList.remove('focus-ring'), 1500);
+  if (!card) return;
+
+  // Calcule un offset pour navbar fixe/sticky si présente
+  function computeOffset() {
+    const nav = document.querySelector('.navbar.fixed-top, .navbar.sticky-top');
+    return (nav ? nav.offsetHeight : 0) + 12; // 12px de marge de confort
   }
 
-  // Ouvrir l’accordéon ciblé si pas déjà ouvert
-  if (collapse && !collapse.classList.contains('show') && window.bootstrap?.Collapse) {
+  function scrollToCard() {
+    const y = card.getBoundingClientRect().top + window.scrollY - computeOffset();
+    window.scrollTo({ top: y, behavior: 'smooth' });
+    card.classList.add('focus-ring');
+    setTimeout(() => card.classList.remove('focus-ring'), 1500);
+    // Accessibilité : donner le focus clavier au header cliquable
+    if (header) { header.setAttribute('tabindex', '-1'); header.focus({preventScroll:true}); }
+  }
+
+  // Si l'accordéon n'est pas ouvert, on écoute la fin de l'animation
+  const isOpen = collapse && collapse.classList.contains('show');
+
+  if (collapse && !isOpen && window.bootstrap?.Collapse) {
+    collapse.addEventListener('shown.bs.collapse', function onShown() {
+      collapse.removeEventListener('shown.bs.collapse', onShown);
+      // utiliser rAF pour laisser le layout se stabiliser avant le scroll
+      requestAnimationFrame(scrollToCard);
+    }, { once: true });
     new bootstrap.Collapse(collapse, { toggle: true });
+  } else {
+    // Déjà ouvert ou pas d'accordéon -> on scrolle tout de suite
+    requestAnimationFrame(scrollToCard);
   }
 });
 </script>
