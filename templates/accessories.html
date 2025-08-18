@@ -49,7 +49,7 @@
   .acc-actions .btn { padding: .25rem .35rem; }
 }
 
-.acc-list .thumb {
+.acc-row .thumb {
   --thumb-size: 56px; width: var(--thumb-size); height: var(--thumb-size);
   border-radius: .6rem; overflow: hidden;
   border: 1px solid var(--bs-border-color);
@@ -57,12 +57,12 @@
   display:flex; align-items:center; justify-content:center;
   padding: 2px; /* léger padding interne */
 }
-.acc-list .thumb .thumb-img {
+.acc-row .thumb .thumb-img {
   width: 100%; height: 100%;
   object-fit: contain;   /* ✅ pas de coupe */
 }
 @media (max-width: 575.98px){
-  .acc-list .thumb { --thumb-size: 40px; border-radius: .5rem; }
+  .acc-row .thumb { --thumb-size: 40px; border-radius: .5rem; }
 }
 </style>
 {% macro sort_anchor(label, col) -%}
@@ -108,114 +108,120 @@
   </div>
 
   <div class="acc-list">
-  {% for a in accessories %}
-  <div class="d-flex align-items-center accessory-item bg-dark-subtle">
-    <div class="thumb">
-      {% if a.image_path %}
-      <img src="{{ url_for('static', filename=a.image_path) }}" alt="{{ a.name }}" class="thumb-img">
-      {% else %}
-      <div class="thumb-ph" title="Aucune image"></div>
-      {% endif %}
-    </div>
+    {% for a in accessories %}
+      <div class="acc-row">
+        <!-- Gauche: thumbnail -->
+        <div class="thumb">
+  {% if a.image_path %}
+    <img src="{{ url_for('static', filename=a.image_path) }}" alt="{{ a.name }}" class="thumb-img">
+  {% else %}
+    <div class="thumb-ph" title="Aucune image"></div>
+  {% endif %}
+</div>
 
-    <div class="flex-grow-1">
-      <div class="fw-semibold small mb-1">{{ a.name }}</div>
-      <div>
-        <span class="badge bg-dark text-light">📦 {{ a.quantity }}</span>
-        <span class="badge bg-dark text-light">💶 {{ '%.2f'|format(a.unit_price or 0) }} {{ currencysymbol or '€' }}</span>
-      </div>
-    </div>
-
-    <div class="accessory-actions">
-      <div class="dropdown">
-        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-          Actions
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li>
-            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#renameAccessoryModal_{{ a.id }}">
-              📝 Renommer
-            </a>
-          </li>
-          <li>
-            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addStockModal"
-               data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
-              🔼 Ajouter du stock
-            </a>
-          </li>
-          <li>
-            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#removeStockModal"
-               data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
-              ⬇️ Retirer du stock
-            </a>
-          </li>
-          <li>
-            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#uploadImageModal_{{ a.id }}">
-              🖼️ Mettre à jour le visuel
-            </a>
-          </li>
-          <li>
-            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#usageModal"
-               data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
-              🔎 Voir usage
-            </a>
-          </li>
-          <li><hr class="dropdown-divider"></li>
-          <li>
-            <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteAccessoryModal"
-               data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
-              🗑️ Supprimer
-            </a>
-          </li>
-        </ul>
-      </div> <!-- /dropdown -->
-    </div> <!-- /accessory-actions -->
-  </div> <!-- /accessory-item -->
-
-  {# Modal Renommer #}
-  <div class="modal fade" id="renameAccessoryModal_{{ a.id }}" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <form class="modal-content" method="post" action="{{ url_for('accessories_rename_route', acc_id=a.id) }}">
-        <div class="modal-header">
-          <h6 class="modal-title">📝 Renommer — {{ a.name }}</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          {{ macros.render_filtered_args(args) }}
-          <input type="text" class="form-control" name="name" value="{{ a.name }}" required>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-          <button class="btn btn-primary" type="submit">Enregistrer</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  {# Modal Upload Image #}
-  <div class="modal fade" id="uploadImageModal_{{ a.id }}" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <form class="modal-content" method="post" action="{{ url_for('accessories_upload_image', acc_id=a.id) }}" enctype="multipart/form-data">
-        <div class="modal-header">
-          <h6 class="modal-title">🖼️ Mettre à jour le visuel — {{ a.name }}</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">Image (png, jpg, jpeg, webp, gif)</label>
-            <input type="file" class="form-control" name="image" accept=".png,.jpg,.jpeg,.webp,.gif" required>
+        <!-- Centre: nom + chips -->
+        <div class="acc-main">
+          <div class="acc-name text-truncate" title="{{ a.name }}">{{ a.name }}</div>
+          <div class="acc-chips">
+            <span class="acc-chip">📦 {{ a.quantity }}</span>
+            <span class="acc-chip">💶 {{ '%.2f'|format(a.unit_price or 0) }} {{ currencysymbol or '€' }}</span>
           </div>
         </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-          <button class="btn btn-primary" type="submit">Enregistrer</button>
+
+        <!-- Droite: menu Actions -->
+        <div class="acc-actions">
+          <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-label="Actions">
+              <i class="bi bi-three-dots-vertical"></i><span class="d-none d-sm-inline ms-1">Actions</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#renameAccessoryModal_{{ a.id }}">
+                  📝 Renommer
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addStockModal"
+                   data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
+                  🔼 Ajouter du stock
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#removeStockModal"
+                   data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
+                  ⬇️ Retirer du stock
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#uploadImageModal_{{ a.id }}">
+                  🖼️ Mettre à jour le visuel
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#usageModal"
+                   data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
+                  🔎 Voir usage
+                </a>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteAccessoryModal"
+                   data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
+                  🗑️ Supprimer
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
-      </form>
-    </div>
+
+        {# Modale Renommer (individuelle) #}
+        <div class="modal fade" id="renameAccessoryModal_{{ a.id }}" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog">
+            <form class="modal-content" method="post" action="{{ url_for('accessories_rename_route', acc_id=a.id) }}">
+              <div class="modal-header">
+                <h6 class="modal-title">📝 Renommer — {{ a.name }}</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                {{ macros.render_filtered_args(args) }}
+                <input type="text" class="form-control" name="name" value="{{ a.name }}" required>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button class="btn btn-primary" type="submit">Enregistrer</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {# Modale Upload image (individuelle) – inchangée #}
+        <div class="modal fade" id="uploadImageModal_{{ a.id }}" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content" method="post" action="{{ url_for('accessories_upload_image', acc_id=a.id) }}" enctype="multipart/form-data">
+              <div class="modal-header">
+                <h6 class="modal-title">🖼️ Mettre à jour le visuel — {{ a.name }}</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label">Image (png, jpg, jpeg, webp, gif)</label>
+                  <input type="file" class="form-control" name="image" accept=".png,.jpg,.jpeg,.webp,.gif" required>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button class="btn btn-primary" type="submit">Enregistrer</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    {% else %}
+      <div class="text-center text-muted py-4">Aucun accessoire</div>
+    {% endfor %}
   </div>
-  {% endfor %}
-</div> 
-  </div>
+</div>
 
 <!-- Modal : Nouvel accessoire -->
 <div class="modal fade" id="newAccessoryModal" tabindex="-1" aria-hidden="true">
