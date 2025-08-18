@@ -2,6 +2,66 @@
 {% import 'macros/hidden_args.jinja2' as macros %}
 
 {% block content %}
+<style>
+/* Conteneur de liste */
+.acc-list { background: var(--bs-body-bg); }
+
+/* En-tête de la liste (filtre + tri), même esprit qu’un header d’accordéon */
+.acc-list-header {
+  background: var(--bs-secondary-bg);
+  border-bottom: 1px solid var(--bs-border-color);
+  padding: .5rem .75rem;
+  border-top-left-radius: .5rem;
+  border-top-right-radius: .5rem;
+}
+
+/* Une ligne “tête d’accordéon” non dépliable */
+.acc-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: .75rem;
+  align-items: center;
+  padding: .6rem .75rem;
+  border-bottom: 1px solid var(--bs-border-color);
+  background: var(--bs-dark-bg-subtle, rgba(0,0,0,.05));
+}
+.acc-row:last-child {
+  border-bottom: none;
+  border-bottom-left-radius: .5rem;
+  border-bottom-right-radius: .5rem;
+}
+
+/* Vignette */
+.acc-thumb {
+  width: 56px; height: 56px; border-radius: .6rem;
+  overflow: hidden; border: 1px solid var(--bs-border-color);
+  display:flex; align-items:center; justify-content:center;
+}
+.acc-thumb img { width:100%; height:100%; object-fit: cover; }
+
+/* Colonne centrale */
+.acc-main { min-width: 0; } /* autorise le wrap */
+.acc-name { font-weight: 600; line-height: 1.1; }
+.acc-name .muted { opacity: .85; }
+
+/* Chips dessous */
+.acc-chips { display:flex; gap:.35rem; flex-wrap:wrap; margin-top:.2rem; }
+.acc-chip {
+  font-size: .75rem; font-weight: 600;
+  background: var(--bs-secondary-bg);
+  border: 1px solid var(--bs-border-color);
+  padding: .2rem .45rem; border-radius: 999px;
+}
+
+/* Responsive mobile */
+@media (max-width: 575.98px) {
+  .acc-row { grid-template-columns: auto 1fr auto; padding: .5rem .6rem; }
+  .acc-thumb { width: 40px; height: 40px; border-radius: .5rem; }
+  .acc-name { font-size: .95rem; }
+  .acc-chip { font-size: .7rem; }
+  .acc-actions .btn { padding: .25rem .35rem; }
+}
+</style>
 {% macro sort_anchor(label, col) -%}
   {%- set is_active = (filters.sort == col) -%}
   {%- set next_order = 'desc' if (is_active and filters.order != 'desc') else 'asc' -%}
@@ -22,146 +82,141 @@
 </div>
 
 <div class="card">
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0 table-head-muted">
-<thead class="align-middle bg-secondary-subtle border-bottom border-secondary" style="background-color: var(--bs-secondary-bg); border-bottom:1px solid var(--bs-border-color);">
-  <tr>
-    <th style="width:72px;">Visuel</th>
-    <th>
-      <div class="d-flex flex-column gap-1">
-        <div class="fw-semibold">Nom</div>
-        <form method="get" class="d-inline-flex align-items-center gap-2" id="filterByNameForm" onsubmit="/* pas de JS bloquant */">
-          {{ macros.render_filtered_args(args, ['q','sort','order']) }}
-          <input type="text"
-                 name="q"
-                 value="{{ filters.q or '' }}"
-                 class="form-control form-control-sm bg-dark-subtle text-body border-secondary"
-                 placeholder="Filtrer…"
-                 {% if filters.q %}autofocus{% endif %}
-                 style="min-width:180px; max-width:260px;">
-          <button class="btn btn-sm btn-outline-secondary" type="submit">OK</button>
-        </form>
+  <div class="acc-list-header">
+    <form method="get" id="filterByNameForm" class="d-flex flex-wrap gap-2 align-items-center m-0">
+      {{ macros.render_filtered_args(args, ['q','sort','order']) }}
+      <div class="me-auto d-flex align-items-center gap-2">
+        <label class="fw-semibold mb-0">Nom</label>
+        <input type="text"
+               name="q"
+               value="{{ filters.q or '' }}"
+               class="form-control form-control-sm bg-dark-subtle text-body border-secondary"
+               placeholder="Filtrer…"
+               {% if filters.q %}autofocus{% endif %}
+               style="min-width: 180px; max-width: 260px;">
+        <button class="btn btn-sm btn-outline-secondary" type="submit">OK</button>
       </div>
-    </th>
-    <th class="text-end col-qty">{{ sort_anchor('Qté', 'qty') }}</th>
-    <th class="text-end col-price">{{ sort_anchor('PU', 'price') }}</th>
-    <th class="text-end col-actions">Actions</th>
-  </tr>
-</thead>
-        <tbody>
-          {% for a in accessories %}
-          <tr>
-            <td style="width:72px;">
-  {% if a.image_path %}
-    <img src="{{ url_for('static', filename=a.image_path) }}"
-         class="img-thumbnail acc-thumb" alt="{{ a.name }}">
-  {% else %}
-    <span class="badge bg-secondary-subtle text-secondary border">—</span>
-  {% endif %}
-</td>
-
-<td class="fw-medium acc-name">
-  {{ a.name }}
-</td>
-
-<td class="text-end col-qty">{{ a.quantity }}</td>
-<td class="text-end col-price">{{ '%.2f'|format(a.unit_price or 0) }} {{ currencysymbol or '€' }}</td>
-
-<td class="text-end col-actions">
-  <div class="dropdown">
-    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-      Actions
-    </button>
-    <ul class="dropdown-menu dropdown-menu-end">
-      <li>
-        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#renameAccessoryModal_{{ a.id }}">
-          📝 Renommer
-        </a>
-      </li>
-      <li>
-        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addStockModal"
-           data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
-          🔼 Ajouter du stock
-        </a>
-      </li>
-      <li>
-        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#removeStockModal"
-           data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
-          ⬇️ Retirer du stock
-        </a>
-      </li>
-      <li>
-        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#uploadImageModal_{{ a.id }}">
-          🖼️ Mettre à jour le visuel
-        </a>
-      </li>
-      <li>
-        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#usageModal"
-           data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
-          🔎 Voir usage
-        </a>
-      </li>
-      <li><hr class="dropdown-divider"></li>
-      <li>
-        <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteAccessoryModal"
-           data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
-          🗑️ Supprimer
-        </a>
-      </li>
-    </ul>
+      <div class="d-flex align-items-center gap-2">
+        <span class="text-muted small">Trier :</span>
+        <span class="small">{{ sort_anchor('Qté', 'qty') }}</span>
+        <span class="small">{{ sort_anchor('PU', 'price') }}</span>
+      </div>
+    </form>
   </div>
 
-  {# Modal Renommer (une par ligne) #}
-  <div class="modal fade" id="renameAccessoryModal_{{ a.id }}" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <form class="modal-content" method="post" action="{{ url_for('accessories_rename_route', acc_id=a.id) }}">
-        <div class="modal-header">
-          <h6 class="modal-title">📝 Renommer — {{ a.name }}</h6>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  <div class="acc-list">
+    {% for a in accessories %}
+      <div class="acc-row">
+        <!-- Gauche: thumbnail -->
+        <div class="acc-thumb">
+          {% if a.image_path %}
+            <img src="{{ url_for('static', filename=a.image_path) }}" alt="{{ a.name }}">
+          {% else %}
+            <div class="text-muted">—</div>
+          {% endif %}
         </div>
-        <div class="modal-body">
-          {{ macros.render_filtered_args(args) }}
-          <input type="text" class="form-control" name="name" value="{{ a.name }}" required>
+
+        <!-- Centre: nom + chips -->
+        <div class="acc-main">
+          <div class="acc-name text-truncate" title="{{ a.name }}">{{ a.name }}</div>
+          <div class="acc-chips">
+            <span class="acc-chip">📦 {{ a.quantity }}</span>
+            <span class="acc-chip">💶 {{ '%.2f'|format(a.unit_price or 0) }} {{ currencysymbol or '€' }}</span>
+          </div>
         </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-          <button class="btn btn-primary" type="submit">Enregistrer</button>
+
+        <!-- Droite: menu Actions -->
+        <div class="acc-actions">
+          <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-label="Actions">
+              <i class="bi bi-three-dots-vertical"></i><span class="d-none d-sm-inline ms-1">Actions</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#renameAccessoryModal_{{ a.id }}">
+                  📝 Renommer
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addStockModal"
+                   data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
+                  🔼 Ajouter du stock
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#removeStockModal"
+                   data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
+                  ⬇️ Retirer du stock
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#uploadImageModal_{{ a.id }}">
+                  🖼️ Mettre à jour le visuel
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#usageModal"
+                   data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
+                  🔎 Voir usage
+                </a>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteAccessoryModal"
+                   data-acc-id="{{ a.id }}" data-acc-name="{{ a.name }}">
+                  🗑️ Supprimer
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
-      </form>
-    </div>
-  </div>
-              <!-- Modal upload image -->
-              <div class="modal fade" id="uploadImageModal_{{ a.id }}" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                  <form class="modal-content" method="post" action="{{ url_for('accessories_upload_image', acc_id=a.id) }}" enctype="multipart/form-data">
-                    <div class="modal-header">
-                      <h6 class="modal-title">🖼️ Mettre à jour le visuel — {{ a.name }}</h6>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                      <div class="mb-3">
-                        <label class="form-label">Image (png, jpg, jpeg, webp, gif)</label>
-                        <input type="file" class="form-control" name="image" accept=".png,.jpg,.jpeg,.webp,.gif" required>
-                      </div>
-                    </div>
-                    <div class="modal-footer">
-                      <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                      <button class="btn btn-primary" type="submit">Enregistrer</button>
-                    </div>
-                  </form>
+
+        {# Modale Renommer (individuelle) #}
+        <div class="modal fade" id="renameAccessoryModal_{{ a.id }}" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog">
+            <form class="modal-content" method="post" action="{{ url_for('accessories_rename_route', acc_id=a.id) }}">
+              <div class="modal-header">
+                <h6 class="modal-title">📝 Renommer — {{ a.name }}</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                {{ macros.render_filtered_args(args) }}
+                <input type="text" class="form-control" name="name" value="{{ a.name }}" required>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button class="btn btn-primary" type="submit">Enregistrer</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {# Modale Upload image (individuelle) – inchangée #}
+        <div class="modal fade" id="uploadImageModal_{{ a.id }}" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content" method="post" action="{{ url_for('accessories_upload_image', acc_id=a.id) }}" enctype="multipart/form-data">
+              <div class="modal-header">
+                <h6 class="modal-title">🖼️ Mettre à jour le visuel — {{ a.name }}</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label">Image (png, jpg, jpeg, webp, gif)</label>
+                  <input type="file" class="form-control" name="image" accept=".png,.jpg,.jpeg,.webp,.gif" required>
                 </div>
               </div>
-			 
-              <!-- /Modal -->
-            </td>
-          </tr>
-          {% else %}
-          <tr><td colspan="5" class="text-center text-muted py-4">Aucun accessoire</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+              <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button class="btn btn-primary" type="submit">Enregistrer</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    {% else %}
+      <div class="text-center text-muted py-4">Aucun accessoire</div>
+    {% endfor %}
   </div>
 </div>
 
@@ -314,31 +369,39 @@
 
 {% block scripts %}
 <script>
-// Pré-remplir les modals selon le bouton cliqué
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(location.search);
+  const q = params.get('q');
+  if (!q) return;
+  const input = document.querySelector('#filterByNameForm input[name="q"]');
+  if (input) {
+    input.focus({ preventScroll: true });
+    const len = input.value.length;
+    try { input.setSelectionRange(len, len); } catch(e) {}
+  }
+});
+
+// Pré-remplir les modals selon le bouton cliqué (inchangé)
 document.addEventListener('show.bs.modal', function (ev) {
   const modal = ev.target;
   const trigger = ev.relatedTarget;
   if (!trigger) return;
 
   if (modal.id === 'addStockModal') {
-    const id = trigger.dataset.accId, name = trigger.dataset.accName;
+    const id = trigger.dataset.accId;
     const sel = modal.querySelector('select[name="acc_id"]');
     if (sel && id) sel.value = id;
   }
-
   if (modal.id === 'removeStockModal') {
     modal.querySelector('#removeStock_acc_id').value   = trigger.dataset.accId || "";
     modal.querySelector('#removeStock_acc_name').value = trigger.dataset.accName || "";
   }
-
   if (modal.id === 'deleteAccessoryModal') {
     const id = trigger.dataset.accId, name = trigger.dataset.accName;
     const form = modal.querySelector('#deleteAccessoryForm');
     form.action = "{{ url_for('accessories_delete_route', acc_id=0) }}".replace("/0/", `/${id}/`);
     modal.querySelector('#deleteAccessoryName').textContent = name || "";
   }
-
-  // Voir usage (AJAX)
   if (modal.id === 'usageModal') {
     const id   = trigger.dataset.accId;
     const name = trigger.dataset.accName || ('#' + id);
@@ -359,7 +422,7 @@ document.addEventListener('show.bs.modal', function (ev) {
           const refLink = (it.parent_type === 'print')
             ? `{{ url_for('print_history') }}?ref_print_id=${it.parent_id}&focus_print_id=${it.parent_id}`
             : `{{ url_for('print_history') }}?ref_group_id=${it.parent_id}&focus_group_id=${it.parent_id}`;
-          const objLink = `{{ url_for('objects_page') }}?search=${encodeURIComponent(name)}&focus_object_id=${'${it.object_id}'}`;
+          const objLink = `{{ url_for('objects_page') }}?focus_object_id=${'${it.object_id}'}`;
 
           return `
             <div class="col-12 d-flex align-items-center gap-2">
@@ -379,28 +442,6 @@ document.addEventListener('show.bs.modal', function (ev) {
       .catch(() => {
         list.innerHTML = '<div class="text-center text-danger py-3">Erreur de chargement.</div>';
       });
-  }
-});
-(function(){
-  // Auto-submit avec délai (200ms) quand on tape dans le champ "Nom"
-  const form = document.getElementById('filterByNameForm');
-  if (!form) return;
-  const input = form.querySelector('input[name="q"]');
-  let t;
-  input?.addEventListener('input', () => {
-    clearTimeout(t);
-    t = setTimeout(() => form.submit(), 200);
-  });
-})();
-document.addEventListener('DOMContentLoaded', () => {
-  const params = new URLSearchParams(location.search);
-  const q = params.get('q');
-  if (!q) return;
-  const input = document.querySelector('#filterByNameForm input[name="q"]');
-  if (input) {
-    input.focus({ preventScroll: true });
-    const len = input.value.length;
-    try { input.setSelectionRange(len, len); } catch(e) {}
   }
 });
 </script>
