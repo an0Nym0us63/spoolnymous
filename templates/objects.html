@@ -31,6 +31,11 @@
   .obj-grid > *:last-child {
   flex-shrink: 0;
 }
+.focus-ring {
+  outline: 2px solid var(--bs-primary);
+  box-shadow: 0 0 0 .25rem rgba(13,110,253,.25);
+  border-radius: .5rem;
+}
 </style>
 <a href="{{ url_for('accessories_list') }}" class="btn btn-sm btn-outline-secondary">
   🧰 Accessoires
@@ -808,5 +813,25 @@
     });
   });
 })();
+document.addEventListener('DOMContentLoaded', () => {
+  const usp = new URLSearchParams(location.search);
+  const focusId = usp.get('focus_object_id');
+  if (!focusId) return;
+
+  const card = document.getElementById('object_' + focusId);
+  const header = document.getElementById('heading_' + focusId);
+  const collapse = document.getElementById('obj_' + focusId);
+
+  if (card) {
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.add('focus-ring');
+    setTimeout(() => card.classList.remove('focus-ring'), 1500);
+  }
+
+  // Ouvrir l’accordéon ciblé si pas déjà ouvert
+  if (collapse && !collapse.classList.contains('show') && window.bootstrap?.Collapse) {
+    new bootstrap.Collapse(collapse, { toggle: true });
+  }
+});
 </script>
 {% endblock %}
