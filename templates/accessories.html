@@ -111,6 +111,10 @@
     {% for a in accessories %}
       <div class="acc-row">
         <!-- Gauche: thumbnail -->
+
+
+        <!-- Centre: nom + chips -->
+        <div class="d-flex align-items-center accessory-item bg-dark-subtle">
         <div class="thumb">
   {% if a.image_path %}
     <img src="{{ url_for('static', filename=a.image_path) }}" alt="{{ a.name }}" class="thumb-img">
@@ -118,12 +122,6 @@
     <div class="thumb-ph" title="Aucune image"></div>
   {% endif %}
 </div>
-
-        <!-- Centre: nom + chips -->
-        <div class="d-flex align-items-center accessory-item bg-dark-subtle">
-  <img src="{{ url_for('static', filename=a.image_path) }}" 
-       class="rounded border bg-dark me-2" 
-       style="width:56px;height:56px;object-fit:contain;" alt="{{ a.name }}">
   <div class="flex-grow-1">
     <div class="fw-semibold small mb-1">{{ a.name }}</div>
     <div>
