@@ -1889,19 +1889,79 @@ def cleanup_orphans():
     
 @app.route('/printer_status')
 def api_printer_status():
-    with PRINTER_STATUS_LOCK:
-        status = PRINTER_STATUS
+    """
+    Renvoie l'état complet pour le rafraîchissement JS:
+    - PRINTER_STATUS enrichi (progress, status, ETA, temps restants, températures…)
+    - ams_data (liste des AMS avec leurs trays)
+    - vt_tray_data (spool externe)
+    - issue (bool pour signalisation)
+    - printName + thumbnail (comme sur la home)
+    """
+    try:
+        # Copie snapshot de l'état imprimante
+        with PRINTER_STATUS_LOCK:
+            status_copy = dict(PRINTER_STATUS)
+
+        # ---- Récupération/augmentation des données AMS & trays (idem home) ----
+        last_ams_config = getLastAMSConfig()
+        ams_data = last_ams_config.get("ams", []) or []
+        vt_tray_data = last_ams_config.get("vt_tray", {}) or {}
+
+        spool_list = fetchSpools()
+
+        # External spool
+        augmentTrayDataWithSpoolMan(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID))
+        issue = bool(vt_tray_data.get("issue"))
+
+        # Trays AMS
+        for ams in ams_data:
+            for tray in ams.get("tray", []) or []:
+                augmentTrayDataWithSpoolMan(spool_list, tray, trayUid(ams["id"], tray["id"]))
+                issue |= bool(tray.get("issue"))
+
+        # Locations (si configurées)
+        LOCATION_MAPPING = get_app_setting("AMS_LOCATION_MAPPING", "")
+        if LOCATION_MAPPING:
+            d = dict(item.split(":") for item in LOCATION_MAPPING.split(";") if ":" in item)
+            for ams in ams_data:
+                ams_name = f'AMS_{ams["id"]}'
+                ams['location'] = d.get(ams_name)
+
+        # Ordre des AMS
+        AMS_ORDER = get_app_setting("AMS_ORDER", "")
+        if AMS_ORDER:
+            mapping = {int(k): int(v) for k, v in (item.split(":") for item in AMS_ORDER.split(";") if ":" in item)}
+            reordered = [None] * len(ams_data)
+            for src_index, dst_index in mapping.items():
+                if 0 <= src_index < len(ams_data) and 0 <= dst_index < len(ams_data):
+                    reordered[dst_index] = ams_data[src_index]
+            # Remplir les trous éventuels en conservant l'ordre original
+            fallback = [a for a in ams_data if a not in reordered]
+            for i in range(len(reordered)):
+                if reordered[i] is None and fallback:
+                    reordered[i] = fallback.pop(0)
+            ams_data = reordered
+
+        # Dernière impression (nom + vignette)
         latest = get_latest_print()
         if latest:
-            status["printName"] = latest["file_name"]
-            if "image_file" in latest:
-                status["thumbnail"] = latest["image_file"]
-            else:
-                status["thumbnail"] = None
+            status_copy["printName"] = latest.get("file_name")
+            status_copy["thumbnail"] = latest.get("image_file")
         else:
-            status["printName"] = None
-            status["thumbnail"] = None
-        return jsonify(status)
+            status_copy["printName"] = None
+            status_copy["thumbnail"] = None
+
+        # Réponse JSON complète
+        payload = dict(status_copy)
+        payload.update({
+            "ams_data": ams_data,
+            "vt_tray_data": vt_tray_data,
+            "issue": issue,
+        })
+        return jsonify(payload)
+    except Exception as e:
+        current_app.logger.exception("printer_status failed")
+        return jsonify({"error": str(e)}), 500
         
 @app.route("/tray_mappings")
 def tray_mappings():

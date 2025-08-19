@@ -20,14 +20,18 @@
           Externe
         {% endif %}
         {% if tray_data.name %}
-  - {{ tray_data.name }}
-{% else %}
-{% if tray_data.tray_type %}
-  - {{ '<i class="bi bi-exclamation-circle text-danger me-2"></i>' | safe }}
+          - <span id="tray-name-{{ ams_id|string }}_{{ tray_data.id|string }}"><!-- [LIVE-ID] name -->
+            {{ tray_data.name }}
+          </span>
+        {% else %}
+          {% if tray_data.tray_type %}
+            - {{ '<i class="bi bi-exclamation-circle text-danger me-2"></i>' | safe }}
+          {% endif %}
         {% endif %}
-{% endif %}
       </div>
-      <div class="text-gray-400 text-xs">
+
+      <!-- Ligne meta type / subbrand / vendor -->
+      <div class="text-gray-400 text-xs" id="tray-meta-{{ ams_id|string }}_{{ tray_data.id|string }}"><!-- [LIVE-ID] meta -->
         {% if tray_data.tray_type %}
           {{ tray_data.tray_type }}
           {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
@@ -37,25 +41,32 @@
         {% endif %}
       </div>
     </div>
+
     <div class="text-end text-white text-sm">
       {% if tray_data.tray_type %}
+        <!-- Couleur(s) -->
         <div>
           {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
-            <div class="spool-icon small d-inline-block">
+            <div class="spool-icon small d-inline-block" id="tray-color-{{ ams_id|string }}_{{ tray_data.id|string }}" data-mode="multi"><!-- [LIVE-ID] color multi -->
               {% for color in tray_data.tray_color %}
                 <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
               {% endfor %}
             </div>
           {% else %}
             <span class="inline-block rounded w-6 h-5 shadow border"
-      style="background-color: #{{ tray_data.tray_color }};">
-</span>
+                  id="tray-color-{{ ams_id|string }}_{{ tray_data.id|string }}" data-mode="mono"  <!-- [LIVE-ID] color mono -->
+                  style="background-color: #{{ tray_data.tray_color }};">
+            </span>
           {% endif %}
         </div>
+
+        <!-- Poids restant (si AUTO_SPEND & matched) -->
         {% if AUTO_SPEND and tray_data.matched %}
-        <div class="text-xs mt-1 text-gray-300">
-          {{ tray_data.remaining_weight|round }}g
-        </div>
+          <div class="text-xs mt-1 text-gray-300" data-remaining-weight-wrapper><!-- [LIVE-ID] wrapper -->
+            <span id="tray-remaining-weight-{{ ams_id|string }}_{{ tray_data.id|string }}"><!-- [LIVE-ID] remaining_weight -->
+              {{ tray_data.remaining_weight|round }}g
+            </span>
+          </div>
         {% endif %}
       {% endif %}
     </div>
@@ -64,92 +75,89 @@
   <!-- Détails -->
   <div class="collapse" id="trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}">
     <div class="px-4 py-3"
-     style="background-color: rgba(45, 50, 60, 0.7); backdrop-filter: blur(4px);"
-     class="text-sm text-white space-y-3 border-t border-gray-700 shadow-inner rounded-b-xl">
-
+         style="background-color: rgba(45, 50, 60, 0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border-top: 1px solid rgba(255,255,255,.06)">
 
       {% if tray_data.tray_type %}
-      <div class="text-center text-gray-400 text-xs">
-        {{ tray_data.tray_type }}
-        {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
-        - {{ tray_data.vendor }}
-      </div>
+        <div class="flex gap-4">
+          <div class="min-w-[5.5rem]">
+            {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
+              <div class="spool-icon"><!-- palette multiple -->
+                {% for color in tray_data.tray_color %}
+                  <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <span class="inline-block mt-2 rounded px-2 py-1 text-xs font-bold shadow"
+                    style="background-color: #{{ tray_data.tray_color }};
+                           color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
+                #{{ tray_data.tray_color|upper }}
+              </span>
+            {% endif %}
+          </div>
 
-      <div class="flex flex-col lg:flex-row lg:items-center gap-4 text-sm">
-        <div class="flex flex-col items-center text-center lg:w-5/12">
-          <div class="font-bold">{{ tray_data.name }}</div>
-          {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
-            <div class="spool-icon {% if tray_data.tray_color_orientation == 'coaxial' %}horizontal{% else %}vertical{% endif %}">
-              {% for color in tray_data.tray_color %}
-                <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
-              {% endfor %}
+          <div class="flex-1 space-y-2">
+
+            <div class="flex items-center justify-between">
+              <span class="text-gray-400 flex items-center gap-1">
+                <span>🕓</span>
+              </span>
+              <span class="font-semibold text-right" id="tray-last-used-{{ ams_id|string }}_{{ tray_data.id|string }}"><!-- [LIVE-ID] last_used -->
+                {{ tray_data.last_used }}
+              </span>
             </div>
-          {% else %}
-            <span class="inline-block mt-2 rounded px-2 py-1 text-xs font-bold shadow"
-                  style="background-color: #{{ tray_data.tray_color }};
-                         color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
-              #{{ tray_data.tray_color|upper }}
-            </span>
-          {% endif %}
+
+            {% if AUTO_SPEND and tray_data.matched %}
+            <div class="flex items-center justify-between" data-remaining-weight-wrapper><!-- [LIVE-ID] wrapper -->
+              <span class="text-gray-400 flex items-center gap-1">
+                <span>⚖️</span>
+              </span>
+              <span class="font-semibold text-right" id="tray-remaining-weight-{{ ams_id|string }}_{{ tray_data.id|string }}"><!-- [LIVE-ID] remaining_weight -->
+                {{ tray_data.remaining_weight|round }}g
+              </span>
+            </div>
+            {% endif %}
+
+            {% if tray_data.remain != -1 %}
+            <div class="flex items-center justify-between" data-remain-wrapper><!-- [LIVE-ID] wrapper -->
+              <span class="text-gray-400 flex items-center gap-1">
+                <span>⏳️</span>
+              </span>
+              <span class="font-semibold text-right" id="tray-remain-{{ ams_id|string }}_{{ tray_data.id|string }}"><!-- [LIVE-ID] remain % -->
+                {{ tray_data.remain }}%
+              </span>
+            </div>
+            {% endif %}
+
+          </div>
         </div>
-
-        <div class="flex-1 space-y-2">
-
-  <div class="flex items-center justify-between">
-    <span class="text-gray-400 flex items-center gap-1">
-      <span>🕓</span>
-    </span>
-    <span class="font-semibold text-right">{{ tray_data.last_used }}</span>
-  </div>
-
-  {% if AUTO_SPEND and tray_data.matched %}
-  <div class="flex items-center justify-between">
-    <span class="text-gray-400 flex items-center gap-1">
-      <span>⚖️</span>
-    </span>
-    <span class="font-semibold text-right">{{ tray_data.remaining_weight|round }}g</span>
-  </div>
-  {% endif %}
-
-  {% if tray_data.remain != -1 %}
-  <div class="flex items-center justify-between">
-    <span class="text-gray-400 flex items-center gap-1">
-      <span>⏳️</span>
-    </span>
-    <span class="font-semibold text-right">{{ tray_data.remain }}%</span>
-  </div>
-  {% endif %}
-
-</div>
-      </div>
       {% endif %}
 
-     <div class="text-xs text-gray-400 flex justify-center gap-2 flex-wrap">
-  {% if tray_data.tray_uuid != "00000000000000000000000000000000" %}
-    <div class="flex items-center gap-1">
-  <span class="text-[0.85rem]">🏷️</span>
-  <span class="truncate max-w-[10rem]">{{ tray_data.tray_uuid }}</span>
-</div>
-  {% endif %}
-<div class="flex items-center gap-1">
-  <span class="text-[0.65rem] opacity-60">🧵</span>
-  <span>{{ tray_data.tray_info_idx }}</span>
-</div>
-</div>
+      <div class="text-xs text-gray-400 flex justify-center gap-2 flex-wrap">
+        {% if tray_data.tray_uuid != "00000000000000000000000000000000" %}
+          <div class="flex items-center gap-1">
+            <span class="text-[0.85rem]">🏷️</span>
+            <span class="truncate max-w-[10rem]">{{ tray_data.tray_uuid }}</span>
+          </div>
+        {% endif %}
+        <div class="flex items-center gap-1">
+          <span class="text-[0.65rem] opacity-60">🧵</span>
+          <span>{{ tray_data.tray_info_idx }}</span>
+        </div>
+      </div>
     </div>
 
     <!-- Footer -->
     <div class="px-4 py-2 bg-gray-800 border-t border-gray-700 text-center">
-        <a class="btn btn-primary"
-   href="{{ url_for('filaments',
-                    ams=ams_id,
-                    tray=tray_id,
-                    tray_uuid=tray_data.tray_uuid,
-                    tray_info_idx=tray_data.tray_info_idx,
-                    tray_color=tray_data.tray_color,
-                    search=tray_data.tray_type) }}" data-requires-write>
-   🧵 Assigner
-</a>
+      <a class="btn btn-primary"
+         href="{{ url_for('filaments',
+                          ams=ams_id,
+                          tray=tray_id,
+                          tray_uuid=tray_data.tray_uuid,
+                          tray_info_idx=tray_data.tray_info_idx,
+                          tray_color=tray_data.tray_color,
+                          search=tray_data.tray_type) }}" data-requires-write>
+        🧵 Assigner
+      </a>
     </div>
   </div>
 </div>

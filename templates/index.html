@@ -524,6 +524,93 @@ if (nameEl) {
  
           updateHighlighting(data.tray_ams_id, data.tray_local_id);
         }
+		const updateTrayUI = (amsId, tray) => {
+  const key = `${String(amsId)}_${String(tray.id)}`;
+
+  // Nom
+  const nameEl = document.getElementById(`tray-name-${key}`);
+  if (nameEl && tray.name) nameEl.textContent = tray.name;
+
+  // Meta (type - subbrand - vendor)
+  const metaEl = document.getElementById(`tray-meta-${key}`);
+  if (metaEl) {
+    const parts = [];
+    if (tray.tray_type) parts.push(tray.tray_type);
+    if (tray.tray_sub_brands) parts.push(tray.tray_sub_brands);
+    if (tray.vendor) parts.push(tray.vendor);
+    metaEl.textContent = parts.length ? parts.join(' - ') : 'Vide';
+  }
+
+  // Couleurs
+  const colorEl = document.getElementById(`tray-color-${key}`);
+  if (colorEl) {
+    if (Array.isArray(tray.tray_color) && tray.tray_color.length) {
+      colorEl.innerHTML = tray.tray_color.map(c => `<div style="background-color:#${c}" title="#${c}"></div>`).join('');
+      colorEl.style.background = '';
+      colorEl.style.backgroundColor = '';
+    } else {
+      colorEl.innerHTML = '';
+      colorEl.style.background = '';
+      colorEl.style.backgroundColor = tray.tray_color ? `#${tray.tray_color}` : 'transparent';
+    }
+  }
+
+  // Dernier usage
+  const lastEl = document.getElementById(`tray-last-used-${key}`);
+  if (lastEl && tray.last_used != null) lastEl.textContent = tray.last_used;
+
+  // Poids restant (si présent)
+  const rwEl = document.getElementById(`tray-remaining-weight-${key}`);
+  if (rwEl) {
+    if (tray.remaining_weight != null) {
+      rwEl.textContent = `${Math.round(tray.remaining_weight)}g`;
+      rwEl.closest('div')?.classList.remove('d-none');
+    } else {
+      rwEl.textContent = '';
+      rwEl.closest('div')?.classList.add('d-none');
+    }
+  }
+
+  // % restant (si présent)
+  const remEl = document.getElementById(`tray-remain-${key}`);
+  if (remEl) {
+    if (tray.remain != null && tray.remain !== -1) {
+      remEl.textContent = `${Math.round(tray.remain)}%`;
+      remEl.closest('div')?.classList.remove('d-none');
+    } else {
+      remEl.textContent = '';
+      remEl.closest('div')?.classList.add('d-none');
+    }
+  }
+
+  // Barrettes dans la grille AMS (élément déjà présent)
+  const g = document.getElementById(`tray-graphic-${key}`);
+  if (g) {
+    if (Array.isArray(tray.tray_color) && tray.tray_color.length) {
+      g.style.background = `linear-gradient(90deg, ${tray.tray_color.map(c => `#${c}`).join(',')})`;
+      g.style.backgroundColor = '';
+    } else if (tray.tray_color) {
+      g.style.background = '';
+      g.style.backgroundColor = `#${tray.tray_color}`;
+    } else {
+      g.style.background = '';
+      g.style.backgroundColor = '';
+    }
+  }
+};
+
+// Tous les AMS
+if (Array.isArray(data.ams_data)) {
+  data.ams_data.forEach(ams => {
+    (ams.tray || []).forEach(tray => updateTrayUI(ams.id, tray));
+  });
+}
+
+// Spool externe (AMS 255, tray 0)
+if (data.vt_tray_data) {
+  const vt = Object.assign({ id: 0 }, data.vt_tray_data);
+  updateTrayUI(255, vt);
+}
 
       } catch (e) {
         console.error('Erreur mise à jour printer_status:', e);
