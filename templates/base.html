@@ -127,13 +127,16 @@
           </a>
         </li>
       {% endfor %}
-    </ul>
-	<ul class="dropdown-menu dropdown-menu-end" aria-labelledby="instDropdown" style="min-width: 260px;">
-	<li class="nav-item" data-requires-write>
-    <a class="nav-link" href="{{ url_for('installations_overview') }}">
-      📊 Vue d'ensemble
-    </a>
-  </li>
+
+      <!-- Séparateur de section -->
+      <li><hr class="dropdown-divider"></li>
+
+      <!-- Entrée "Vue d'ensemble" dans la même liste -->
+      <li>
+        <a class="dropdown-item" href="{{ url_for('installations_overview') }}">
+          📊 Vue d'ensemble
+        </a>
+      </li>
     </ul>
   </li>
 {% endif %}
