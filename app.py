@@ -2346,4 +2346,32 @@ def objects_rename_group():
         rename_object_group(gid, name)
     return redirect_with_context("objects_page", focus_group_id=gid)
 
+@app.route("/installations/overview")
+def installations_overview():
+    # Notre installation locale
+    local = {
+        "id": 0,
+        "label": f"{PRINTER_NAME} (local)",
+        "guest_url": request.host_url.rstrip("/") + "/guest"
+    }
+
+    others = load_installations()
+    all_installations = [local] + others
+
+    return render_template("installations_overview.html", installations=all_installations)
+
+@app.route("/guest_api/info")
+def guest_api_info():
+    p = get_latest_print()
+    if not p:
+        return jsonify({
+            "print_name": None,
+            "progress": 0
+        })
+
+    return jsonify({
+        "print_name": p.get("print_name"),
+        "progress": p.get("progress", 0)
+    })
+
 app.register_blueprint(auth_bp)

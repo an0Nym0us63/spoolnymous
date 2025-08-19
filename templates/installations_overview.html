@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Vue d'ensemble des installations</h1>
+
+<div class="tile-container">
+  {% for install in installations %}
+    <div class="tile" id="tile-{{ install.id }}">
+      <div class="tile-header">
+        <strong>{{ install.label }}</strong>
+      </div>
+      <div class="tile-body">
+        <img class="snapshot" id="snapshot-{{ install.id }}" src="{{ install.guest_url }}/snapshot.jpg" alt="Snapshot" />
+        <div class="print-info">
+          <div id="print-name-{{ install.id }}">...</div>
+          <div id="progress-{{ install.id }}">...</div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<style>
+  .tile-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .tile {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 12px;
+    width: 320px;
+  }
+  .snapshot {
+    width: 100%;
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  .thumbnail {
+    width: 100%;
+    max-height: 120px;
+    object-fit: contain;
+    margin-top: 8px;
+  }
+</style>
+
+<script>
+  const installations = {{ installations | tojson }};
+
+  function updateTile(install) {
+    const url = install.guest_url + "/guest_api/info";
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("print-name-" + install.id).innerText = data.print_name || "(aucun print)";
+        document.getElementById("thumbnail-" + install.id).src = data.thumbnail || "";
+        document.getElementById("progress-" + install.id).innerText = `Avancement : ${data.progress || 0}%`;
+      })
+      .catch(err => {
+        document.getElementById("print-name-" + install.id).innerText = "(erreur)";
+        document.getElementById("thumbnail-" + install.id).src = "";
+        document.getElementById("progress-" + install.id).innerText = "";
+      });
+
+    const snapshot = document.getElementById("snapshot-" + install.id);
+    snapshot.src = install.guest_url + "/snapshot.jpg?ts=" + Date.now();
+  }
+
+  installations.forEach(install => {
+    updateTile(install);
+    setInterval(() => updateTile(install), 1000);
+  });
+</script>
+{% endblock %}
