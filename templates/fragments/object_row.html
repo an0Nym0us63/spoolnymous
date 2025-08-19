@@ -98,6 +98,7 @@
   </div>
 </div>
 
+{% include 'fragments/modals_group_object.html' %}
     <div id="{{ collapse_id }}" class="collapse" aria-labelledby="heading_{{ o.id }}" data-bs-parent="#objectsAccordion">
       <div class="card-body">
 		<div class="d-flex justify-content-end mb-2" style="z-index: 1;" data-requires-write>
@@ -456,4 +457,3 @@
     </form>
   </div>
 </div>
-{% include 'fragments/modals_group.html' %}

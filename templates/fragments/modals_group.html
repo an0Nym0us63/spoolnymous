@@ -107,33 +107,3 @@
     </form>
   </div>
 </div>
-
-
-<div class="modal fade" id="groupModal_{{ o.id }}" tabindex="-1" aria-labelledby="groupModalLabel_{{ o.id }}" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="post" action="{{ url_for('objects_assign_to_group', page=page, search=filters.get('search',''), focus_id=o.id) }}">
-        <div class="modal-header">
-          <h5 class="modal-title" id="groupModalLabel_{{ o.id }}">
-            Ajouter à un groupe (Objet #{{ o.id }})
-          </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-        </div>
-
-        <div class="modal-body">
-          <input type="hidden" name="object_id" value="{{ o.id }}">
-          {{ macros.render_filtered_args(args) }}
-
-          <div class="mb-3">
-            <label class="form-label" for="group_{{ o.id }}">Créer ou ajouter groupe</label>
-            <select id="group_{{ o.id }}" name="group_id_or_name" class="form-control select2-ajax" style="width: 100%;" placeholder="Tapez pour rechercher ou créer…"></select>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Assigner</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
