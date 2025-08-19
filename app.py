@@ -1889,7 +1889,6 @@ def objects_page():
     obj_accessories = {oid: list_object_accessories(oid) for oid in all_ids} if all_ids else {}
     obj_tags = get_tags_for_objects(all_ids) if all_ids else {}
 
-    spoolman_settings = getSettings(cached=True)
     summary = summarize_objects(filters)
 
     return render_template(
@@ -1902,7 +1901,7 @@ def objects_page():
         obj_tags=obj_tags,
         obj_accessories=obj_accessories,
         page_title="Objets",
-        currencysymbol=spoolman_settings.get("currency_symbol", "€"),
+        currencysymbol="€",
         total_objects=summary["total_objects"],
         sold_count=summary["sold_count"],
         available_count=summary["available_count"],

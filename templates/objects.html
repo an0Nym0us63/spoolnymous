@@ -69,13 +69,13 @@
   <button class="btn btn-sm btn-primary rounded-circle" type="button"
           data-bs-toggle="offcanvas" data-bs-target="#filtersOffcanvas" aria-controls="filtersOffcanvas">🔍</button>
 </div>
-{% if objects|length == 0 %}
+{% if items|length == 0 %}
   <div class="alert alert-light border d-flex align-items-center" role="alert">
     <i class="bi bi-inbox me-2"></i>
     <div>Aucun objet ne correspond aux filtres.</div>
   </div>
 {% endif %}
-{% if objects|length != 0 %}
+{% if items|length != 0 %}
 <!-- Tuiles statistiques (alignées sur print_history) -->
 <div class="row row-cols-4 g-3 g-md-3 mb-4 text-center align-items-stretch">
   <div class="col">
