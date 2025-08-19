@@ -1821,61 +1821,63 @@ def api_objects_create():
 @app.route("/objects")
 def objects_page():
     page = int(request.args.get("page", "1") or 1)
-    per_page = 30  # inchangé
+    per_page = 30
     filters = {
         "search": request.args.get("search", ""),
         "source_type": request.args.get("source_type", ""),  # print | group | ''
         "sale_filter": request.args.get("sale_filter", ""),  # '' | vendus | dispo | offert
     }
 
-    # 1) Récupère TOUS les objets filtrés (sans pagination)
-    #    -> si tu n'as pas de fonction "no-limit", on triche avec un per_page très large
+    # 1) Tous les objets filtrés (sans pagination)
     all_objects, _ = list_objects(filters, page=1, per_page=1_000_000)
 
-    # 2) Groupes (+ leurs objets filtrés) et 'newest_created_at'
+    # 2) Groupes + objets filtrés à l'intérieur
     groups = list_object_groups_with_counts(filters)
 
-    # 3) Exclure de la liste "prints" tous les objets qui appartiennent à un groupe
-    grouped_ids = {o["id"] for g in groups for o in (g.get("objects") or [])}
-    standalone_objects = [o for o in all_objects if not o.get("object_group_id")]
+    # 2.b) Calcul date la plus récente pour chaque groupe (si pas déjà fait côté Python/SQL)
+    for g in groups:
+        objs = g.get("objects") or []
+        g["newest_created_at"] = max((o["created_at"] for o in objs), default=None)
 
-    # 4) Construire le flux fusionné (items = objets OU groupes)
+    # 3) IDs des objets présents dans des groupes (pour exclure des prints)
+    grouped_ids = {o["id"] for g in groups for o in (g.get("objects") or [])}
+
+    # 4) Objets "standalone" (pas dans un groupe)
+    #    NB: sqlite3.Row -> accès par clé, pas .get()
+    standalone_objects = [o for o in all_objects if not o["object_group_id"]]
+
+    # 5) Flux fusionné
     items = []
 
-    # objets standalone
+    # objets isolés
     for o in standalone_objects:
         items.append({
             "type": "object",
-            "created_at": o["created_at"],
-            "object": o
+            "created_at": o["created_at"] or "",  # fallback string vide
+            "object": o,
         })
 
-    # groupes (datés par l'objet le plus récent)
+    # groupes (ignorés s'ils n'ont aucun objet après filtre)
     for g in groups:
-        # si un groupe n'a aucun objet (après filtres), on peut le masquer
         if not g.get("objects"):
             continue
         items.append({
             "type": "group",
-            "created_at": g.get("newest_created_at"),
-            "group": g
+            "created_at": g.get("newest_created_at") or "",
+            "group": g,
         })
 
-    # 5) Tri décroissant par date
-    #    NB: si 'created_at' est une chaîne ISO (YYYY-MM-DD HH:MM:SS), le tri lexicographique convient.
-    items.sort(key=lambda it: (it["created_at"] or ""), reverse=True)
+    # 6) Tri décroissant par date (ISO string OK ; fallback "" géré ci-dessus)
+    items.sort(key=lambda it: it["created_at"], reverse=True)
 
-    # 6) Pagination du flux fusionné
+    # 7) Pagination
     total = len(items)
     total_pages = (total + per_page - 1) // per_page
     start = (page - 1) * per_page
     end = start + per_page
     items_page = items[start:end]
 
-    # 7) Agrégats pour les tuiles (inchangé)
-    summary = summarize_objects(filters)
-
-    # 8) Contexte accessoires/tags pour TOUS les objets affichables
+    # 8) Contexte accessoires/tags pour les items visibles
     visible_object_ids = []
     for it in items_page:
         if it["type"] == "object":
@@ -1883,19 +1885,15 @@ def objects_page():
         else:
             visible_object_ids.extend([o["id"] for o in it["group"]["objects"]])
 
-    # Si tu veux précharger pour toute la collection (meilleur rendu sans rechargement),
-    # tu peux plutôt utiliser 'all_ids' = IDs de tous les items (pas seulement la page).
-    # all_ids = list({*(o["id"] for o in standalone_objects), *grouped_ids})
-
-    all_ids = list(set(all_ids))
+    all_ids = list(set(visible_object_ids))
     obj_accessories = {oid: list_object_accessories(oid) for oid in all_ids} if all_ids else {}
     obj_tags = get_tags_for_objects(all_ids) if all_ids else {}
 
     spoolman_settings = getSettings(cached=True)
+    summary = summarize_objects(filters)
 
     return render_template(
         "objects.html",
-        # on ne passe plus 'objects' ni 'groups' séparément, mais 'items'
         items=items_page,
         page=page,
         total_pages=total_pages,
@@ -1905,7 +1903,6 @@ def objects_page():
         obj_accessories=obj_accessories,
         page_title="Objets",
         currencysymbol=spoolman_settings.get("currency_symbol", "€"),
-        # agrégats
         total_objects=summary["total_objects"],
         sold_count=summary["sold_count"],
         available_count=summary["available_count"],
@@ -1914,6 +1911,7 @@ def objects_page():
         sum_sold_price=summary["sum_sold_price"],
         sum_positive_margin=summary["sum_positive_margin"],
     )
+
 
 
 
