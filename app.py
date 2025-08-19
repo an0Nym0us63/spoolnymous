@@ -1859,7 +1859,7 @@ def objects_page():
 
     for g in groups:
         objs = g.get("objects") or []
-    
+        g["type"]= "group"
         # Trier du plus récent au plus ancien (created_at est une ISO string ici)
         objs_sorted = sorted(objs, key=lambda r: r["created_at"] or "", reverse=True)
         g["objects"] = objs_sorted
