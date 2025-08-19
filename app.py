@@ -1821,39 +1821,91 @@ def api_objects_create():
 @app.route("/objects")
 def objects_page():
     page = int(request.args.get("page", "1") or 1)
+    per_page = 30  # inchangé
     filters = {
         "search": request.args.get("search", ""),
         "source_type": request.args.get("source_type", ""),  # print | group | ''
         "sale_filter": request.args.get("sale_filter", ""),  # '' | vendus | dispo | offert
     }
-    rows, total_pages = list_objects(filters, page, per_page=30)
+
+    # 1) Récupère TOUS les objets filtrés (sans pagination)
+    #    -> si tu n'as pas de fonction "no-limit", on triche avec un per_page très large
+    all_objects, _ = list_objects(filters, page=1, per_page=1_000_000)
+
+    # 2) Groupes (+ leurs objets filtrés) et 'newest_created_at'
     groups = list_object_groups_with_counts(filters)
-    # NEW: agrégats pour les tuiles
+
+    # 3) Exclure de la liste "prints" tous les objets qui appartiennent à un groupe
+    grouped_ids = {o["id"] for g in groups for o in (g.get("objects") or [])}
+    standalone_objects = [o for o in all_objects if not o.get("object_group_id")]
+
+    # 4) Construire le flux fusionné (items = objets OU groupes)
+    items = []
+
+    # objets standalone
+    for o in standalone_objects:
+        items.append({
+            "type": "object",
+            "created_at": o["created_at"],
+            "object": o
+        })
+
+    # groupes (datés par l'objet le plus récent)
+    for g in groups:
+        # si un groupe n'a aucun objet (après filtres), on peut le masquer
+        if not g.get("objects"):
+            continue
+        items.append({
+            "type": "group",
+            "created_at": g.get("newest_created_at"),
+            "group": g
+        })
+
+    # 5) Tri décroissant par date
+    #    NB: si 'created_at' est une chaîne ISO (YYYY-MM-DD HH:MM:SS), le tri lexicographique convient.
+    items.sort(key=lambda it: (it["created_at"] or ""), reverse=True)
+
+    # 6) Pagination du flux fusionné
+    total = len(items)
+    total_pages = (total + per_page - 1) // per_page
+    start = (page - 1) * per_page
+    end = start + per_page
+    items_page = items[start:end]
+
+    # 7) Agrégats pour les tuiles (inchangé)
     summary = summarize_objects(filters)
 
-    # Tags des objets (batch)
-    ids = [r["id"] for r in rows]
-    group_obj_ids = [o["id"] for g in groups for o in g.get("objects", [])] 
-    all_ids = list({*ids, *group_obj_ids})
+    # 8) Contexte accessoires/tags pour TOUS les objets affichables
+    visible_object_ids = []
+    for it in items_page:
+        if it["type"] == "object":
+            visible_object_ids.append(it["object"]["id"])
+        else:
+            visible_object_ids.extend([o["id"] for o in it["group"]["objects"]])
+
+    # Si tu veux précharger pour toute la collection (meilleur rendu sans rechargement),
+    # tu peux plutôt utiliser 'all_ids' = IDs de tous les items (pas seulement la page).
+    # all_ids = list({*(o["id"] for o in standalone_objects), *grouped_ids})
+
+    all_ids = list(set(all_ids))
     obj_accessories = {oid: list_object_accessories(oid) for oid in all_ids} if all_ids else {}
     obj_tags = get_tags_for_objects(all_ids) if all_ids else {}
 
-    # Devise (comme print_history)
     spoolman_settings = getSettings(cached=True)
 
     return render_template(
         "objects.html",
-        objects=rows,
+        # on ne passe plus 'objects' ni 'groups' séparément, mais 'items'
+        items=items_page,
         page=page,
         total_pages=total_pages,
         filters=filters,
         args=request.args,
         obj_tags=obj_tags,
         obj_accessories=obj_accessories,
-        groups=groups,
         page_title="Objets",
         currencysymbol=spoolman_settings.get("currency_symbol", "€"),
-        # expose les agrégats
+        # agrégats
         total_objects=summary["total_objects"],
         sold_count=summary["sold_count"],
         available_count=summary["available_count"],
@@ -1862,6 +1914,7 @@ def objects_page():
         sum_sold_price=summary["sum_sold_price"],
         sum_positive_margin=summary["sum_positive_margin"],
     )
+
 
 
 @app.post("/objects/<int:object_id>/rename")

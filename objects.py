@@ -1502,7 +1502,10 @@ def list_object_groups_with_counts(filters: dict) -> list[dict]:
 
     for g in groups:
         g["objects"] = obj_by_group.get(g["id"], [])
-
+    for g in groups:
+        objs = g.get("objects") or []
+        # s'assurer que 'created_at' arrive en type comparable (str ISO -> laisser tel quel si homogène)
+        g["newest_created_at"] = max((o["created_at"] for o in objs), default=None)
     conn.close()
     return groups
 

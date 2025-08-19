@@ -141,70 +141,79 @@
 </div>
 {% endif %}
 
-{% if groups and groups|length > 0 %}
-  <div class="row g-3 mt-3">
-    {% for g in groups %}
-      <div class="col-12">
+{# ------------------------------- #}
+{# FLUX FUSIONNÉ : GROUPES + PRINTS
+   items = [{type: 'group'|'object', created_at, group|object}] #}
+{# ------------------------------- #}
+
+{% if items and items|length > 0 %}
+  <div class="d-flex flex-column gap-3 mt-3">
+
+    {% for it in items %}
+      {% if it.type == 'group' %}
+        {# ---- Rendu d'un GROUPE (card + table) ---- #}
+        {% set g = it.group %}
         <div class="card shadow-sm">
           <div class="card-header d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-2">
-              {# Icône de groupe (si tu as g.icon ; sinon fallback) #}
               <i class="bi bi-{{ g.icon if g.icon is defined and g.icon else 'collection' }}"></i>
               <strong>{{ g.name }}</strong>
               <span class="text-muted">
                 — {{ g.available or 0 }} dispo / {{ g.total or 0 }} au total
               </span>
             </div>
-
-            {# actions de groupe si tu en avais (menu, éditer, supprimer, etc.) #}
-            <div class="d-flex align-items-center gap-2">
-              {# Exemple: bouton ouvrir/fermer si tu avais un collapse #}
-              {# <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#group-{{ g.id }}-body">
-                   <i class="bi bi-chevron-down"></i>
-                 </button> #}
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Objet</th>
+                    <th>État</th>
+                    <th>Prix</th>
+                    <th>Créé</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for o in g.objects %}
+                    {% set _obj_accessories = obj_accessories if obj_accessories is defined else {} %}
+                    {% set _obj_tags = obj_tags if obj_tags is defined else {} %}
+                    {% set _args = args if args is defined else {} %}
+                    {% include 'fragments/object_row.html' %}
+                  {% endfor %}
+                </tbody>
+              </table>
             </div>
           </div>
-
-          {# Corps — liste des objets du groupe, on réutilise le fragment object_row.html #}
-          <div id="group-{{ g.id }}-body" class="card-body p-0">
-            {% if g.objects and g.objects|length > 0 %}
-              <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                  <thead>
-                    <tr>
-                      {# adapte les <th> à tes colonnes réelles si nécessaire #}
-                      <th>Objet</th>
-                      <th>Etat</th>
-                      <th>Prix</th>
-                      <th>Créé</th>
-                      <th class="text-end">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for o in g.objects %}
-                      {# IMPORTANT : fournir un contexte sûr au fragment #}
-                      {% set _obj_accessories = obj_accessories if obj_accessories is defined else {} %}
-                      {% set _obj_tags = obj_tags if obj_tags is defined else {} %}
-                      {% set _args = args if args is defined else {} %}
-                      {% include 'fragments/object_row.html' %}
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-            {% else %}
-              <div class="p-3 text-muted">Aucun objet dans ce groupe.</div>
-            {% endif %}
-          </div>
         </div>
-      </div>
+
+      {% else %}
+        {# ---- Rendu d'un PRINT isolé (mini-table 1 ligne pour réutiliser object_row) ---- #}
+        {% set o = it.object %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            {# on peut masquer thead si tu veux (ou le laisser pour accessibilité) #}
+            <thead class="d-none">
+              <tr>
+                <th>Objet</th><th>État</th><th>Prix</th><th>Créé</th><th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% set _obj_accessories = obj_accessories if obj_accessories is defined else {} %}
+              {% set _obj_tags = obj_tags if obj_tags is defined else {} %}
+              {% set _args = args if args is defined else {} %}
+              {% include 'fragments/object_row.html' %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
     {% endfor %}
+
   </div>
+{% else %}
+  <div class="mt-4 text-muted">Aucun résultat.</div>
 {% endif %}
-<div class="accordion" id="objectsAccordion">
-  {% for o in objects %}
-	{% include 'fragments/object_row.html' %}
-  {% endfor %}
-</div>
 
 <!-- Offcanvas filtres -->
 <div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="filtersOffcanvas">
