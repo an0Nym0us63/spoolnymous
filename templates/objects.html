@@ -176,7 +176,17 @@
 <div class="obj-status d-flex align-items-center justify-content-start me-1 flex-shrink-0">
   <div class="group-icon" title="Groupe">
     <i class="bi bi-folder-fill text-grey" aria-hidden="true"></i>
-    <span class="badge group-count-badge bg-grey">{{ g.total }}</span>
+	<span class="badge bg-primary rounded-pill"
+            style="
+              position: absolute;
+              top: 0;
+              right: -0.4rem;
+              transform: translate(50%, -50%);
+              font-size: 0.6rem;
+              padding: 0.15em 0.4em;
+            ">
+        {{ g.total }}
+      </span>
   </div>
 </div>
 
@@ -194,7 +204,7 @@
   <div class="chips justify-content-center flex-wrap mt-1 gap-1 w-100" style="max-width: 220px;">
     <span class="badge rounded-pill bg-light text-dark border border-secondary fw-normal" 
           style="font-size: 0.65rem; padding: 0.2em 0.45em;">
-      ⛔ {{ g.unavailable }} / {{ g.total }}
+      📦 {{ g.unavailable }} / {{ g.total }}
     </span>
 
     <span class="badge rounded-pill bg-primary text-white border fw-normal" 
