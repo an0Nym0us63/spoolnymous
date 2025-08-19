@@ -192,9 +192,10 @@
     {% if o.sold_price is not none %}
       {% if o.sold_price == 0 %}
 		 {% if o.personal %}
-      <span class="badge rounded-pill bg-secondary text-white border fw-normal" style="font-size: 0.65rem; padding: 0.2em 0.45em;">👤 Perso</span>
-    {% else %}
+			<span class="badge rounded-pill bg-secondary text-white border fw-normal" style="font-size: 0.65rem; padding: 0.2em 0.45em;">👤 Perso</span>
+			{% else %}
       <span class="badge rounded-pill bg-info text-dark border fw-normal" style="font-size: 0.65rem; padding: 0.2em 0.45em;">🎁 Offert</span>
+	  {% endif %}
       {% else %}
         <span class="badge rounded-pill bg-primary text-white border fw-normal" style="font-size: 0.65rem; padding: 0.2em 0.45em;">
           💰 {{ "%.2f"|format(o.sold_price) }} {{ currencysymbol or '€' }}
