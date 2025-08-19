@@ -261,22 +261,11 @@
       {% else %}
         {# ---- Rendu d'un PRINT isolé (mini-table 1 ligne pour réutiliser object_row) ---- #}
         {% set o = it.object %}
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            {# on peut masquer thead si tu veux (ou le laisser pour accessibilité) #}
-            <thead class="d-none">
-              <tr>
-                <th>Objet</th><th>État</th><th>Prix</th><th>Créé</th><th class="text-end">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+        
               {% set _obj_accessories = obj_accessories if obj_accessories is defined else {} %}
               {% set _obj_tags = obj_tags if obj_tags is defined else {} %}
               {% set _args = args if args is defined else {} %}
               {% include 'fragments/object_row.html' %}
-            </tbody>
-          </table>
-        </div>
       {% endif %}
     {% endfor %}
 
