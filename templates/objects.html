@@ -48,6 +48,14 @@
   z-index: 2;
   pointer-events: none; /* ne gêne pas les clics sur le header */
 }
+.bg-purple {
+  background-color: #6f42c1 !important; /* violet bootstrap-like */
+  color: #fff !important;
+}
+.bg-purple-subtle {
+  background-color: #e9d8fd !important; /* violet clair */
+  color: #4b0082 !important; /* indigo foncé pour le texte */
+}
 </style>
 <!-- Boutons flottants (identiques au reste) -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
@@ -145,7 +153,7 @@
       {% if o.sold_price is not none %}
         {% if o.sold_price == 0 %}
 			 {% if o.personal %}
-				<i class="bi bi-person-fill text-secondary" title="Objet personnel"></i>
+				<i class="bi bi-person-fill text-purple" title="Objet personnel"></i>
 			{% else %}
 				<i class="bi bi-gift-fill text-info" title="Offert"></i>
 			{% endif %}
@@ -167,7 +175,7 @@
     {% if o.sold_price is not none %}
       {% if o.sold_price == 0 %}
 		{% if o.personal %}
-		<div class="badge bg-secondary text-dark small fw-semibold text-break w-100" style="white-space: normal; word-break: break-word;">{{ o.name }}</div>
+		<div class="badge bg-purple text-dark small fw-semibold text-break w-100" style="white-space: normal; word-break: break-word;">{{ o.name }}</div>
     {% else %}
       <div class="badge bg-info text-dark small fw-semibold text-break w-100" style="white-space: normal; word-break: break-word;">{{ o.name }}</div>
     {% endif %}
@@ -192,7 +200,7 @@
     {% if o.sold_price is not none %}
       {% if o.sold_price == 0 %}
 		 {% if o.personal %}
-			<span class="badge rounded-pill bg-secondary text-white border fw-normal" style="font-size: 0.65rem; padding: 0.2em 0.45em;">👤 Perso</span>
+			<span class="badge rounded-pill bg-purple text-white border fw-normal" style="font-size: 0.65rem; padding: 0.2em 0.45em;">👤 Perso</span>
 			{% else %}
       <span class="badge rounded-pill bg-info text-dark border fw-normal" style="font-size: 0.65rem; padding: 0.2em 0.45em;">🎁 Offert</span>
 	  {% endif %}
