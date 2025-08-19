@@ -29,3 +29,39 @@
     </div>
   </div>
 </div>
+<script>
+document.addEventListener('input', async (e) => {
+  const inp = e.target.closest('.obj-group-search');
+  if (!inp) return;
+  const listSel = inp.getAttribute('data-target');
+  const list = document.querySelector(listSel);
+  if (!list) return;
+
+  const q = inp.value.trim();
+  if (!q) { list.innerHTML = ''; return; }
+
+  try {
+    const res = await fetch(`/api/object_groups/search?q=${encodeURIComponent(q)}`);
+    if (!res.ok) return;
+    const rows = await res.json();
+    list.innerHTML = rows.map(r => `
+      <button type="button" class="list-group-item list-group-item-action"
+              data-group-id="${r.id}" data-group-name="${r.name}">
+        <i class="bi bi-${r.icon || 'house-fill'} me-1"></i>${r.name}
+      </button>
+    `).join('') || `<div class="list-group-item text-danger">Aucun groupe</div>`;
+
+    list.querySelectorAll('button[data-group-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const form = inp.closest('form');
+        const target = form?.querySelector('input[name="group_id_or_name"]');
+        if (target) target.value = btn.dataset.groupId; // on passe l'ID si existant
+        list.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  } catch (err) {
+    console.error(err);
+  }
+});
+</script>

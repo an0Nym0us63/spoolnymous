@@ -120,17 +120,23 @@
           💬 Modifier le commentaire
         </a>
       </li>
-	  <li>
-  {% if o.object_group_id %}
-    <form method="post" action="{{ url_for('objects_remove_from_group') }}">
-      <input type="hidden" name="object_id" value="{{ o.id }}">
-      <button class="dropdown-item">Retirer du groupe</button>
-    </form>
-  {% else %}
-    <a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#objGroupModal_{{ o.id }}">Ajouter au groupe…</a>
-    {% include 'fragments/modals_object_group.html' %}
-  {% endif %}
+{% if not o.object_group_id %}
+<li>
+  <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#objGroupModal_{{ o.id }}">
+    ➕ Ajouter à un groupe
+  </a>
 </li>
+{% else %}
+<li>
+  <form method="post" action="{{ url_for('objects_remove_from_group') }}">
+    {{ macros.render_filtered_args(args) }}
+    <input type="hidden" name="object_id" value="{{ o.id }}">
+    <button type="submit" class="dropdown-item text-danger">
+      ❌ Retirer du groupe
+    </button>
+  </form>
+</li>
+{% endif %}
 	  <li>
   <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addAccModal_{{ o.id }}">
     ➕ Ajouter accessoire
@@ -323,6 +329,7 @@
     </form>
   </div>
 </div>
+{% include 'fragments/modals_object_group.html' %}
 <div class="modal fade" id="rmAccModal_{{ o.id }}" tabindex="-1" aria-labelledby="rmAccLabel_{{ o.id }}" aria-hidden="true">
   <div class="modal-dialog">
     <form class="modal-content" method="post" action="{{ url_for('objects_remove_accessory', object_id=o.id) }}">
