@@ -174,9 +174,10 @@
       <div class="obj-grid">
         {# GAUCHE — statut groupe: icône dossier + pastille nombre d’objets #}
 <div class="obj-status d-flex align-items-center justify-content-start me-1 flex-shrink-0">
-  <div class="group-icon" title="Groupe">
-    <i class="bi bi-folder-fill text-grey" aria-hidden="true"></i>
-	<span class="badge bg-primary rounded-pill"
+  <span class="position-relative d-inline-block" style="font-size: 1rem; line-height: 1;">
+    <span class="emoji-folder" style="position: relative; display: inline-block;">
+      <i class="bi bi-folder-fill text-grey" aria-hidden="true"></i>
+      <span class="badge bg-primary rounded-pill"
             style="
               position: absolute;
               top: 0;
@@ -185,9 +186,10 @@
               font-size: 0.6rem;
               padding: 0.15em 0.4em;
             ">
-        {{ g.total }}
+         {{ g.total }}
       </span>
-  </div>
+    </span>
+  </span>
 </div>
 
         <!-- Colonne centre : titre + chips -->
