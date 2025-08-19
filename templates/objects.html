@@ -59,12 +59,12 @@
 .text-purple {
   color: #b48ef1 !important;
 }
-.bg-orange {
-  background-color: #ffb74d !important; /* orange vif bootstrap */
+.bg-grey {
+  background-color: #6c757d !important;
   color: #fff !important;
 }
-.text-orange {
-  color:  #ffb74d !important;
+.text-grey {
+  color:  #6c757d !important;
 }
 </style>
 <!-- Boutons flottants (identiques au reste) -->
@@ -175,8 +175,8 @@
         {# GAUCHE — statut groupe: icône dossier + pastille nombre d’objets #}
 <div class="obj-status d-flex align-items-center justify-content-start me-1 flex-shrink-0">
   <div class="group-icon" title="Groupe">
-    <i class="bi bi-folder-fill text-orange" aria-hidden="true"></i>
-    <span class="badge group-count-badge bg-orange">{{ g.total }}</span>
+    <i class="bi bi-folder-fill text-grey" aria-hidden="true"></i>
+    <span class="badge group-count-badge bg-grey">{{ g.total }}</span>
   </div>
 </div>
 
@@ -184,7 +184,7 @@
 <div class="obj-main d-flex flex-column align-items-center text-center px-1" style="max-width: 100%;">
   <!-- Badge nom du groupe -->
   <div class="w-100" style="max-width: 200px;">
-    <div class="badge bg-orange text-white small fw-semibold text-break w-100" 
+    <div class="badge bg-grey text-white small fw-semibold text-break w-100" 
          style="white-space: normal; word-break: break-word;">
       {{ g.name }}
     </div>
