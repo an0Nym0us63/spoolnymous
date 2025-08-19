@@ -1,67 +1,39 @@
+{# modal_object_group.html #}
 {% import 'macros/hidden_args.jinja2' as macros %}
-<!-- MODAL: rattacher à un groupe d'objets -->
-<div class="modal fade" id="objGroupModal_{{ o.id }}" tabindex="-1" aria-labelledby="objGroupModalLabel_{{ o.id }}" aria-hidden="true">
+<div class="modal fade" id="groupModal_{{ o.id }}" tabindex="-1" aria-labelledby="groupModalLabel_{{ o.id }}" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <form method="post" action="{{ url_for('objects_assign_to_group') }}">
-        {{ macros.render_filtered_args(args) }}
-        <input type="hidden" name="object_id" value="{{ o.id }}">
+      <form method="post" action="{{ url_for('objects_assign_to_group', page=page, search=filters.get('search',''), focus_id=o.id) }}">
         <div class="modal-header">
-          <h5 class="modal-title" id="objGroupModalLabel_{{ o.id }}">Ajouter au groupe</h5>
+          <h5 class="modal-title" id="groupModalLabel_{{ o.id }}">
+            Ajouter à un groupe (Objet #{{ o.id }})
+          </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
         </div>
+
         <div class="modal-body">
-          <div class="mb-2">
-            <label class="form-label">Rechercher un groupe</label>
-            <input type="text" class="form-control obj-group-search" placeholder="Nom du groupe..." data-target="#objGroupResults_{{ o.id }}">
-            <div class="list-group mt-2 small" id="objGroupResults_{{ o.id }}"></div>
-          </div>
-          <div class="text-center text-muted small">ou</div>
-          <div class="mt-2">
-            <label class="form-label">Créer un nouveau groupe</label>
-            <input type="text" class="form-control" name="group_id_or_name" placeholder="Nouveau nom (Entrée pour créer)">
+          <input type="hidden" name="object_id" value="{{ o.id }}">
+          {{ macros.render_filtered_args(args) }}
+
+          <div class="mb-3">
+            <label class="form-label" for="group_{{ o.id }}">Créer ou ajouter groupe</label>
+            <select id="group_{{ o.id }}" name="group_id_or_name" class="form-control select2-ajax" style="width: 100%;" placeholder="Tapez pour rechercher ou créer…"></select>
           </div>
         </div>
+
         <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Valider</button>
+          <button type="submit" class="btn btn-primary">Assigner</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 <script>
-document.addEventListener('input', async (e) => {
-  const inp = e.target.closest('.obj-group-search');
-  if (!inp) return;
-  const listSel = inp.getAttribute('data-target');
-  const list = document.querySelector(listSel);
-  if (!list) return;
-
-  const q = inp.value.trim();
-  if (!q) { list.innerHTML = ''; return; }
-
-  try {
-    const res = await fetch(`/api/object_groups/search?q=${encodeURIComponent(q)}`);
-    if (!res.ok) return;
-    const rows = await res.json();
-    list.innerHTML = rows.map(r => `
-      <button type="button" class="list-group-item list-group-item-action"
-              data-group-id="${r.id}" data-group-name="${r.name}">
-        <i class="bi bi-${r.icon || 'house-fill'} me-1"></i>${r.name}
-      </button>
-    `).join('') || `<div class="list-group-item text-danger">Aucun groupe</div>`;
-
-    list.querySelectorAll('button[data-group-id]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const form = inp.closest('form');
-        const target = form?.querySelector('input[name="group_id_or_name"]');
-        if (target) target.value = btn.dataset.groupId; // on passe l'ID si existant
-        list.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      });
-    });
-  } catch (err) {
-    console.error(err);
+document.addEventListener("show.bs.modal", function (event) {
+  const modal = event.target;
+  if (modal.id === "modalObjectGroup") {
+    const selectedIds = getSelectedObjectIds(); // ta fonction de sélection
+    modal.querySelector("#objectIdsInput").value = selectedIds.join(",");
   }
 });
 </script>

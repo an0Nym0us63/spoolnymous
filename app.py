@@ -2294,16 +2294,32 @@ def objects_create_group():
         return redirect_with_context("objects_page", focus_group_id=gid, focus_object_id=int(obj_id))
     return redirect_with_context("objects_page", focus_group_id=gid)
 
-@app.route("/objects/assign_to_group", methods=["POST"])
+@app.post("/objects/assign_to_group")
 def objects_assign_to_group():
-    obj_id = int(request.form["object_id"])
-    gid_or_name = (request.form.get("group_id_or_name") or "").strip()
+    # mêmes noms que la modale prints
+    object_id = request.form.get("object_id", type=int)
+    gid_or_name = request.form.get("group_id_or_name", "").strip()
+
+    if not object_id or not gid_or_name:
+        flash("Objet ou groupe manquant.", "warning")
+        return redirect(request.referrer or url_for("objects_page"))
+
+    # Si c'est un ID existant -> int, sinon création
+    gid = None
     if gid_or_name.isdigit():
         gid = int(gid_or_name)
     else:
-        gid = create_object_group(gid_or_name)
-    assign_object_to_group(obj_id, gid)
-    return redirect_with_context("objects_page", focus_group_id=gid, focus_object_id=obj_id)
+        gid = create_object_group(gid_or_name)  # veille à la correction du tuple (name,) dans l'INSERT
+
+    assign_object_to_group(object_id,gid)
+
+    flash(f"Objet #{object_id} assigné au groupe.", "success")
+
+    # Respecter le même pattern de redirection que prints (page, search, focus_id)
+    page = request.args.get("page", type=int)
+    search = request.args.get("search", "", type=str)
+    focus_id = request.args.get("focus_id", type=int)
+    return redirect(url_for("objects_page", page=page, search=search, focus_id=focus_id))
 
 @app.route("/objects/remove_from_group", methods=["POST"])
 def objects_remove_from_group():
