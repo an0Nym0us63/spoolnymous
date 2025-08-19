@@ -1859,7 +1859,6 @@ def objects_page():
 
     for g in groups:
         objs = g.get("objects") or []
-        g["type"]= "group"
         # Trier du plus récent au plus ancien (created_at est une ISO string ici)
         objs_sorted = sorted(objs, key=lambda r: r["created_at"] or "", reverse=True)
         g["objects"] = objs_sorted
@@ -1897,7 +1896,12 @@ def objects_page():
     
         # Icône de groupe (fixe et explicite)
         g["icon"] = "collection"
-
+    for g in groups:
+        items.append({
+            "type": "group",
+            "created_at": g.get("newest_created_at") or "",
+            "group": g,
+        })
     # 6) Tri décroissant par date (ISO string OK ; fallback "" géré ci-dessus)
     items.sort(key=lambda it: it["created_at"], reverse=True)
 
