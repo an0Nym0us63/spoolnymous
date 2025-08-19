@@ -59,6 +59,13 @@
 .text-purple {
   color: #b48ef1 !important;
 }
+.bg-orange {
+  background-color: #fd7e14 !important; /* orange vif bootstrap */
+  color: #fff !important;
+}
+.text-orange {
+  color: #fd7e14 !important;
+}
 </style>
 <!-- Boutons flottants (identiques au reste) -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
@@ -168,28 +175,41 @@
         {# GAUCHE — statut groupe: icône dossier + pastille nombre d’objets #}
 <div class="obj-status d-flex align-items-center justify-content-start me-1 flex-shrink-0">
   <div class="group-icon" title="Groupe">
-    <i class="bi bi-folder-fill text-purple" aria-hidden="true"></i>
-    <span class="badge group-count-badge bg-purple">{{ g.total }}</span>
+    <i class="bi bi-folder-fill text-orange" aria-hidden="true"></i>
+    <span class="badge group-count-badge bg-orange">{{ g.total }}</span>
   </div>
 </div>
 
-        {# CENTRE — titre + chips #}
-        <div class="obj-main">
-          <div class="title-badge text-truncate">
-            {{ g.name }}
-          </div>
-          <div class="chips">
-            <span class="badge rounded-pill text-bg-secondary">
-              ⛔ {{ g.unavailable }} / {{ g.total }}
-            </span>
-            <span class="badge rounded-pill text-bg-success">
-              💶 {{ (g.sum_sold_price)|round(2) }} {{ currencysymbol }}
-            </span>
-            <span class="badge rounded-pill {{ 'text-bg-success' if (g.sum_positive_margin) >= 0 else 'text-bg-danger' }}">
-              📈 {{ (g.sum_positive_margin)|round(2) }} {{ currencysymbol }}
-            </span>
-          </div>
-        </div>
+        <!-- Colonne centre : titre + chips -->
+<div class="obj-main d-flex flex-column align-items-center text-center px-1" style="max-width: 100%;">
+  <!-- Badge nom du groupe -->
+  <div class="w-100" style="max-width: 200px;">
+    <div class="badge bg-orange text-white small fw-semibold text-break w-100" 
+         style="white-space: normal; word-break: break-word;">
+      {{ g.name }}
+    </div>
+  </div>
+
+  <!-- Chips du groupe -->
+  <div class="chips justify-content-center flex-wrap mt-1 gap-1 w-100" style="max-width: 220px;">
+    <span class="badge rounded-pill bg-light text-dark border border-secondary fw-normal" 
+          style="font-size: 0.65rem; padding: 0.2em 0.45em;">
+      ⛔ {{ g.unavailable }} / {{ g.total }}
+    </span>
+
+    <span class="badge rounded-pill bg-primary text-white border fw-normal" 
+          style="font-size: 0.65rem; padding: 0.2em 0.45em;">
+      💶 {{ "%.2f"|format(g.sum_sold_price or 0) }} {{ currencysymbol }}
+    </span>
+
+    {% set _margin = g.sum_positive_margin or 0 %}
+    {% set _pos = _margin >= 0 %}
+    <span class="badge rounded-pill {{ 'bg-success text-white' if _pos else 'bg-danger text-white' }} border fw-normal" 
+          style="font-size: 0.65rem; padding: 0.2em 0.45em;">
+      {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol }}
+    </span>
+  </div>
+</div>
 
         {# DROITE — visuel du dernier print #}
 		<div class="text-end flex-shrink-0">
