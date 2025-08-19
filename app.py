@@ -9,7 +9,7 @@ import time
 import os
 import re
 from collections import defaultdict,deque
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse, urlunparse
 import requests
 import secrets
 from queue import Queue, Empty, Full
@@ -2346,30 +2346,99 @@ def objects_rename_group():
         rename_object_group(gid, name)
     return redirect_with_context("objects_page", focus_group_id=gid)
 
-@app.route("/installations/overview")
+@app.get("/installations/overview")
 def installations_overview():
-    # Notre installation locale
-    local = {
-        "id": 0,
-        "label": f"{PRINTER_NAME} (local)",
-        "guest_url": request.host_url.rstrip("/") + "/guest"
+    insts = load_installations() or []
+    # La première tuile est la locale (guest_url vide côté front pour signaler "local")
+    return render_template("installations_overview.html", installations=insts,page_title="Vue d'ensemble")
+
+# --- Invité : infos synthétiques pour les autres instances (JSON) ---
+@app.get("/guest_api/info")
+def guest_api_info():
+    payload = {
+        "print_name": None,
+        "progress": 0
     }
 
-    others = load_installations()
-    all_installations = [local] + others
-
-    return render_template("installations_overview.html", installations=all_installations,page_title="Vue d'ensemble")
-
-@app.route("/guest_api/info")
-def guest_api_info():
+    # Progress & nom en direct depuis le statut MQTT
     with PRINTER_STATUS_LOCK:
-        status_copy = dict(PRINTER_STATUS)
+        st = dict(PRINTER_STATUS)
+    if st.get("progress") is not None:
+        try:
+            payload["progress"] = int(st["progress"])
+        except (TypeError, ValueError):
+            pass
+    # Fallback nom + miniature depuis la dernière entrée DB
     latest = get_latest_print()
     if latest:
-        status_copy["print_name"] = latest["file_name"]
-    else:
-        status_copy["print_name"] = None
+        payload["print_name"] = latest.get("file_name")
 
-    return jsonify(status_copy)
+    return jsonify(payload)
+
+def _is_whitelisted_guest_url(raw_url: str) -> bool:
+    # N’autorise que les URLs présentes dans les installations déclarées
+    try:
+        wl = { (i.get("guest_url") or "").rstrip("/") for i in load_installations() }
+        return (raw_url or "").rstrip("/") in wl or (raw_url or "") == ""
+    except Exception:
+        return False
+
+def _guest_join(raw_base: str, suffix: str) -> str:
+    """
+    Compose une URL finale robuste :
+    - raw_base peut être .../guest/<token> ou .../guest
+    - suffix commence par '/' (ex: '/guest_api/info' ou '/camera/snapshot')
+    - évite les doubles slashes
+    """
+    if not raw_base:
+        return suffix  # cas local
+    base = raw_base.rstrip("/")
+    p = urlparse(base)
+    path = p.path
+    if not path.endswith("/guest") and "/guest/" not in path:
+        path = path.rstrip("/") + "/guest"  # compat si l'entrée est ancienne
+    path = path.rstrip("/") + suffix
+    return urlunparse(p._replace(path=path))
+
+@app.get("/api/remote/guest_info")
+def api_remote_guest_info():
+    raw = request.args.get("u", "")
+    if not _is_whitelisted_guest_url(raw):
+        abort(403, description="Guest URL not allowed")
+
+    # Local → retourne l’info locale directement
+    if raw == "":
+        return guest_api_info()
+
+    url = _guest_join(raw, "/guest_api/info")
+    try:
+        r = requests.get(url, timeout=5)
+        r.raise_for_status()
+        return jsonify(r.json())
+    except requests.RequestException as e:
+        return jsonify({"error": str(e), "print_name": None, "thumbnail": None, "progress": 0}), 502
+
+@app.get("/api/remote/snapshot")
+def api_remote_snapshot():
+    raw = request.args.get("u", "")
+    if not _is_whitelisted_guest_url(raw):
+        abort(403, description="Guest URL not allowed")
+
+    # Local → redirige vers notre endpoint existant
+    if raw == "":
+        # cache-busting paramètre
+        return redirect(url_for("camera_snapshot", _=int(time.time()*1000)))
+
+    url = _guest_join(raw, "/camera/snapshot")
+    # cache-busting
+    sep = "&" if "?" in url else "?"
+    url = f"{url}{sep}_={int(time.time()*1000)}"
+    try:
+        r = requests.get(url, timeout=6, stream=True)
+        r.raise_for_status()
+        return Response(r.content, mimetype="image/jpeg")
+    except requests.RequestException as e:
+        abort(502, description=str(e))
+
 
 app.register_blueprint(auth_bp)

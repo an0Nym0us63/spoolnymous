@@ -1,75 +1,67 @@
 {% extends "base.html" %}
-
 {% block content %}
-<h1>Vue d'ensemble des installations</h1>
-
 <div class="tile-container">
+  <!-- Tuile locale en premier -->
+  <div class="tile" id="tile-local">
+    <div class="tile-header"><strong>Cette installation</strong></div>
+    <img class="snapshot" id="snapshot-local" src="" alt="Snapshot">
+    <div class="print-info">
+      <div id="print-name-local">...</div>
+      <div id="progress-local">...</div>
+    </div>
+  </div>
+
   {% for install in installations %}
-    <div class="tile" id="tile-{{ install.id }}">
-      <div class="tile-header">
-        <strong>{{ install.label }}</strong>
-      </div>
-      <div class="tile-body">
-        <img class="snapshot" id="snapshot-{{ install.id }}" src="{{ install.guest_url }}/snapshot.jpg" alt="Snapshot" />
-        <div class="print-info">
-          <div id="print-name-{{ install.id }}">...</div>
-          <div id="progress-{{ install.id }}">...</div>
-        </div>
+    <div class="tile" id="tile-{{ install.id }}" data-guest-url="{{ install.guest_url }}">
+      <div class="tile-header"><strong>{{ install.label or ('Installation #' ~ install.id) }}</strong></div>
+      <img class="snapshot" id="snapshot-{{ install.id }}" src="" alt="Snapshot">
+      <div class="print-info">
+        <div id="print-name-{{ install.id }}">...</div>
+        <div id="progress-{{ install.id }}">...</div>
       </div>
     </div>
   {% endfor %}
 </div>
 
-<style>
-  .tile-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-  }
-  .tile {
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 12px;
-    width: 320px;
-  }
-  .snapshot {
-    width: 100%;
-    border-radius: 4px;
-    margin-bottom: 8px;
-  }
-  .thumbnail {
-    width: 100%;
-    max-height: 120px;
-    object-fit: contain;
-    margin-top: 8px;
-  }
-</style>
-
 <script>
-  const installations = {{ installations | tojson }};
-
-  function updateTile(install) {
-    const url = install.guest_url + "/guest_api/info";
-    fetch(url)
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("print-name-" + install.id).innerText = data.print_name || "(aucun print)";
-        document.getElementById("thumbnail-" + install.id).src = data.thumbnail || "";
-        document.getElementById("progress-" + install.id).innerText = `Avancement : ${data.progress || 0}%`;
-      })
-      .catch(err => {
-        document.getElementById("print-name-" + install.id).innerText = "(erreur)";
-        document.getElementById("thumbnail-" + install.id).src = "";
-        document.getElementById("progress-" + install.id).innerText = "";
+  function updateTile(tileKey, guestUrl) {
+    const q = encodeURIComponent(guestUrl || "");
+    fetch(`/api/remote/guest_info?u=${q}`)
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById(`print-name-${tileKey}`).innerText = d.print_name || "(aucun print)";
+        document.getElementById(`thumbnail-${tileKey}`).src = d.thumbnail || "";
+        document.getElementById(`progress-${tileKey}`).innerText = `Avancement : ${d.progress ?? 0}%`;
+      }).catch(() => {
+        document.getElementById(`print-name-${tileKey}`).innerText = "(erreur)";
+        document.getElementById(`thumbnail-${tileKey}`).src = "";
+        document.getElementById(`progress-${tileKey}`).innerText = "";
       });
 
-    const snapshot = document.getElementById("snapshot-" + install.id);
-    snapshot.src = install.guest_url + "/snapshot.jpg?ts=" + Date.now();
+    document.getElementById(`snapshot-${tileKey}`).src = `/api/remote/snapshot?u=${q}&_=${Date.now()}`;
   }
 
-  installations.forEach(install => {
-    updateTile(install);
-    setInterval(() => updateTile(install), 1000);
-  });
+  // Local en premier
+  updateTile("local", "");
+
+  // Distantes
+  {% for install in installations %}
+    updateTile("{{ install.id }}", "{{ install.guest_url }}");
+  {% endfor %}
+
+  setInterval(() => {
+    updateTile("local", "");
+    {% for install in installations %}
+      updateTile("{{ install.id }}", "{{ install.guest_url }}");
+    {% endfor %}
+  }, 1000);
 </script>
+
+<style>
+  .tile-container { display:flex; gap:16px; flex-wrap:wrap; }
+  .tile { border:1px solid #ccc; border-radius:8px; padding:12px; width:320px; }
+  .snapshot { width:100%; border-radius:4px; margin-bottom:8px; }
+  .thumbnail { width:100%; max-height:120px; object-fit:contain; margin-top:8px; }
+</style>
 {% endblock %}
+
