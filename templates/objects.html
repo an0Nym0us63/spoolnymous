@@ -189,17 +189,15 @@
         </div>
 
         {# DROITE — visuel du dernier print #}
-        <div class="position-relative">
-          {% if g.preview_thumb %}
-            <img src="{{ g.preview_thumb }}" alt="preview" class="rounded border"
-                 style="width:72px;height:72px;object-fit:cover;">
-          {% else %}
-            <div class="rounded bg-light d-flex align-items-center justify-content-center border"
-                 style="width:72px;height:72px;">
-              <i class="bi bi-image text-muted"></i>
-            </div>
-          {% endif %}
-        </div>
+		<div class="text-end flex-shrink-0">
+  <div class="thumb position-relative" style="--thumb-size: 48px;">
+    {% if g.preview_thumb %}
+      <img src="{{ g.preview_thumb }}" alt="" class="thumb-img">
+    {% else %}
+      <div class="thumb-ph" title="Aucune image"></div>
+    {% endif %}
+  </div>
+</div>
       </div>
     </div>
 
@@ -207,27 +205,12 @@
     <div id="group_body_{{ g.id }}" class="collapse" data-bs-parent="">
       <div class="card-body p-0">
         {% if g.objects and g.objects|length > 0 %}
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Objet</th>
-                  <th>État</th>
-                  <th>Prix</th>
-                  <th>Créé</th>
-                  <th class="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
                 {% for o in g.objects %}
                   {% set _obj_accessories = obj_accessories if obj_accessories is defined else {} %}
                   {% set _obj_tags = obj_tags if obj_tags is defined else {} %}
                   {% set _args = args if args is defined else {} %}
                   {% include 'fragments/object_row.html' %}
                 {% endfor %}
-              </tbody>
-            </table>
-          </div>
         {% else %}
           <div class="p-3 text-muted">Aucun objet (selon les filtres).</div>
         {% endif %}
