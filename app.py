@@ -2406,17 +2406,41 @@ def api_remote_guest_info():
     if not _is_whitelisted_guest_url(raw):
         abort(403, description="Guest URL not allowed")
 
-    # Local → retourne l’info locale directement
-    if raw == "":
-        return guest_api_info()
+    def _map_status_to_overview(d: dict) -> dict:
+        # d = payload de /printer_status
+        # Champs robustes (différents chemins possibles dans l’état)
+        name = d.get("printName") or d.get("print_name") or d.get("file_name")
+        thumb = d.get("thumbnail") or d.get("thumbnail_path") or (d.get("latest_print") or {}).get("thumbnail_path")
+        prog = d.get("progress") or (d.get("printer") or {}).get("progress")
+        try:
+            prog = int(prog) if prog is not None else 0
+        except (TypeError, ValueError):
+            prog = 0
+        return {"print_name": name, "thumbnail": thumb, "progress": prog}
 
-    url = _guest_join(raw, "/guest_api/info")
+    # ----- LOCAL : on réutilise la route existante /printer_status -----
+    if raw == "":
+        # appelle la fonction Flask locale sans HTTP
+        resp = api_printer_status()  # renvoie un Response
+        if hasattr(resp, "json"):
+            data = resp.json
+        else:
+            # compat si resp est un tuple (payload, code) ou autre
+            from flask import jsonify
+            data = resp[0].json if isinstance(resp, tuple) else resp.get_json()
+        return jsonify(_map_status_to_overview(data))
+
+    # ----- DISTANT : on tape /guest/<token>/printer_status -----
+    url = _guest_join(raw, "/printer_status")
     try:
         r = requests.get(url, timeout=5)
         r.raise_for_status()
-        return jsonify(r.json())
+        data = r.json()
     except requests.RequestException as e:
         return jsonify({"error": str(e), "print_name": None, "thumbnail": None, "progress": 0}), 502
+
+    return jsonify(_map_status_to_overview(data))
+
 
 @app.get("/api/remote/snapshot")
 def api_remote_snapshot():
