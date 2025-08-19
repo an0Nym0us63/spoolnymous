@@ -56,6 +56,9 @@
   background-color: #e9d8fd !important; /* violet clair */
   color: #4b0082 !important; /* indigo foncé pour le texte */
 }
+.text-purple {
+  color: #6f42c1 !important;
+}
 </style>
 <!-- Boutons flottants (identiques au reste) -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
@@ -94,7 +97,7 @@
   <div class="col">
     <div class="card border border-secondary-subtle shadow-sm h-100">
       <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
-        <div class="fs-5 fs-md-4">👤</div>
+        <div class="fs-5 fs-md-4">🏠</div>
         <div class="small fw-bold">{{ personal_count }}</div>
       </div>
     </div>
@@ -153,7 +156,7 @@
       {% if o.sold_price is not none %}
         {% if o.sold_price == 0 %}
 			 {% if o.personal %}
-				<i class="bi bi-person-fill text-purple" title="Objet personnel"></i>
+				<i class="bi bi-house-door-fill text-purple" title="Objet personnel"></i>
 			{% else %}
 				<i class="bi bi-gift-fill text-info" title="Offert"></i>
 			{% endif %}
@@ -200,7 +203,7 @@
     {% if o.sold_price is not none %}
       {% if o.sold_price == 0 %}
 		 {% if o.personal %}
-			<span class="badge rounded-pill bg-purple text-white border fw-normal" style="font-size: 0.65rem; padding: 0.2em 0.45em;">👤 Perso</span>
+			<span class="badge rounded-pill bg-purple text-white border fw-normal" style="font-size: 0.65rem; padding: 0.2em 0.45em;">🏠 Perso</span>
 			{% else %}
       <span class="badge rounded-pill bg-info text-dark border fw-normal" style="font-size: 0.65rem; padding: 0.2em 0.45em;">🎁 Offert</span>
 	  {% endif %}
