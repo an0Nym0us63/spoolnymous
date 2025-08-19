@@ -114,7 +114,7 @@ $(document).ready(function () {
                     inputTooShort: () => "Commencez à taper pour chercher ou créer…"
                 },
                 ajax: {
-                    url: 'api_object_groups_search',
+                    url: '/api/object_groups/search',
                     dataType: 'json',
                     delay: 250,
                     data: params => ({ q: params.term }),
@@ -230,7 +230,8 @@ if (name === 'status') {
         if ($select.hasClass('select2-hidden-accessible')) {
             $select.select2('destroy');
         }
-
+		const isObject = $select.hasClass('select2-ajax-object');
+		const ajaxUrl  = isObject ? '/api/object_groups/search' : '/api/groups/search';
         $select.select2({
             width: '100%',
             tags: true,
@@ -241,7 +242,7 @@ if (name === 'status') {
                 inputTooShort: () => "Commencez à taper pour chercher ou créer…"
             },
             ajax: {
-                url: '/api/groups/search',
+                url: ajaxUrl,
                 dataType: 'json',
                 delay: 250,
                 data: params => ({ q: params.term }),
