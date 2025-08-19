@@ -165,10 +165,13 @@
       aria-controls="group_body_{{ g.id }}"
     >
       <div class="obj-grid">
-        {# GAUCHE — icône groupe #}
-        <div class="d-flex align-items-center justify-content-center rounded bg-light" style="width:48px;height:48px;">
-          <i class="bi bi-{{ g.icon or 'collection' }}"></i>
-        </div>
+        {# GAUCHE — statut groupe: icône dossier + pastille nombre d’objets #}
+<div class="obj-status d-flex align-items-center justify-content-start me-1 flex-shrink-0">
+  <div class="group-icon" title="Groupe">
+    <i class="bi bi-folder-fill text-purple" aria-hidden="true"></i>
+    <span class="badge group-count-badge bg-purple">{{ g.total }}</span>
+  </div>
+</div>
 
         {# CENTRE — titre + chips #}
         <div class="obj-main">
