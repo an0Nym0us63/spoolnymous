@@ -1492,6 +1492,23 @@ def api_groups_search():
             label = f"{group['name']} (créé le {created_at_fmt})"
             results.append({"id": group["id"], "text": label})
     return jsonify({"results": results})
+
+@app.route("/api/object_groups/search")
+def api_object_groups_search():
+    q = request.args.get("q", "").strip()
+    groups = get_print_groups()
+    results = []
+    for group in groups:
+        if q.lower() in group["name"].lower():
+            created_at_str = group.get("created_at")
+            try:
+                created_at = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
+                created_at_fmt = created_at.strftime('%d/%m/%Y %H:%M')
+            except Exception:
+                created_at_fmt = created_at_str or "?"
+            label = f"{group['name']} (créé le {created_at_fmt})"
+            results.append({"id": group["id"], "text": label})
+    return jsonify({"results": results})
     
 @app.route('/spool/<int:spool_id>/reajust', methods=['POST'])
 def reajust_spool_route(spool_id):
@@ -2274,12 +2291,6 @@ def accessories_rename_route(acc_id: int):
     rename_accessory(acc_id, new_name)  # fonction à créer dans accessories.py
     flash(f"Accessoire renommé en {new_name}", "success")
     return redirect_with_context("accessories_list", focus_acc_id=acc_id)
-
-@app.route("/api/object_groups/search")
-def api_object_groups_search():
-    q = request.args.get("q", "")
-    rows = search_object_groups(q, limit=10)
-    return jsonify(rows)
 
 @app.route("/objects/create_group", methods=["POST"])
 def objects_create_group():

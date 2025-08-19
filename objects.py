@@ -1462,6 +1462,22 @@ def search_object_groups(query: str, limit: int = 10) -> list[dict]:
     rows = [{"id": r[0], "name": r[1]} for r in cur.fetchall()]
     conn.close()
     return rows
+    
+def get_object_groups() -> list[dict]:
+    """
+    Retourne la liste complète des groupes existants avec tous leurs champs.
+    """
+    conn = sqlite3.connect(db_config["db_path"])
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT *
+        FROM object_groups
+        ORDER BY created_at DESC
+    """)
+    groups = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return groups
 
 def list_object_groups_with_counts(filters: dict) -> list[dict]:
     """
