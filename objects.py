@@ -1426,7 +1426,7 @@ def summarize_objects(filters: dict) -> ObjectsSummary:
     
 def create_object_group(name: str) -> int:
     conn = _connect(); cur = conn.cursor()
-    cur.execute("INSERT INTO object_groups(name) VALUES(?)", name.strip())
+    cur.execute("INSERT INTO object_groups(name) VALUES(?)", (name.strip(),))
     gid = cur.lastrowid
     conn.commit(); conn.close()
     return gid
