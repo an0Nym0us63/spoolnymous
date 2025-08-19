@@ -151,42 +151,60 @@
 
     {% for it in items %}
       {% if it.type == 'group' %}
-        {# ---- Rendu d'un GROUPE (card + table) ---- #}
-        {% set g = it.group %}
-        <div class="card shadow-sm">
-          <div class="card-header d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center gap-2">
-              <i class="bi bi-{{ g.icon if g.icon is defined and g.icon else 'collection' }}"></i>
-              <strong>{{ g.name }}</strong>
-              <span class="text-muted">
-                — {{ g.available or 0 }} dispo / {{ g.total or 0 }} au total
-              </span>
-            </div>
+  {% set g = it.group %}
+  <div class="card shadow-sm object-card"> {# ajoute la même classe que tes prints si tu en as une #}
+    <div class="card-body">
+      <div class="d-flex align-items-center justify-content-between gap-3">
+
+        {# GAUCHE : icône groupe (même gabarit que l’avatar des objets) #}
+        <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded bg-light" style="width:48px;height:48px;">
+          <i class="bi bi-{{ g.icon }}"></i>
+        </div>
+
+        {# CENTRE : nom + chips #}
+        <div class="flex-grow-1">
+          <div class="fw-semibold">
+            {{ g.name }}
           </div>
-          <div class="card-body p-0">
-            <div class="table-responsive">
-              <table class="table table-hover align-middle mb-0">
-                <thead>
-                  <tr>
-                    <th>Objet</th>
-                    <th>État</th>
-                    <th>Prix</th>
-                    <th>Créé</th>
-                    <th class="text-end">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for o in g.objects %}
-                    {% set _obj_accessories = obj_accessories if obj_accessories is defined else {} %}
-                    {% set _obj_tags = obj_tags if obj_tags is defined else {} %}
-                    {% set _args = args if args is defined else {} %}
-                    {% include 'fragments/object_row.html' %}
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
+          <div class="mt-1 d-flex flex-wrap gap-2">
+            <span class="badge rounded-pill text-bg-secondary">
+              ⛔ {{ g.unavailable }} / {{ g.total }}
+            </span>
+            <span class="badge rounded-pill text-bg-success">
+              💶 {{ (g.sum_sold_price) | round(2) }} {{ currencysymbol }}
+            </span>
+            <span class="badge rounded-pill {{ 'text-bg-success' if (g.sum_positive_margin) >= 0 else 'text-bg-danger' }}">
+              📈 {{ (g.sum_positive_margin) | round(2) }} {{ currencysymbol }}
+            </span>
           </div>
         </div>
+
+        {# DROITE : visuel du dernier print (même gabarit que l’aperçu d’un objet) #}
+        <div class="flex-shrink-0">
+          {% if g.preview_thumb %}
+            <img src="{{ g.preview_thumb }}" alt="preview" class="rounded" style="width:72px;height:72px;object-fit:cover;">
+          {% else %}
+            <div class="rounded bg-light d-flex align-items-center justify-content-center" style="width:72px;height:72px;">
+              <i class="bi bi-image text-muted"></i>
+            </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+
+    {# Tableau des objets du groupe (inchangé) #}
+    <div class="card-footer p-0">
+      
+            {% for o in g.objects %}
+              {% set _obj_accessories = obj_accessories if obj_accessories is defined else {} %}
+              {% set _obj_tags = obj_tags if obj_tags is defined else {} %}
+              {% set _args = args if args is defined else {} %}
+              {% include 'fragments/object_row.html' %}
+            {% endfor %}
+    </div>
+  </div>
+{% else %}
 
       {% else %}
         {# ---- Rendu d'un PRINT isolé (mini-table 1 ligne pour réutiliser object_row) ---- #}

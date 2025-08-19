@@ -1857,15 +1857,52 @@ def objects_page():
             "object": o,
         })
 
-    # groupes (ignorés s'ils n'ont aucun objet après filtre)
+    def _row_keys(row):
+    try:
+        return set(row.keys())  # sqlite3.Row
+    except Exception:
+        return set(row.keys()) if hasattr(row, "keys") else set()
+
     for g in groups:
-        if not g.get("objects"):
-            continue
-        items.append({
-            "type": "group",
-            "created_at": g.get("newest_created_at") or "",
-            "group": g,
-        })
+        objs = g.get("objects") or []
+    
+        # Trier du plus récent au plus ancien (created_at est une ISO string ici)
+        objs_sorted = sorted(objs, key=lambda r: r["created_at"] or "", reverse=True)
+        g["objects"] = objs_sorted
+    
+        # Date du groupe = created_at du plus récent objet (ou "")
+        g["newest_created_at"] = objs_sorted[0]["created_at"] if objs_sorted else ""
+    
+        # Compteurs
+        total = len(objs_sorted)
+        available = sum(1 for r in objs_sorted if int(r["available"] or 0) == 1)
+        g["total"] = total
+        g["available"] = available
+        g["unavailable"] = total - available
+    
+        # Somme des ventes (même logique que summarize_objects : sold_price IS NOT NULL)
+        sum_sold = 0.0
+        for r in objs_sorted:
+            sp = r["sold_price"]
+            if sp is not None:
+                sum_sold += float(sp or 0.0)
+        g["sum_sold_price"] = sum_sold
+    
+        # Somme des marges POSITIVES sur les ventes (sold_price > 0), en utilisant la colonne "margin"
+        sum_pos_margin = 0.0
+        for r in objs_sorted:
+            sp = r["sold_price"]
+            if sp is not None and float(sp) > 0:
+                mg = r["margin"]  # existe (ALTER dans ensure_schema)
+                if mg is not None and float(mg) > 0:
+                    sum_pos_margin += float(mg)
+        g["sum_positive_margin"] = sum_pos_margin
+    
+        # Preview = thumbnail de l'objet le plus récent (si présent)
+        g["preview_thumb"] = objs_sorted[0]["thumbnail"] if objs_sorted and objs_sorted[0]["thumbnail"] else None
+    
+        # Icône de groupe (fixe et explicite)
+        g["icon"] = "collection"
 
     # 6) Tri décroissant par date (ISO string OK ; fallback "" géré ci-dessus)
     items.sort(key=lambda it: it["created_at"], reverse=True)
