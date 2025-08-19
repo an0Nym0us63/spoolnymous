@@ -1857,12 +1857,6 @@ def objects_page():
             "object": o,
         })
 
-    def _row_keys(row):
-    try:
-        return set(row.keys())  # sqlite3.Row
-    except Exception:
-        return set(row.keys()) if hasattr(row, "keys") else set()
-
     for g in groups:
         objs = g.get("objects") or []
     
