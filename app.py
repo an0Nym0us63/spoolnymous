@@ -2425,8 +2425,6 @@ def api_remote_guest_info():
         if hasattr(resp, "json"):
             data = resp.json
         else:
-            # compat si resp est un tuple (payload, code) ou autre
-            from flask import jsonify
             data = resp[0].json if isinstance(resp, tuple) else resp.get_json()
         return jsonify(_map_status_to_overview(data))
 
