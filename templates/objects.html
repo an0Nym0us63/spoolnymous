@@ -86,6 +86,14 @@
   <div class="col">
     <div class="card border border-secondary-subtle shadow-sm h-100">
       <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">👤</div>
+        <div class="small fw-bold">{{ personal_count }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="card border border-secondary-subtle shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
         <div class="fs-5 fs-md-4">🎁</div>
         <div class="small fw-bold">{{ gifted_count }}</div>
       </div>
@@ -136,7 +144,11 @@
     <div class="obj-status d-flex align-items-center justify-content-start me-1 flex-shrink-0">
       {% if o.sold_price is not none %}
         {% if o.sold_price == 0 %}
-          <i class="bi bi-gift-fill text-info" title="Offert"></i>
+			 {% if o.personal %}
+				<i class="bi bi-person-fill text-secondary" title="Objet personnel"></i>
+			{% else %}
+				<i class="bi bi-gift-fill text-info" title="Offert"></i>
+			{% endif %}
         {% else %}
           <i class="bi bi-bag-check-fill text-success" title="Vendu"></i>
         {% endif %}
@@ -154,7 +166,12 @@
   <div class="w-100" style="max-width: 200px;">
     {% if o.sold_price is not none %}
       {% if o.sold_price == 0 %}
-        <div class="badge bg-info text-dark small fw-semibold text-break w-100" style="white-space: normal; word-break: break-word;">{{ o.name }}</div>
+		{% if o.personal %}
+		<div class="badge bg-secondary text-dark small fw-semibold text-break w-100" style="white-space: normal; word-break: break-word;">{{ o.name }}</div>
+    {% else %}
+      <div class="badge bg-info text-dark small fw-semibold text-break w-100" style="white-space: normal; word-break: break-word;">{{ o.name }}</div>
+    {% endif %}
+        
       {% else %}
         <div class="badge bg-success text-white small fw-semibold text-break w-100" style="white-space: normal; word-break: break-word;">{{ o.name }}</div>
       {% endif %}
@@ -174,7 +191,10 @@
 
     {% if o.sold_price is not none %}
       {% if o.sold_price == 0 %}
-        <span class="badge rounded-pill bg-info text-dark border fw-normal" style="font-size: 0.65rem; padding: 0.2em 0.45em;">🎁 Offert</span>
+		 {% if o.personal %}
+      <span class="badge rounded-pill bg-secondary text-white border fw-normal" style="font-size: 0.65rem; padding: 0.2em 0.45em;">👤 Perso</span>
+    {% else %}
+      <span class="badge rounded-pill bg-info text-dark border fw-normal" style="font-size: 0.65rem; padding: 0.2em 0.45em;">🎁 Offert</span>
       {% else %}
         <span class="badge rounded-pill bg-primary text-white border fw-normal" style="font-size: 0.65rem; padding: 0.2em 0.45em;">
           💰 {{ "%.2f"|format(o.sold_price) }} {{ currencysymbol or '€' }}
@@ -488,7 +508,18 @@
           </div>
           <div class="form-text">Mettre <strong>0</strong> pour un don / cadeau.</div>
         </div>
-
+		<div class="form-check mt-2">
+  <input class="form-check-input"
+         type="checkbox"
+         id="sold_personal_{{ o.id }}"
+         name="sold_personal"
+         value="1"
+         {% if o.sold_price == 0 and o.personal %}checked{% endif %}>
+  <label class="form-check-label" for="sold_personal_{{ o.id }}">
+    Objet personnel (non offert)
+  </label>
+  <div class="form-text">Activable uniquement si le prix est 0.</div>
+</div>
         <div class="mb-3">
           <label class="form-label">Date de vente</label>
           <input type="date" name="sold_date" class="form-control"
@@ -568,8 +599,9 @@
         {% endif %}
       {% endif %}
       <option value="" {{ '' == curr_sale and 'selected' or '' }}>Tous</option>
-      <option value="vendus" {{ 'vendus' == curr_sale and 'selected' or '' }}>Vendus</option>
       <option value="dispo"  {{ 'dispo'  == curr_sale and 'selected' or '' }}>Disponibles</option>
+      <option value="perso"  {{ 'perso'  == curr_sale and 'selected' or '' }}>Perso</option>
+      <option value="vendus" {{ 'vendus' == curr_sale and 'selected' or '' }}>Vendus</option>
       <option value="offert" {{ 'offert' == curr_sale and 'selected' or '' }}>Offerts</option>
     </select>
   </div>
@@ -622,15 +654,35 @@
 
 {% block scripts %}
 <script>
- document.addEventListener('shown.bs.modal', function (e) {
-    const modal = e.target;
-    if (!modal.id || !modal.id.startsWith('sellModal_')) return;
-    const input = modal.querySelector('input[name="sold_date"]');
-    if (input && !input.value) {
-      const today = new Date().toISOString().slice(0, 10);
-      input.value = today;
+document.addEventListener('shown.bs.modal', function (e) {
+  const modal = e.target;
+  if (!modal.id || !modal.id.startsWith('sellModal_')) return;
+
+  const priceInput = modal.querySelector('input[name="sold_price"]');
+  const personalCb = modal.querySelector('input[name="sold_personal"]');
+
+  const setPersonalEnabled = () => {
+    const v = (priceInput?.value || "").trim();
+    // Vide => route interprète 0.0 ⇒ on autorise la case
+    const num = v === "" ? 0 : Number(v);
+    const enable = !Number.isNaN(num) && num === 0;
+    if (personalCb) {
+      personalCb.disabled = !enable;
+      if (!enable) personalCb.checked = false;
     }
-  });
+  };
+
+  // init
+  setPersonalEnabled();
+  priceInput?.addEventListener('input', setPersonalEnabled);
+
+  // logique existante de date par défaut (on la laisse)
+  const inputDate = modal.querySelector('input[name="sold_date"]');
+  if (inputDate && !inputDate.value) {
+    const today = new Date().toISOString().slice(0, 10);
+    inputDate.value = today;
+  }
+});
   // Smooth scroll quand on ouvre un item, même logique que tes autres pages
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".card-header[data-bs-toggle='collapse']").forEach(header => {

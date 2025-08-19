@@ -8,7 +8,8 @@ from print_history import db_config
 
 def _normalize_sale_filter(filters: dict) -> str:
     """
-    Harmonise la valeur du filtre 'Vente' en une des valeurs: 'vendus' | 'dispo' | 'offert' | ''.
+    Harmonise la valeur du filtre 'Vente' en une des valeurs:
+      'vendus' | 'dispo' | 'offert' | 'perso' | ''.
     Rétro-compatibilité:
       - sold_filter=yes  -> 'vendus'
       - available=yes    -> 'dispo'
@@ -18,19 +19,12 @@ def _normalize_sale_filter(filters: dict) -> str:
     val = (filters.get("sale_filter") or "").strip().lower()
 
     if not val:
-        # rétro-compat
         sf = (filters.get("sold_filter") or "").strip().lower()
         av = (filters.get("available") or "").strip().lower()
-        if sf == "yes":
-            val = "vendus"
-        elif av == "yes":
-            val = "dispo"
-        elif sf == "no":
-            val = ""
-        elif av == "no":
-            val = ""
-        else:
-            val = ""
+        if sf == "yes": val = "vendus"
+        elif av == "yes": val = "dispo"
+        elif sf == "no" or av == "no": val = ""
+        else: val = ""
 
     # alias tolérés
     if val in ("sold", "payes", "payés"):
@@ -39,6 +33,8 @@ def _normalize_sale_filter(filters: dict) -> str:
         val = "dispo"
     if val in ("gifted", "don", "dons"):
         val = "offert"
+    if val in ("perso", "personnel", "personnels", "personal"):
+        val = "perso"
 
     return val
 
@@ -66,7 +62,9 @@ def _build_objects_where(filters: dict):
     elif sale == "dispo":
         clauses.append("available = 1")
     elif sale == "offert":
-        clauses.append("sold_price = 0")
+        clauses.append("(sold_price = 0 AND personal = 0)")
+    elif sale == "perso":
+        clauses.append("(sold_price = 0 AND personal = 1)")
 
     where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
     return where, tuple(params)
@@ -126,6 +124,8 @@ def ensure_schema() -> None:
         cur.execute("ALTER TABLE objects ADD COLUMN translated_name TEXT")
     if "normal_cost_unit" not in cols:
         cur.execute("ALTER TABLE objects ADD COLUMN normal_cost_unit REAL")
+    if "personal" not in cols:
+        cur.execute("ALTER TABLE objects ADD COLUMN personal INTEGER NOT NULL DEFAULT 0")
     cur.execute("""
     UPDATE objects
     SET normal_cost_unit = COALESCE(
@@ -1211,42 +1211,36 @@ def delete_object(object_id: int) -> None:
     conn.commit()
     conn.close()
 
-def update_object_sale(object_id: int, sold_price: float, sold_date: str, comment: Optional[str]) -> None:
+def update_object_sale(object_id: int, sold_price: float, sold_date: str, comment: Optional[str], sold_personal: bool = False) -> None:
     """
-    Enregistre la vente / le don d'un objet.
-
-    Paramètres :
-      - object_id   : ID de l'objet (ligne dans la table `objects`)
-      - sold_price  : prix de vente >= 0 (0 = don/cadeau)
-      - sold_date   : date ou datetime ISO (ex. '2025-08-14' ou '2025-08-14T10:20:30')
-      - comment     : commentaire optionnel (None pour ne rien mettre)
-
+    Enregistre la vente / don d'un objet.
+      - sold_price >= 0, 0 = don ou personnel (selon sold_personal)
+      - sold_personal True => objet personnel (uniquement si sold_price == 0)
     Effets :
-      - marque l'objet comme indisponible (available = 0)
-      - met à jour les champs sold_price, sold_date, comment
-      - met à jour updated_at = datetime('now')
+      - available = 0
+      - sold_price, sold_date, personal, comment, updated_at
     """
-    conn = _connect()
-    cur = conn.cursor()
+    conn = _connect(); cur = conn.cursor()
+
+    personal_val = 1 if (sold_price == 0 and sold_personal) else 0
+
     cur.execute(
         """
         UPDATE objects
            SET sold_price = ?,
                sold_date  = ?,
+               personal   = ?,
                comment    = ?,
                available  = 0,
                updated_at = datetime('now')
          WHERE id = ?
         """,
-        (sold_price, sold_date, comment, object_id),
+        (sold_price, sold_date, personal_val, comment, object_id),
     )
     if cur.rowcount == 0:
-        conn.rollback()
-        conn.close()
+        conn.rollback(); conn.close()
         raise ValueError(f"Objet introuvable (id={object_id})")
-
-    conn.commit()
-    conn.close()
+    conn.commit(); conn.close()
 
 def clear_object_sale(object_id: int) -> None:
     """
@@ -1261,12 +1255,12 @@ def clear_object_sale(object_id: int) -> None:
     cur.execute(
         """
         UPDATE objects
-           SET sold_price = NULL,
-               sold_date  = NULL,
-               available  = 1,
-               comment = NULL,
-               updated_at = datetime('now')
-         WHERE id = ?
+            SET sold_price = NULL,
+                sold_date  = NULL,
+                personal   = 0,
+                available  = 1,
+                updated_at = datetime('now')
+        WHERE id = ?
         """,
         (object_id,),
     )
@@ -1304,10 +1298,10 @@ class ObjectsSummary(TypedDict):
     total_objects: int
     sold_count: int
     available_count: int
-    gifted_count: int
+    gifted_count: int      # sold_price = 0 AND personal = 0
+    personal_count: int    # sold_price = 0 AND personal = 1
     sum_sold_price: float
     sum_positive_margin: float
-
 
 def summarize_objects(filters: dict) -> ObjectsSummary:
     """
@@ -1330,9 +1324,13 @@ def summarize_objects(filters: dict) -> ObjectsSummary:
     cur.execute(f"SELECT COUNT(*) FROM objects {_extend_where(where, 'available = 1')}", params)
     available_count = int(cur.fetchone()[0])
 
-    # Offerts
-    cur.execute(f"SELECT COUNT(*) FROM objects {_extend_where(where, 'sold_price = 0')}", params)
+    # Offerts (=0 & personal=0)
+    cur.execute(f"SELECT COUNT(*) FROM objects {_extend_where(where, '(sold_price = 0 AND personal = 0)')}", params)
     gifted_count = int(cur.fetchone()[0])
+
+    # Perso (=0 & personal=1)
+    cur.execute(f"SELECT COUNT(*) FROM objects {_extend_where(where, '(sold_price = 0 AND personal = 1)')}", params)
+    personal_count = int(cur.fetchone()[0])
 
     # Somme des prix de vente (NULL exclus, inclut 0 et >0)
     cur.execute(f"""
@@ -1369,6 +1367,7 @@ def summarize_objects(filters: dict) -> ObjectsSummary:
         sold_count=sold_count,
         available_count=available_count,
         gifted_count=gifted_count,
+        personal_count=personal_count,
         sum_sold_price=sum_sold_price,
         sum_positive_margin=sum_positive_margin,
     )

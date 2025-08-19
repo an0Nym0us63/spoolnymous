@@ -1855,6 +1855,7 @@ def objects_page():
         sold_count=summary["sold_count"],
         available_count=summary["available_count"],
         gifted_count=summary["gifted_count"],
+        personal_count=summary["personal_count"],
         sum_sold_price=summary["sum_sold_price"],
         sum_positive_margin=summary["sum_positive_margin"],
     )
@@ -1892,6 +1893,9 @@ def objects_sell(object_id: int):
         flash("Le prix ne peut pas être négatif.", "danger")
         return redirect_with_context("objects_page", focus_object_id=object_id)
 
+    sold_personal = False
+    if price == 0:
+        sold_personal = (request.form.get("sold_personal") == "1")
     sold_date = raw_date or date.today().isoformat()
 
     try:
@@ -1900,6 +1904,7 @@ def objects_sell(object_id: int):
             sold_price=price,
             sold_date=sold_date,
             comment=comment,
+            sold_personal=sold_personal,
         )
     except Exception as e:
         logger.error(f"[objects_sell][ERROR] {e}")
