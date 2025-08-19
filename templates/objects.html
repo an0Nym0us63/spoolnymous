@@ -145,7 +145,7 @@
 {% if groups %}
   <h6 class="text-muted mt-3 mb-2">Groupes</h6>
   {% for g in groups %}
-    {{ render_object_group_card(g,obj_accessories={}) }}
+    {{ render_object_group_card(g) }}
   {% endfor %}
 {% endif %}
 <div class="accordion" id="objectsAccordion">

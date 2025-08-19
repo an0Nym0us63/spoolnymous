@@ -1833,8 +1833,10 @@ def objects_page():
 
     # Tags des objets (batch)
     ids = [r["id"] for r in rows]
-    obj_tags = get_tags_for_objects(ids) if ids else {}
-    obj_accessories = {oid: list_object_accessories(oid) for oid in ids} if ids else {}
+    group_obj_ids = [o["id"] for g in groups for o in g.get("objects", [])] 
+    all_ids = list({*ids, *group_obj_ids})
+    obj_accessories = {oid: list_object_accessories(oid) for oid in all_ids} if all_ids else {}
+    obj_tags = get_tags_for_objects(all_ids) if all_ids else {}
 
     # Devise (comme print_history)
     spoolman_settings = getSettings(cached=True)
