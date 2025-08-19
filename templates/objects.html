@@ -209,17 +209,23 @@
       📦 {{ g.unavailable }} / {{ g.total }}
     </span>
 
-    <span class="badge rounded-pill bg-primary text-white border fw-normal" 
-          style="font-size: 0.65rem; padding: 0.2em 0.45em;">
-      💶 {{ "%.2f"|format(g.sum_sold_price or 0) }} {{ currencysymbol }}
-    </span>
+    {% set _sold = g.sum_sold_price or 0 %}
+{% set _margin = g.sum_positive_margin or 0 %}
+{% set _pos = _margin >= 0 %}
 
-    {% set _margin = g.sum_positive_margin or 0 %}
-    {% set _pos = _margin >= 0 %}
-    <span class="badge rounded-pill {{ 'bg-success text-white' if _pos else 'bg-danger text-white' }} border fw-normal" 
-          style="font-size: 0.65rem; padding: 0.2em 0.45em;">
-      {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol }}
-    </span>
+{% if _sold != 0 %}
+  <span class="badge rounded-pill bg-primary text-white border fw-normal" 
+        style="font-size: 0.65rem; padding: 0.2em 0.45em;">
+    💶 {{ "%.2f"|format(_sold) }} {{ currencysymbol }}
+  </span>
+{% endif %}
+
+{% if _margin != 0 %}
+  <span class="badge rounded-pill {{ 'bg-success text-white' if _pos else 'bg-danger text-white' }} border fw-normal" 
+        style="font-size: 0.65rem; padding: 0.2em 0.45em;">
+    {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol }}
+  </span>
+{% endif %}
   </div>
 </div>
 
@@ -631,5 +637,12 @@ document.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(scrollToCard);
   }
 });
+$(document).on('select2:open', function (e) {
+    // Petite latence pour laisser le DOM du dropdown se rendre
+    setTimeout(function () {
+      const input = document.querySelector('.select2-container--open .select2-search__field');
+      if (input) input.focus();
+    }, 0);
+  });
 </script>
 {% endblock %}
