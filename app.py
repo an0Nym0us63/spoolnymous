@@ -2309,7 +2309,7 @@ def objects_create_group():
 def objects_assign_to_group():
     # mêmes noms que la modale prints
     object_id = request.form.get("object_id", type=int)
-    gid_or_name = request.form.get("group_id_or_name", "").strip()
+    gid_or_name = request.form.get("objgroup_id_or_name", "").strip()
 
     if not object_id or not gid_or_name:
         flash("Objet ou groupe manquant.", "warning")
