@@ -152,56 +152,86 @@
     {% for it in items %}
       {% if it.type == 'group' %}
   {% set g = it.group %}
-  <div class="card shadow-sm object-card"> {# ajoute la même classe que tes prints si tu en as une #}
-    <div class="card-body">
-      <div class="d-flex align-items-center justify-content-between gap-3">
 
-        {# GAUCHE : icône groupe (même gabarit que l’avatar des objets) #}
-        <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded bg-light" style="width:48px;height:48px;">
-          <i class="bi bi-{{ g.icon }}"></i>
+  <div class="card shadow-sm object-card" id="group_{{ g.id }}">
+    {# === HEADER COLLAPSABLE identique aux objets === #}
+    <div
+      id="heading_group_{{ g.id }}"
+      class="card-header obj-hdr"
+      role="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#group_body_{{ g.id }}"
+      aria-expanded="false"
+      aria-controls="group_body_{{ g.id }}"
+    >
+      <div class="obj-grid">
+        {# GAUCHE — icône groupe #}
+        <div class="d-flex align-items-center justify-content-center rounded bg-light" style="width:48px;height:48px;">
+          <i class="bi bi-{{ g.icon or 'collection' }}"></i>
         </div>
 
-        {# CENTRE : nom + chips #}
-        <div class="flex-grow-1">
-          <div class="fw-semibold">
+        {# CENTRE — titre + chips #}
+        <div class="obj-main">
+          <div class="title-badge text-truncate">
             {{ g.name }}
           </div>
-          <div class="mt-1 d-flex flex-wrap gap-2">
+          <div class="chips">
             <span class="badge rounded-pill text-bg-secondary">
               ⛔ {{ g.unavailable }} / {{ g.total }}
             </span>
             <span class="badge rounded-pill text-bg-success">
-              💶 {{ (g.sum_sold_price) | round(2) }} {{ currencysymbol }}
+              💶 {{ (g.sum_sold_price)|round(2) }} {{ currencysymbol }}
             </span>
             <span class="badge rounded-pill {{ 'text-bg-success' if (g.sum_positive_margin) >= 0 else 'text-bg-danger' }}">
-              📈 {{ (g.sum_positive_margin) | round(2) }} {{ currencysymbol }}
+              📈 {{ (g.sum_positive_margin)|round(2) }} {{ currencysymbol }}
             </span>
           </div>
         </div>
 
-        {# DROITE : visuel du dernier print (même gabarit que l’aperçu d’un objet) #}
-        <div class="flex-shrink-0">
+        {# DROITE — visuel du dernier print #}
+        <div class="position-relative">
           {% if g.preview_thumb %}
-            <img src="{{ g.preview_thumb }}" alt="preview" class="rounded" style="width:72px;height:72px;object-fit:cover;">
+            <img src="{{ g.preview_thumb }}" alt="preview" class="rounded border"
+                 style="width:72px;height:72px;object-fit:cover;">
           {% else %}
-            <div class="rounded bg-light d-flex align-items-center justify-content-center" style="width:72px;height:72px;">
+            <div class="rounded bg-light d-flex align-items-center justify-content-center border"
+                 style="width:72px;height:72px;">
               <i class="bi bi-image text-muted"></i>
             </div>
           {% endif %}
         </div>
-
       </div>
     </div>
 
-    {# Tableau des objets du groupe (inchangé) #}
-    <div class="card-footer p-0">
-      
-            {% for o in g.objects %}
-              {% set _obj_accessories = obj_accessories if obj_accessories is defined else {} %}
-              {% set _obj_tags = obj_tags if obj_tags is defined else {} %}
-              {% set _args = args if args is defined else {} %}
-              {% include 'fragments/object_row.html' %}
-            {% endfor %}
+    {# === CORPS COLLAPSABLE : table des objets du groupe === #}
+    <div id="group_body_{{ g.id }}" class="collapse" data-bs-parent="">
+      <div class="card-body p-0">
+        {% if g.objects and g.objects|length > 0 %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Objet</th>
+                  <th>État</th>
+                  <th>Prix</th>
+                  <th>Créé</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for o in g.objects %}
+                  {% set _obj_accessories = obj_accessories if obj_accessories is defined else {} %}
+                  {% set _obj_tags = obj_tags if obj_tags is defined else {} %}
+                  {% set _args = args if args is defined else {} %}
+                  {% include 'fragments/object_row.html' %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="p-3 text-muted">Aucun objet (selon les filtres).</div>
+        {% endif %}
+      </div>
     </div>
   </div>
       {% else %}
