@@ -2358,20 +2358,18 @@ def installations_overview():
     others = load_installations()
     all_installations = [local] + others
 
-    return render_template("installations_overview.html", installations=all_installations)
+    return render_template("installations_overview.html", installations=all_installations,page_title="Vue d'ensemble")
 
 @app.route("/guest_api/info")
 def guest_api_info():
-    p = get_latest_print()
-    if not p:
-        return jsonify({
-            "print_name": None,
-            "progress": 0
-        })
+    with PRINTER_STATUS_LOCK:
+        status_copy = dict(PRINTER_STATUS)
+    latest = get_latest_print()
+    if latest:
+        status_copy["print_name"] = latest["file_name"]
+    else:
+        status_copy["print_name"] = None
 
-    return jsonify({
-        "print_name": p.get("print_name"),
-        "progress": p.get("progress", 0)
-    })
+    return jsonify(status_copy)
 
 app.register_blueprint(auth_bp)
