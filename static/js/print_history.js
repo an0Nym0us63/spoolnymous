@@ -104,6 +104,28 @@ $(document).ready(function () {
             });
         }
 		
+		if (name === 'objgroup_id_or_name') {
+            Object.assign(config, {
+                tags: true,
+                dropdownParent: $select.closest('.modal'),
+                placeholder: "Tapez pour rechercher ou créer…",
+                minimumInputLength: 1,
+                language: {
+                    inputTooShort: () => "Commencez à taper pour chercher ou créer…"
+                },
+                ajax: {
+                    url: 'api_object_groups_search',
+                    dataType: 'json',
+                    delay: 250,
+                    data: params => ({ q: params.term }),
+                    processResults: data => ({
+                        results: (data.results || []).map(g => ({ id: g.id, text: g.text }))
+                    }),
+                    cache: true
+                }
+            });
+        }
+		
 		if (name === 'filament_id') {
   // parent : offcanvas si présent, sinon body
   const $oc = $select.closest('.offcanvas');

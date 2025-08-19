@@ -311,6 +311,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/print_history.js') }}"></script>
 <script>
 document.addEventListener('shown.bs.modal', function (e) {
   const modal = e.target;
