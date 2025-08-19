@@ -116,16 +116,26 @@ def ensure_schema() -> None:
             updated_at       TEXT    NOT NULL DEFAULT (datetime('now'))
         )
     """)
+    # Table des groupes d'objets
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS object_groups (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
     cur.execute("PRAGMA table_info(objects)")
     cols = {r[1] for r in cur.fetchall()}
     if "thumbnail" not in cols:
         cur.execute("ALTER TABLE objects ADD COLUMN thumbnail TEXT")
     if "translated_name" not in cols:
         cur.execute("ALTER TABLE objects ADD COLUMN translated_name TEXT")
-    if "normal_cost_unit" not in cols:
-        cur.execute("ALTER TABLE objects ADD COLUMN normal_cost_unit REAL")
     if "personal" not in cols:
         cur.execute("ALTER TABLE objects ADD COLUMN personal INTEGER NOT NULL DEFAULT 0")
+    if "object_group_id" not in cols:
+        cur.execute("ALTER TABLE objects ADD COLUMN object_group_id INTEGER NULL")
+    if "normal_cost_unit" not in cols:
+        cur.execute("ALTER TABLE objects ADD COLUMN normal_cost_unit REAL")
     cur.execute("""
     UPDATE objects
     SET normal_cost_unit = COALESCE(
@@ -185,6 +195,48 @@ def ensure_schema() -> None:
     cur.execute("DROP TRIGGER IF EXISTS trg_obj_recompute_after_sold_price")
     cur.execute("DROP TRIGGER IF EXISTS trg_obj_sync_norm_after_print_update")
     cur.execute("DROP TRIGGER IF EXISTS trg_obj_sync_norm_after_group_update")
+    cur.execute("""
+        SELECT name FROM sqlite_master
+         WHERE type='trigger' AND name IN (
+            'trg_objects_group_cleanup_after_update',
+            'trg_objects_group_cleanup_after_delete'
+         )
+    """)
+    existing_triggers = {r[0] for r in cur.fetchall()}
+
+    # 1) Quand on change le groupement d'un objet (UPDATE object_group_id),
+    #    si l'ANCIEN groupe devient vide, on le supprime.
+    if 'trg_objects_group_cleanup_after_update' not in existing_triggers:
+        cur.execute("""
+            CREATE TRIGGER trg_objects_group_cleanup_after_update
+            AFTER UPDATE OF object_group_id ON objects
+            WHEN OLD.object_group_id IS NOT NULL
+            BEGIN
+                DELETE FROM object_groups
+                 WHERE id = OLD.object_group_id
+                   AND NOT EXISTS (
+                        SELECT 1 FROM objects
+                         WHERE object_group_id = OLD.object_group_id
+                   );
+            END;
+        """)
+
+    # 2) Quand on supprime un objet (DELETE),
+    #    si son groupe devient vide, on le supprime.
+    if 'trg_objects_group_cleanup_after_delete' not in existing_triggers:
+        cur.execute("""
+            CREATE TRIGGER trg_objects_group_cleanup_after_delete
+            AFTER DELETE ON objects
+            WHEN OLD.object_group_id IS NOT NULL
+            BEGIN
+                DELETE FROM object_groups
+                 WHERE id = OLD.object_group_id
+                   AND NOT EXISTS (
+                        SELECT 1 FROM objects
+                         WHERE object_group_id = OLD.object_group_id
+                   );
+            END;
+    """)
 
     cur.execute("""
     CREATE TRIGGER IF NOT EXISTS trg_obj_sync_norm_after_print_update
@@ -1371,6 +1423,88 @@ def summarize_objects(filters: dict) -> ObjectsSummary:
         sum_sold_price=sum_sold_price,
         sum_positive_margin=sum_positive_margin,
     )
+    
+def create_object_group(name: str) -> int:
+    conn = _connect(); cur = conn.cursor()
+    cur.execute("INSERT INTO object_groups(name) VALUES(?)", (name.strip()))
+    gid = cur.lastrowid
+    conn.commit(); conn.close()
+    return gid
+
+def rename_object_group(group_id: int, new_name: str) -> None:
+    conn = _connect(); cur = conn.cursor()
+    cur.execute("UPDATE object_groups SET name = ? WHERE id = ?", (new_name.strip(), group_id))
+    conn.commit(); conn.close()
+
+def assign_object_to_group(object_id: int, group_id: int) -> None:
+    conn = _connect(); cur = conn.cursor()
+    cur.execute("UPDATE objects SET object_group_id = ?, updated_at = datetime('now') WHERE id = ?", (group_id, object_id))
+    if cur.rowcount == 0:
+        conn.rollback(); conn.close()
+        raise ValueError(f"Objet introuvable (id={object_id})")
+    conn.commit(); conn.close()
+
+def remove_object_from_group(object_id: int) -> None:
+    conn = _connect(); cur = conn.cursor()
+    cur.execute("UPDATE objects SET object_group_id = NULL, updated_at = datetime('now') WHERE id = ?", (object_id,))
+    conn.commit(); conn.close()
+
+def search_object_groups(query: str, limit: int = 10) -> list[dict]:
+    conn = _connect(); cur = conn.cursor()
+    q = f"%{(query or '').strip()}%"
+    cur.execute("""
+        SELECT id, name
+          FROM object_groups
+         WHERE name LIKE ?
+         ORDER BY name ASC
+         LIMIT ?
+    """, (q, limit))
+    rows = [{"id": r[0], "name": r[1]} for r in cur.fetchall()]
+    conn.close()
+    return rows
+
+def list_object_groups_with_counts(filters: dict) -> list[dict]:
+    """
+    Retourne les groupes + compteurs + objets rattachés (filtrés comme la liste principale).
+    - Comptes: available_count / total_count par groupe
+    """
+    where, params = _build_objects_where(filters)  # on réutilise tes filtres (search, sale_filter, etc.)
+
+    conn = _connect(); cur = conn.cursor()
+
+    # Total par groupe
+    cur.execute(f"""
+        SELECT og.id, og.name,
+               COUNT(o.id)                           AS total_count,
+               SUM(CASE WHEN o.available = 1 THEN 1 ELSE 0 END) AS available_count
+          FROM object_groups og
+     LEFT JOIN objects o ON o.object_group_id = og.id
+         WHERE 1=1
+      GROUP BY og.id
+         HAVING total_count > 0
+         ORDER BY og.name ASC
+    """)
+    groups = [{"id": gid, "name": name, "total": total, "available": (avail or 0)} for gid, name, total, avail in cur.fetchall()]
+
+    # Objets par groupe, filtrés par les mêmes critères que la liste principale
+    cur.execute(f"""
+        SELECT o.*
+          FROM objects o
+         WHERE o.object_group_id IS NOT NULL
+           AND o.id IN (SELECT id FROM objects {where})
+         ORDER BY o.created_at DESC
+    """, params)
+    obj_by_group = {}
+    cols = [d[0] for d in cur.description]
+    for row in cur.fetchall():
+        d = dict(zip(cols, row))
+        obj_by_group.setdefault(d["object_group_id"], []).append(d)
+
+    for g in groups:
+        g["objects"] = obj_by_group.get(g["id"], [])
+
+    conn.close()
+    return groups
 
 
 ensure_schema()

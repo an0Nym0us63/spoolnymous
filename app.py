@@ -38,7 +38,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory,rename_accessory
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory,rename_accessory, create_object_group, rename_object_group, assign_object_to_group, remove_object_from_group, search_object_groups, list_object_groups_with_counts,
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -1827,7 +1827,7 @@ def objects_page():
         "sale_filter": request.args.get("sale_filter", ""),  # '' | vendus | dispo | offert
     }
     rows, total_pages = list_objects(filters, page, per_page=30)
-
+    groups = list_object_groups_with_counts(filters)
     # NEW: agrégats pour les tuiles
     summary = summarize_objects(filters)
 
@@ -1848,6 +1848,7 @@ def objects_page():
         args=request.args,
         obj_tags=obj_tags,
         obj_accessories=obj_accessories,
+        groups=groups,
         page_title="Objets",
         currencysymbol=spoolman_settings.get("currency_symbol", "€"),
         # expose les agrégats
@@ -2187,5 +2188,48 @@ def accessories_rename_route(acc_id: int):
     flash(f"Accessoire renommé en {new_name}", "success")
     return redirect_with_context("accessories_list", focus_acc_id=acc_id)
 
+@app.route("/api/object_groups/search")
+def api_object_groups_search():
+    q = request.args.get("q", "")
+    rows = search_object_groups(q, limit=10)
+    return jsonify(rows)
+
+@app.route("/objects/create_group", methods=["POST"])
+def objects_create_group():
+    name = (request.form.get("group_name") or "").strip()
+    if not name:
+        return redirect_with_context("objects_page")
+    gid = create_object_group(name)
+    # Optionnel: rattacher direct un objet si fourni
+    obj_id = request.form.get("object_id")
+    if obj_id and obj_id.isdigit():
+        assign_object_to_group(int(obj_id), gid)
+        return redirect_with_context("objects_page", focus_group_id=gid, focus_object_id=int(obj_id))
+    return redirect_with_context("objects_page", focus_group_id=gid)
+
+@app.route("/objects/assign_to_group", methods=["POST"])
+def objects_assign_to_group():
+    obj_id = int(request.form["object_id"])
+    gid_or_name = (request.form.get("group_id_or_name") or "").strip()
+    if gid_or_name.isdigit():
+        gid = int(gid_or_name)
+    else:
+        gid = create_object_group(gid_or_name)
+    assign_object_to_group(obj_id, gid)
+    return redirect_with_context("objects_page", focus_group_id=gid, focus_object_id=obj_id)
+
+@app.route("/objects/remove_from_group", methods=["POST"])
+def objects_remove_from_group():
+    obj_id = int(request.form["object_id"])
+    remove_object_from_group(obj_id)
+    return redirect_with_context("objects_page", focus_object_id=obj_id)
+
+@app.route("/objects/rename_group", methods=["POST"])
+def objects_rename_group():
+    gid = int(request.form["group_id"])
+    name = (request.form.get("group_name") or "").strip()
+    if name:
+        rename_object_group(gid, name)
+    return redirect_with_context("objects_page", focus_group_id=gid)
 
 app.register_blueprint(auth_bp)
