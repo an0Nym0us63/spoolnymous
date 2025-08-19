@@ -87,7 +87,7 @@
       <div class="thumb-ph" title="Aucune image"></div>
     {% endif %}
 
-    {% set acc_count = (obj_accessories.get(o.id, []) | length) %}
+    {% set acc_count = (obj_accessories.get(o.id, []) | length) if obj_accessories is defined else 0 %}
     {% if acc_count > 0 %}
       <span class="thumb-acc-flag" title="{{ acc_count }} accessoire{{ 's' if acc_count>1 else '' }}">🧰</span>
     {% endif %}
