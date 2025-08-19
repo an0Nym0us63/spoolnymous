@@ -330,7 +330,6 @@
     </form>
   </div>
 </div>
-{% include 'fragments/modals_object_group.html' %}
 <div class="modal fade" id="rmAccModal_{{ o.id }}" tabindex="-1" aria-labelledby="rmAccLabel_{{ o.id }}" aria-hidden="true">
   <div class="modal-dialog">
     <form class="modal-content" method="post" action="{{ url_for('objects_remove_accessory', object_id=o.id) }}">
