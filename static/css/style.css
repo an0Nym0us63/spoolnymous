@@ -386,7 +386,16 @@
 .navbar-nav .nav-link {
   padding: 0.25rem 0.5rem;
 }
-.navbar.sticky-top { z-index: 2000; }
+.navbar.sticky-top {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 2000; /* ou 1030 */
+}
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 2000;
+}
 
 /* SweetAlert2 — harmonisation avec Bootstrap dark/light */
 [data-bs-theme="dark"] .swal2-popup {
