@@ -116,9 +116,16 @@
         <label class="form-label text-light">Validité (jours, 0 = illimité)</label>
         <input type="number" name="guest_days_valid" min="0" value="30" class="form-control">
       </div>
-      <div class="col-md-3">
-        <button type="submit" class="btn btn-primary w-100">Créer</button>
-      </div>
+	  <div class="col-md-3">
+  <label class="form-label text-light">Rôle</label>
+  <select name="guest_role" class="form-select">
+    <option value="guest" selected>Invité (accès limité)</option>
+    <option value="admin">Admin (accès complet)</option>
+  </select>
+</div>
+      <div class="col-md-2">
+  <button type="submit" class="btn btn-primary w-100">Créer</button>
+</div>
     </div>
   </form>
 
@@ -132,6 +139,7 @@
             <th>URL</th>
             <th>Créé le</th>
             <th>Expire le</th>
+			<th>Rôle</th>
             <th>Statut</th>
             <th></th>
           </tr>
@@ -151,6 +159,18 @@
                 <em>Illimité</em>
               {% endif %}
             </td>
+	<td>
+  <select class="form-select form-select-sm guest-role-select"
+          data-token="{{ gl.token }}">
+    <option value="guest" {% if gl.role == "guest" %}selected{% endif %}>
+      Invité
+    </option>
+    <option value="admin" {% if gl.role == "admin" %}selected{% endif %}>
+      Admin
+    </option>
+  </select>
+</td>
+
             <td>
               {% if gl.revoked %}
                 <span class="badge bg-danger">Révoqué</span>
@@ -265,4 +285,32 @@
 
 
 </div>
+script>
+document.addEventListener("DOMContentLoaded", function() {
+  document.querySelectorAll(".guest-role-select").forEach(function(select) {
+    select.addEventListener("change", function() {
+      const token = this.dataset.token;
+      const role = this.value;
+
+      fetch(`/update_guest_role/${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `role=${role}`
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          console.log("✅ Rôle mis à jour:", data.role);
+        } else {
+          alert("Erreur: " + (data.error || "inconnue"));
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Erreur réseau");
+      });
+    });
+  });
+});
+</script>
 {% endblock %}

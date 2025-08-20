@@ -1,6 +1,6 @@
 # auth.py
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort  # NEW: abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify  # NEW: abort
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
@@ -71,7 +71,7 @@ def _save_guest_tokens(tokens_dict):
     with open(GUEST_FILE, 'w') as f:
         json.dump(tokens_dict, f)
 
-def create_guest_link(days_valid: int = 30, label: str = "") -> str:
+def create_guest_link(days_valid: int = 30, label: str = "", role: str = "guest") -> str:
     tokens = _load_guest_tokens()
     token = secrets.token_urlsafe(24)
     now = datetime.utcnow()
@@ -82,10 +82,11 @@ def create_guest_link(days_valid: int = 30, label: str = "") -> str:
         expires_at = None
 
     tokens[token] = {
-        "label": label.strip() or None,  # 🔹 Nom du lien
+        "label": (label or "").strip() or None,
         "created_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "expires_at": expires_at,
-        "revoked": False
+        "revoked": False,
+        "role": role if role in ("guest", "admin") else "guest",  # ⇦ nouveau
     }
     _save_guest_tokens(tokens)
     return token
@@ -97,10 +98,11 @@ def list_guest_links():
     for tok, meta in tokens.items():
         out.append({
             "token": tok,
-            "label": meta.get("label"),  # 🔹 On renvoie le nom
+            "label": meta.get("label"),
             "created_at": meta.get("created_at"),
             "expires_at": meta.get("expires_at"),
-            "revoked": meta.get("revoked", False)
+            "revoked": meta.get("revoked", False),
+            "role": meta.get("role", "guest"),  # ⇦ nouveau
         })
     return out
 
@@ -169,12 +171,32 @@ def logout():
 def guest_autologin(token):
     if _is_guest_token_valid(token):
         # id distinct pour l’invité
-        user = User(username=f"guest:{token}", role="guest")
+        meta = _load_guest_tokens().get(token, {})
+        role = meta.get("role", "guest")
+        user = User(username=f"guest:{token}", role=role)
         login_user(user, remember=False)
         # Reutilise ta page de redirection pour garder les thèmes/params
         return render_template("redirect_with_theme.html", query=request.query_string.decode())
     return "Lien invité invalide, expiré ou révoqué", 403
 
+@auth_bp.route("/update_guest_role/<token>", methods=["POST"])
+@login_required
+def update_guest_role(token):
+    if not current_user.is_authenticated or current_user.role != "admin":
+        abort(403)
+
+    role = request.form.get("role")
+    if role not in ("guest", "admin"):
+        return jsonify({"success": False, "error": "Invalid role"}), 400
+
+    tokens = _load_guest_tokens()
+    if token not in tokens:
+        return jsonify({"success": False, "error": "Token not found"}), 404
+
+    tokens[token]["role"] = role
+    _save_guest_tokens(tokens)
+
+    return jsonify({"success": True, "role": role})
 # =========================
 # Settings (admin)
 # =========================
@@ -223,8 +245,9 @@ def settings():
         # NEW: Créer lien invité
         elif request.form.get("create_guest_link") == "1":
             days = int(request.form.get("guest_days_valid", "30") or "30")
-            label = request.form.get("guest_label", "").strip()  # 🔹 récupère le nom
-            tok = create_guest_link(days_valid=days, label=label)
+            label = (request.form.get("guest_label") or "").strip()
+            role = request.form.get("guest_role", "guest")  # ⇦ nouveau
+            tok = create_guest_link(days_valid=days, label=label, role=role)
             flash("Lien invité créé ✅", "success")
             return redirect(url_for('auth.settings'))
 
