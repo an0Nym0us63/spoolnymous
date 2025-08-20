@@ -194,6 +194,15 @@
         </div>
         <label class="form-label">Quantité à créer</label>
         <input type="number" class="form-control qty-input" name="qty" min="1" value="1" required>
+		<div class="mb-3 mt-3">
+          <label class="form-label" for="group_{{ print.id }}">Créer ou ajouter groupe (optionnel)</label>
+          <select
+            id="group_{{ print.id }}"
+            name="objgroup_id_or_name"
+            class="select2 select2-ajax select2-ajax-object"
+            style="width: 100%;"
+            placeholder="Tapez pour rechercher ou créer…"></select>
+        </div>
         <input type="hidden" name="type" value="print">
         <input type="hidden" name="id" value="{{ print.id }}">
 		{{ macros.render_filtered_args(args) }}

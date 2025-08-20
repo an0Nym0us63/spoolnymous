@@ -645,10 +645,14 @@ $(document)
     const type = $modal.data('source-type');
     const id = $modal.data('source-id');
     const qty = parseInt($form.find('.qty-input').val() || '0', 10);
+	const gidOrName = ($form.find('[name="objgroup_id_or_name"]').val() || '').toString().trim();
 
     if (!qty || qty < 1) return;
 
     $.post('/api/objects/create', { type, id, qty })
+	    const payload = { type, id, qty };
+    if (gidOrName) payload.objgroup_id_or_name = gidOrName;
+     $.post('/api/objects/create', payload)
       .done(({ created }) => {
         // Ferme le modal proprement
         const modalEl = $modal.get(0);

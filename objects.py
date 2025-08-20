@@ -1008,7 +1008,7 @@ def get_available_units(source_type: SourceType, source_id: int) -> int:
     already = count_existing_objects(source_type, source_id)
     return max(0, snap.number_of_items - already)
 
-def create_objects_from_source(source_type: SourceType, source_id: int, qty: int) -> int:
+def create_objects_from_source(source_type: SourceType, source_id: int, qty: int,objgroup_id_or_name: Optional[str] = None) -> int:
     """
     Crée `qty` objets à partir d'une source (print|group), en respectant la dispo :
       dispo = number_of_items(source) - objets déjà créés pour (type,id)
@@ -1102,6 +1102,16 @@ def create_objects_from_source(source_type: SourceType, source_id: int, qty: int
             )
 
         conn.commit()
+        if objgroup_id_or_name and new_ids:
+            raw = str(objgroup_id_or_name).strip()
+            if raw.isdigit():
+                group_id = int(raw)
+            else:
+                # Doit renvoyer l'ID du groupe (existant ou nouvellement créé)
+                group_id = create_object_group(raw)
+   
+            for oid in new_ids:
+                assign_object_to_group(oid, group_id)
         return len(new_ids)
     except Exception:
         conn.rollback()

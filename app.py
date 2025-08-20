@@ -1832,7 +1832,7 @@ def api_objects_create():
     source_type = request.form.get("type", "").strip()
     source_id = int(request.form.get("id", "0"))
     qty = int(request.form.get("qty", "0"))
-    created = create_objects_from_source(source_type, source_id, qty)
+    created = create_objects_from_source(source_type, source_id, qty,objgroup_id_or_name=request.form.get("objgroup_id_or_name"))
     return jsonify({"status": "ok", "created": created})
 
 @app.route("/objects")
