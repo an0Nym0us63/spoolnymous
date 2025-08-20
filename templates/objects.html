@@ -915,11 +915,12 @@ document.querySelectorAll('[id^="remGroupAccModal_"]').forEach(modalEl => {
       const a = document.createElement("a");
       a.href = "#";
       a.className = "list-group-item list-group-item-action d-flex align-items-center gap-2";
+		const pu = (it.unit_price != null) ? fmtEUR(it.unit_price) + " €" : "—";
       a.innerHTML = `
         <img src="${it.image_url}" width="32" height="32" class="rounded border" style="object-fit:cover;">
         <div class="flex-grow-1">
           <div class="fw-semibold">${it.name}</div>
-          <div class="small text-muted">Stock: ${it.quantity}${it.unit_price ? " — PU: "+it.unit_price+"€" : ""}</div>
+          <div class="small text-muted">Stock : ${it.quantity} — PU : ${pu}</div>
         </div>
       `;
       a.addEventListener("click", e => {
