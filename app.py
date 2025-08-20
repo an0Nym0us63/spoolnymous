@@ -546,7 +546,19 @@ def _push_origin(endpoint, values):
 def load_user(user_id: str):
     # Invité auto-connecté via /guest/<token>
     if user_id.startswith("guest:"):
-        return User(user_id, role="guest")
+        try:
+            token = user_id.split(":", 1)[1]
+        except Exception:
+            token = None
+
+        if token:
+            from auth import _load_guest_tokens  # import local pour éviter cycles
+            meta = _load_guest_tokens().get(token, {}) if token else {}
+            role = meta.get("role", "guest")  # fallback compatible anciens jetons
+        else:
+            role = "guest"
+
+        return User(user_id, role=role)
 
     # Utilisateur stocké (admin configuré)
     data = get_stored_user()
