@@ -384,9 +384,10 @@
     </div>
   </div>
 </div>
-
 {% set endpoint = 'accessories_list' %}
-{% include 'components/pagination.html' with page=page, pages=total_pages, endpoint=endpoint %}
+{% set pages = total_pages %}
+{% include 'components/pagination.html' %}
+
 {% endblock %}
 
 {% block scripts %}

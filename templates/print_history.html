@@ -169,7 +169,8 @@
 
 {% include 'fragments/list_prints.html' %}
 {% set endpoint = 'print_history' %}
-{% include 'components/pagination.html' with page=page, pages=total_pages, endpoint=endpoint %}
+{% set pages = total_pages %}
+{% include 'components/pagination.html' %}
 <div style="height: 4rem;"></div>
 {% endblock %}
 
