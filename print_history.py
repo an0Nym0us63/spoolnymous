@@ -920,6 +920,7 @@ def update_print_history_field(print_id: int, field: str, value) -> None:
     """
     Met à jour un champ donné pour une impression de l'historique.
     """
+    group_id = get_group_id_of_print(print_id)
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
     query = f"UPDATE prints SET {field} = ? WHERE id = ?"
@@ -927,6 +928,9 @@ def update_print_history_field(print_id: int, field: str, value) -> None:
     conn.commit()
     conn.close()
     trigger_cost_recalculation(print_id)
+    if group_id:
+        trigger_cost_recalculation(group_id, is_group=True)
+        
 
 def create_print_group(name: str) -> int:
     """
