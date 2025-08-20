@@ -2383,4 +2383,82 @@ def objects_rename_group():
         rename_object_group(gid, name)
     return redirect_with_context("objects_page", focus_group_id=gid)
 
+@app.route("/objects/group/<int:group_id>/add_accessory_all", methods=["POST"])
+def objects_group_add_accessory_all(group_id: int):
+    """
+    Ajoute un accessoire (qty) à tous les objets du groupe.
+    Échoue individuellement en cas de stock insuffisant, mais poursuit les autres.
+    """
+    from objects import _connect  # réutilise la connexion sqlite du module
+    accessory_id = int(request.form.get("accessory_id") or 0)
+    qty = int(request.form.get("qty") or 0)
+
+    if not accessory_id or qty <= 0:
+        flash("Paramètres invalides (accessoire/quantité).", "warning")
+        return redirect_with_context("objects_page", focus_group_id=group_id)
+
+    # Récupère tous les objets du groupe
+    conn = _connect(); cur = conn.cursor()
+    cur.execute("SELECT id FROM objects WHERE object_group_id = ? ORDER BY created_at DESC", (group_id,))
+    object_ids = [r[0] for r in cur.fetchall()]
+    conn.close()
+
+    if not object_ids:
+        flash("Aucun objet dans ce groupe (selon le filtre ou réellement vide).", "info")
+        return redirect_with_context("objects_page", focus_group_id=group_id)
+
+    ok, ko = 0, 0
+    for oid in object_ids:
+        try:
+            link_accessory_to_object(oid, accessory_id, qty)
+            ok += 1
+        except Exception as e:
+            ko += 1
+    if ko == 0:
+        flash(f"Accessoire ajouté à {ok} objet(s).", "success")
+    else:
+        flash(f"Accessoire ajouté à {ok} objet(s), {ko} échec(s) (stock insuffisant ?).", "warning")
+
+    return redirect_with_context("objects_page", focus_group_id=group_id)
+
+
+@app.route("/objects/group/<int:group_id>/remove_accessory_all", methods=["POST"])
+def objects_group_remove_accessory_all(group_id: int):
+    """
+    Retire un accessoire de tous les objets du groupe.
+    qty=None => supprime le lien entièrement pour chaque objet.
+    """
+    from objects import _connect
+    accessory_id = int(request.form.get("accessory_id") or 0)
+    qty_raw = request.form.get("qty")
+    qty = int(qty_raw) if qty_raw not in (None, "",) else None
+
+    if not accessory_id:
+        flash("Paramètres invalides (accessoire).", "warning")
+        return redirect_with_context("objects_page", focus_group_id=group_id)
+
+    conn = _connect(); cur = conn.cursor()
+    cur.execute("SELECT id FROM objects WHERE object_group_id = ? ORDER BY created_at DESC", (group_id,))
+    object_ids = [r[0] for r in cur.fetchall()]
+    conn.close()
+
+    if not object_ids:
+        flash("Aucun objet dans ce groupe (selon le filtre ou réellement vide).", "info")
+        return redirect_with_context("objects_page", focus_group_id=group_id)
+
+    ok, ko = 0, 0
+    for oid in object_ids:
+        try:
+            unlink_accessory_from_object(oid, accessory_id, qty=qty)
+            ok += 1
+        except Exception:
+            ko += 1
+
+    if ko == 0:
+        flash(f"Accessoire retiré de {ok} objet(s).", "success")
+    else:
+        flash(f"Accessoire retiré de {ok} objet(s), {ko} échec(s).", "warning")
+
+    return redirect_with_context("objects_page", focus_group_id=group_id)
+
 app.register_blueprint(auth_bp)
