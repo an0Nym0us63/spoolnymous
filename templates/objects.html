@@ -305,7 +305,8 @@
 </div>
 
 {# --- MODALE: Ajouter un accessoire à tous les objets du groupe --- #}
-<div class="modal fade" id="addGroupAccModal_{{ g.id }}" tabindex="-1" aria-labelledby="addGroupAccLabel_{{ g.id }}" aria-hidden="true">
+<div class="modal fade" id="addGroupAccModal_{{ g.id }}"
+     data-group-size="{{ g.total }}" tabindex="-1" aria-labelledby="addGroupAccLabel_{{ g.id }}" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable">
     <form class="modal-content" method="post" action="{{ url_for('objects_group_add_accessory_all', group_id=g.id) }}">
       {{ macros.render_filtered_args(args) }}
@@ -341,7 +342,8 @@
           <div class="form-text">La quantité ne peut pas dépasser le stock disponible au moment de l’ajout, objet par objet.</div>
         </div>
       </div>
-
+		<div id="grpAccInfo_{{ g.id }}" class="mt-2 small text-muted"></div>
+		<div id="grpAccWarn_{{ g.id }}" class="mt-2 small text-danger d-none"></div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
         <button type="submit" class="btn btn-primary" id="grpAccSubmitBtn_{{ g.id }}" disabled>Ajouter à tous</button>
@@ -773,10 +775,11 @@ $(document).on('select2:open', function (e) {
 function debounce(fn, ms) {
   let t; return function(...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
 }
+function fmtEUR(x){ try { return new Intl.NumberFormat('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(x||0)); } catch{ return (Number(x||0)).toFixed(2); } }
 
-// --- INITIALISATION des modales Groupe (ajout) ---
 document.querySelectorAll('[id^="addGroupAccModal_"]').forEach(modalEl => {
   const gid = modalEl.id.split('_')[1];
+  const groupSize = parseInt(modalEl.getAttribute('data-group-size') || '0', 10) || 0;
 
   const input   = document.getElementById(`grpAccSearch_${gid}`);
   const results = document.getElementById(`grpAccResults_${gid}`);
@@ -789,12 +792,40 @@ document.querySelectorAll('[id^="addGroupAccModal_"]').forEach(modalEl => {
   const selName = document.getElementById(`grpAccSelectedName_${gid}`);
   const availEl = document.getElementById(`grpAccAvail_${gid}`);
 
-  let currentMax = 1;
+  const infoEl  = document.getElementById(`grpAccInfo_${gid}`);
+  const warnEl  = document.getElementById(`grpAccWarn_${gid}`);
 
-  function setMaxQty(max) {
-    currentMax = Math.max(1, Number(max) || 1);
-    qtyIn.max = String(currentMax);
-    if (Number(qtyIn.value || 1) > currentMax) qtyIn.value = String(currentMax);
+  let currentStock = 0;          // stock total accessoire
+  let maxPerObject = 1;          // borne dynamique = floor(stock / groupSize)
+
+  function updateInfo() {
+    const q = Math.max(1, Number(qtyIn.value || 1));
+    const totalNeeded = q * groupSize;
+    const ok = totalNeeded <= currentStock;
+
+    infoEl.innerHTML = `Groupe : <b>${groupSize}</b> objet(s). Besoin total : <b>${totalNeeded}</b>. Stock dispo : <b>${currentStock}</b>.`;
+    warnEl.classList.toggle('d-none', ok);
+    warnEl.textContent = ok ? '' : `Stock insuffisant : au maximum ${maxPerObject} par objet pour ${groupSize} objets.`
+
+    submit.disabled = !accId.value || !ok || q < 1;
+  }
+
+  function setMaxQty() {
+    maxPerObject = groupSize > 0 ? Math.floor((currentStock || 0) / groupSize) : 0;
+    // Si le stock ne permet pas au moins 1 par objet, on bloque.
+    if (maxPerObject < 1) {
+      qtyIn.value = "1";
+      updateInfo();
+      return;
+    }
+    // borne HTML
+    qtyIn.min = "1";
+    qtyIn.max = String(maxPerObject);
+    // ajuste la valeur si > max
+    let v = Math.max(1, Number(qtyIn.value || 1));
+    if (v > maxPerObject) v = maxPerObject;
+    qtyIn.value = String(v);
+    updateInfo();
   }
 
   function renderResults(items) {
@@ -807,11 +838,12 @@ document.querySelectorAll('[id^="addGroupAccModal_"]').forEach(modalEl => {
       const a = document.createElement("a");
       a.href = "#";
       a.className = "list-group-item list-group-item-action d-flex align-items-center gap-2";
+      const pu = (it.unit_price != null) ? fmtEUR(it.unit_price) + " €" : "—";
       a.innerHTML = `
         <img src="${it.image_url}" width="32" height="32" class="rounded border" style="object-fit:cover;">
         <div class="flex-grow-1">
           <div class="fw-semibold">${it.name}</div>
-          <div class="small text-muted">Stock: ${it.quantity}${it.unit_price ? " — PU: "+it.unit_price+"€" : ""}</div>
+          <div class="small text-muted">Stock : ${it.quantity} — PU : ${pu}</div>
         </div>
       `;
       a.addEventListener("click", e => {
@@ -821,8 +853,9 @@ document.querySelectorAll('[id^="addGroupAccModal_"]').forEach(modalEl => {
         selName.textContent = it.name;
         availEl.textContent = it.quantity;
         selWrap.classList.remove("d-none");
-        setMaxQty(it.quantity || 1);
-        submit.disabled = false;
+
+        currentStock = Number(it.quantity || 0);
+        setMaxQty(); // calcule maxPerObject et met à jour l’UI
       });
       results.appendChild(a);
     });
@@ -842,18 +875,20 @@ document.querySelectorAll('[id^="addGroupAccModal_"]').forEach(modalEl => {
   input.addEventListener("input", doSearch);
 
   qtyIn.addEventListener("input", () => {
-    let v = Number(qtyIn.value || 1);
-    if (v < 1) v = 1;
-    if (v > currentMax) v = currentMax;
+    // borne côté client
+    let v = Math.max(1, Number(qtyIn.value || 1));
+    if (maxPerObject >= 1 && v > maxPerObject) v = maxPerObject;
     qtyIn.value = String(v);
+    updateInfo();
   });
 
-  // Reset quand on ouvre/ferme la modale
+  // Reset à l’ouverture
   modalEl.addEventListener("show.bs.modal", () => {
-    input.value = "";
-    results.innerHTML = "";
-    accId.value = "";
-    selWrap.classList.add("d-none");
+    input.value = ""; results.innerHTML = "";
+    accId.value = ""; selWrap.classList.add("d-none");
+    qtyIn.value = "1";
+    currentStock = 0; maxPerObject = 1;
+    infoEl.textContent = ""; warnEl.textContent = ""; warnEl.classList.add('d-none');
     submit.disabled = true;
   });
 });
