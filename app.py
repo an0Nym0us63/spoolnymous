@@ -20,6 +20,8 @@ from itertools import count
 import subprocess
 import signal
 import random
+import hashlib
+from pathlib import Path
 
 from flask_login import LoginManager, login_required
 from auth import auth_bp, User, get_stored_user
@@ -438,6 +440,23 @@ app.config.update(
 )
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
+def _static_asset_url(filename: str) -> str:
+    """Retourne url_for('static', filename=..., v=<hash court>) basé sur le contenu du fichier."""
+    static_folder = Path(app.static_folder or "static")
+    file_path = static_folder / filename
+    v = "0"
+    try:
+        with open(file_path, "rb") as f:
+            digest = hashlib.sha1(f.read()).hexdigest()
+            v = digest[:10]
+    except FileNotFoundError:
+        pass
+    from flask import url_for
+    return url_for('static', filename=filename, v=v)
+
+# Exposé à Jinja
+app.jinja_env.globals["asset_url"] = _static_asset_url
+
 ACCESSORY_UPLOAD_DIR = os.path.join(app.static_folder, "uploads", "accessories")
 os.makedirs(ACCESSORY_UPLOAD_DIR, exist_ok=True)
 
@@ -550,6 +569,24 @@ def require_login():
     # ⚠️ Retire 'auth.settings' de la whitelist pour protéger la page
     if request.endpoint not in exempt_routes and not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
+
+@app.after_request
+def add_cache_headers(response):
+    ct = (response.mimetype or "").lower()
+    # HTML/JSON : pas de cache
+    if ct.startswith("text/html") or ct.endswith("+json") or ct == "application/json":
+        response.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    else:
+        # Heuristique : si la ressource vient de /static/, on la rend très cacheable
+        # (l’URL contient ?v=<hash>, donc safe)
+        try:
+            if request.path.startswith("/static/"):
+                response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        except Exception:
+            pass
+    return response
     
 @app.template_filter('datetimeformat')
 def datetimeformat(value, locale='fr'):
