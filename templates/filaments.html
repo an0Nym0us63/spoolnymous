@@ -336,7 +336,8 @@
     </div>
   {% endfor %}
 </div>
-
+{% set endpoint = 'filaments' %}
+{% include 'components/pagination.html' %}
 <div style="height: 4rem;"></div>
 {% if is_assign_mode %}
   {% include 'fragments/modals_confirm_assign.html' %}

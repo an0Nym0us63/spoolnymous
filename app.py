@@ -249,8 +249,6 @@ def parse_print_date(date_str):
     except:
         return datetime.min  # en cas de date invalide, met tout en bas
 
-
-
 LOG_BUFFER_MAX = 1000                                # lignes conservées
 _log_buffer = deque(maxlen=LOG_BUFFER_MAX)           # (idx, levelno, message)
 _log_lock = Lock()
@@ -481,6 +479,14 @@ def camera_snapshot():
         f"rtsps://bblp:{code}@{ip}:322/streaming/live/1"
     ]
     return _serve_snapshot(urls)
+    
+def url_for_page(page: int, endpoint: str | None = None, **extra):
+    args = request.args.to_dict(flat=True)
+    args.update(extra)
+    args["page"] = int(page)
+    return url_for(endpoint or request.endpoint, **args)
+
+app.jinja_env.globals["url_for_page"] = url_for_page
 
 @app.route("/logs")
 @login_required

@@ -1,0 +1,53 @@
+{# templates/components/pagination.html #}
+{# Attendus dans le contexte : page, pages (ou total+per_page), endpoint (optionnel) #}
+{% set _page      = page|int if page is defined else 1 %}
+{% set _per_page  = per_page|int if per_page is defined else 20 %}
+{% set _pages     = pages|int if pages is defined else ((total + _per_page - 1) // _per_page if (total is defined) else 1) %}
+{% set _endpoint  = endpoint if endpoint is defined else request.endpoint %}
+
+{% if _pages > 1 %}
+<nav class="mt-4" aria-label="Pagination">
+  <ul class="pagination justify-content-center flex-wrap gap-1">
+
+    {# First / Prev #}
+    <li class="page-item {{ 'disabled' if _page <= 1 }}">
+      <a class="page-link" href="{{ url_for_page(1, _endpoint) }}" aria-label="Première">«</a>
+    </li>
+    <li class="page-item {{ 'disabled' if _page <= 1 }}">
+      <a class="page-link" href="{{ url_for_page(_page-1, _endpoint) }}" aria-label="Précédente">‹</a>
+    </li>
+
+    {# Fenêtre de pages centrée sur la page courante #}
+    {% set window = 2 %}
+    {% set start = (_page - window) if (_page - window) > 1 else 1 %}
+    {% set end   = (_page + window) if (_page + window) < _pages else _pages %}
+
+    {# Ellipse avant #}
+    {% if start > 1 %}
+      <li class="page-item"><a class="page-link" href="{{ url_for_page(1, _endpoint) }}">1</a></li>
+      {% if start > 2 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+    {% endif %}
+
+    {# Liens numérotés #}
+    {% for p in range(start, end + 1) %}
+      <li class="page-item {{ 'active' if p == _page }}">
+        <a class="page-link" href="{{ url_for_page(p, _endpoint) }}">{{ p }}</a>
+      </li>
+    {% endfor %}
+
+    {# Ellipse après #}
+    {% if end < _pages %}
+      {% if end < _pages - 1 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+      <li class="page-item"><a class="page-link" href="{{ url_for_page(_pages, _endpoint) }}">{{ _pages }}</a></li>
+    {% endif %}
+
+    {# Next / Last #}
+    <li class="page-item {{ 'disabled' if _page >= _pages }}">
+      <a class="page-link" href="{{ url_for_page(_page+1, _endpoint) }}" aria-label="Suivante">›</a>
+    </li>
+    <li class="page-item {{ 'disabled' if _page >= _pages }}">
+      <a class="page-link" href="{{ url_for_page(_pages, _endpoint) }}" aria-label="Dernière">»</a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
