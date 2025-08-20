@@ -386,11 +386,7 @@
 .navbar-nav .nav-link {
   padding: 0.25rem 0.5rem;
 }
-.navbar.sticky-top {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 2000; /* ou 1030 */
-}
+
 .sticky-header {
   position: sticky;
   top: 0;
