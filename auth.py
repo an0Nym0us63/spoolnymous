@@ -182,8 +182,6 @@ def guest_autologin(token):
 @auth_bp.route("/update_guest_role/<token>", methods=["POST"])
 @login_required
 def update_guest_role(token):
-    if not current_user.is_authenticated or current_user.role != "admin":
-        abort(403)
 
     role = request.form.get("role")
     if role not in ("guest", "admin"):
