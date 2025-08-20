@@ -282,15 +282,7 @@
       </div>
     </div>
   </div>
-      {% else %}
-        {# ---- Rendu d'un PRINT isolé (mini-table 1 ligne pour réutiliser object_row) ---- #}
-        {% set o = it.object %}
-        
-              {% set _obj_accessories = obj_accessories if obj_accessories is defined else {} %}
-              {% set _obj_tags = obj_tags if obj_tags is defined else {} %}
-              {% set _args = args if args is defined else {} %}
-              {% include 'fragments/object_row.html' %}
-      {% endif %}
+  
 	  {# --- MODALE: Renommer groupe --- #}
 <div class="modal fade" id="renameGroupModal_{{ g.id }}" tabindex="-1" aria-labelledby="renameGroupLabel_{{ g.id }}" aria-hidden="true">
   <div class="modal-dialog">
@@ -400,6 +392,15 @@
     </form>
   </div>
 </div>
+      {% else %}
+        {# ---- Rendu d'un PRINT isolé (mini-table 1 ligne pour réutiliser object_row) ---- #}
+        {% set o = it.object %}
+        
+              {% set _obj_accessories = obj_accessories if obj_accessories is defined else {} %}
+              {% set _obj_tags = obj_tags if obj_tags is defined else {} %}
+              {% set _args = args if args is defined else {} %}
+              {% include 'fragments/object_row.html' %}
+      {% endif %}
     {% endfor %}
 
   </div>
