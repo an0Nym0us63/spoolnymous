@@ -219,7 +219,7 @@
 
             <hr>
 
-            <div id="group_accordion_{{ entry.id }}">
+            <div class="d-flex flex-column gap-1 mt-1" id="group_accordion_{{ entry.id }}">
   {% for print in entry.prints %}
     {% set print = print %}
     {% include 'fragments/print_card.html' %}
