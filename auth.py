@@ -209,6 +209,22 @@ def settings():
     user_token = get_user_token(current_user.id if not current_user.is_guest else DEFAULT_ADMIN_USERNAME)
 
     if request.method == 'POST':
+        # --- Barèmes électricité (JSON) ---
+        if request.form.get("update_electric_tariffs") == "1":
+            raw_json = (request.form.get("ELECTRICITY_TARIFFS_JSON") or "").strip()
+            # Optionnel: validation douce
+            try:
+                if raw_json:
+                    parsed = json.loads(raw_json)
+                    if not isinstance(parsed, list):
+                        raise ValueError("Doit être un tableau JSON")
+            except Exception:
+                flash("JSON de barèmes invalide. Vérifie la saisie.", "danger")
+                return redirect(url_for('auth.settings'))
+        
+            set_app_setting("ELECTRICITY_TARIFFS", raw_json)
+            flash("Tarifs électricité mis à jour ✅", "success")
+            return redirect(url_for('auth.settings'))
         # Régénération du token admin
         if request.form.get("regen_token") == "1":
             existing = get_stored_user()
@@ -277,12 +293,6 @@ def settings():
                     flash("Installation introuvable.", "warning")
             except Exception:
                 flash("ID invalide.", "warning")
-            return redirect(url_for('auth.settings'))
-        elif request.form.get("update_electric_tariffs") == "1":
-            raw_json = (request.form.get("ELECTRICITY_TARIFFS_JSON") or "").strip()
-            # pas de validation lourde côté serveur : on stocke tel quel
-            set_app_setting("ELECTRICITY_TARIFFS", raw_json)
-            flash("Tarifs électricité mis à jour ✅", "success")
             return redirect(url_for('auth.settings'))
 
     return render_template(

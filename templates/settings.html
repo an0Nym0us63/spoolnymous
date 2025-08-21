@@ -344,19 +344,41 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 });
 (function(){
-  // Chargement initial depuis settings
-  const initialRaw = {{ (settings.get('ELECTRICITY_TARIFFS') or '""')|tojson }};
-  const legacy = {{ (settings.get('COST_BY_HOUR') or '')|tojson }};
-  let tariffs = [];
-  try {
-    if (initialRaw) {
-      tariffs = JSON.parse(initialRaw);
-      if (!Array.isArray(tariffs)) tariffs = [];
+  // Récupération brute depuis le back (clé settings ELECTRICITY_TARIFFS)
+  const rawFromSettings = {{ (settings.get('ELECTRICITY_TARIFFS') or '')|tojson }};
+
+  function parseTariffs(raw){
+    if (!raw) return [];
+    // raw peut être:
+    //  - un tableau déjà parsé (si serveur a rendu directement un array)
+    //  - une chaîne JSON (la plupart des cas)
+    //  - une chaîne JSON doublement encodée selon tojson
+    try {
+      if (Array.isArray(raw)) return raw;
+      if (typeof raw === 'string') {
+        let s = raw.trim();
+        if (!s) return [];
+        // Premier parse
+        let v = JSON.parse(s);
+        // Si ça renvoie encore une chaîne (double encodage), on reparse
+        if (typeof v === 'string') {
+          try { v = JSON.parse(v); } catch { /* ignore */ }
+        }
+        return Array.isArray(v) ? v : [];
+      }
+      return [];
+    } catch {
+      return [];
     }
-  } catch(e){ tariffs = []; }
-  if (tariffs.length === 0 && legacy) {
-    // Pré-remplir avec le tarif legacy sans date (affichera une ligne vide pour start)
-    tariffs = [{ start: "", price_per_hour: parseFloat(legacy)||0 }];
+  }
+
+  let tariffs = parseTariffs(rawFromSettings);
+
+  // Fallback legacy: si vide et coût horaire simple présent
+  const legacy = {{ (settings.get('COST_BY_HOUR') or '')|tojson }};
+  if ((!tariffs || tariffs.length === 0) && legacy) {
+    const num = parseFloat(legacy);
+    if (!Number.isNaN(num)) tariffs = [{ start: "", price_per_hour: num }];
   }
 
   const body = document.getElementById('elecTariffsBody');
@@ -368,9 +390,9 @@ document.addEventListener("DOMContentLoaded", function() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>
-        <input type="datetime-local" class="form-control form-control-sm" placeholder="YYYY-MM-DD HH:MM"
+        <input type="datetime-local" class="form-control form-control-sm"
                value="${toLocalValue(item.start)}">
-        <div class="form-text">Laisser vide pour “tarif par défaut” (sans date).</div>
+        <div class="form-text">Vide = tarif par défaut (sans date)</div>
       </td>
       <td>
         <input type="number" step="0.001" min="0" class="form-control form-control-sm"
@@ -386,13 +408,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
   function toLocalValue(start){
     if (!start) return "";
-    // supporte "YYYY-MM-DD HH:MM[:SS]" -> "YYYY-MM-DDTHH:MM"
     try {
       const s = String(start).replace('T',' ').trim();
       const m = s.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}))?/);
       if (!m) return "";
       return m[1] + (m[2] ? 'T' + m[2] : 'T00:00');
-    } catch{ return "" }
+    } catch { return "" }
   }
 
   function serialize(){
@@ -400,13 +421,12 @@ document.addEventListener("DOMContentLoaded", function() {
     body.querySelectorAll('tr').forEach(tr=>{
       const dt = tr.querySelector('input[type="datetime-local"]').value.trim();
       const price = tr.querySelector('input[type="number"]').value.trim();
-      if (price === "") return; // ignorer lignes vides
+      if (price === "") return;
       out.push({
-        start: dt.replace('T',' ').trim(), // stocker "YYYY-MM-DD HH:MM"
+        start: dt ? dt.replace('T',' ').trim() : "",
         price_per_hour: parseFloat(price)
       });
     });
-    // trier par start (les vides en premier)
     out.sort((a,b)=>{
       if (!a.start && !b.start) return 0;
       if (!a.start) return -1;
@@ -417,16 +437,11 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   addBtn.addEventListener('click', ()=> addRow());
-  tariffs.forEach(addRow);
+  (tariffs || []).forEach(addRow);
 
   form.addEventListener('submit', (e)=>{
     const arr = serialize();
-    try {
-      hidden.value = JSON.stringify(arr);
-    } catch(err){
-      e.preventDefault();
-      alert("JSON invalide : " + err);
-    }
+    hidden.value = JSON.stringify(arr);
   });
 })();
 </script>
