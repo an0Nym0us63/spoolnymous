@@ -1,7 +1,7 @@
 {# templates/fragments/object_row.html #}
 {% import 'macros/hidden_args.jinja2' as macros %}
 {% set collapse_id = "obj_" ~ o.id %}
-  <div class="card mb-2" id="object_{{ o.id }}">
+  <div class="card shadow-sm object-card" id="object_{{ o.id }}">
     <div class="card-header obj-hdr"
      id="heading_{{ o.id }}" role="button"
      data-bs-toggle="collapse" data-bs-target="#{{ collapse_id }}"
