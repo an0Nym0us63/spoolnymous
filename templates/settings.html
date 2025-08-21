@@ -2,13 +2,16 @@
 
 {% block content %}
 <div class="container my-5" style="max-width: 700px;">
+
   <!-- 🔧 Paramètres système -->
   <section class="mb-5">
     <h4 class="text-light mb-4">🛠️ Paramètres système</h4>
-	<div class="mb-4">
-  <a class="btn btn-outline-info" href="{{ url_for('logs_page') }}">📜 Ouvrir la page Logs</a>
-</div>
 
+    <div class="mb-4">
+      <a class="btn btn-outline-info" href="{{ url_for('logs_page') }}">📜 Ouvrir la page Logs</a>
+    </div>
+
+    <!-- FORMULAIRE SYSTÈME (autonome) -->
     <form method="POST">
       <div class="mb-3">
         <label for="PRINTER_ID" class="form-label text-light">ID de l'imprimante</label>
@@ -44,43 +47,45 @@
         <label for="COST_BY_HOUR" class="form-label text-light">Coût horaire électricité (€/h)</label>
         <input type="number" step="0.001" class="form-control" id="COST_BY_HOUR" name="COST_BY_HOUR" value="{{ settings.get('COST_BY_HOUR', 0) }}">
       </div>
-	  <hr class="my-4">
-
-<section class="mb-5">
-  <h5 class="text-light mb-3">⚡ Barèmes d’électricité (€/h) avec date de début</h5>
-  <form method="POST" id="electricTariffsForm">
-    <input type="hidden" name="update_electric_tariffs" value="1">
-    <input type="hidden" name="ELECTRICITY_TARIFFS_JSON" id="ELECTRICITY_TARIFFS_JSON">
-
-    <div class="alert alert-secondary">
-      Définissez plusieurs tarifs avec une date de début. Le tarif applicable est
-      celui en vigueur à la date du print. Si aucun barème n’est défini, on utilise
-      <code>COST_BY_HOUR</code> en secours.
-    </div>
-
-    <div class="table-responsive">
-      <table class="table table-sm table-striped align-middle" id="elecTariffsTable">
-        <thead>
-          <tr>
-            <th style="width: 240px;">Début d’application</th>
-            <th style="width: 160px;">Prix (€/h)</th>
-            <th style="width: 80px;"></th>
-          </tr>
-        </thead>
-        <tbody id="elecTariffsBody">
-          <!-- Lignes injectées par JS -->
-        </tbody>
-      </table>
-    </div>
-
-    <div class="d-flex gap-2">
-      <button class="btn btn-outline-light" type="button" id="addTariffBtn">➕ Ajouter un tarif</button>
-      <button class="btn btn-primary ms-auto" type="submit">💾 Enregistrer les barèmes</button>
-    </div>
-  </form>
-</section>
 
       <button type="submit" name="update_core_settings" value="1" class="btn btn-primary w-100">💾 Enregistrer les paramètres système</button>
+    </form>
+  </section>
+
+  <!-- ⚡ Barèmes d’électricité -->
+  <section class="mb-5">
+    <h5 class="text-light mb-3">⚡ Barèmes d’électricité (€/h) avec date de début</h5>
+
+    <!-- FORMULAIRE BARÈMES (autonome) -->
+    <form method="POST" id="electricTariffsForm">
+      <input type="hidden" name="update_electric_tariffs" value="1">
+      <input type="hidden" name="ELECTRICITY_TARIFFS_JSON" id="ELECTRICITY_TARIFFS_JSON">
+
+      <div class="alert alert-secondary">
+        Définissez plusieurs tarifs avec une date de début. Le tarif applicable est
+        celui en vigueur à la date du print. Si aucun barème n’est défini, on utilise
+        <code>COST_BY_HOUR</code> en secours.
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle" id="elecTariffsTable">
+          <thead>
+            <tr>
+              <th style="width: 240px;">Début d’application</th>
+              <th style="width: 160px;">Prix (€/h)</th>
+              <th style="width: 80px;"></th>
+            </tr>
+          </thead>
+          <tbody id="elecTariffsBody">
+            <!-- Lignes injectées par JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-light" type="button" id="addTariffBtn">➕ Ajouter un tarif</button>
+        <button class="btn btn-primary ms-auto" type="submit">💾 Enregistrer les barèmes</button>
+      </div>
     </form>
   </section>
 
@@ -107,7 +112,7 @@
       </div>
     {% endif %}
   </section>
- 
+
   <!-- 📱 Token mobile -->
   <section class="mb-5">
     <h4 class="text-light mb-4">📱 Accès mobile & Jeton</h4>
@@ -129,156 +134,152 @@
       <div class="alert alert-info">Aucun jeton n’est disponible. Veuillez d’abord définir un mot de passe personnalisé pour activer l’accès mobile.</div>
     {% endif %}
   </section>
-  
+
   <!-- 🔑 Lien invité (lecture seule) -->
-<section class="mb-5">
-  <h4 class="text-light mb-4">🔑 Lien invité (lecture seule)</h4>
+  <section class="mb-5">
+    <h4 class="text-light mb-4">🔑 Lien invité (lecture seule)</h4>
 
-  <!-- Formulaire création -->
-  <form method="post" class="mb-3">
-    <input type="hidden" name="create_guest_link" value="1">
+    <!-- Formulaire création -->
+    <form method="post" class="mb-3">
+      <input type="hidden" name="create_guest_link" value="1">
 
-    <div class="row g-2 align-items-end">
-      <div class="col-md-5">
-        <label class="form-label text-light">Nom du lien</label>
-        <input type="text" name="guest_label" class="form-control" placeholder="Ex: Anonymous63">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-5">
+          <label class="form-label text-light">Nom du lien</label>
+          <input type="text" name="guest_label" class="form-control" placeholder="Ex: Anonymous63">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label text-light">Validité (jours, 0 = illimité)</label>
+          <input type="number" name="guest_days_valid" min="0" value="30" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label text-light">Rôle</label>
+          <select name="guest_role" class="form-select">
+            <option value="guest" selected>Invité (accès limité)</option>
+            <option value="admin">Admin (accès complet)</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-primary w-100">Créer</button>
+        </div>
       </div>
-      <div class="col-md-4">
-        <label class="form-label text-light">Validité (jours, 0 = illimité)</label>
-        <input type="number" name="guest_days_valid" min="0" value="30" class="form-control">
-      </div>
-	  <div class="col-md-3">
-  <label class="form-label text-light">Rôle</label>
-  <select name="guest_role" class="form-select">
-    <option value="guest" selected>Invité (accès limité)</option>
-    <option value="admin">Admin (accès complet)</option>
-  </select>
-</div>
-      <div class="col-md-2">
-  <button type="submit" class="btn btn-primary w-100">Créer</button>
-</div>
-    </div>
-  </form>
+    </form>
 
-  <!-- Liste des liens -->
-  {% if guest_links and guest_links|length > 0 %}
-    <div class="table-responsive">
-      <table class="table table-sm table-striped table-bordered align-middle">
-        <thead class="table-dark">
-          <tr>
-            <th>Nom</th>
-            <th>URL</th>
-            <th>Créé le</th>
-            <th>Expire le</th>
-			<th>Rôle</th>
-            <th>Statut</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for gl in guest_links %}
-          <tr>
-            <td>{{ gl.label or '—' }}</td>
-            <td class="text-break">
-              <code>{{ url_for('auth.guest_autologin', token=gl.token, _external=True) }}</code>
-            </td>
-            <td>{{ gl.created_at }}</td>
-            <td>
-              {% if gl.expires_at %}
-                {{ gl.expires_at }}
-              {% else %}
-                <em>Illimité</em>
-              {% endif %}
-            </td>
-	<td>
-  <select class="form-select form-select-sm guest-role-select"
-          data-token="{{ gl.token }}">
-    <option value="guest" {% if gl.role == "guest" %}selected{% endif %}>
-      Invité
-    </option>
-    <option value="admin" {% if gl.role == "admin" %}selected{% endif %}>
-      Admin
-    </option>
-  </select>
-</td>
-
-            <td>
-              {% if gl.revoked %}
-                <span class="badge bg-danger">Révoqué</span>
-              {% else %}
-                <span class="badge bg-success">Actif</span>
-              {% endif %}
-            </td>
-            <td class="text-center">
-              {% if not gl.revoked %}
-              <form method="post" style="display:inline">
-                <input type="hidden" name="revoke_guest_token" value="{{ gl.token }}">
-                <button type="submit" class="btn btn-sm btn-outline-danger" title="Révoquer">
-                  <i class="bi bi-x-circle"></i>
-                </button>
-              </form>
-              {% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% else %}
-    <div class="text-muted fst-italic">Aucun lien invité créé pour le moment.</div>
-  {% endif %}
-</section>
-<section class="mb-5">
-  <h4 class="text-light mb-4">🌐 Installations externes</h4>
-
-  <form method="post" class="mb-3">
-    <input type="hidden" name="add_installation" value="1">
-    <div class="row g-2 align-items-end">
-      <div class="col-md-4">
-        <label class="form-label text-light">Nom</label>
-        <input type="text" name="install_label" class="form-control" placeholder="Ex: Anonymous63">
+    <!-- Liste des liens -->
+    {% if guest_links and guest_links|length > 0 %}
+      <div class="table-responsive">
+        <table class="table table-sm table-striped table-bordered align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>Nom</th>
+              <th>URL</th>
+              <th>Créé le</th>
+              <th>Expire le</th>
+              <th>Rôle</th>
+              <th>Statut</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for gl in guest_links %}
+            <tr>
+              <td>{{ gl.label or '—' }}</td>
+              <td class="text-break">
+                <code>{{ url_for('auth.guest_autologin', token=gl.token, _external=True) }}</code>
+              </td>
+              <td>{{ gl.created_at }}</td>
+              <td>
+                {% if gl.expires_at %}
+                  {{ gl.expires_at }}
+                {% else %}
+                  <em>Illimité</em>
+                {% endif %}
+              </td>
+              <td>
+                <select class="form-select form-select-sm guest-role-select" data-token="{{ gl.token }}">
+                  <option value="guest" {% if gl.role == "guest" %}selected{% endif %}>Invité</option>
+                  <option value="admin" {% if gl.role == "admin" %}selected{% endif %}>Admin</option>
+                </select>
+              </td>
+              <td>
+                {% if gl.revoked %}
+                  <span class="badge bg-danger">Révoqué</span>
+                {% else %}
+                  <span class="badge bg-success">Actif</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if not gl.revoked %}
+                <form method="post" style="display:inline">
+                  <input type="hidden" name="revoke_guest_token" value="{{ gl.token }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Révoquer">
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
       </div>
-      <div class="col-md-6">
-        <label class="form-label text-light">URL invité</label>
-        <input type="url" name="install_guest_url" class="form-control" placeholder="https://.../guest/<token>" required>
-      </div>
-      <div class="col-md-2">
-        <button type="submit" class="btn btn-primary w-100">Ajouter</button>
-      </div>
-    </div>
-  </form>
+    {% else %}
+      <div class="text-muted fst-italic">Aucun lien invité créé pour le moment.</div>
+    {% endif %}
+  </section>
 
-  {% if installations and installations|length > 0 %}
-    <div class="table-responsive">
-      <table class="table table-sm table-striped table-bordered align-middle">
-        <thead class="table-dark">
-          <tr>
-            <th>Nom</th>
-            <th>URL invité</th>
-            <th style="width:70px"></th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for it in installations %}
-          <tr>
-            <td>{{ it.label or ('Installation #' ~ it.id) }}</td>
-            <td class="text-break"><code>{{ it.guest_url }}</code></td>
-            <td class="text-center">
-              <form method="post" style="display:inline">
-                <button name="remove_installation" value="{{ it.id }}" class="btn btn-sm btn-outline-danger" title="Supprimer">
-                  <i class="bi bi-x-circle"></i>
-                </button>
-              </form>
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% else %}
-    <div class="text-muted fst-italic">Aucune installation externe configurée.</div>
-  {% endif %}
-</section>
+  <!-- 🌐 Installations externes -->
+  <section class="mb-5">
+    <h4 class="text-light mb-4">🌐 Installations externes</h4>
+
+    <form method="post" class="mb-3">
+      <input type="hidden" name="add_installation" value="1">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label text-light">Nom</label>
+          <input type="text" name="install_label" class="form-control" placeholder="Ex: Anonymous63">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label text-light">URL invité</label>
+          <input type="url" name="install_guest_url" class="form-control" placeholder="https://.../guest/<token>" required>
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-primary w-100">Ajouter</button>
+        </div>
+      </div>
+    </form>
+
+    {% if installations and installations|length > 0 %}
+      <div class="table-responsive">
+        <table class="table table-sm table-striped table-bordered align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>Nom</th>
+              <th>URL invité</th>
+              <th style="width:70px"></th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for it in installations %}
+            <tr>
+              <td>{{ it.label or ('Installation #' ~ it.id) }}</td>
+              <td class="text-break"><code>{{ it.guest_url }}</code></td>
+              <td class="text-center">
+                <form method="post" style="display:inline">
+                  <button name="remove_installation" value="{{ it.id }}" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-muted fst-italic">Aucune installation externe configurée.</div>
+    {% endif %}
+  </section>
 
   <!-- 🧮 Maintenance -->
   <section class="mb-5">
@@ -314,10 +315,12 @@
     </form>
   </section>
 
-
 </div>
+
+<!-- SCRIPTS -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+  // MAJ rôle lien invité (AJAX)
   document.querySelectorAll(".guest-role-select").forEach(function(select) {
     select.addEventListener("change", function() {
       const token = this.dataset.token;
@@ -326,23 +329,22 @@ document.addEventListener("DOMContentLoaded", function() {
       fetch(`/update_guest_role/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `role=${role}`
+        body: `role=${encodeURIComponent(role)}`
       })
       .then(res => res.json())
       .then(data => {
-        if (data.success) {
-          console.log("✅ Rôle mis à jour:", data.role);
-        } else {
+        if (!data.success) {
           alert("Erreur: " + (data.error || "inconnue"));
         }
       })
-      .catch(err => {
-        console.error(err);
-        alert("Erreur réseau");
-      });
+      .catch(() => alert("Erreur réseau"));
     });
   });
 });
+</script>
+
+<script>
+/* ====== Barèmes électricité (form séparé) ====== */
 (function(){
   // Récupération brute depuis le back (clé settings ELECTRICITY_TARIFFS)
   const rawFromSettings = {{ (settings.get('ELECTRICITY_TARIFFS') or '')|tojson }};
@@ -358,10 +360,8 @@ document.addEventListener("DOMContentLoaded", function() {
       if (typeof raw === 'string') {
         let s = raw.trim();
         if (!s) return [];
-        // Premier parse
-        let v = JSON.parse(s);
-        // Si ça renvoie encore une chaîne (double encodage), on reparse
-        if (typeof v === 'string') {
+        let v = JSON.parse(s);            // premier parse
+        if (typeof v === 'string') {      // éventuel double encodage
           try { v = JSON.parse(v); } catch { /* ignore */ }
         }
         return Array.isArray(v) ? v : [];
@@ -381,10 +381,10 @@ document.addEventListener("DOMContentLoaded", function() {
     if (!Number.isNaN(num)) tariffs = [{ start: "", price_per_hour: num }];
   }
 
-  const body = document.getElementById('elecTariffsBody');
+  const body   = document.getElementById('elecTariffsBody');
   const addBtn = document.getElementById('addTariffBtn');
   const hidden = document.getElementById('ELECTRICITY_TARIFFS_JSON');
-  const form = document.getElementById('electricTariffsForm');
+  const form   = document.getElementById('electricTariffsForm');
 
   function addRow(item={start:"", price_per_hour:""}) {
     const tr = document.createElement('tr');
@@ -419,7 +419,7 @@ document.addEventListener("DOMContentLoaded", function() {
   function serialize(){
     const out = [];
     body.querySelectorAll('tr').forEach(tr=>{
-      const dt = tr.querySelector('input[type="datetime-local"]').value.trim();
+      const dt    = tr.querySelector('input[type="datetime-local"]').value.trim();
       const price = tr.querySelector('input[type="number"]').value.trim();
       if (price === "") return;
       out.push({
@@ -439,7 +439,8 @@ document.addEventListener("DOMContentLoaded", function() {
   addBtn.addEventListener('click', ()=> addRow());
   (tariffs || []).forEach(addRow);
 
-  form.addEventListener('submit', (e)=>{
+  // Remplit le JSON juste avant l'envoi
+  form.addEventListener('submit', ()=>{
     const arr = serialize();
     hidden.value = JSON.stringify(arr);
   });
