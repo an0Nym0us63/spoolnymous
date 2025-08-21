@@ -63,7 +63,7 @@
   </div>
 
   <!-- Statistiques -->
-  <div class="row g-3">
+  <div class="row row-cols-4 g-3 g-md-3 mb-4 text-center align-items-stretch">
     {% set cards = [
       ('🖨', stats.total_prints),
       ('⏱', stats.total_duration | default(0) | round(1)),
@@ -75,10 +75,10 @@
     ] %}
     {% for label, value in cards %}
 	{% if '💰' in label or '⚡' in label or '💵' in label or '📈' in label %}
-		<div class="row row-cols-4 g-3 g-md-3 mb-4 text-center align-items-stretch" data-requires-write>
+		<div data-requires-write>
 	{% else %}
         
-			<div class="row row-cols-4 g-3 g-md-3 mb-4 text-center align-items-stretch">
+			<div>
     {% endif %}
     <div class="card border border-secondary-subtle shadow-sm h-100">
         <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
