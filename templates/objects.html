@@ -130,9 +130,8 @@
       <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
         <div class="fs-5 fs-md-4">💶</div>
         <div class="small fw-bold">
-          {{ '%.2f'|format(sum_sold_price) }} {{ currencysymbol or '€' }} <sup>{{ '%.2f'|format(sum_desired_price or 0) }}</sup>
+          {{ '%.2f'|format(sum_sold_price) }} {{ currencysymbol or '€' }} <sup> {{ '%.2f'|format(sum_desired_price or 0) }}</sup>
         </div>
-		if (
       </div>
     </div>
   </div>
@@ -141,7 +140,7 @@
       <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
         <div class="fs-5 fs-md-4">📈</div>
         <div class="small fw-bold">
-          {{ '%.2f'|format(sum_margin) }} {{ currencysymbol or '€' }}<sup>{{ '%.2f'|format(sum_desired_price or 0) }}</sup>
+          {{ '%.2f'|format(sum_margin) }} {{ currencysymbol or '€' }}<sup> {{ '%.2f'|format(sum_desired_price or 0) }}</sup>
         </div>
       </div>
     </div>
