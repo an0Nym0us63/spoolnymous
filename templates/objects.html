@@ -249,19 +249,6 @@
     {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol }}
   </span>
 {% endif %}
-{# Affichage prix souhaité & marge théorique (si éligible) #}
-{% if o.sold_price is none and o.available and o.desired_price is not none %}
-  <span class="badge rounded-pill bg-purple-subtle border fw-normal"
-        style="font-size: 0.65rem; padding: 0.2em 0.45em;">
-    🎯 {{ '%.2f'|format(o.desired_price) }} {{ currencysymbol or '€' }}
-  </span>
-  {% set _theo = (o.desired_price - (o.cost_total or 0)) %}
-  {% set _pos_th = _theo >= 0 %}
-  <span class="badge rounded-pill {{ 'bg-success text-white' if _pos_th else 'bg-danger text-white' }} border fw-normal"
-        style="font-size: 0.65rem; padding: 0.2em 0.45em;">
-    🧮 {{ '%.2f'|format(_theo) }} {{ currencysymbol or '€' }}
-  </span>
-{% endif %}
 {% if g.sum_desired_price %}
   <span class="badge rounded-pill bg-purple text-white border fw-normal"
         style="font-size: 0.65rem; padding: 0.2em 0.45em;">
