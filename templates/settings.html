@@ -44,7 +44,7 @@
       </div>
 
       <div class="mb-3">
-        <label for="COST_BY_HOUR" class="form-label text-light">Coût horaire électricité (€/h)</label>
+        <label for="COST_BY_HOUR" class="form-label text-light">Coût horaire électricité par défaut (€/h)</label>
         <input type="number" step="0.001" class="form-control" id="COST_BY_HOUR" name="COST_BY_HOUR" value="{{ settings.get('COST_BY_HOUR', 0) }}">
       </div>
 
@@ -392,7 +392,6 @@ document.addEventListener("DOMContentLoaded", function() {
       <td>
         <input type="datetime-local" class="form-control form-control-sm"
                value="${toLocalValue(item.start)}">
-        <div class="form-text">Vide = tarif par défaut (sans date)</div>
       </td>
       <td>
         <input type="number" step="0.001" min="0" class="form-control form-control-sm"
