@@ -1365,7 +1365,7 @@ class ObjectsSummary(TypedDict):
     gifted_count: int      # sold_price = 0 AND personal = 0
     personal_count: int    # sold_price = 0 AND personal = 1
     sum_sold_price: float
-    sum_positive_margin: float
+    sum_margin: float
     sum_desired_price: float            # somme des desired_price des objets éligibles (non vendus/offerts/perso)
     sum_theoretical_margin: float 
 
@@ -1412,7 +1412,7 @@ def summarize_objects(filters: dict) -> ObjectsSummary:
             CASE
               WHEN sold_price > 0 THEN
                 CASE
-                  WHEN margin IS NOT NULL THEN CASE WHEN margin > 0 THEN margin ELSE 0 END
+                  WHEN margin IS NOT NULL THEN margin ELSE 0 END
                   ELSE CASE
                          WHEN (sold_price - COALESCE(cost_total, COALESCE(cost_accessory,0)+COALESCE(cost_fabrication,0))) > 0
                          THEN (sold_price - COALESCE(cost_total, COALESCE(cost_accessory,0)+COALESCE(cost_fabrication,0)))
@@ -1425,7 +1425,7 @@ def summarize_objects(filters: dict) -> ObjectsSummary:
         FROM objects
         {where}
     """, params)
-    sum_positive_margin = float(cur.fetchone()[0] or 0.0)
+    sum_margin = float(cur.fetchone()[0] or 0.0)
     
     cur.execute(f"""
         SELECT COALESCE(SUM(
@@ -1464,7 +1464,7 @@ def summarize_objects(filters: dict) -> ObjectsSummary:
         gifted_count=gifted_count,
         personal_count=personal_count,
         sum_sold_price=sum_sold_price,
-        sum_positive_margin=sum_positive_margin,
+        sum_margin=sum_margin,
         sum_desired_price=sum_desired_price,
         sum_theoretical_margin=sum_theoretical_margin,
     )

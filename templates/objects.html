@@ -233,7 +233,7 @@
     </span>
 
     {% set _sold = g.sum_sold_price or 0 %}
-{% set _margin = g.sum_positive_margin or 0 %}
+{% set _margin = g.sum_margin or 0 %}
 {% set _pos = _margin >= 0 %}
 
 {% if _sold != 0 %}
