@@ -79,17 +79,21 @@ def get_electric_tariffs() -> list[dict]:
     """
     Retourne une liste triée:
       [{"start": datetime|None, "price_per_hour": float}, ...]
-    Lit settings["ELECTRICITY_TARIFFS"] (JSON). Fallback sur COST_BY_HOUR si vide.
+    - Lit settings["ELECTRICITY_TARIFFS"] (JSON).
+    - Ajoute un tarif baseline depuis COST_BY_HOUR (start=None) s'il est défini,
+      même si des barèmes datés existent (sert pour les dates antérieures au 1er barème).
     """
     settings = get_all_app_settings()
     raw = (settings.get("ELECTRICITY_TARIFFS") or "").strip()
     tariffs: list[dict] = []
+
+    # 1) Barèmes datés depuis le JSON
     if raw:
         try:
             arr = _json.loads(raw)
             if isinstance(arr, list):
                 for it in arr:
-                    if not isinstance(it, dict): 
+                    if not isinstance(it, dict):
                         continue
                     start = _parse_dt(it.get("start") or it.get("start_at") or it.get("date") or "")
                     try:
@@ -99,29 +103,39 @@ def get_electric_tariffs() -> list[dict]:
                     tariffs.append({"start": start, "price_per_hour": price})
         except Exception:
             pass
-    if not tariffs:
-        # héritage: coût fixe si aucun barème défini
-        legacy = settings.get("COST_BY_HOUR", "")
-        try:
-            if str(legacy).strip() != "":
-                tariffs.append({"start": None, "price_per_hour": float(legacy)})
-        except Exception:
-            pass
+
+    # 2) Baseline depuis COST_BY_HOUR (si présent)
+    legacy_raw = settings.get("COST_BY_HOUR", "")
+    try:
+        if str(legacy_raw).strip() != "":
+            legacy_val = float(legacy_raw)
+            # N'ajoute pas de doublon si l'utilisateur a déjà mis une ligne sans date (start=None)
+            if not any(t["start"] is None for t in tariffs):
+                tariffs.append({"start": None, "price_per_hour": legacy_val})
+    except Exception:
+        pass
+
+    # 3) Tri (les None en premier) pour faciliter la recherche "start <= dt"
     tariffs.sort(key=lambda x: (x["start"] or datetime.min))
     return tariffs
 
+
 def get_electric_rate_at(dt: datetime | None) -> float:
     """
-    Retourne le prix/h effectif à la date dt.
-    Règle: on prend le dernier tarif dont start <= dt.
-    Si dt=None: on prend le DERNIER tarif (le plus récent).
+    Donne le prix/h effectif à la date dt.
+    - On prend le dernier tarif dont start <= dt.
+    - Si dt=None: on renvoie le tarif le plus récent (dernier de la liste triée).
+    - Si aucun tarif <= dt et pas de baseline: renvoie 0.0.
     """
     tariffs = get_electric_tariffs()
     if not tariffs:
         return 0.0
+
     if dt is None:
+        # comportement "courant": dernier barème
         return float(tariffs[-1]["price_per_hour"])
-    rate = float(tariffs[0]["price_per_hour"])
+
+    rate = 0.0  # par défaut 0 si rien ne matche et pas de baseline
     for t in tariffs:
         st = t["start"]
         if st is None or st <= dt:
