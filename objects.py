@@ -1412,7 +1412,8 @@ def summarize_objects(filters: dict) -> ObjectsSummary:
             CASE
               WHEN sold_price > 0 THEN
                 CASE
-                  WHEN margin IS NOT NULL THEN margin ELSE 0 END
+                  WHEN margin IS NOT NULL 
+                  THEN margin
                   ELSE CASE
                          WHEN (sold_price - COALESCE(cost_total, COALESCE(cost_accessory,0)+COALESCE(cost_fabrication,0))) > 0
                          THEN (sold_price - COALESCE(cost_total, COALESCE(cost_accessory,0)+COALESCE(cost_fabrication,0)))
