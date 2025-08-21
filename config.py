@@ -139,7 +139,7 @@ def get_electric_rate_at(dt: datetime | None) -> float:
     if dt is None:
         # comportement "courant": dernier barème
         
-        logger.debug(str(float(tariffs[-1]["price_per_hour"]))
+        logger.debug(str(float(tariffs[-1]["price_per_hour"])))
         return float(tariffs[-1]["price_per_hour"])
 
     rate = 0.0  # par défaut 0 si rien ne matche et pas de baseline
@@ -150,7 +150,7 @@ def get_electric_rate_at(dt: datetime | None) -> float:
         else:
             break
     
-        logger.debug(str(rate))
+    logger.debug(str(rate))
     return rate
 
 init_settings_table()
