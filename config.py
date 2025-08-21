@@ -64,82 +64,68 @@ def get_all_app_settings() -> dict:
 def _parse_dt(s: str) -> datetime | None:
     if not s:
         return None
-    s = s.strip().replace("T", " ")
-    # on accepte "YYYY-MM-DD HH:MM[:SS]" ou juste "YYYY-MM-DD"
+    s = str(s).strip().replace("T", " ")
     for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
         try:
             return datetime.strptime(s, fmt)
         except ValueError:
             pass
-    # tentative isoformat standard
     try:
-        return datetime.fromisoformat(s.replace("Z", ""))
+        return datetime.fromisoformat(s.replace("Z",""))
     except Exception:
         return None
 
 def get_electric_tariffs() -> list[dict]:
     """
-    Retourne une liste triée de tarifs sous la forme :
-      [{"start": "YYYY-MM-DD HH:MM", "price_per_hour": 0.20}, ...]
-    - Lit settings["ELECTRICITY_TARIFFS"] (JSON).
-    - Fallback : si absent, on utilise COST_BY_HOUR (unique, sans start).
+    Retourne une liste triée:
+      [{"start": datetime|None, "price_per_hour": float}, ...]
+    Lit settings["ELECTRICITY_TARIFFS"] (JSON). Fallback sur COST_BY_HOUR si vide.
     """
     settings = get_all_app_settings()
     raw = (settings.get("ELECTRICITY_TARIFFS") or "").strip()
     tariffs: list[dict] = []
-
     if raw:
         try:
             arr = _json.loads(raw)
             if isinstance(arr, list):
-                for item in arr:
-                    if not isinstance(item, dict):
+                for it in arr:
+                    if not isinstance(it, dict): 
                         continue
-                    start = item.get("start") or item.get("start_at") or item.get("date")
-                    price = item.get("price_per_hour") or item.get("hourly") or item.get("price") or item.get("value")
-                    if price is None:
-                        continue
-                    dt = _parse_dt(str(start)) if start else None
+                    start = _parse_dt(it.get("start") or it.get("start_at") or it.get("date") or "")
                     try:
-                        p = float(price)
+                        price = float(it.get("price_per_hour") or it.get("hourly") or it.get("price") or it.get("value"))
                     except Exception:
                         continue
-                    tariffs.append({"start": dt, "price_per_hour": p})
+                    tariffs.append({"start": start, "price_per_hour": price})
         except Exception:
-            # JSON invalide => on ignore silencieusement (l’UI prévient côté page)
             pass
-
-    # Fallback legacy : COST_BY_HOUR si rien défini
     if not tariffs:
+        # héritage: coût fixe si aucun barème défini
         legacy = settings.get("COST_BY_HOUR", "")
-        if str(legacy).strip() != "":
-            try:
-                p = float(legacy)
-                tariffs.append({"start": None, "price_per_hour": p})
-            except Exception:
-                pass
-
-    # Trier par start croissant (None en premier)
+        try:
+            if str(legacy).strip() != "":
+                tariffs.append({"start": None, "price_per_hour": float(legacy)})
+        except Exception:
+            pass
     tariffs.sort(key=lambda x: (x["start"] or datetime.min))
     return tariffs
 
 def get_electric_rate_at(dt: datetime | None) -> float:
     """
-    Donne le prix/h effectif à l’instant dt.
-    - Prend le dernier tarif dont start <= dt (ou le dernier défini si dt est None).
-    - Retourne 0.0 si aucun tarif valide.
+    Retourne le prix/h effectif à la date dt.
+    Règle: on prend le dernier tarif dont start <= dt.
+    Si dt=None: on prend le DERNIER tarif (le plus récent).
     """
     tariffs = get_electric_tariffs()
     if not tariffs:
         return 0.0
     if dt is None:
-        return tariffs[-1]["price_per_hour"]  # dernier tarif
-
-    rate = 0.0
+        return float(tariffs[-1]["price_per_hour"])
+    rate = float(tariffs[0]["price_per_hour"])
     for t in tariffs:
         st = t["start"]
         if st is None or st <= dt:
-            rate = t["price_per_hour"]
+            rate = float(t["price_per_hour"])
         else:
             break
     return rate

@@ -1155,23 +1155,11 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         filament_cost += grams * cost_per_gram
 
     duration_hours = total_duration / 3600
-    def _parse_dt_safe(s):
-        if not s: return None
-        try:
-            return datetime.fromisoformat(str(s).replace("Z","").replace("T"," "))
-        except Exception:
-            try:
-                return datetime.strptime(str(s).split('.')[0], "%Y-%m-%d %H:%M:%S")
-            except Exception:
-                return None
-
-    electric_cost = 0.0
-    for p in prints:
-        dur = (p["duration"] or 0) / 3600.0
-        dt = _parse_dt_safe(p.get("print_date"))
-        rate = get_electric_rate_at(dt)
-        electric_cost += dur * rate
-        electric_cost = duration_hours * float(get_app_setting("COST_BY_HOUR",0))
+    cursor.execute(
+        f"SELECT COALESCE(SUM(electric_cost),0) FROM prints WHERE id IN ({','.join('?' for _ in print_ids)})",
+        print_ids
+    )
+    electric_cost = float(cursor.fetchone()[0] or 0.0)
 
     vendor_counts = {}
     for u in usage:
@@ -1440,9 +1428,10 @@ def recalculate_print_data(print_id: int, spools_by_id: dict) -> None:
     # Calculs électricité
     dt = None
     try:
-        dt = datetime.fromisoformat(str(print_row.get("print_date","")).replace("Z","").replace("T"," "))
+        if print_row.get("print_date"):
+            dt = datetime.strptime(print_row["print_date"], "%Y-%m-%d %H:%M:%S")
     except Exception:
-        pass
+        dt = None
     rate = get_electric_rate_at(dt)
     electric_cost = ((duration or 0.0) / 3600.0) * rate
 
