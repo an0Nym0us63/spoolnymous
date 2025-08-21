@@ -1428,7 +1428,7 @@ def recalculate_print_data(print_id: int, spools_by_id: dict) -> None:
     # Calculs électricité
     dt = None
     try:
-        if print_row.get("print_date"):
+        if print_row["print_date"]:
             dt = datetime.strptime(print_row["print_date"], "%Y-%m-%d %H:%M:%S")
     except Exception:
         dt = None
