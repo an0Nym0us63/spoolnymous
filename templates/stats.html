@@ -75,16 +75,15 @@
     ] %}
     {% for label, value in cards %}
 	{% if '💰' in label or '⚡' in label or '💵' in label or '📈' in label %}
-		
-    <div class="col-6 col-md-4 col-lg-3" data-requires-write>
+		<div class="row row-cols-4 g-3 g-md-3 mb-4 text-center align-items-stretch" data-requires-write>
 	{% else %}
         
-			<div class="col-6 col-md-4 col-lg-3">
+			<div class="row row-cols-4 g-3 g-md-3 mb-4 text-center align-items-stretch">
     {% endif %}
-      <div class="card h-100 shadow-sm">
-        <div class="card-body text-center">
-          <h6 class="card-title small text-muted">{{ label }}</h6>
-          <p class="card-text fs-5 fw-bold">
+    <div class="card border border-secondary-subtle shadow-sm h-100">
+        <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+          <h6 class="fs-5 fs-md-4">{{ label }}</h6>
+          <p class="small fw-bold">
           {% if '💰' in label or '⚡' in label or '💵' in label or '📈' in label %}
             {{ value }} {{ currencysymbol }}
           {% elif '⚖️' in label %}
