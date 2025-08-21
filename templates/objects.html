@@ -315,6 +315,40 @@
           <div class="p-3 text-muted">Aucun objet (selon les filtres).</div>
         {% endif %}
       </div>
+	  <div class="px-3 pt-2">
+  <div class="mb-2">
+    <strong>Tags (groupe) :</strong>
+    <div class="d-flex flex-wrap gap-1 align-items-center">
+      {% if g.tags and g.tags|length > 0 %}
+        {% for tag in g.tags %}
+          <span class="badge bg-primary">
+            {{ tag }}
+            <form class="d-inline" method="post"
+                  action="{{ url_for('objects_group_remove_tag', group_id=g.id) }}"
+                  data-requires-write>
+              {{ macros.render_filtered_args(args) }}
+              <input type="hidden" name="tag" value="{{ tag }}">
+              <button type="submit" class="btn-close btn-close-white btn-sm ms-1"
+                      aria-label="Supprimer le tag « {{ tag }} »"></button>
+            </form>
+          </span>
+        {% endfor %}
+      {% else %}
+        <span class="text-muted">Aucun</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <form class="input-group mt-1" style="max-width: 300px;"
+        method="post"
+        action="{{ url_for('objects_group_add_tag', group_id=g.id) }}"
+        data-requires-write>
+    {{ macros.render_filtered_args(args) }}
+    <input type="text" class="form-control form-control-sm"
+           name="tag" placeholder="Nouveau tag… (sépare par , ou ;)">
+    <button class="btn btn-sm btn-success" type="submit">✚ Ajouter</button>
+  </form>
+</div>
     </div>
   </div>
   
@@ -1042,6 +1076,37 @@ document.querySelectorAll('[id^="remGroupAccModal_"]').forEach(modalEl => {
     allCb.checked = false;
     qtyWrap.classList.remove("d-none");
     submit.disabled = true;
+  });
+});
+$(function() {
+  // Ajouter un tag à un objet
+  $(document).on('click', '.obj-add-tag-btn', function () {
+    const btn = $(this);
+    const objectId = btn.data('object-id');
+    const input = btn.siblings('.obj-add-tag-input');
+    const tag = (input.val() || '').trim();
+    if (!tag) return;
+
+    $.post(`/objects/${objectId}/tags/add`, { tag })
+      .done(() => {
+        const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
+        window.location.href = `/objects?page=${currentPage}&focus_object_id=${objectId}`;
+      })
+      .fail(() => alert("Erreur lors de l’ajout du tag."));
+  });
+
+  // Supprimer un tag d’un objet
+  $(document).on('click', '.obj-remove-tag', function () {
+    const btn = $(this);
+    const objectId = btn.data('object-id');
+    const tag = btn.data('tag');
+
+    $.post(`/objects/${objectId}/tags/remove`, { tag })
+      .done(() => {
+        const currentPage = new URLSearchParams(window.location.search).get('page') || '1';
+        window.location.href = `/objects?page=${currentPage}&focus_object_id=${objectId}`;
+      })
+      .fail(() => alert("Erreur lors de la suppression du tag."));
   });
 });
 </script>

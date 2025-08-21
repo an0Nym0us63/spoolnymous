@@ -40,7 +40,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory,rename_accessory, create_object_group, rename_object_group, assign_object_to_group, remove_object_from_group, search_object_groups, list_object_groups_with_counts,get_object_groups,set_desired_price,get_object,set_group_desired_price
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects, list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory,rename_accessory, create_object_group, rename_object_group, assign_object_to_group, remove_object_from_group, search_object_groups, list_object_groups_with_counts,get_object_groups,set_desired_price,get_object,set_group_desired_price,get_tags_for_objects, add_object_tag as dal_add_object_tag, remove_object_tag as dal_remove_object_tag, get_tags_for_object_groups, add_tag_to_object_group as dal_add_tag_to_object_group, remove_tag_from_object_group as dal_remove_tag_from_object_group,
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -1905,6 +1905,10 @@ def objects_page():
 
     # 2) Groupes + objets filtrés à l'intérieur
     groups = list_object_groups_with_counts(filters)
+    group_ids = [g["id"] for g in groups]
+    group_tags_map = get_tags_for_object_groups(group_ids)
+    for g in groups:
+        g["tags"] = group_tags_map.get(g["id"], [])
 
     # 2.b) Calcul date la plus récente pour chaque groupe (si pas déjà fait côté Python/SQL)
     for g in groups:
@@ -2116,23 +2120,38 @@ def objects_update_comment(object_id: int):
     return redirect_with_context("objects_page", focus_object_id=object_id)
 
 @app.route("/objects/<int:object_id>/tags/add", methods=["POST"])
-def add_object_tag(object_id: int):
+def objects_add_tag(object_id: int):
     tag_input = request.form.get("tag", "")
     tags = [t.strip() for t in re.split(r"[;,]", tag_input) if t.strip()]
     for tag in tags:
-        add_object_tag(object_id, tag)
+        dal_add_object_tag(object_id, tag)
 
     tags_now = get_tags_for_objects([object_id]).get(object_id, [])
     return jsonify({"status": "ok", "tags": tags_now})
-
 
 @app.route("/objects/<int:object_id>/tags/remove", methods=["POST"])
-def remove_object_tag(object_id: int):
+def objects_remove_tag(object_id: int):
     tag = (request.form.get("tag", "")).strip()
     if tag:
-        remove_object_tag(object_id, tag)
+        dal_remove_object_tag(object_id, tag)
     tags_now = get_tags_for_objects([object_id]).get(object_id, [])
     return jsonify({"status": "ok", "tags": tags_now})
+
+@app.route("/objects/group/<int:group_id>/tags/add", methods=["POST"])
+def objects_group_add_tag(group_id: int):
+    tag_input = request.form.get("tag", "")
+    tags = [t.strip() for t in re.split(r"[;,]", tag_input) if t.strip()]
+    for tag in tags:
+        dal_add_tag_to_object_group(group_id, tag)
+    # On conserve les filtres / page via utilitaire existant
+    return redirect_with_context("objects_page")
+
+@app.route("/objects/group/<int:group_id>/tags/remove", methods=["POST"])
+def objects_group_remove_tag(group_id: int):
+    tag = (request.form.get("tag", "")).strip()
+    if tag:
+        dal_remove_tag_from_object_group(group_id, tag)
+    return redirect_with_context("objects_page")
 
 @app.route("/accessories")
 def accessories_list():

@@ -293,16 +293,33 @@
 {% endif %}
 
 <!-- Tags -->
-{% set tags = obj_tags.get(o.id, []) %}
-{% if tags %}
-  <div class="d-flex flex-wrap gap-1">
-    {% for tag in tags %}
-      <span class="badge bg-light text-dark border border-secondary-subtle fw-normal small">
-        #{{ tag }}
-      </span>
-    {% endfor %}
+<div class="mt-2">
+  <strong>Tags :</strong>
+  {% set tags = _obj_tags.get(o.id, []) %}
+  <div class="d-flex flex-wrap gap-1 align-items-center">
+    {% if tags and tags|length > 0 %}
+      {% for tag in tags %}
+        <span class="badge bg-primary">
+          {{ tag }}
+          <button
+            class="btn-close btn-close-white btn-sm ms-1 obj-remove-tag"
+            data-object-id="{{ o.id }}"
+            data-tag="{{ tag }}"
+            data-requires-write
+            aria-label="Supprimer le tag « {{ tag }} »"></button>
+        </span>
+      {% endfor %}
+    {% else %}
+      <span class="text-muted">Aucun</span>
+    {% endif %}
   </div>
-{% endif %}
+
+  <div class="input-group mt-1" style="max-width: 300px;" data-requires-write>
+    <input type="text" class="form-control form-control-sm obj-add-tag-input"
+           placeholder="Nouveau tag… (sépare par , ou ;)">
+    <button class="btn btn-sm btn-success obj-add-tag-btn" data-object-id="{{ o.id }}">✚ Ajouter</button>
+  </div>
+</div>
       </div>
     </div>
   </div>

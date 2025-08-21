@@ -1619,5 +1619,75 @@ def set_group_desired_price(
     affected = cur.rowcount or 0
     conn.commit(); conn.close()
     return int(affected)
+    
+def get_tags_for_object_group(group_id: int) -> list[str]:
+    """Tags uniques de tous les objets du groupe."""
+    conn = _connect(); cur = conn.cursor()
+    cur.execute("""
+        SELECT DISTINCT t.tag
+          FROM tag_objects t
+          JOIN objects o ON o.id = t.object_id
+         WHERE o.object_group_id = ?
+         ORDER BY LOWER(t.tag)
+    """, (int(group_id),))
+    tags = [r[0] for r in cur.fetchall()]
+    conn.close()
+    return tags
 
+def add_tag_to_object_group(group_id: int, tag: str) -> int:
+    """Ajoute un tag à tous les objets du groupe (sans doublon). Retourne le nombre potentiel de lignes insérées."""
+    tag = (tag or "").strip()
+    if not tag:
+        return 0
+    conn = _connect(); cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO tag_objects (object_id, tag)
+        SELECT o.id, ?
+          FROM objects o
+         WHERE o.object_group_id = ?
+           AND NOT EXISTS (
+               SELECT 1 FROM tag_objects t
+                WHERE t.object_id = o.id AND t.tag = ?
+           )
+    """, (tag, int(group_id), tag))
+    affected = cur.rowcount
+    conn.commit(); conn.close()
+    return affected
+
+def remove_tag_from_object_group(group_id: int, tag: str) -> int:
+    """Supprime un tag de tous les objets du groupe. Retourne le nombre de lignes supprimées."""
+    tag = (tag or "").strip()
+    if not tag:
+        return 0
+    conn = _connect(); cur = conn.cursor()
+    cur.execute("""
+        DELETE FROM tag_objects
+         WHERE tag = ?
+           AND object_id IN (SELECT id FROM objects WHERE object_group_id = ?)
+    """, (tag, int(group_id)))
+    affected = cur.rowcount
+    conn.commit(); conn.close()
+    return affected
+
+def get_tags_for_object_groups(group_ids: list[int]) -> dict[int, list[str]]:
+    """Mapping {group_id: [tags triés]} pour plusieurs groupes."""
+    if not group_ids:
+        return {}
+    conn = _connect(); cur = conn.cursor()
+    marks = ",".join("?" for _ in group_ids)
+    cur.execute(f"""
+        SELECT o.object_group_id, t.tag
+          FROM tag_objects t
+          JOIN objects o ON o.id = t.object_id
+         WHERE o.object_group_id IN ({marks})
+    """, tuple(int(g) for g in group_ids))
+    res: dict[int, list[str]] = {}
+    for gid, tag in cur.fetchall():
+        res.setdefault(int(gid), []).append(tag)
+    conn.close()
+    for gid in list(res.keys()):
+        # uniques + tri case-insensitive
+        res[gid] = sorted(sorted(set(res[gid])), key=lambda s: s.lower())
+    return res
+    
 ensure_schema()
