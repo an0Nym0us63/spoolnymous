@@ -1954,14 +1954,14 @@ def objects_page():
         g["sum_sold_price"] = sum_sold
     
         # Somme des marges POSITIVES sur les ventes (sold_price > 0), en utilisant la colonne "margin"
-        sum_pos_margin = 0.0
+        sum_margin = 0.0
         for r in objs_sorted:
             sp = r["sold_price"]
             if sp is not None and float(sp) > 0:
                 mg = r["margin"]  # existe (ALTER dans ensure_schema)
-                if mg is not None and float(mg) > 0:
-                    sum_pos_margin += float(mg)
-        g["sum_positive_margin"] = sum_pos_margin
+                if mg is not None:
+                    sum_margin += float(mg)
+        g["sum_margin"] = sum_margin
         
         sum_desired = 0.0
         sum_theo_margin = 0.0
@@ -2029,7 +2029,7 @@ def objects_page():
         gifted_count=summary["gifted_count"],
         personal_count=summary["personal_count"],
         sum_sold_price=summary["sum_sold_price"],
-        sum_positive_margin=summary["sum_positive_margin"],
+        sum_margin=summary["sum_margin"],
         sum_desired_price=summary["sum_desired_price"],
         sum_theoretical_margin=summary["sum_theoretical_margin"],
     )
