@@ -2,6 +2,8 @@ import os
 import sqlite3
 from datetime import datetime
 import json as _json
+import logging
+logger = logging.getLogger(__name__)
 
 DEFAULT_ADMIN_USERNAME = "admin"
 DEFAULT_ADMIN_PASSWORD = "admin"
@@ -127,12 +129,17 @@ def get_electric_rate_at(dt: datetime | None) -> float:
     - Si dt=None: on renvoie le tarif le plus récent (dernier de la liste triée).
     - Si aucun tarif <= dt et pas de baseline: renvoie 0.0.
     """
+    logger.debug("get electric rate for " +str(dt))
     tariffs = get_electric_tariffs()
+    
+    logger.debug(str(tariffs))
     if not tariffs:
         return 0.0
 
     if dt is None:
         # comportement "courant": dernier barème
+        
+        logger.debug(str(float(tariffs[-1]["price_per_hour"]))
         return float(tariffs[-1]["price_per_hour"])
 
     rate = 0.0  # par défaut 0 si rien ne matche et pas de baseline
@@ -142,6 +149,8 @@ def get_electric_rate_at(dt: datetime | None) -> float:
             rate = float(t["price_per_hour"])
         else:
             break
+    
+        logger.debug(str(rate))
     return rate
 
 init_settings_table()
