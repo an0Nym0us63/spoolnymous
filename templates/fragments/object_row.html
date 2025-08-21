@@ -76,6 +76,17 @@
         </span>
       {% endif %}
     {% endif %}
+	{% if o and (o.desired_price is defined) and (o.desired_price is not none) and (o.wish_ignored is not defined or not o.wish_ignored) %}
+  <span class="badge rounded-pill bg-purple-subtle border fw-normal" style="font-size:.65rem; padding:.2em .45em;">
+    🎯 {{ '%.2f'|format(o.desired_price) }} {{ currencysymbol }}
+  </span>
+  {% if o.theoretical_margin is defined and o.theoretical_margin is not none %}
+    {% set _pos_th = o.theoretical_margin >= 0 %}
+    <span class="badge rounded-pill {{ 'bg-success text-white' if _pos_th else 'bg-danger text-white' }} border fw-normal" style="font-size:.65rem; padding:.2em .45em;">
+      🧮 {{ '%.2f'|format(o.theoretical_margin) }} {{ currencysymbol }}
+    </span>
+  {% endif %}
+{% endif %}
   </div>
 </div>
 
@@ -117,6 +128,13 @@
           💳 Vente / don
         </a>
       </li>
+	  {% if o and (o.wish_editable is defined and o.wish_editable) %}
+  <li>
+    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#wishPriceModal_{{ o.id }}">
+      🎯 Définir le prix souhaité
+    </a>
+  </li>
+{% endif %}
       <li>
         <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#commentModal_{{ o.id }}">
           💬 Modifier le commentaire
@@ -286,6 +304,34 @@
       </div>
     </div>
   </div>
+  {% if o and (o.wish_editable is defined and o.wish_editable) %}
+<div class="modal fade" id="wishPriceModal_{{ o.id }}" tabindex="-1" aria-labelledby="wishPriceLabel_{{ o.id }}" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('objects_set_desired_price', object_id=o.id) }}">
+      {{ macros.render_filtered_args(args) }}
+      <div class="modal-header">
+        <h5 class="modal-title" id="wishPriceLabel_{{ o.id }}">🎯 Prix de vente souhaité — Objet #{{ o.id }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Prix souhaité ({{ currencysymbol or '€' }})</label>
+        <input type="number" step="0.01" min="0" name="desired_price" class="form-control"
+               value="{{ o.desired_price is not none and ('%.2f'|format(o.desired_price)) or '' }}"
+               placeholder="Laisser vide pour supprimer">
+        {% if o.cost_display is defined %}
+          <div class="form-text">
+            Coût actuel : <strong>{{ '%.2f'|format(o.cost_display or 0) }} {{ currencysymbol or '€' }}</strong>
+          </div>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
   <div class="modal fade" id="addAccModal_{{ o.id }}" tabindex="-1" aria-labelledby="addAccLabel_{{ o.id }}" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable">
     <form class="modal-content" method="post" action="{{ url_for('objects_add_accessory', object_id=o.id) }}">

@@ -134,6 +134,8 @@ def ensure_schema() -> None:
         cur.execute("ALTER TABLE objects ADD COLUMN personal INTEGER NOT NULL DEFAULT 0")
     if "object_group_id" not in cols:
         cur.execute("ALTER TABLE objects ADD COLUMN object_group_id INTEGER NULL")
+    if "desired_price" not in cols:
+        cur.execute("ALTER TABLE objects ADD COLUMN desired_price REAL")
     if "normal_cost_unit" not in cols:
         cur.execute("ALTER TABLE objects ADD COLUMN normal_cost_unit REAL")
     cur.execute("""
@@ -1364,6 +1366,8 @@ class ObjectsSummary(TypedDict):
     personal_count: int    # sold_price = 0 AND personal = 1
     sum_sold_price: float
     sum_positive_margin: float
+    sum_desired_price: float            # somme des desired_price des objets éligibles (non vendus/offerts/perso)
+    sum_theoretical_margin: float 
 
 def summarize_objects(filters: dict) -> ObjectsSummary:
     """
@@ -1422,6 +1426,35 @@ def summarize_objects(filters: dict) -> ObjectsSummary:
         {where}
     """, params)
     sum_positive_margin = float(cur.fetchone()[0] or 0.0)
+    
+    cur.execute(f"""
+        SELECT COALESCE(SUM(
+            CASE
+              WHEN sold_price IS NULL AND available = 1 AND desired_price IS NOT NULL
+              THEN desired_price
+              ELSE 0
+            END
+        ), 0)
+        FROM objects
+        {where}
+    """, params)
+    sum_desired_price = float(cur.fetchone()[0] or 0.0)
+
+    # Somme des marges théoriques (desired_price - cost_total) sur objets éligibles
+    cur.execute(f"""
+        SELECT COALESCE(SUM(
+            CASE
+              WHEN sold_price IS NULL
+                   AND available = 1
+                   AND desired_price IS NOT NULL
+              THEN desired_price - COALESCE(cost_total, COALESCE(cost_accessory,0)+COALESCE(cost_fabrication,0))
+              ELSE 0
+            END
+        ), 0)
+        FROM objects
+        {where}
+    """, params)
+    sum_theoretical_margin = float(cur.fetchone()[0] or 0.0)
 
     conn.close()
     return ObjectsSummary(
@@ -1432,6 +1465,8 @@ def summarize_objects(filters: dict) -> ObjectsSummary:
         personal_count=personal_count,
         sum_sold_price=sum_sold_price,
         sum_positive_margin=sum_positive_margin,
+        sum_desired_price=sum_desired_price,
+        sum_theoretical_margin=sum_theoretical_margin,
     )
     
 def create_object_group(name: str) -> int:
@@ -1535,5 +1570,22 @@ def list_object_groups_with_counts(filters: dict) -> list[dict]:
     conn.close()
     return groups
 
+def set_desired_price(object_id: int, desired_price: float | None) -> None:
+    """
+    Définit (ou supprime si None) le prix de vente souhaité d'un objet.
+    """
+    conn = _connect(); cur = conn.cursor()
+    cur.execute(
+        "UPDATE objects SET desired_price = ?, updated_at = datetime('now') WHERE id = ?",
+        (desired_price, int(object_id))
+    )
+    if cur.rowcount == 0:
+        conn.rollback(); conn.close()
+        raise ValueError(f"Objet introuvable (id={object_id})")
+    conn.commit(); conn.close()
+
+def is_inactive_for_wish(o: dict) -> bool:
+    return bool(o.get("sold_price")) or bool(o.get("sold_date")) \
+        or bool(o.get("sold_personal")) or bool(o.get("gifted"))
 
 ensure_schema()

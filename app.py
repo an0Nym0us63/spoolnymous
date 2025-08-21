@@ -40,7 +40,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory,rename_accessory, create_object_group, rename_object_group, assign_object_to_group, remove_object_from_group, search_object_groups, list_object_groups_with_counts,get_object_groups
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory,rename_accessory, create_object_group, rename_object_group, assign_object_to_group, remove_object_from_group, search_object_groups, list_object_groups_with_counts,get_object_groups,set_desired_price
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -1962,6 +1962,20 @@ def objects_page():
                 if mg is not None and float(mg) > 0:
                     sum_pos_margin += float(mg)
         g["sum_positive_margin"] = sum_pos_margin
+        
+        sum_desired = 0.0
+        sum_theo_margin = 0.0
+        for r in objs_sorted:
+            # éligible si pas vendu/donné/perso => sold_price IS NULL et disponible
+            if (r["sold_price"] is None) and int(r["available"] or 0) == 1:
+                dp = r.get("desired_price")
+                if dp is not None:
+                    dp = float(dp)
+                    sum_desired += dp
+                    cost = float(r.get("cost_total") or 0.0)
+                    sum_theo_margin += (dp - cost)
+        g["sum_desired_price"] = sum_desired
+        g["sum_theoretical_margin"] = sum_theo_margin
     
         # Preview = thumbnail de l'objet le plus récent (si présent)
         g["preview_thumb"] = objs_sorted[0]["thumbnail"] if objs_sorted and objs_sorted[0]["thumbnail"] else None
@@ -2016,6 +2030,8 @@ def objects_page():
         personal_count=summary["personal_count"],
         sum_sold_price=summary["sum_sold_price"],
         sum_positive_margin=summary["sum_positive_margin"],
+        sum_desired_price=summary["sum_desired_price"],
+        sum_theoretical_margin=summary["sum_theoretical_margin"],
     )
 
 
@@ -2478,5 +2494,38 @@ def objects_group_remove_accessory_all(group_id: int):
         flash(f"Accessoire retiré de {ok} objet(s), {ko} échec(s).", "warning")
 
     return redirect_with_context("objects_page", focus_group_id=group_id)
+
+@app.post("/objects/<int:object_id>/desired_price")
+def objects_set_desired_price_route(object_id: int):
+    o = get_object(object_id)
+    if not o:
+        flash("Objet introuvable.", "danger")
+        return redirect_with_context("objects_page")
+
+    # Inéligible si déjà vendu/offert/perso (ta logique : sold_price non NULL => vendu/donné)
+    if o["sold_price"] is not None or int(o["available"] or 0) == 0:
+        flash("Objet non éligible (vendu/offert/perso).", "warning")
+        return redirect_with_context("objects_page", focus_object_id=object_id)
+
+    raw = (request.form.get("desired_price") or "").strip()
+    if raw == "":
+        # effacer la valeur
+        set_desired_price(object_id, None)
+        flash("Prix souhaité supprimé.", "success")
+        return redirect_with_context("objects_page", focus_object_id=object_id)
+
+    try:
+        val = float(raw.replace(",", "."))
+    except ValueError:
+        flash("Prix souhaité invalide.", "danger")
+        return redirect_with_context("objects_page", focus_object_id=object_id)
+
+    if val < 0:
+        flash("Le prix souhaité ne peut pas être négatif.", "danger")
+        return redirect_with_context("objects_page", focus_object_id=object_id)
+
+    set_desired_price(object_id, val)
+    flash("Prix souhaité enregistré.", "success")
+    return redirect_with_context("objects_page", focus_object_id=object_id)
 
 app.register_blueprint(auth_bp)

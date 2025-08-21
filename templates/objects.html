@@ -145,6 +145,31 @@
       </div>
     </div>
   </div>
+  {% if sum_desired_price is defined or sum_theoretical_margin is defined %}
+  <div class="col">
+    <div class="card border border-secondary-subtle shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">🎯</div>
+        <div class="small fw-bold">
+          {{ '%.2f'|format(sum_desired_price or 0) }} {{ currencysymbol or '€' }}
+        </div>
+        <div class="small text-muted">Prix souhaité (total)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="card border border-secondary-subtle shadow-sm h-100">
+      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+        <div class="fs-5 fs-md-4">🧮</div>
+        <div class="small fw-bold">
+          {{ '%.2f'|format(sum_theoretical_margin or 0) }} {{ currencysymbol or '€' }}
+        </div>
+        <div class="small text-muted">Marge théorique (total)</div>
+      </div>
+    </div>
+  </div>
+{% endif %}
 </div>
 {% endif %}
 
@@ -224,6 +249,20 @@
   <span class="badge rounded-pill {{ 'bg-success text-white' if _pos else 'bg-danger text-white' }} border fw-normal" 
         style="font-size: 0.65rem; padding: 0.2em 0.45em;">
     {{ '📈' if _pos else '📉' }} {{ '%.2f'|format(_margin) }} {{ currencysymbol }}
+  </span>
+{% endif %}
+{% if g.sum_desired_price is defined and g.sum_desired_price %}
+  <span class="badge rounded-pill bg-purple text-white border fw-normal"
+        style="font-size: 0.65rem; padding: 0.2em 0.45em;">
+    🎯 {{ '%.2f'|format(g.sum_desired_price) }} {{ currencysymbol }}
+  </span>
+{% endif %}
+
+{% if g.sum_theoretical_margin is defined and g.sum_theoretical_margin is not none and g.sum_theoretical_margin != 0 %}
+  {% set _pos_th = g.sum_theoretical_margin >= 0 %}
+  <span class="badge rounded-pill {{ 'bg-success text-white' if _pos_th else 'bg-danger text-white' }} border fw-normal"
+        style="font-size: 0.65rem; padding: 0.2em 0.45em;">
+    🧮 {{ '%.2f'|format(g.sum_theoretical_margin) }} {{ currencysymbol }}
   </span>
 {% endif %}
   </div>
