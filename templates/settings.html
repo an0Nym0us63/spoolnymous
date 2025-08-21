@@ -44,10 +44,41 @@
         <label for="COST_BY_HOUR" class="form-label text-light">Coût horaire électricité (€/h)</label>
         <input type="number" step="0.001" class="form-control" id="COST_BY_HOUR" name="COST_BY_HOUR" value="{{ settings.get('COST_BY_HOUR', 0) }}">
       </div>
-	  <div class="mb-3">
-        <label for="COST_BY_HOUR_PRINTER" class="form-label text-light">Coût horaire usure (€/h)</label>
-        <input type="number" step="0.001" class="form-control" id="COST_BY_HOUR_PRINTER" name="COST_BY_HOUR_PRINTER" value="{{ settings.get('COST_BY_HOUR_PRINTER', 0) }}">
-      </div>
+	  <hr class="my-4">
+
+<section class="mb-5">
+  <h5 class="text-light mb-3">⚡ Barèmes d’électricité (€/h) avec date de début</h5>
+  <form method="POST" id="electricTariffsForm">
+    <input type="hidden" name="update_electric_tariffs" value="1">
+    <input type="hidden" name="ELECTRICITY_TARIFFS_JSON" id="ELECTRICITY_TARIFFS_JSON">
+
+    <div class="alert alert-secondary">
+      Définissez plusieurs tarifs avec une date de début. Le tarif applicable est
+      celui en vigueur à la date du print. Si aucun barème n’est défini, on utilise
+      <code>COST_BY_HOUR</code> en secours.
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-sm table-striped align-middle" id="elecTariffsTable">
+        <thead>
+          <tr>
+            <th style="width: 240px;">Début d’application</th>
+            <th style="width: 160px;">Prix (€/h)</th>
+            <th style="width: 80px;"></th>
+          </tr>
+        </thead>
+        <tbody id="elecTariffsBody">
+          <!-- Lignes injectées par JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-light" type="button" id="addTariffBtn">➕ Ajouter un tarif</button>
+      <button class="btn btn-primary ms-auto" type="submit">💾 Enregistrer les barèmes</button>
+    </div>
+  </form>
+</section>
 
       <button type="submit" name="update_core_settings" value="1" class="btn btn-primary w-100">💾 Enregistrer les paramètres système</button>
     </form>
@@ -312,5 +343,91 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   });
 });
+(function(){
+  // Chargement initial depuis settings
+  const initialRaw = {{ (settings.get('ELECTRICITY_TARIFFS') or '""')|tojson }};
+  const legacy = {{ (settings.get('COST_BY_HOUR') or '')|tojson }};
+  let tariffs = [];
+  try {
+    if (initialRaw) {
+      tariffs = JSON.parse(initialRaw);
+      if (!Array.isArray(tariffs)) tariffs = [];
+    }
+  } catch(e){ tariffs = []; }
+  if (tariffs.length === 0 && legacy) {
+    // Pré-remplir avec le tarif legacy sans date (affichera une ligne vide pour start)
+    tariffs = [{ start: "", price_per_hour: parseFloat(legacy)||0 }];
+  }
+
+  const body = document.getElementById('elecTariffsBody');
+  const addBtn = document.getElementById('addTariffBtn');
+  const hidden = document.getElementById('ELECTRICITY_TARIFFS_JSON');
+  const form = document.getElementById('electricTariffsForm');
+
+  function addRow(item={start:"", price_per_hour:""}) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <input type="datetime-local" class="form-control form-control-sm" placeholder="YYYY-MM-DD HH:MM"
+               value="${toLocalValue(item.start)}">
+        <div class="form-text">Laisser vide pour “tarif par défaut” (sans date).</div>
+      </td>
+      <td>
+        <input type="number" step="0.001" min="0" class="form-control form-control-sm"
+               value="${(item.price_per_hour ?? '')}">
+      </td>
+      <td class="text-end">
+        <button type="button" class="btn btn-sm btn-outline-danger">🗑</button>
+      </td>
+    `;
+    tr.querySelector('button').addEventListener('click', ()=> tr.remove());
+    body.appendChild(tr);
+  }
+
+  function toLocalValue(start){
+    if (!start) return "";
+    // supporte "YYYY-MM-DD HH:MM[:SS]" -> "YYYY-MM-DDTHH:MM"
+    try {
+      const s = String(start).replace('T',' ').trim();
+      const m = s.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}))?/);
+      if (!m) return "";
+      return m[1] + (m[2] ? 'T' + m[2] : 'T00:00');
+    } catch{ return "" }
+  }
+
+  function serialize(){
+    const out = [];
+    body.querySelectorAll('tr').forEach(tr=>{
+      const dt = tr.querySelector('input[type="datetime-local"]').value.trim();
+      const price = tr.querySelector('input[type="number"]').value.trim();
+      if (price === "") return; // ignorer lignes vides
+      out.push({
+        start: dt.replace('T',' ').trim(), // stocker "YYYY-MM-DD HH:MM"
+        price_per_hour: parseFloat(price)
+      });
+    });
+    // trier par start (les vides en premier)
+    out.sort((a,b)=>{
+      if (!a.start && !b.start) return 0;
+      if (!a.start) return -1;
+      if (!b.start) return 1;
+      return a.start.localeCompare(b.start);
+    });
+    return out;
+  }
+
+  addBtn.addEventListener('click', ()=> addRow());
+  tariffs.forEach(addRow);
+
+  form.addEventListener('submit', (e)=>{
+    const arr = serialize();
+    try {
+      hidden.value = JSON.stringify(arr);
+    } catch(err){
+      e.preventDefault();
+      alert("JSON invalide : " + err);
+    }
+  });
+})();
 </script>
 {% endblock %}

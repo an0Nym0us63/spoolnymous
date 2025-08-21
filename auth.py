@@ -278,6 +278,12 @@ def settings():
             except Exception:
                 flash("ID invalide.", "warning")
             return redirect(url_for('auth.settings'))
+        elif request.form.get("update_electric_tariffs") == "1":
+            raw_json = (request.form.get("ELECTRICITY_TARIFFS_JSON") or "").strip()
+            # pas de validation lourde côté serveur : on stocke tel quel
+            set_app_setting("ELECTRICITY_TARIFFS", raw_json)
+            flash("Tarifs électricité mis à jour ✅", "success")
+            return redirect(url_for('auth.settings'))
 
     return render_template(
         "settings.html",

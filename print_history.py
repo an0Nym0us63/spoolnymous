@@ -7,7 +7,7 @@ import operator
 from deep_translator import GoogleTranslator
 import re
 import config
-from config import get_app_setting
+from config import get_app_setting,get_electric_rate_at
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
@@ -1155,7 +1155,23 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
         filament_cost += grams * cost_per_gram
 
     duration_hours = total_duration / 3600
-    electric_cost = duration_hours * float(get_app_setting("COST_BY_HOUR",0))
+    def _parse_dt_safe(s):
+        if not s: return None
+        try:
+            return datetime.fromisoformat(str(s).replace("Z","").replace("T"," "))
+        except Exception:
+            try:
+                return datetime.strptime(str(s).split('.')[0], "%Y-%m-%d %H:%M:%S")
+            except Exception:
+                return None
+
+    electric_cost = 0.0
+    for p in prints:
+        dur = (p["duration"] or 0) / 3600.0
+        dt = _parse_dt_safe(p.get("print_date"))
+        rate = get_electric_rate_at(dt)
+        electric_cost += dur * rate
+        electric_cost = duration_hours * float(get_app_setting("COST_BY_HOUR",0))
 
     vendor_counts = {}
     for u in usage:
@@ -1422,7 +1438,13 @@ def recalculate_print_data(print_id: int, spools_by_id: dict) -> None:
         total_weight += result.get("grams_used", 0.0)
 
     # Calculs électricité
-    electric_cost = (duration / 3600.0) * float(get_app_setting("COST_BY_HOUR",0)) if duration else 0.0
+    dt = None
+    try:
+        dt = datetime.fromisoformat(str(print_row.get("print_date","")).replace("Z","").replace("T"," "))
+    except Exception:
+        pass
+    rate = get_electric_rate_at(dt)
+    electric_cost = ((duration or 0.0) / 3600.0) * rate
 
     full_cost = total_cost + electric_cost
     full_normal_cost = total_normal_cost + electric_cost
