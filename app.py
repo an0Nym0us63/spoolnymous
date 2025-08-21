@@ -40,7 +40,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory,rename_accessory, create_object_group, rename_object_group, assign_object_to_group, remove_object_from_group, search_object_groups, list_object_groups_with_counts,get_object_groups,set_desired_price,get_object
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects,add_object_tag, remove_object_tag,list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory,rename_accessory, create_object_group, rename_object_group, assign_object_to_group, remove_object_from_group, search_object_groups, list_object_groups_with_counts,get_object_groups,set_desired_price,get_object,set_group_desired_price
 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -2527,5 +2527,37 @@ def objects_set_desired_price_route(object_id: int):
     set_desired_price(object_id, val)
     flash("Prix souhaité enregistré.", "success")
     return redirect_with_context("objects_page", focus_object_id=object_id)
+
+@app.post("/objects/group/<int:group_id>/set_desired_price_all")
+def objects_group_set_desired_price_all(group_id: int):
+    raw = (request.form.get("desired_price") or "").strip()
+    only_if_empty = bool(request.form.get("only_if_empty"))
+
+    if raw == "":
+        # Autoriser la suppression en masse (vider le prix souhaité)
+        desired = None
+    else:
+        try:
+            desired = float(raw.replace(",", "."))
+            if desired < 0:
+                raise ValueError
+        except Exception:
+            flash("Prix souhaité invalide.", "danger")
+            return redirect_with_context("objects_page")
+
+    affected = set_group_desired_price(group_id, desired, only_if_empty=only_if_empty)
+
+    if desired is None:
+        flash(f"Prix souhaité supprimé pour {affected} objet(s) du groupe.", "success")
+    else:
+        msg = f"Prix souhaité défini à {desired:.2f} {current_app.config.get('CURRENCY_SYMBOL','€')} "
+        msg += f"pour {affected} objet(s) disponible(s) du groupe"
+        if only_if_empty:
+            msg += " (uniquement ceux sans valeur)."
+        else:
+            msg += "."
+        flash(msg, "success")
+
+    return redirect_with_context("objects_page")
 
 app.register_blueprint(auth_bp)

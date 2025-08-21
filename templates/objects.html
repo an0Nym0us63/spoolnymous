@@ -302,6 +302,12 @@
           🧺 Retirer un accessoire à tous
         </a>
       </li>
+	  <li>
+  <a class="dropdown-item" href="#"
+     data-bs-toggle="modal" data-bs-target="#setGroupWishPriceModal_{{ g.id }}">
+    🎯 Définir prix souhaité (groupe)
+  </a>
+</li>
     </ul>
   </div>
 </div>
@@ -319,6 +325,46 @@
       </div>
     </div>
   </div>
+  
+  <div class="modal fade" id="setGroupWishPriceModal_{{ g.id }}" tabindex="-1"
+     aria-labelledby="setGroupWishPriceLabel_{{ g.id }}" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post"
+          action="{{ url_for('objects_group_set_desired_price_all', group_id=g.id) }}">
+      {{ macros.render_filtered_args(args) }}
+      <div class="modal-header">
+        <h5 class="modal-title" id="setGroupWishPriceLabel_{{ g.id }}">
+          🎯 Prix de vente souhaité — Groupe #{{ g.id }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2 small text-muted">
+          Objets ciblés : <b>{{ g.available }}</b> disponible(s) (vendus/offerts/perso ignorés).
+        </div>
+
+        <label class="form-label">Prix souhaité ({{ currencysymbol or '€' }})</label>
+        <input type="number" step="0.01" min="0" name="desired_price"
+               class="form-control" placeholder="Laisser vide pour supprimer sur tout le groupe">
+
+        <div class="form-check mt-3">
+          <input class="form-check-input" type="checkbox" value="1" id="onlyEmpty_{{ g.id }}" name="only_if_empty" checked>
+          <label class="form-check-label" for="onlyEmpty_{{ g.id }}">
+            Ne pas écraser les prix déjà définis
+          </label>
+        </div>
+
+        <div class="form-text mt-2">
+          Appliqué uniquement aux objets <b>disponibles</b> et <b>non vendus</b>.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary">Appliquer au groupe</button>
+      </div>
+    </form>
+  </div>
+</div>
   
 	  {# --- MODALE: Renommer groupe --- #}
 <div class="modal fade" id="renameGroupModal_{{ g.id }}" tabindex="-1" aria-labelledby="renameGroupLabel_{{ g.id }}" aria-hidden="true">

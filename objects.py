@@ -1588,4 +1588,35 @@ def is_inactive_for_wish(o: dict) -> bool:
     return bool(o.get("sold_price")) or bool(o.get("sold_date")) \
         or bool(o.get("sold_personal")) or bool(o.get("gifted"))
 
+def set_group_desired_price(
+    group_id: int,
+    desired_price: float | None,
+    only_if_empty: bool = False,
+) -> int:
+    """
+    Définit desired_price pour tous les objets du groupe `group_id`
+    qui sont éligibles (available=1 ET sold_price IS NULL).
+    - Si only_if_empty=True: n’écrase pas les desired_price déjà définis.
+    Retourne le nombre de lignes affectées.
+    """
+    conn = _connect(); cur = conn.cursor()
+
+    where = """
+        object_group_id = ?
+        AND available = 1
+        AND sold_price IS NULL
+    """
+    params = [int(group_id)]
+
+    if only_if_empty:
+        where += " AND desired_price IS NULL"
+
+    cur.execute(
+        f"UPDATE objects SET desired_price = ?, updated_at = datetime('now') WHERE {where}",
+        [desired_price, *params],
+    )
+    affected = cur.rowcount or 0
+    conn.commit(); conn.close()
+    return int(affected)
+
 ensure_schema()
