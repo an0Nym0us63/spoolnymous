@@ -229,7 +229,7 @@
   <div class="chips justify-content-center flex-wrap mt-1 gap-1 w-100" style="max-width: 220px;">
     <span class="badge rounded-pill bg-light text-dark border border-secondary fw-normal" 
           style="font-size: 0.65rem; padding: 0.2em 0.45em;">
-      📦 {{ g.unavailable }} / {{ g.total }}
+      📦 {{ g.available }} / {{ g.total }}
     </span>
 
     {% set _sold = g.sum_sold_price or 0 %}
@@ -305,7 +305,7 @@
     </ul>
   </div>
 </div>
-      <div class="card-body p-0">
+      <div class="d-flex flex-column gap-1 mt-1 card-body p-0">
         {% if g.objects and g.objects|length > 0 %}
                 {% for o in g.objects %}
                   {% set _obj_accessories = obj_accessories if obj_accessories is defined else {} %}
