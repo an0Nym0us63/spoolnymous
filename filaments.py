@@ -1570,6 +1570,9 @@ def augmentTrayData(spool_list, tray_data, tray_id):
     else:
         tray_data["issue"] = False
 
+def getAMSFromTray(n):
+    return n // 4
+    
 def spendFilaments(printdata):
     if printdata["ams_mapping"]:
         ams_mapping = printdata["ams_mapping"]
