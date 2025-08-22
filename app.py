@@ -28,13 +28,12 @@ from auth import auth_bp, User, get_stored_user
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-from filaments import ensure_schema, sync_from_spoolman, fetch_spools, augmentTrayData,trayUid
+from filaments import ensure_schema, sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel,insert_manual_print
-from spoolman_client import patchExtraTags, getSpoolById, consumeSpool, archive_spool, reajust_spool
 from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print,get_all_tray_spool_mappings,set_tray_spool_map,delete_all_tray_spool_mappings, get_tags_for_prints, get_tags_for_group, add_tag_to_group, remove_tag_from_group
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
@@ -748,7 +747,7 @@ def tray_load():
 
   try:
     # Update Spoolman with the selected tray
-    spool_data = getSpoolById(spool_id)
+    spool_data = fetch_spool_by_id(spool_id)
     setActiveTray(spool_id, spool_data["extra"], ams_id, tray_id)
     setActiveSpool(ams_id, tray_id, spool_data)
 
@@ -1176,7 +1175,7 @@ def delete_print_history(print_id):
                 adjusted_grams = grams_used * ratio
 
                 # Remet en stock la quantité ajustée
-                consumeSpool(spool_id, -adjusted_grams)
+                refill_weight(spool_id, adjusted_grams)
 
     # Supprime le print et ses usages
     delete_print(print_id)
@@ -1199,7 +1198,7 @@ def reajust_print_history(print_id):
             ratio = max(0, min(100, ratio_percent)) / 100.0
             adjusted_grams = grams_used * ratio
 
-            consumeSpool(spool_id, -adjusted_grams)
+            refill_weight(spool_id, adjusted_grams)
 
             # 🔷 Met à jour filament_usage
             new_grams_used = grams_used - adjusted_grams
@@ -1216,7 +1215,7 @@ def get_print_filaments(print_id):
         spool_id = usage["spool_id"]
         grams_used = usage["grams_used"]
 
-        spool = getSpoolById(spool_id) if spool_id else None
+        spool = fetch_spool_by_id(spool_id) if spool_id else None
         if spool:
             color = spool.get("filament", {}).get("color_hex")
             vendor = spool.get("filament", {}).get("vendor", {}).get("name", "UnknownVendor")
@@ -1287,7 +1286,7 @@ def filaments():
     spool_id = request.args.get("spool_id")
     # 🎯 Si un spool est sélectionné en mode fill : action directe
     if spool_id and ams_id and tray_id:
-        spool_data = getSpoolById(spool_id)
+        spool_data = fetch_spool_by_id(spool_id)
         tray_uuid = request.args.get("tray_uuid")
         tray_info_idx = request.args.get("tray_info_idx")
         tray_color = request.args.get("tray_color")
@@ -1553,12 +1552,12 @@ def reajust_spool_route(spool_id):
         flash('Poids invalide', 'danger')
         return redirect(request.referrer or url_for('filament_page'))
 
-    response = reajust_spool(spool_id, new_weight)
+    response = update_bobine(spool_id,remaining_weight=new_weight)
     return redirect(request.referrer or url_for('filament_page'))
 
 @app.route('/spool/<int:spool_id>/archive', methods=['POST'])
 def archive_spool_route(spool_id):
-    response = archive_spool(spool_id)
+    response = archive_bobine(spool_id)
     return redirect(request.referrer or url_for('filament_page'))
 
 @app.route("/download_model/<filename>")
@@ -1643,7 +1642,7 @@ def assign_spool_to_print():
     update_filament_spool(print_id=print_id, filament_id=filament_index, spool_id=spool_id)
     skip_usage = request.form.get("skip_usage") == "1"
     if not skip_usage:
-        consumeSpool(spool_id, float(request.form.get("filament_usage") or 0))
+        consume_weight(spool_id, float(request.form.get("filament_usage") or 0))
         
     return redirect_with_context(
        "print_history",

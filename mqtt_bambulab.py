@@ -8,7 +8,6 @@ import paho.mqtt.client as mqtt
 
 from config import get_app_setting, AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID
 from messages import GET_VERSION, PUSH_ALL
-from spoolman_service import spendFilaments,fetchSpools
 from tools_3mf import getMetaDataFrom3mf
 import time
 import copy
@@ -16,7 +15,7 @@ import math
 from collections.abc import Mapping
 from logger import append_to_rotating_file
 from print_history import  insert_print, insert_filament_usage, update_filament_spool,update_print_field_with_job_id,get_tray_spool_map,delete_tray_spool_map_by_id
-from filaments import fetch_spools,clearActiveTray,setActiveTray
+from filaments import fetch_spools,clearActiveTray,setActiveTray,spendFilaments
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK, PROCESSED_JOBS, PENDING_JOBS
 import logging
 logger = logging.getLogger(__name__)

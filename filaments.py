@@ -11,7 +11,7 @@ import urllib.request
 
 
 # On réutilise la config DB telle qu'elle existe déjà dans le projet
-from print_history import db_config
+from print_history import db_config, update_filament_spool
 
 import logging
 logger = logging.getLogger(__name__)
@@ -559,7 +559,31 @@ def remove_bobine(bobine_id: int) -> None:
 
 
 def archive_bobine(bobine_id: int, archived: bool = True) -> None:
-    update_bobine(bobine_id, archived=1 if archived else 0)
+    """
+    Archive ou désarchive une bobine.
+
+    - Si archived=True :
+        - archived = 1
+        - location = "Archives"
+        - remaining_weight_g = 0
+        - ams_tray = ""
+    - Si archived=False :
+        - archived = 0
+        (on ne touche pas aux autres champs)
+    """
+    if archived:
+        update_bobine(
+            bobine_id,
+            archived=1,
+            location="Archives",
+            remaining_weight_g=0,
+            ams_tray=""
+        )
+    else:
+        update_bobine(
+            bobine_id,
+            archived=0
+        )
 
 
 def get_bobine(bobine_id: int) -> Optional[sqlite3.Row]:
@@ -1362,6 +1386,118 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
 
     return out
 
+from typing import Any, Dict, Optional
+
+def fetch_spool_by_id(spool_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Retourne une seule bobine locale avec son filament enrichi,
+    au format identique à fetch_spools().
+    Si l'id n'existe pas → None.
+    """
+    sql = """
+      SELECT
+        b.id              AS b_id,
+        b.filament_id     AS b_filament_id,
+        b.created_at      AS b_created_at,
+        b.first_used_at   AS b_first_used_at,
+        b.last_used_at    AS b_last_used_at,
+        b.price_override  AS b_price_override,
+        b.remaining_weight_g AS b_remaining_weight_g,
+        b.location        AS b_location,
+        b.tag_number      AS b_tag_number,
+        b.ams_tray        AS b_ams_tray,
+        b.archived        AS b_archived,
+        b.comment         AS b_comment,
+        b.external_spool_id AS b_external_spool_id,
+
+        f.id              AS f_id,
+        f.name            AS f_name,
+        f.manufacturer    AS f_manufacturer,
+        f.profile_id      AS f_profile_id,
+        f.material        AS f_material,
+        f.color           AS f_color,
+        f.price           AS f_price,
+        f.filament_weight_g AS f_filament_weight_g,
+        f.spool_weight_g  AS f_spool_weight_g,
+        f.colors_array    AS f_colors_array,
+        f.multicolor_type AS f_multicolor_type
+      FROM bobines b
+      JOIN filaments f ON f.id = b.filament_id
+      WHERE b.id = ?
+    """
+
+    conn = _connect()
+    try:
+        row = conn.execute(sql, (spool_id,)).fetchone()
+    finally:
+        conn.close()
+
+    if not row:
+        return None
+
+    filament_weight = float(row["f_filament_weight_g"]) if row["f_filament_weight_g"] is not None else 0.0
+    initial_weight = filament_weight
+
+    price_override = row["b_price_override"]
+    filament_price = row["f_price"] if row["f_price"] is not None else 20.0
+    price = float(price_override) if price_override is not None else float(filament_price)
+    if price is None:
+        price = 20.0
+
+    cost_per_gram = (price / initial_weight) if (initial_weight and price >= 0) else 0.02
+    filament_cost_per_gram = (
+        (filament_price / filament_weight) if (filament_weight and filament_price >= 0) else 0.02
+    )
+
+    multi_list = _split_colors_array(row["f_colors_array"])
+
+    spool: Dict[str, Any] = {
+        "id": int(row["b_id"]),
+        "external_spool_id": row["b_external_spool_id"],
+        "filament_id": int(row["b_filament_id"]),
+        "created_at": row["b_created_at"],
+        "first_used": row["b_first_used_at"],
+        "last_used": row["b_last_used_at"],
+        "remaining_weight": (float(row["b_remaining_weight_g"]) if row["b_remaining_weight_g"] is not None else None),
+        "location": row["b_location"],
+        "tag_number": row["b_tag_number"],
+        "ams_tray": row["b_ams_tray"],
+        "archived": bool(row["b_archived"]),
+        "comment": row["b_comment"],
+
+        "initial_weight": float(initial_weight) if initial_weight else 0.0,
+        "price": float(price),
+        "filament_price": float(filament_price),
+        "cost_per_gram": float(cost_per_gram),
+        "filament_cost_per_gram": float(filament_cost_per_gram),
+        "extra": {
+            "tag": row["b_tag_number"],
+            "active_tray": row["b_ams_tray"]
+        },
+        "filament": {
+            "id": int(row["f_id"]),
+            "name": row["f_name"],
+            "manufacturer": row["f_manufacturer"],
+            "material": row["f_material"],
+            "profile_id": row["f_profile_id"],
+            "color_hex": row["f_color"],
+            "weight": (float(row["f_filament_weight_g"]) if row["f_filament_weight_g"] is not None else None),
+            "spool_weight": (float(row["f_spool_weight_g"]) if row["f_spool_weight_g"] is not None else None),
+            "price": (float(row["f_price"]) if row["f_price"] is not None else None),
+            "multi_color_hexes": multi_list,
+            "multi_color_direction": row["f_multicolor_type"],
+            "vendor": {
+                "name": row["f_manufacturer"]
+            },
+            "extra": {
+                "filament_id": row["f_profile_id"]
+            }
+        }
+    }
+
+    return spool
+
+
 def patchLocation(spool_id, ams_id='', tray_id=''):
     location = ''
     ams_name = 'AMS_' + str(ams_id)
@@ -1433,6 +1569,63 @@ def augmentTrayData(spool_list, tray_data, tray_id):
         tray_data["issue"] = True
     else:
         tray_data["issue"] = False
+
+def spendFilaments(printdata):
+    if printdata["ams_mapping"]:
+        ams_mapping = printdata["ams_mapping"]
+    else:
+        ams_mapping = [EXTERNAL_SPOOL_ID]
+    
+    """
+    "ams_mapping": [
+                1,
+                0,
+                -1,
+                -1,
+                -1,
+                1,
+                0
+            ],
+    """
+    tray_id = EXTERNAL_SPOOL_ID
+    ams_id = EXTERNAL_SPOOL_AMS_ID
+    
+    ams_usage = []
+    filamentOrder = printdata["filamentOrder"]
+    #filament_id_to_amstray = {fid: tray for tray, fid in filamentOrder.items()}
+    cleaned_mapping = [x for x in ams_mapping if x != -1]
+    for filamentId, filament in printdata["filaments"].items():
+        if ams_mapping[0] != EXTERNAL_SPOOL_ID:
+            try:
+                ams_mapping_idx = filamentId - 1
+                tray_id = cleaned_mapping[ams_mapping_idx]   # get tray_id from ams_mapping for filament
+                ams_id = getAMSFromTray(tray_id)        # caclulate ams_id from tray_id
+                tray_id = tray_id - ams_id * 4          # correct tray_id for ams
+            except Exception as e:
+                continue #filament not used
+        
+        #if ams_usage.get(trayUid(ams_id, tray_id)):
+        #    ams_usage[trayUid(ams_id, tray_id)]["usedGrams"] += float(filament["used_g"])
+        #else:
+        ams_usage.append({"trayUid": trayUid(ams_id, tray_id), "id": filamentId, "usedGrams":float(filament["used_g"])})
+    
+    for spool in fetch_spools():
+        #TODO: What if there is a mismatch between AMS and SpoolMan?
+                    
+        if spool.get("extra") and spool.get("extra").get("active_tray"):
+            #filament = ams_usage.get()
+            active_tray = spool.get("extra").get("active_tray")
+        
+            # iterate over all ams_trays and set spool in print history, at the same time sum the usage for the tray and consume it from the spool
+            used_grams = 0
+            #print(ams_usage)
+            for ams_tray in ams_usage:
+                if active_tray == ams_tray["trayUid"]:
+                used_grams += ams_tray["usedGrams"]
+                update_filament_spool(printdata["print_id"], ams_tray["id"], spool["id"])
+                
+            if used_grams != 0:
+                consume_weight(spool["id"], used_grams)
 
 
 if __name__ == "__main__":
