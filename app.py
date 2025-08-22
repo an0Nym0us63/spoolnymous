@@ -2662,7 +2662,7 @@ def filaments_catalog():
     avg_weight = round(sum(weights) / len(weights), 0) if weights else None
 
     return render_template(
-        "filaments_catalog.html",
+        "filaments.html",
         filaments=filaments_page,
         page=page,
         total_pages=total_pages,
