@@ -1621,8 +1621,8 @@ def spendFilaments(printdata):
             #print(ams_usage)
             for ams_tray in ams_usage:
                 if active_tray == ams_tray["trayUid"]:
-                used_grams += ams_tray["usedGrams"]
-                update_filament_spool(printdata["print_id"], ams_tray["id"], spool["id"])
+                    used_grams += ams_tray["usedGrams"]
+                    update_filament_spool(printdata["print_id"], ams_tray["id"], spool["id"])
                 
             if used_grams != 0:
                 consume_weight(spool["id"], used_grams)
