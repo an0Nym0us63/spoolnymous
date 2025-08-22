@@ -204,19 +204,20 @@ def migrate_usage_spool_ids_from_external() -> Dict[str, int]:
     """
     Objectif:
       - Conserver l'identifiant externe d'origine dans filaments_usage.ori_spool_id
-      - Remplacer filaments_usage.spool_id par l'id local de la bobine (bobines.id),
-        en se basant sur l'équivalence: ori_spool_id == bobines.external_spool_id
+      - Mettre SYSTÉMATIQUEMENT filaments_usage.spool_id à l'id local de la bobine (bobines.id),
+        d'après la correspondance: ori_spool_id == bobines.external_spool_id
+        (si pas de correspondance: spool_id = NULL)
 
     Idempotent:
-      - Si déjà migré, ne change rien au 2e passage.
+      - Tu peux relancer la migration sans casser l'état courant.
 
-    Retourne: compte-rendu { 'backfilled_ori', 'updated_spool_id', 'unmatched' }
+    Retourne: { 'backfilled_ori', 'updated_spool_id', 'unmatched' }
     """
     ensure_filaments_usage_schema()
     ensure_schema()  # s'assure que bobines/filaments existent
 
     with _tx() as cur:
-        # 1) Backfill ori_spool_id (une seule fois): copie spool_id -> ori_spool_id si NULL
+        # 1) Backfill ori_spool_id une fois (si encore NULL pour certaines lignes)
         cur.execute("""
             UPDATE filament_usage
                SET ori_spool_id = CAST(spool_id AS TEXT)
@@ -225,10 +226,23 @@ def migrate_usage_spool_ids_from_external() -> Dict[str, int]:
         """)
         backfilled = cur.rowcount or 0
 
-        # 2) Mettre à jour spool_id avec l'id local de la bobine lorsque possible.
-        #    On évite d'écraser si spool_id pointe DÉJÀ sur une bobine locale existante.
-        #    -> condition: (spool_id NOT IN bobines.id) OU (spool_id IS NULL)
-        #    Note: comparaisons sur TEXT côté external ids → on CAST en TEXT pour être robustes.
+        # 2) Combien de lignes doivent changer ? (comparaison avec la cible)
+        #   - cible = b.id si mapping trouvé, sinon NULL
+        #   - lignes à mettre à jour = celles où spool_id != cible (NULL compris)
+        cur.execute("""
+            SELECT COUNT(*)
+              FROM filament_usage u
+         LEFT JOIN bobines b
+                ON CAST(u.ori_spool_id AS TEXT) = CAST(b.external_spool_id AS TEXT)
+             WHERE u.ori_spool_id IS NOT NULL
+               AND (
+                    (b.id IS NULL AND u.spool_id IS NOT NULL)
+                 OR (b.id IS NOT NULL AND (u.spool_id IS NULL OR u.spool_id <> b.id))
+               )
+        """)
+        (need_update,) = cur.fetchone()
+
+        # 3) Mise à jour SYSTÉMATIQUE: spool_id := id local mappé, sinon NULL
         cur.execute("""
             UPDATE filament_usage AS u
                SET spool_id = (
@@ -237,31 +251,25 @@ def migrate_usage_spool_ids_from_external() -> Dict[str, int]:
                     WHERE CAST(u.ori_spool_id AS TEXT) = CAST(b.external_spool_id AS TEXT)
                     LIMIT 1
                )
-             WHERE (u.spool_id IS NULL
-                    OR u.spool_id NOT IN (SELECT id FROM bobines))
-               AND u.ori_spool_id IS NOT NULL
-               AND EXISTS (
-                   SELECT 1 FROM bobines b
-                    WHERE CAST(u.ori_spool_id AS TEXT) = CAST(b.external_spool_id AS TEXT)
-               )
+             WHERE u.ori_spool_id IS NOT NULL
         """)
-        updated = cur.rowcount or 0
+        # NOTE: rowcount SQLite peut compter large; on renvoie plutôt 'need_update'
+        _ = cur.rowcount or 0
 
-        # 3) Compter les usages non résolus (ori_spool_id sans correspondance locale)
+        # 4) Combien restent sans correspondance (mapping introuvable) ?
         cur.execute("""
             SELECT COUNT(*)
               FROM filament_usage u
+         LEFT JOIN bobines b
+                ON CAST(u.ori_spool_id AS TEXT) = CAST(b.external_spool_id AS TEXT)
              WHERE u.ori_spool_id IS NOT NULL
-               AND (
-                    SELECT COUNT(*)
-                      FROM bobines b
-                     WHERE CAST(u.ori_spool_id AS TEXT) = CAST(b.external_spool_id AS TEXT)
-               ) = 0
+               AND b.id IS NULL
         """)
         (unmatched,) = cur.fetchone()
+
         return {
             "backfilled_ori": int(backfilled),
-            "updated_spool_id": int(updated),
+            "updated_spool_id": int(need_update),
             "unmatched": int(unmatched),
         }
 # ----------------------------------------------------------------------------
