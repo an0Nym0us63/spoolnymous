@@ -1264,6 +1264,7 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
         f.id              AS f_id,
         f.name            AS f_name,
         f.manufacturer    AS f_manufacturer,
+        f.profile_id        AS f_profile_id,
         f.material        AS f_material,
         f.color           AS f_color,
         f.price           AS f_price,
@@ -1336,6 +1337,7 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
                 "name": r["f_name"],
                 "manufacturer": r["f_manufacturer"],
                 "material": r["f_material"],
+                "profile_id": r["f_profile_id"],
                 "color_hex": r["f_color"],
                 "weight": (float(r["f_filament_weight_g"]) if r["f_filament_weight_g"] is not None else None),
                 "spool_weight": (float(r["f_spool_weight_g"]) if r["f_spool_weight_g"] is not None else None),
@@ -1346,7 +1348,7 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
                     "name": r["f_manufacturer"]  # même si None, l'objet existe → pas d’UndefinedError
                 },
                 "extra" :{
-                    "filament_id":int(r["b_filament_id"])
+                    "filament_id":r["f_profile_id"]
                 }
             }
         }
