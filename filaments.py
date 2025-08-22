@@ -1330,7 +1330,7 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
             "extra" :{
                 "tag":r["b_tag_number"],
                 "active_tray":r["b_ams_tray"]
-            };
+            },
             "filament": {
                 "id": int(r["f_id"]),
                 "name": r["f_name"],
@@ -1345,7 +1345,10 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
                 "vendor": {
                     "name": r["f_manufacturer"]  # même si None, l'objet existe → pas d’UndefinedError
                 },
-            },
+                "extra" :{
+                    "filament_id":int(r["b_filament_id"])
+                }
+            }
         }
         out.append(spool)
 
