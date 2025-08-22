@@ -849,6 +849,7 @@ def _upsert_filament_from_spoolman_exact(f: Dict[str, Any]) -> int:
 
     if row:
         # On append le tag d'import au commentaire existant
+        fields = {k: v for k, v in payload.items() if k in _FILAMENT_ALLOWED_UPDATE and k != "comment"}
         update_filament(int(row[0]), **fields)
         return int(row[0])
     else:
@@ -950,6 +951,10 @@ def _upsert_bobine_from_spoolman_exact(s: Dict[str, Any], filament_local_id: int
         conn.close()
 
     if row:
+        fields = {
+            k: v for k, v in payload.items()
+            if k in _BOBINE_ALLOWED_UPDATE and k not in {"created_at", "comment"}
+        }
         update_bobine(int(row[0]), **fields)
         return int(row[0])
     else:
