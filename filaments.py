@@ -1399,7 +1399,7 @@ def clearActiveTray(ams_id,tray_id):
 def augmentTrayData(spool_list, tray_data, tray_id):
     tray_data["matched"] = False
     for spool in spool_list:
-        if spool.get("extra") and spool["extra"].get("ams_tray") and spool["extra"]["ams_tray"] == json.dumps(tray_id):
+        if spool.get("extra") and spool["extra"].get("active_tray") and spool["extra"]["active_tray"] == tray_id:
             #TODO: check for mismatch
             tray_data["name"] = spool["filament"]["name"]
             tray_data["vendor"] = spool["filament"]["vendor"]["name"]
