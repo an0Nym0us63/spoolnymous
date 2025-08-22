@@ -28,7 +28,7 @@ from auth import auth_bp, User, get_stored_user
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-from filaments import ensure_schema, sync_from_spoolman, fetch_spools
+from filaments import ensure_schema, sync_from_spoolman, fetch_spools, augmentTrayData
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
@@ -697,12 +697,12 @@ def spool_info():
     
     issue = False
     #TODO: Fix issue when external spool info is reset via bambulab interface
-    augmentTrayDataWithSpoolMan(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID))
+    augmentTrayData(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID))
     issue |= vt_tray_data["issue"]
 
     for ams in ams_data:
       for tray in ams["tray"]:
-        augmentTrayDataWithSpoolMan(spool_list, tray, trayUid(ams["id"], tray["id"]))
+        augmentTrayData(spool_list, tray, trayUid(ams["id"], tray["id"]))
         issue |= tray["issue"]
 
     if not tag_id:
@@ -817,12 +817,12 @@ def home():
     
     issue = False
     #TODO: Fix issue when external spool info is reset via bambulab interface
-    augmentTrayDataWithSpoolMan(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID))
+    augmentTrayData(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID))
     issue |= vt_tray_data["issue"]
 
     for ams in ams_data:
       for tray in ams["tray"]:
-        augmentTrayDataWithSpoolMan(spool_list, tray, trayUid(ams["id"], tray["id"]))
+        augmentTrayData(spool_list, tray, trayUid(ams["id"], tray["id"]))
         issue |= tray["issue"]
       location = ''
       LOCATION_MAPPING=get_app_setting('LOCATION_MAPPING','')
@@ -1792,13 +1792,13 @@ def api_printer_status():
         spool_list = fetch_spools()
 
         # External spool
-        augmentTrayDataWithSpoolMan(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID))
+        augmentTrayData(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID))
         issue = bool(vt_tray_data.get("issue"))
 
         # Trays AMS
         for ams in ams_data:
             for tray in ams.get("tray", []) or []:
-                augmentTrayDataWithSpoolMan(spool_list, tray, trayUid(ams["id"], tray["id"]))
+                augmentTrayData(spool_list, tray, trayUid(ams["id"], tray["id"]))
                 issue |= bool(tray.get("issue"))
 
         # Locations (si configurées)

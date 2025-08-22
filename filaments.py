@@ -1394,6 +1394,38 @@ def clearActiveTray(ams_id,tray_id):
         update_field_spool(field="ams_tray",value="",bobine_id=old_spool["id"])
         patchLocation(old_spool["id"],100)
 
+def augmentTrayData(spool_list, tray_data, tray_id):
+    tray_data["matched"] = False
+    for spool in spool_list:
+        if spool.get("extra") and spool["extra"].get("active_tray") and spool["extra"]["active_tray"] == json.dumps(tray_id):
+        #TODO: check for mismatch
+        tray_data["name"] = spool["filament"]["name"]
+        tray_data["vendor"] = spool["filament"]["vendor"]["name"]
+        tray_data["remaining_weight"] = spool["remaining_weight"]
+        
+        if "last_used" in spool:
+            try:
+                dt = datetime.strptime(spool["last_used"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=ZoneInfo("UTC"))
+            except ValueError:
+                dt = datetime.strptime(spool["last_used"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=ZoneInfo("UTC"))
+    
+            local_time = dt.astimezone()
+            tray_data["last_used"] = local_time.strftime("%d.%m.%Y %H:%M:%S")
+    
+        else:
+            tray_data["last_used"] = "-"
+            
+        if "multi_color_hexes" in spool["filament"]:
+            tray_data["tray_color"] = spool["filament"]["multi_color_hexes"]
+            tray_data["tray_color_orientation"] = spool["filament"]["multi_color_direction"]
+            
+        tray_data["matched"] = True
+        break
+    
+    if tray_data.get("tray_type") and tray_data["tray_type"] != "" and tray_data["matched"] == False:
+        tray_data["issue"] = True
+    else:
+        tray_data["issue"] = False
 
 
 if __name__ == "__main__":
