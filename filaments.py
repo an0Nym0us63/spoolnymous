@@ -185,19 +185,19 @@ def ensure_filaments_usage_schema() -> None:
     """
     with _tx() as cur:
         # Vérifie les colonnes existantes
-        cur.execute("PRAGMA table_info(filaments_usage)")
+        cur.execute("PRAGMA table_info(filament_usage)")
         cols = {row[1] for row in cur.fetchall()}  # {name}
 
         # Ajoute la colonne si manquante
         if "ori_spool_id" not in cols:
-            cur.execute("ALTER TABLE filaments_usage ADD COLUMN ori_spool_id TEXT")
+            cur.execute("ALTER TABLE filament_usage ADD COLUMN ori_spool_id TEXT")
 
             # Initialise ori_spool_id = spool_id pour les lignes existantes
-            cur.execute("UPDATE filaments_usage SET ori_spool_id = spool_id")
+            cur.execute("UPDATE filament_usage SET ori_spool_id = spool_id")
 
         # Index pratique pour la migration / updates
         cur.execute(
-            "CREATE INDEX IF NOT EXISTS idx_filaments_usage_ori_spool_id ON filaments_usage(ori_spool_id)"
+            "CREATE INDEX IF NOT EXISTS idx_filament_usage_ori_spool_id ON filament_usage(ori_spool_id)"
         )
 
 def migrate_usage_spool_ids_from_external() -> Dict[str, int]:
@@ -218,7 +218,7 @@ def migrate_usage_spool_ids_from_external() -> Dict[str, int]:
     with _tx() as cur:
         # 1) Backfill ori_spool_id (une seule fois): copie spool_id -> ori_spool_id si NULL
         cur.execute("""
-            UPDATE filaments_usage
+            UPDATE filament_usage
                SET ori_spool_id = CAST(spool_id AS TEXT)
              WHERE ori_spool_id IS NULL
                AND spool_id IS NOT NULL
@@ -230,7 +230,7 @@ def migrate_usage_spool_ids_from_external() -> Dict[str, int]:
         #    -> condition: (spool_id NOT IN bobines.id) OU (spool_id IS NULL)
         #    Note: comparaisons sur TEXT côté external ids → on CAST en TEXT pour être robustes.
         cur.execute("""
-            UPDATE filaments_usage AS u
+            UPDATE filament_usage AS u
                SET spool_id = (
                    SELECT b.id
                      FROM bobines b
@@ -250,7 +250,7 @@ def migrate_usage_spool_ids_from_external() -> Dict[str, int]:
         # 3) Compter les usages non résolus (ori_spool_id sans correspondance locale)
         cur.execute("""
             SELECT COUNT(*)
-              FROM filaments_usage u
+              FROM filament_usage u
              WHERE u.ori_spool_id IS NOT NULL
                AND (
                     SELECT COUNT(*)
