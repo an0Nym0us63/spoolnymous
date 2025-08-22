@@ -820,9 +820,21 @@ def _upsert_filament_from_spoolman_exact(f: Dict[str, Any]) -> int:
     # profile id dans extra
     extra = f.get("extra") or {}
     profile_id = _clean_profile_id(extra.get("filament_id"))
+    payload = {
+        "created_at": f.get("registered"),
+        "name": f.get("name"),
+        "manufacturer": _spoolman_vendor_name(f),
+        "color": _spoolman_color(f),
+        "material": _spoolman_material(f),
+        "price": _spoolman_price(f),
+        "spool_weight_g": _spoolman_spool_weight(f),
+        "filament_weight_g": _spoolman_filament_weight(f),
+        "profile_id": profile_id,
+        "colors_array": f.get("multi_color_hexes"),
+        "multicolor_type": multicolor_type,
+        "comment": f"Importé depuis Spoolman le {datetime.now().isoformat(timespec='seconds')}",
         "external_filament_id": external_id,
     }
-
     # Cherche un filament existant par external_filament_id
     conn = _connect()
     conn.row_factory = sqlite3.Row
