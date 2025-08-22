@@ -2594,20 +2594,28 @@ def filaments_catalog():
     selected_family = (request.args.get("color") or "").strip() or None
     sort = request.args.get("sort", "default")
 
-    # 1) Filtrage SQL (texte/fabricant/matériau), on récupère tout puis on filtre la famille couleur côté Python
+    # 1) Récupération SQL (Rows immuables)
     rows = list_filaments(manufacturer=manufacturer, material=material, search=search)
+
+    # 👉 Convertir en dictionnaires MUTABLES
+    rows = [dict(r) for r in rows]
 
     # 2) Familles de couleur (même logique que bobines)
     all_families = set()
+
     def extract_hexes(f):
         colors = []
-        ca = f["colors_array"]
+        ca = f.get("colors_array")
         if ca:
             if isinstance(ca, str):
                 colors = [c.strip() for c in ca.split(",") if c.strip()]
             else:
-                colors = list(ca)
-        elif f["color"]:
+                # au cas où list_filaments renverrait déjà une liste/JSON décodé
+                try:
+                    colors = list(ca)
+                except Exception:
+                    colors = []
+        elif f.get("color"):
             colors = [str(f["color"]).lstrip("#")]
         return [c.lstrip("#") for c in colors]
 
@@ -2621,33 +2629,34 @@ def filaments_catalog():
     if selected_family:
         rows = [f for f in rows if selected_family in f.get("color_families", [])]
 
-    # 3) Tri (comme bobines)
+    # 3) Tri
     def sort_key(f):
         if sort == "name":
-            return (str(f["name"] or "").lower(),)
+            return (str(f.get("name") or "").lower(),)
         if sort == "price":
-            return (-(f["price"] or 0),)
+            return (-(f.get("price") or 0),)
         if sort == "weight":
-            return (-(f["filament_weight_g"] or 0),)
+            return (-(f.get("filament_weight_g") or 0),)
         return (
-            str(f["material"] or "").lower(),
-            str(f["manufacturer"] or "").lower(),
-            str(f["name"] or "").lower(),
+            str(f.get("material") or "").lower(),
+            str(f.get("manufacturer") or "").lower(),
+            str(f.get("name") or "").lower(),
         )
     reverse = sort in ("price", "weight")
     rows.sort(key=sort_key, reverse=reverse)
 
     # 4) Pagination
+    import math
     total = len(rows)
     total_pages = max(1, math.ceil(total / per_page))
     start = (page - 1) * per_page
     filaments_page = rows[start:start + per_page]
 
-    # 5) Stats + listes pour filtres
-    mans = {(f["manufacturer"] or "").strip() for f in rows if f["manufacturer"]}
-    mats = {(f["material"] or "").strip() for f in rows if f["material"]}
-    prices = [float(f["price"]) for f in rows if f["price"] is not None]
-    weights = [float(f["filament_weight_g"]) for f in rows if f["filament_weight_g"] is not None]
+    # 5) Stats + listes filtres
+    mans = {(f.get("manufacturer") or "").strip() for f in rows if f.get("manufacturer")}
+    mats = {(f.get("material") or "").strip() for f in rows if f.get("material")}
+    prices = [float(f["price"]) for f in rows if f.get("price") is not None]
+    weights = [float(f["filament_weight_g"]) for f in rows if f.get("filament_weight_g") is not None]
 
     avg_price = round(sum(prices) / len(prices), 2) if prices else None
     avg_weight = round(sum(weights) / len(weights), 0) if weights else None
@@ -2673,6 +2682,7 @@ def filaments_catalog():
         page_title="Filaments",
         args=_merge_context_args(),
     )
+
 
 
 app.register_blueprint(auth_bp)
