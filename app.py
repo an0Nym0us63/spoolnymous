@@ -1552,7 +1552,7 @@ def reajust_spool_route(spool_id):
         flash('Poids invalide', 'danger')
         return redirect(request.referrer or url_for('filament_page'))
 
-    response = update_bobine(spool_id,remaining_weight=new_weight)
+    response = update_bobine(spool_id,remaining_weight_g=new_weight)
     return redirect(request.referrer or url_for('filament_page'))
 
 @app.route('/spool/<int:spool_id>/archive', methods=['POST'])
