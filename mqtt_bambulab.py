@@ -640,7 +640,7 @@ def on_message(client, userdata, msg):
               clearActiveTray(ams['id'], tray["id"])
             else:
                 #logger.info("Found spool " + str(foundspool))
-                setActiveTray(foundspool['id'], foundspool["extra"], ams['id'], tray["id"])
+                setActiveTray(foundspool['id'], ams['id'], tray["id"])
           else:
               clearActiveTray(ams['id'], tray["id"])
   except Exception as e:
