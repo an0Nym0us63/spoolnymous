@@ -28,14 +28,13 @@ from auth import auth_bp, User, get_stored_user
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-from filaments import ensure_schema, sync_from_spoolman, fetch_spools, augmentTrayData
+from filaments import ensure_schema, sync_from_spoolman, fetch_spools, augmentTrayData,trayUid
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel,insert_manual_print
 from spoolman_client import patchExtraTags, getSpoolById, consumeSpool, archive_spool, reajust_spool
-from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings,fetchSpools
 from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print,get_all_tray_spool_mappings,set_tray_spool_map,delete_all_tray_spool_mappings, get_tags_for_prints, get_tags_for_group, add_tag_to_group, remove_tag_from_group
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
@@ -900,7 +899,6 @@ def health():
 
 @app.route("/print_history")
 def print_history():
-    spoolman_settings = getSettings()
 
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per_page", 30))
@@ -1591,8 +1589,6 @@ def download_model(filename):
 @app.route("/stats")
 def stats():
     from print_history import get_distinct_values
-
-    spoolman_settings = getSettings()
 
     # Récupérer les filtres, recherche et période
     filters = {

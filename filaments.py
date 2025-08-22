@@ -12,7 +12,8 @@ import urllib.request
 # On réutilise la config DB telle qu'elle existe déjà dans le projet
 from print_history import db_config
 
-
+import logging
+logger = logging.getLogger(__name__)
 # ----------------------------------------------------------------------------
 # Connexion & transactions
 # ----------------------------------------------------------------------------
@@ -1395,6 +1396,7 @@ def clearActiveTray(ams_id,tray_id):
         patchLocation(old_spool["id"],100)
 
 def augmentTrayData(spool_list, tray_data, tray_id):
+    logger.debug(str(tray_data))
     tray_data["matched"] = False
     for spool in spool_list:
         if spool.get("extra") and spool["extra"].get("active_tray") and spool["extra"]["active_tray"] == json.dumps(tray_id):
