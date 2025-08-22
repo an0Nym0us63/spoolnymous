@@ -1380,7 +1380,7 @@ def filaments():
     total_vendors = len(vendor_names)
 
     return render_template(
-        "filaments.html",
+        "bobines.html",
         filaments=filaments_page,
         page=page,
         total_pages=total_pages,
