@@ -927,7 +927,7 @@ def print_history():
     focus_group_id = request.args.get("focus_group_id", type=int)
 
     raw_prints = get_prints_with_filament(filters=filters, search=search)
-    spool_list = fetch_spools(True)
+    spool_list = fetch_spools(archived=True)
     spools_by_id = {spool["id"]: spool for spool in spool_list}
     entries = {}
 
@@ -1320,7 +1320,7 @@ def filaments():
         tray_uuid = request.args.get("tray_uuid")
         tray_info_idx = request.args.get("tray_info_idx")
         tray_color = request.args.get("tray_color")
-    all_filaments = fetch_spools(include_archived) or []
+    all_filaments = fetch_spools(archived=include_archived) or []
 
     if search:
         search_terms = search.split()

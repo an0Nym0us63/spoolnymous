@@ -1142,7 +1142,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
             if u["color"] and any(f in selected_families for f in two_closest_families(u["color"]))
         ]
 
-    spools_by_id = {spool["id"]: spool for spool in fetch_spools(True)}
+    spools_by_id = {spool["id"]: spool for spool in fetch_spools(archived=True)}
 
     total_weight = 0.0
     filament_cost = 0.0
