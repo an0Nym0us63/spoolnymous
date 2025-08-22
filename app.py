@@ -22,13 +22,15 @@ import signal
 import random
 import hashlib
 from pathlib import Path
+import math
 
 from flask_login import LoginManager, login_required
 from auth import auth_bp, User, get_stored_user
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-from filaments import ensure_schema, sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine
+from filaments import ensure_schema, sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments
+
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
@@ -1400,7 +1402,7 @@ def filaments():
         total_filaments=total,
         total_vendors=total_vendors,
         total_remaining=total_remaining,
-        page_title="Filaments",
+        page_title="Bobines",
         tray_uuid=tray_uuid,
         tray_info_idx=tray_info_idx,
         tray_color=tray_color,
@@ -2580,5 +2582,97 @@ def sync_spoolman():
         flash(f"❌ Échec de la synchro Spoolman : {e}", "danger")
 
     return redirect(url_for("auth.settings"))
+
+@app.route("/catalog/filaments")
+def filaments_catalog():
+    page = int(request.args.get("page", 1))
+    per_page = 25
+
+    search = (request.args.get("search") or "").strip() or None
+    manufacturer = (request.args.get("manufacturer") or "").strip() or None
+    material = (request.args.get("material") or "").strip() or None
+    selected_family = (request.args.get("color") or "").strip() or None
+    sort = request.args.get("sort", "default")
+
+    # 1) Filtrage SQL (texte/fabricant/matériau), on récupère tout puis on filtre la famille couleur côté Python
+    rows = list_filaments(manufacturer=manufacturer, material=material, search=search)
+
+    # 2) Familles de couleur (même logique que bobines)
+    all_families = set()
+    def extract_hexes(f):
+        colors = []
+        ca = f["colors_array"]
+        if ca:
+            if isinstance(ca, str):
+                colors = [c.strip() for c in ca.split(",") if c.strip()]
+            else:
+                colors = list(ca)
+        elif f["color"]:
+            colors = [str(f["color"]).lstrip("#")]
+        return [c.lstrip("#") for c in colors]
+
+    for f in rows:
+        fams = set()
+        for hx in extract_hexes(f):
+            fams.update(two_closest_families(hx, threshold=60))
+        f["color_families"] = sorted(fams)
+        all_families.update(fams)
+
+    if selected_family:
+        rows = [f for f in rows if selected_family in f.get("color_families", [])]
+
+    # 3) Tri (comme bobines)
+    def sort_key(f):
+        if sort == "name":
+            return (str(f["name"] or "").lower(),)
+        if sort == "price":
+            return (-(f["price"] or 0),)
+        if sort == "weight":
+            return (-(f["filament_weight_g"] or 0),)
+        return (
+            str(f["material"] or "").lower(),
+            str(f["manufacturer"] or "").lower(),
+            str(f["name"] or "").lower(),
+        )
+    reverse = sort in ("price", "weight")
+    rows.sort(key=sort_key, reverse=reverse)
+
+    # 4) Pagination
+    total = len(rows)
+    total_pages = max(1, math.ceil(total / per_page))
+    start = (page - 1) * per_page
+    filaments_page = rows[start:start + per_page]
+
+    # 5) Stats + listes pour filtres
+    mans = {(f["manufacturer"] or "").strip() for f in rows if f["manufacturer"]}
+    mats = {(f["material"] or "").strip() for f in rows if f["material"]}
+    prices = [float(f["price"]) for f in rows if f["price"] is not None]
+    weights = [float(f["filament_weight_g"]) for f in rows if f["filament_weight_g"] is not None]
+
+    avg_price = round(sum(prices) / len(prices), 2) if prices else None
+    avg_weight = round(sum(weights) / len(weights), 0) if weights else None
+
+    return render_template(
+        "filaments_catalog.html",
+        filaments=filaments_page,
+        page=page,
+        total_pages=total_pages,
+        search=search,
+        manufacturer=manufacturer,
+        material=material,
+        all_manufacturers=sorted(mans),
+        all_materials=sorted(mats),
+        all_families=sorted(all_families),
+        selected_family=selected_family,
+        sort=sort,
+        total_filaments=total,
+        total_manufacturers=len(mans),
+        total_materials=len(mats),
+        avg_price=avg_price,
+        avg_weight=avg_weight,
+        page_title="Filaments",
+        args=_merge_context_args(),
+    )
+
 
 app.register_blueprint(auth_bp)
