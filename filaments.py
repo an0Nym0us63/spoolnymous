@@ -848,7 +848,7 @@ def _upsert_filament_from_spoolman_exact(f: Dict[str, Any]) -> int:
 
     if row:
         # On append le tag d'import au commentaire existant
-                update_filament(int(row[0]), **fields)
+        update_filament(int(row[0]), **fields)
         return int(row[0])
     else:
         # Insertion avec created_at forcé depuis registered
