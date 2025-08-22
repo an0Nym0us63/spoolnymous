@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 from config import EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID,get_app_setting
 
+from zoneinfo import ZoneInfo
 import json
 import urllib.parse
 import urllib.request
@@ -1396,7 +1397,6 @@ def clearActiveTray(ams_id,tray_id):
         patchLocation(old_spool["id"],100)
 
 def augmentTrayData(spool_list, tray_data, tray_id):
-    logger.debug(str(tray_data))
     tray_data["matched"] = False
     for spool in spool_list:
         if spool["extra"] and spool["extra"]["active_tray"] and spool["extra"]["active_tray"] == tray_id:
@@ -1428,8 +1428,6 @@ def augmentTrayData(spool_list, tray_data, tray_id):
         tray_data["issue"] = True
     else:
         tray_data["issue"] = False
-    
-    logger.debug("AFTER " + str(tray_data))
 
 
 if __name__ == "__main__":
