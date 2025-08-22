@@ -1428,6 +1428,8 @@ def augmentTrayData(spool_list, tray_data, tray_id):
         tray_data["issue"] = True
     else:
         tray_data["issue"] = False
+    
+    logger.debug("AFTER " + str(tray_data))
 
 
 if __name__ == "__main__":
