@@ -3,40 +3,50 @@
 {% block content %}
 {% import 'macros/hidden_args.jinja2' as macros %}
 
-{# =====================================================================
-   STYLES LOCAUX (embarqué) — mêmes patterns que bobines + corrections UI
-   ===================================================================== #}
 <style>
+/* Badges sobres (gris) — comme sur bobines */
+.badge-sx {
+  font-weight: 600;
+  padding: .35rem .5rem;
+  background: rgba(255,255,255,.08);
+  color: #e9ecef;
+  border-radius: .5rem;
+}
 
+/* Strip couleur pleine hauteur */
+.color-strip { flex: 0 0 12px; align-self: stretch; }
+.color-strip > div { width:100%; height:100%; display:block; }
+
+/* Pastilles hex dans le détail */
+.hex-pill {
+  display:inline-block; width:18px; height:18px; border-radius:4px;
+  border:1px solid rgba(255,255,255,.25); vertical-align:-3px; margin-right:.25rem;
+}
+
+/* Responsive léger */
+@media (max-width: 576px){
+  .badge-sx{ padding:.28rem .45rem; font-size:.85rem; }
+}
 </style>
 
-{# =========================== en-tête titre =========================== #}
-
-{# ===== Bouton flottant pagination (identique à bobines) ===== #}
+<!-- Boutons flottants (comme bobines) -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
   <button class="btn btn-sm btn-primary rounded-circle" type="button"
           data-bs-toggle="offcanvas" data-bs-target="#paginationOffcanvas"
-          aria-controls="paginationOffcanvas">
-    📄
-  </button>
+          aria-controls="paginationOffcanvas">📄</button>
 </div>
-
-{# ===== Bouton flottant filtres (identique à bobines) ===== #}
 <div class="position-fixed bottom-0 start-0 m-3" style="z-index:1030;">
   <button class="btn btn-sm btn-primary rounded-circle" type="button"
           data-bs-toggle="offcanvas" data-bs-target="#filtersOffcanvas"
-          aria-controls="filtersOffcanvas">
-    🔍
-  </button>
+          aria-controls="filtersOffcanvas">🔍</button>
 </div>
 
-{# ========================== OFFCANVAS FILTRES ======================== #}
+<!-- OFFCANVAS FILTRES -->
 <div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel">
   <div class="offcanvas-header">
     <h5 class="offcanvas-title" id="filtersOffcanvasLabel">Filtres & Tri</h5>
     <div class="d-flex align-items-center gap-2 ms-auto">
-      <a class="btn btn-link text-muted" id="resetFiltersBtn"
-         href="{{ url_for(request.endpoint) }}" title="Réinitialiser les filtres">
+      <a class="btn btn-link text-muted" id="resetFiltersBtn" href="{{ url_for(request.endpoint) }}" title="Réinitialiser les filtres">
         <i class="bi bi-arrow-counterclockwise fs-5"></i>
       </a>
       <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
@@ -44,7 +54,6 @@
   </div>
   <div class="offcanvas-body">
     <form method="get" class="row g-2 align-items-end">
-      {# on conserve les paramètres comme dans bobines #}
       {{ macros.render_filtered_args(args, ['search','color','sort','page','manufacturer','material']) }}
 
       <div class="col-md-4">
@@ -106,7 +115,7 @@
   </div>
 </div>
 
-{# ======================= OFFCANVAS PAGINATION ======================= #}
+<!-- OFFCANVAS PAGINATION -->
 <div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="paginationOffcanvas" aria-labelledby="paginationOffcanvasLabel">
   <div class="offcanvas-header">
     <h5 class="offcanvas-title" id="paginationOffcanvasLabel">Pagination</h5>
@@ -123,7 +132,7 @@
         {{ macros.render_filtered_args(args, ['page']) }}
         <label for="pageInput" class="me-1">Page</label>
         <input type="number" min="1" max="{{ total_pages }}" id="pageInput" name="page"
-               class="form-control form-control-sm" style="width: 64px;" value="{{ page }}">
+               class="form-control form-control-sm" style="width:64px;" value="{{ page }}">
         <button type="submit" class="btn btn-sm btn-primary ms-1">Aller</button>
       </form>
 
@@ -137,96 +146,89 @@
   </div>
 </div>
 
-{# ============================ STATISTIQUES =========================== #}
+<!-- STATS (même look que bobines) -->
 <div class="row row-cols-3 g-2 mb-3 text-center align-items-stretch">
-  <div class="col">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
-        <div class="fs-5 fs-md-4">🧵</div>
-        <div class="small fw-bold">{{ total_filaments }}</div>
-        <div class="text-muted small">Filaments</div>
-      </div>
-    </div>
-  </div>
-  <div class="col">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
-        <div class="fs-5 fs-md-4">🏭</div>
-        <div class="small fw-bold">{{ total_manufacturers }}</div>
-        <div class="text-muted small">Fabricants</div>
-      </div>
-    </div>
-  </div>
-  <div class="col">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
-        <div class="fs-5 fs-md-4">⚗️</div>
-        <div class="small fw-bold">{{ total_materials }}</div>
-        <div class="text-muted small">Matériaux</div>
-      </div>
-    </div>
-  </div>
+  <div class="col"><div class="card border-0 shadow-sm h-100"><div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+    <div class="fs-5 fs-md-4">🧵</div><div class="small fw-bold">{{ total_filaments }}</div><div class="text-muted small">Filaments</div>
+  </div></div></div>
+  <div class="col"><div class="card border-0 shadow-sm h-100"><div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+    <div class="fs-5 fs-md-4">🏭</div><div class="small fw-bold">{{ total_manufacturers }}</div><div class="text-muted small">Fabricants</div>
+  </div></div></div>
+  <div class="col"><div class="card border-0 shadow-sm h-100"><div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+    <div class="fs-5 fs-md-4">⚗️</div><div class="small fw-bold">{{ total_materials }}</div><div class="text-muted small">Matériaux</div>
+  </div></div></div>
 </div>
 
-{# ============================= LISTE ================================ #}
+<!-- LISTE (accordéons *identiques* à bobines) -->
 <div class="accordion" id="filamentsCatalogAccordion">
   {% for fil in filaments %}
-    <div class="accordion-item sx">
-      <h2 class="accordion-header" id="headingFilament{{ fil.id }}">
-        <button class="accordion-button collapsed" type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#collapseFilament{{ fil.id }}"
-                aria-expanded="false"
-                aria-controls="collapseFilament{{ fil.id }}">
-          <div class="d-flex w-100 align-items-stretch gap-2">
-            <!-- Strip couleur -->
-            <div class="color-strip">
-              {% if fil.colors_array %}
-                {% set colors = fil.colors_array.split(',') if fil.colors_array is string else fil.colors_array %}
-                <div style="background: linear-gradient(180deg,{% for c in colors %}#{{ c|trim|replace('#','') }}{% if not loop.last %}, {% endif %}{% endfor %});"></div>
-              {% elif fil.color %}
-                <div style="background:#{{ fil.color|replace('#','') }};"></div>
-              {% else %}
-                <div style="background:#666;"></div>
-              {% endif %}
-            </div>
+    <div class="accordion-item"
+         style="border-radius: 0.75rem; margin-bottom: 0.3rem; background-color: #1e293b; box-shadow: 0 0 10px rgba(0,0,0,0.3);">
 
-            <!-- Titre -->
-            <div class="flex-grow-1 d-flex flex-column justify-content-center ps-1">
-              <div class="fw-bold">
-                {{ fil.material or '—' }} · {{ fil.manufacturer or '—' }} · {{ fil.name or '—' }}
-              </div>
-              <div class="small text-muted">
-                {% if fil.multicolor_type and fil.multicolor_type != 'none' %}
-                  Multi: {{ fil.multicolor_type }} ·
-                {% endif %}
+      <h2 class="accordion-header d-flex justify-content-between align-items-center"
+          id="headingFilament{{ fil.id }}"
+          style="border-radius: 0.75rem;">
+
+        <div class="flex-grow-1">
+          <button class="accordion-button collapsed py-1 sm:py-2 px-3 w-100 text-start"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#collapseFilament{{ fil.id }}"
+                  aria-expanded="false"
+                  aria-controls="collapseFilament{{ fil.id }}"
+                  style="border-radius: 0.75rem; font-size: 0.85rem;">
+
+            <div class="d-flex w-100 align-items-stretch gap-2">
+              <!-- Strip couleur -->
+              <div class="color-strip">
                 {% if fil.colors_array %}
-                  {% for c in colors %}
-                    <span class="hex-pill" style="background:#{{ c|trim|replace('#','') }}"></span>
-                  {% endfor %}
+                  {% set colors = fil.colors_array.split(',') if fil.colors_array is string else fil.colors_array %}
+                  <div style="background: linear-gradient(180deg,{% for c in colors %}#{{ c|trim|replace('#','') }}{% if not loop.last %}, {% endif %}{% endfor %});"></div>
                 {% elif fil.color %}
-                  <span class="hex-pill" style="background:#{{ fil.color|replace('#','') }}"></span>
+                  <div style="background:#{{ fil.color|replace('#','') }};"></div>
+                {% else %}
+                  <div style="background:#666;"></div>
                 {% endif %}
               </div>
-            </div>
 
-            <!-- Badges à droite -->
-            <div class="d-flex align-items-center gap-2 pe-2">
-              {% if fil.filament_weight_g %}
-                <span class="badge badge-sx badge-sx-sec">{{ fil.filament_weight_g }} g</span>
-              {% endif %}
-              {% if fil.spool_weight_g %}
-                <span class="badge badge-sx badge-sx-sec">{{ fil.spool_weight_g }} g tare</span>
-              {% endif %}
-              <span class="badge badge-sx badge-sx-pri">
-                {{ fil.price is not none and (fil.price ~ ' €') or '—' }}
-              </span>
+              <!-- Titre -->
+              <div class="flex-grow-1 d-flex flex-column justify-content-center ps-1">
+                <div class="fw-bold">
+                  {{ fil.material or '—' }} · {{ fil.manufacturer or '—' }} · {{ fil.name or '—' }}
+                </div>
+                <div class="small text-muted">
+                  {% if fil.multicolor_type and fil.multicolor_type != 'none' %}
+                    Multi: {{ fil.multicolor_type }} ·
+                  {% endif %}
+                  {% if fil.colors_array %}
+                    {% for c in colors %}
+                      <span class="hex-pill" style="background:#{{ c|trim|replace('#','') }}"></span>
+                    {% endfor %}
+                  {% elif fil.color %}
+                    <span class="hex-pill" style="background:#{{ fil.color|replace('#','') }}"></span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Badges à droite (gris) -->
+              <div class="d-flex align-items-center gap-2 pe-2">
+                {% if fil.filament_weight_g %}
+                  <span class="badge badge-sx">{{ fil.filament_weight_g }} g</span>
+                {% endif %}
+                {% if fil.spool_weight_g %}
+                  <span class="badge badge-sx">{{ fil.spool_weight_g }} g tare</span>
+                {% endif %}
+                <span class="badge badge-sx">
+                  {{ fil.price is not none and (fil.price ~ ' €') or '—' }}
+                </span>
+              </div>
             </div>
-          </div>
-        </button>
+          </button>
+        </div>
       </h2>
 
-      <div id="collapseFilament{{ fil.id }}" class="accordion-collapse collapse" aria-labelledby="headingFilament{{ fil.id }}" data-bs-parent="#filamentsCatalogAccordion">
+      <div id="collapseFilament{{ fil.id }}" class="accordion-collapse collapse"
+           aria-labelledby="headingFilament{{ fil.id }}" data-bs-parent="#filamentsCatalogAccordion">
         <div class="accordion-body">
           <div class="row g-3">
             <div class="col-md-6">
@@ -271,16 +273,7 @@
   {% endfor %}
 </div>
 
-{# ====================== SCRIPTS PAGE (optionnels) ==================== #}
-{% block scripts %}
-{{ super() }}
-<script>
-  // Reset des filtres (comme bobines)
-  document.getElementById('resetFiltersBtn')?.addEventListener('click', function(e){
-    // rien à faire: on redirige déjà vers l'endpoint sans args
-  });
-</script>
-{% endblock %}
+{% block scripts %}{{ super() }}{% endblock %}
 
-<div style="height: 4rem;"></div>
+<div style="height:4rem;"></div>
 {% endblock %}
