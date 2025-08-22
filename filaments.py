@@ -186,6 +186,19 @@ def ensure_schema() -> None:
             END;
             """
         )
+        cur.execute(
+            """
+            CREATE TRIGGER IF NOT EXISTS trg_bobines_last_used_at
+            AFTER UPDATE OF remaining_weight_g ON bobines
+            FOR EACH ROW
+            WHEN NEW.remaining_weight_g IS NOT OLD.remaining_weight_g
+            BEGIN
+                UPDATE bobines
+                SET last_used_at = datetime('now')
+                WHERE id = NEW.id;
+            END;
+            """
+        )
 
 def ensure_filaments_usage_schema() -> None:
     """
