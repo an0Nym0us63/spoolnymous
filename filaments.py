@@ -1399,9 +1399,6 @@ def clearActiveTray(ams_id,tray_id):
 def augmentTrayData(spool_list, tray_data, tray_id):
     tray_data["matched"] = False
     for spool in spool_list:
-        logger.debug(json.dumps(spool))
-        
-        logger.debug(tray_id)
         if spool.get("extra") and spool["extra"].get("active_tray") and spool["extra"]["active_tray"] == tray_id:
             #TODO: check for mismatch
             tray_data["name"] = spool["filament"]["name"]
@@ -1419,10 +1416,15 @@ def augmentTrayData(spool_list, tray_data, tray_id):
         
             else:
                 tray_data["last_used"] = "-"
-                
-            if "multi_color_hexes" in spool["filament"]:
+            filament = spool.get("filament") or {}
+
+            multi_hexes = filament.get("multi_color_hexes")
+            multi_dir = filament.get("multi_color_direction")
+            if multi_hexes and multi_dir and str(multi_dir).lower() != "none":
                 tray_data["tray_color"] = spool["filament"]["multi_color_hexes"]
                 tray_data["tray_color_orientation"] = spool["filament"]["multi_color_direction"]
+            else:
+                tray_data["tray_color"] = spool["color"]
                 
             tray_data["matched"] = True
             break
