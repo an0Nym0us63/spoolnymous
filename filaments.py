@@ -1646,7 +1646,4 @@ def spendFilaments(printdata):
             if used_grams != 0:
                 consume_weight(spool["id"], used_grams)
 
-
-if __name__ == "__main__":
-    ensure_schema()
-    print("Schéma filaments/bobines OK")
+ensure_schema()
