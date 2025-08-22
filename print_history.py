@@ -8,7 +8,6 @@ from deep_translator import GoogleTranslator
 import re
 import config
 from config import get_app_setting,get_electric_rate_at
-from filaments import fetch_spools
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
