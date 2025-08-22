@@ -1,5 +1,6 @@
 import sqlite3
 from contextlib import contextmanager
+import datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 # On réutilise la config DB telle qu'elle existe déjà dans le projet
@@ -932,7 +933,7 @@ def _upsert_bobine_from_spoolman_exact(s: Dict[str, Any], filament_local_id: int
         "tag_number": _clean_quoted(extra.get("tag")),
         "ams_tray": _clean_quoted(extra.get("active_tray")),
         "archived": bool(s.get("archived", False)),
-                "created_at": s.get("registered"),
+        "created_at": s.get("registered"),
         "first_used_at": s.get("first_used"),
         "last_used_at": s.get("last_used"),
         "external_spool_id": external_spool_id,
