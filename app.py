@@ -4,7 +4,7 @@ import logging
 from exceptions import ApplicationError
 import uuid
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date, timezone
 import time
 import os
 import re
@@ -607,9 +607,66 @@ def add_cache_headers(response):
     return response
     
 @app.template_filter('datetimeformat')
-def datetimeformat(value, locale='fr'):
-    dt = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
-    return dt.strftime("%d/%m/%Y %H:%M")
+def datetimeformat(value, fmt="%d/%m/%Y %H:%M"):
+    """
+    Formatte intelligemment diverses entrées de date :
+    - datetime/date Python
+    - timestamp (int/float)
+    - chaînes aux formats:
+        * "%Y-%m-%d %H:%M:%S" (format historique du projet)
+        * ISO-8601: "YYYY-MM-DDTHH:MM:SS[.fff][Z|±HH:MM]"
+        * variantes usuelles: sans secondes, sans fuseau, etc.
+    """
+    if not value:
+        return ""
+
+    # déjà un datetime / date
+    if isinstance(value, datetime):
+        dt = value
+    elif isinstance(value, date):
+        dt = datetime(value.year, value.month, value.day)
+    # timestamp numérique
+    elif isinstance(value, (int, float)):
+        dt = datetime.fromtimestamp(value)
+    # chaîne
+    elif isinstance(value, str):
+        s = value.strip()
+        # 1) ISO-8601 (remplace 'Z' par +00:00 pour fromisoformat)
+        try:
+            iso = s.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(iso)
+        except ValueError:
+            dt = None
+
+        # 2) Fallbacks classiques si fromisoformat a échoué
+        if dt is None:
+            tried = [
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%d %H:%M",
+                "%Y-%m-%d",
+                "%Y-%m-%dT%H:%M:%S.%f%z",
+                "%Y-%m-%dT%H:%M:%S%z",
+                "%Y-%m-%dT%H:%M:%S.%f",
+                "%Y-%m-%dT%H:%M:%S",
+            ]
+            for pat in tried:
+                try:
+                    dt = datetime.strptime(s, pat)
+                    break
+                except ValueError:
+                    continue
+            if dt is None:
+                # en dernier recours : ne casse pas l’affichage
+                return s
+    else:
+        # type inconnu : on affiche brut
+        return str(value)
+
+    # Si la date est timezone-aware, normalise en local (naïf) comme le reste du projet
+    if isinstance(dt, datetime) and dt.tzinfo is not None:
+        dt = dt.astimezone().replace(tzinfo=None)
+
+    return dt.strftime(fmt)
     
 @app.template_filter('hm_format')
 def hm_format(hours: float):
