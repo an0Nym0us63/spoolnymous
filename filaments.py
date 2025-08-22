@@ -1424,7 +1424,7 @@ def augmentTrayData(spool_list, tray_data, tray_id):
                 tray_data["tray_color"] = spool["filament"]["multi_color_hexes"]
                 tray_data["tray_color_orientation"] = spool["filament"]["multi_color_direction"]
             else:
-                tray_data["tray_color"] = spool["color_hex"]
+                tray_data["tray_color"] = spool["filament"]["color_hex"]
                 
             tray_data["matched"] = True
             break
