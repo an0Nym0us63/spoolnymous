@@ -1,6 +1,6 @@
 import sqlite3
 from contextlib import contextmanager
-import datetime
+from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 # On réutilise la config DB telle qu'elle existe déjà dans le projet
