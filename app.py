@@ -28,7 +28,7 @@ from auth import auth_bp, User, get_stored_user
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-from filaments import ensure_schema, sync_from_spoolman
+from filaments import ensure_schema, sync_from_spoolman, fetch_spools
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
@@ -658,7 +658,7 @@ def issue():
 
   fix_ams = None
 
-  spool_list = fetchSpools()
+  spool_list = fetch_spools()
   last_ams_config = getLastAMSConfig()
   if ams_id == EXTERNAL_SPOOL_AMS_ID:
     fix_ams = last_ams_config.get("vt_tray", {})
@@ -693,7 +693,7 @@ def spool_info():
     last_ams_config = getLastAMSConfig()
     ams_data = last_ams_config.get("ams", [])
     vt_tray_data = last_ams_config.get("vt_tray", {})
-    spool_list = fetchSpools()
+    spool_list = fetch_spools()
     
     issue = False
     #TODO: Fix issue when external spool info is reset via bambulab interface
@@ -708,7 +708,7 @@ def spool_info():
     if not tag_id:
       return render_template('error.html', exception="TAG ID is required as a query parameter (e.g., ?tag_id=RFID123)")
 
-    spools = fetchSpools()
+    spools = fetch_spools()
     current_spool = None
     for spool in spools:
       if spool['id'] == int(spool_id):
@@ -812,7 +812,7 @@ def home():
     last_ams_config = getLastAMSConfig()
     ams_data = last_ams_config.get("ams", [])
     vt_tray_data = last_ams_config.get("vt_tray", {})
-    spool_list = fetchSpools()
+    spool_list = fetch_spools()
     success_message = request.args.get("success_message")
     
     issue = False
@@ -886,28 +886,10 @@ def assign_tag():
     return render_template('error.html', exception="L'imprimante est elle allumée ? Avez vous renseigné les paramètres ?")
     
   try:
-    spools = sort_spools(fetchSpools())
+    spools = sort_spools(fetch_spools())
 
     return render_template('assign_tag.html', spools=spools,
         page_title="NFC")
-  except Exception as e:
-    traceback.print_exc()
-    return render_template('error.html', exception=str(e))
-
-@app.route("/write_tag")
-def write_tag():
-  try:
-    spool_id = request.args.get("spool_id")
-
-    if not spool_id:
-      return render_template('error.html', exception="spool ID is required as a query parameter (e.g., ?spool_id=1)")
-
-    myuuid = str(uuid.uuid4())
-
-    patchExtraTags(spool_id, {}, {
-      "tag": json.dumps(myuuid),
-    })
-    return render_template('write_tag.html', myuuid=myuuid)
   except Exception as e:
     traceback.print_exc()
     return render_template('error.html', exception=str(e))
@@ -945,7 +927,7 @@ def print_history():
     focus_group_id = request.args.get("focus_group_id", type=int)
 
     raw_prints = get_prints_with_filament(filters=filters, search=search)
-    spool_list = fetchSpools(False, True)
+    spool_list = fetch_spools(True)
     spools_by_id = {spool["id"]: spool for spool in spool_list}
     entries = {}
 
@@ -1136,7 +1118,7 @@ def print_history():
     context = {
         "entries": paged_entries,
         "groups_list": groups_list,
-        "currencysymbol": spoolman_settings["currency_symbol"],
+        "currencysymbol": "€",
         "total_pages": total_pages,
         "filters": filters,
         "distinct_values": distinct_values,
@@ -1168,7 +1150,7 @@ def print_select_spool():
     if not all([ams_slot, print_id]):
       return render_template('error.html', exception="Missing spool ID or print ID.")
 
-    spools = fetchSpools()
+    spools = fetch_spools()
         
     return render_template('print_select_spool.html', spools=spools, ams_slot=ams_slot, print_id=print_id)
   except Exception as e:
@@ -1338,7 +1320,7 @@ def filaments():
         tray_uuid = request.args.get("tray_uuid")
         tray_info_idx = request.args.get("tray_info_idx")
         tray_color = request.args.get("tray_color")
-    all_filaments = fetchSpools(False, include_archived) or []
+    all_filaments = fetch_spools(include_archived) or []
 
     if search:
         search_terms = search.split()
@@ -1626,7 +1608,7 @@ def stats():
     return render_template(
         "stats.html",
         stats=stats_data,
-        currencysymbol=spoolman_settings["currency_symbol"],
+        currencysymbol="€",
         selected_period=period,
         filters=filters,
         search=search,
@@ -1766,7 +1748,7 @@ def recalculate_all_costs():
 
     start_time = time.time()
 
-    spools = fetchSpools(cached=False,archived=True)
+    spools = fetch_spools(archived=True)
     spools_by_id = {spool["id"]: spool for spool in spools}
 
     all_prints = get_prints_with_filament()
@@ -1807,7 +1789,7 @@ def api_printer_status():
         ams_data = last_ams_config.get("ams", []) or []
         vt_tray_data = last_ams_config.get("vt_tray", {}) or {}
 
-        spool_list = fetchSpools()
+        spool_list = fetch_spools()
 
         # External spool
         augmentTrayDataWithSpoolMan(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID))
@@ -2181,7 +2163,7 @@ def accessories_list():
         accessories=rows,
         args=request.args,
         filters={"q": q, "sort": sort, "order": order},
-        currencysymbol=current_app.config.get("CURRENCY_SYMBOL", "€"),
+        currencysymbol="€",
         page_title="Accessoires",  # pour le bouton contextuel dans base.html si tu l’utilises
     )
     
@@ -2569,7 +2551,7 @@ def objects_group_set_desired_price_all(group_id: int):
     if desired is None:
         flash(f"Prix souhaité supprimé pour {affected} objet(s) du groupe.", "success")
     else:
-        msg = f"Prix souhaité défini à {desired:.2f} {current_app.config.get('CURRENCY_SYMBOL','€')} "
+        msg = f"Prix souhaité défini à {desired:.2f} {'€'} "
         msg += f"pour {affected} objet(s) disponible(s) du groupe"
         if only_if_empty:
             msg += " (uniquement ceux sans valeur)."

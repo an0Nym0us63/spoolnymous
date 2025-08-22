@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+
 # On réutilise la config DB telle qu'elle existe déjà dans le projet
 from print_history import db_config
 
@@ -176,7 +177,93 @@ def ensure_schema() -> None:
             """
         )
 
+def ensure_filaments_usage_schema() -> None:
+    """
+    - Ajoute la colonne `ori_spool_id` (TEXT) si absente et la remplit avec spool_id.
+    - Crée un index utile sur `ori_spool_id`.
+    - (Optionnel) s'assure que spool_id est bien présent (on ne touche pas au type).
+    """
+    with _tx() as cur:
+        # Vérifie les colonnes existantes
+        cur.execute("PRAGMA table_info(filaments_usage)")
+        cols = {row[1] for row in cur.fetchall()}  # {name}
 
+        # Ajoute la colonne si manquante
+        if "ori_spool_id" not in cols:
+            cur.execute("ALTER TABLE filaments_usage ADD COLUMN ori_spool_id TEXT")
+
+            # Initialise ori_spool_id = spool_id pour les lignes existantes
+            cur.execute("UPDATE filaments_usage SET ori_spool_id = spool_id")
+
+        # Index pratique pour la migration / updates
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_filaments_usage_ori_spool_id ON filaments_usage(ori_spool_id)"
+        )
+
+def migrate_usage_spool_ids_from_external() -> Dict[str, int]:
+    """
+    Objectif:
+      - Conserver l'identifiant externe d'origine dans filaments_usage.ori_spool_id
+      - Remplacer filaments_usage.spool_id par l'id local de la bobine (bobines.id),
+        en se basant sur l'équivalence: ori_spool_id == bobines.external_spool_id
+
+    Idempotent:
+      - Si déjà migré, ne change rien au 2e passage.
+
+    Retourne: compte-rendu { 'backfilled_ori', 'updated_spool_id', 'unmatched' }
+    """
+    ensure_filaments_usage_schema()
+    ensure_schema()  # s'assure que bobines/filaments existent
+
+    with _tx() as cur:
+        # 1) Backfill ori_spool_id (une seule fois): copie spool_id -> ori_spool_id si NULL
+        cur.execute("""
+            UPDATE filaments_usage
+               SET ori_spool_id = CAST(spool_id AS TEXT)
+             WHERE ori_spool_id IS NULL
+               AND spool_id IS NOT NULL
+        """)
+        backfilled = cur.rowcount or 0
+
+        # 2) Mettre à jour spool_id avec l'id local de la bobine lorsque possible.
+        #    On évite d'écraser si spool_id pointe DÉJÀ sur une bobine locale existante.
+        #    -> condition: (spool_id NOT IN bobines.id) OU (spool_id IS NULL)
+        #    Note: comparaisons sur TEXT côté external ids → on CAST en TEXT pour être robustes.
+        cur.execute("""
+            UPDATE filaments_usage AS u
+               SET spool_id = (
+                   SELECT b.id
+                     FROM bobines b
+                    WHERE CAST(u.ori_spool_id AS TEXT) = CAST(b.external_spool_id AS TEXT)
+                    LIMIT 1
+               )
+             WHERE (u.spool_id IS NULL
+                    OR u.spool_id NOT IN (SELECT id FROM bobines))
+               AND u.ori_spool_id IS NOT NULL
+               AND EXISTS (
+                   SELECT 1 FROM bobines b
+                    WHERE CAST(u.ori_spool_id AS TEXT) = CAST(b.external_spool_id AS TEXT)
+               )
+        """)
+        updated = cur.rowcount or 0
+
+        # 3) Compter les usages non résolus (ori_spool_id sans correspondance locale)
+        cur.execute("""
+            SELECT COUNT(*)
+              FROM filaments_usage u
+             WHERE u.ori_spool_id IS NOT NULL
+               AND (
+                    SELECT COUNT(*)
+                      FROM bobines b
+                     WHERE CAST(u.ori_spool_id AS TEXT) = CAST(b.external_spool_id AS TEXT)
+               ) = 0
+        """)
+        (unmatched,) = cur.fetchone()
+        return {
+            "backfilled_ori": int(backfilled),
+            "updated_spool_id": int(updated),
+            "unmatched": int(unmatched),
+        }
 # ----------------------------------------------------------------------------
 # Utilitaires communs
 # ----------------------------------------------------------------------------
@@ -1037,10 +1124,219 @@ def sync_from_spoolman(base_url: str, token: Optional[str] = None) -> Dict[str, 
         else:
             created_s += 1
 
-    return {
+    summary = {
         "filaments": {"created": created_f, "updated": updated_f, "total": len(filaments_remote)},
         "spools": {"created": created_s, "updated": updated_s, "total": len(spools_remote)},
     }
+
+    # Migration des usages sur IDs locaux
+    usage_mig = migrate_usage_spool_ids_from_external()
+    summary["filaments_usage_migration"] = usage_mig
+    return summar
+    
+def update_field_spool(
+    *,
+    field: str,
+    value: Any,
+    bobine_id: Optional[int] = None,
+    external_spool_id: Optional[str] = None,
+) -> int:
+    """
+    Met à jour UN champ d'une bobine (spool) identifiée soit par id local (bobine_id),
+    soit par id externe Spoolman (external_spool_id). Retourne l'id local de la bobine.
+
+    - Le champ doit appartenir à _BOBINE_ALLOWED_UPDATE.
+    - Validations incluses :
+        * price_override, remaining_weight_g : non négatifs
+        * filament_id : FK existante si non-NULL
+        * archived : normalisé en 0/1 (accepte bool/int/str)
+    - Ne modifie rien d'autre (pas de side-effects).
+
+    Exceptions :
+        - ValueError si identifiant manquant/ambigu, si bobine introuvable,
+          si champ non autorisé, ou si validations échouent.
+    """
+    # 1) identification : exactement un identifiant
+    if (bobine_id is None) == (external_spool_id is None):
+        raise ValueError("Fournir exactement un identifiant: bobine_id OU external_spool_id")
+
+    # 2) validation du champ
+    if field not in _BOBINE_ALLOWED_UPDATE:
+        raise ValueError(f"Champ non autorisé pour bobine: {field}")
+
+    # 3) résolution de l'id local
+    local_id: Optional[int] = None
+    if bobine_id is not None:
+        local_id = int(bobine_id)
+        row = get_bobine(local_id)
+        if row is None:
+            raise ValueError(f"Bobine introuvable id={local_id}")
+    else:
+        conn = _connect()
+        try:
+            r = conn.execute(
+                "SELECT id FROM bobines WHERE external_spool_id = ?",
+                (str(external_spool_id),),
+            ).fetchone()
+            if r is None:
+                raise ValueError(f"Bobine introuvable external_spool_id={external_spool_id}")
+            local_id = int(r[0])
+        finally:
+            conn.close()
+
+    assert local_id is not None  # pour mypy
+
+    # 4) validations métier spécifiques
+    if field in ("price_override", "remaining_weight_g"):
+        _validate_non_negative(field, value)
+
+    if field == "filament_id" and value is not None:
+        # vérifie la FK vers filaments
+        conn = _connect()
+        try:
+            chk = conn.execute("SELECT 1 FROM filaments WHERE id = ?", (int(value),)).fetchone()
+            if chk is None:
+                raise ValueError(f"Filament introuvable id={value}")
+        finally:
+            conn.close()
+
+    if field == "archived":
+        # normaliser vers 0/1
+        if isinstance(value, bool):
+            value = 1 if value else 0
+        elif isinstance(value, (int, float)):
+            value = 1 if int(value) != 0 else 0
+        elif isinstance(value, str):
+            v = value.strip().lower()
+            value = 1 if v in ("1", "true", "yes", "y", "on") else 0
+        else:
+            # par défaut, falsy -> 0, truthy -> 1
+            value = 1 if value else 0
+
+    # 5) update via la fonction existante (respecte la transaction & les triggers)
+    update_bobine(local_id, **{field: value})
+    return local_id
+
+def _split_colors_array(s: Optional[str]) -> Optional[List[str]]:
+    if not s:
+        return None
+    # accepte CSV "0047BB,BB22A3" (avec ou sans #) et nettoie les espaces
+    arr = [p.strip() for p in str(s).split(",")]
+    arr = [p for p in arr if p]
+    return arr or None
+
+def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
+    """
+    Retourne la liste des bobines (spools) locales, chacune enrichie avec son filament,
+    et les champs dérivés attendus par l'ancien code fetchSpools().
+
+    Paramètres:
+      - archived:
+          False (par défaut) -> bobines actives uniquement
+          True               -> toutes les bobines (actives + archivées)
+
+    Sortie: liste de dicts JSON-compatibles, chaque spool contient aussi son `filament`.
+    """
+    base_sql = """
+      SELECT
+        b.id              AS b_id,
+        b.filament_id     AS b_filament_id,
+        b.created_at      AS b_created_at,
+        b.first_used_at   AS b_first_used_at,
+        b.last_used_at    AS b_last_used_at,
+        b.price_override  AS b_price_override,
+        b.remaining_weight_g AS b_remaining_weight_g,
+        b.location        AS b_location,
+        b.tag_number      AS b_tag_number,
+        b.ams_tray        AS b_ams_tray,
+        b.archived        AS b_archived,
+        b.comment         AS b_comment,
+        b.external_spool_id AS b_external_spool_id,
+
+        f.id              AS f_id,
+        f.name            AS f_name,
+        f.manufacturer    AS f_manufacturer,
+        f.material        AS f_material,
+        f.color           AS f_color,
+        f.price           AS f_price,
+        f.filament_weight_g AS f_filament_weight_g,
+        f.spool_weight_g  AS f_spool_weight_g,
+        f.colors_array    AS f_colors_array,
+        f.multicolor_type AS f_multicolor_type
+      FROM bobines b
+      JOIN filaments f ON f.id = b.filament_id
+    """
+
+    if archived:
+        sql = base_sql  # toutes les bobines
+        params = ()
+    else:
+        sql = base_sql + " WHERE b.archived = 0"  # actives uniquement
+        params = ()
+
+    sql += " ORDER BY b.created_at DESC, b.id DESC"
+
+    conn = _connect()
+    try:
+        rows = conn.execute(sql, params).fetchall()
+    finally:
+        conn.close()
+
+    out: List[Dict[str, Any]] = []
+    for r in rows:
+        filament_weight = float(r["f_filament_weight_g"]) if r["f_filament_weight_g"] is not None else 0.0
+        initial_weight = filament_weight
+
+        price_override = r["b_price_override"]
+        filament_price = r["f_price"] if r["f_price"] is not None else 20.0
+        price = float(price_override) if price_override is not None else float(filament_price)
+        if price is None:
+            price = 20.0
+
+        cost_per_gram = (price / initial_weight) if (initial_weight and price >= 0) else 0.02
+        filament_cost_per_gram = (
+            (filament_price / filament_weight) if (filament_weight and filament_price >= 0) else 0.02
+        )
+
+        multi_list = _split_colors_array(r["f_colors_array"])
+
+        spool: Dict[str, Any] = {
+            "id": int(r["b_id"]),
+            "external_spool_id": r["b_external_spool_id"],
+            "filament_id": int(r["b_filament_id"]),
+            "created_at": r["b_created_at"],
+            "first_used": r["b_first_used_at"],
+            "last_used": r["b_last_used_at"],
+            "remaining_weight": (float(r["b_remaining_weight_g"]) if r["b_remaining_weight_g"] is not None else None),
+            "location": r["b_location"],
+            "tag_number": r["b_tag_number"],
+            "ams_tray": r["b_ams_tray"],
+            "archived": bool(r["b_archived"]),
+            "comment": r["b_comment"],
+
+            "initial_weight": float(initial_weight) if initial_weight else 0.0,
+            "price": float(price),
+            "filament_price": float(filament_price),
+            "cost_per_gram": float(cost_per_gram),
+            "filament_cost_per_gram": float(filament_cost_per_gram),
+
+            "filament": {
+                "id": int(r["f_id"]),
+                "name": r["f_name"],
+                "manufacturer": r["f_manufacturer"],
+                "material": r["f_material"],
+                "color_hex": r["f_color"],
+                "weight": (float(r["f_filament_weight_g"]) if r["f_filament_weight_g"] is not None else None),
+                "spool_weight": (float(r["f_spool_weight_g"]) if r["f_spool_weight_g"] is not None else None),
+                "price": (float(r["f_price"]) if r["f_price"] is not None else None),
+                "multi_color_hexes": multi_list,
+                "multi_color_direction": r["f_multicolor_type"],
+            },
+        }
+        out.append(spool)
+
+    return out
+
 
 
 if __name__ == "__main__":

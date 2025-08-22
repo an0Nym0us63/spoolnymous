@@ -16,7 +16,7 @@ import math
 from collections.abc import Mapping
 from logger import append_to_rotating_file
 from print_history import  insert_print, insert_filament_usage, update_filament_spool,update_print_field_with_job_id,get_tray_spool_map,delete_tray_spool_map_by_id
-
+from filaments import fetch_spools
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK, PROCESSED_JOBS, PENDING_JOBS
 import logging
 logger = logging.getLogger(__name__)
@@ -591,7 +591,7 @@ def on_message(client, userdata, msg):
       LAST_AMS_CONFIG["ams"] = data["print"]["ams"]["ams"]
       for ams in data["print"]["ams"]["ams"]:
         #logger.info(f"AMS [{num2letter(ams['id'])}] (hum: {ams['humidity_raw']}, temp: {ams['temp']}ºC)")
-        spools = fetchSpools(True)
+        spools = fetch_spools()
         for tray in ams["tray"]:
           if "tray_sub_brands" in tray:
             #logger.info(f"    - [{num2letter(ams['id'])}{tray['id']}] {tray['tray_sub_brands']} {tray['tray_color']} ({str(tray['remain']).zfill(3)}%) [[{tray['tray_uuid']}]] [[{tray['tray_info_idx']}]]")

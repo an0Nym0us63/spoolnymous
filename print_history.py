@@ -8,6 +8,7 @@ from deep_translator import GoogleTranslator
 import re
 import config
 from config import get_app_setting,get_electric_rate_at
+from filaments import fetch_spools
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
@@ -539,7 +540,7 @@ def closest_family(hex_color: str) -> str:
     return min(distances.items(), key=lambda x: x[1])[0]
 
 def get_distinct_values():
-    from mqtt_bambulab import fetchSpools
+    from mqtt_bambulab import fetch_spools
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
 
@@ -553,7 +554,7 @@ def get_distinct_values():
         families.update(two_closest_families(hex_color))
     conn.close()
 
-    spools = fetchSpools(cached=False, archived=True)
+    spools = fetch_spools(archived=True)
     grouped = defaultdict(list)
 
     for s in spools:
@@ -1009,7 +1010,7 @@ def get_group_id_of_print(print_id: int) -> int | None:
     return result[0] if result else None
 
 def get_statistics(period: str = "all", filters: dict = None, search: str = None) -> dict:
-    from spoolman_service import fetchSpools
+    from filaments import fetch_spools
 
     filters = filters or {}
 
@@ -1142,7 +1143,7 @@ def get_statistics(period: str = "all", filters: dict = None, search: str = None
             if u["color"] and any(f in selected_families for f in two_closest_families(u["color"]))
         ]
 
-    spools_by_id = {spool["id"]: spool for spool in fetchSpools(False, True)}
+    spools_by_id = {spool["id"]: spool for spool in fetch_spools(True)}
 
     total_weight = 0.0
     filament_cost = 0.0
@@ -1556,8 +1557,8 @@ def trigger_cost_recalculation(target_id: int, is_group: bool = False) -> None:
     Déclenche un recalcul du coût pour un print ou un groupe donné.
     """
     
-    from spoolman_service import fetchSpools
-    spools_by_id = {spool["id"]: spool for spool in fetchSpools(archived=True)}
+    from filaments import fetch_spools
+    spools_by_id = {spool["id"]: spool for spool in fetch_spools(archived=True)}
 
     if is_group:
         recalculate_group_data(target_id, spools_by_id)
