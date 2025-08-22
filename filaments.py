@@ -1132,7 +1132,7 @@ def sync_from_spoolman(base_url: str, token: Optional[str] = None) -> Dict[str, 
     # Migration des usages sur IDs locaux
     usage_mig = migrate_usage_spool_ids_from_external()
     summary["filaments_usage_migration"] = usage_mig
-    return summar
+    return summary
     
 def update_field_spool(
     *,
