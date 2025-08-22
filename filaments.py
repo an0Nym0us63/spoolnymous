@@ -949,7 +949,7 @@ def _upsert_bobine_from_spoolman_exact(s: Dict[str, Any], filament_local_id: int
         conn.close()
 
     if row:
-                update_bobine(int(row[0]), **fields)
+        update_bobine(int(row[0]), **fields)
         return int(row[0])
     else:
         return add_bobine(**payload)
