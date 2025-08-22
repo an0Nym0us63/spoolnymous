@@ -3,47 +3,83 @@
 {% block content %}
 {% import 'macros/hidden_args.jinja2' as macros %}
 
-{#
-  Catalogue des FILAMENTS (table locale `filaments`), organisé comme `bobines.html` :
-  - Offcanvas Filtres & Tri (recherche, fabricant, matériau, famille couleur)
-  - Offcanvas Pagination (identique)
-  - Cartes de stats
-  - Liste en accordéon (couleurs, infos techniques, prix, poids, ids, commentaires)
+<style>
+/* ====== Styles embarqués spécifiques au catalogue filaments ====== */
 
-  Variables attendues (alignées avec app.py / filaments.py) :
-    filaments            : liste paginée de lignes (sqlite3.Row)
-    page, total_pages    : pagination
-    search               : texte de recherche
-    manufacturer         : fabricant sélectionné (optionnel)
-    material             : matériau sélectionné (optionnel)
-    all_manufacturers    : liste (distinct) des fabricants disponibles (après filtres de recherche)
-    all_materials        : liste (distinct) des matériaux disponibles (après filtres de recherche)
-    all_families         : liste des familles de couleurs calculées
-    selected_family      : famille de couleur sélectionnée
-    sort                 : "default" | "price" | "weight" | "name"
-    total_filaments      : nombre total (après filtres)
-    total_manufacturers  : nb fabricants distincts (après filtres)
-    total_materials      : nb matériaux distincts (après filtres)
-    avg_price            : moyenne des prix (après filtres) (optionnel)
-    avg_weight           : poids filament moyen en g (après filtres) (optionnel)
-    args                 : _merge_context_args() depuis app.context_processor
-#}
+/* Accordéon sombre lisible, sans découpage interne */
+.accordion-item.sx {
+  border: 0;
+  border-radius: 0.75rem;
+  overflow: hidden;                 /* évite la découpe des éléments internes */
+  background-color: #1e293b;        /* slate-800-ish */
+  box-shadow: 0 0 10px rgba(0,0,0,.3);
+  margin-bottom: .35rem;
+}
 
-<!-- Bouton flottant pagination -->
-<div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
-  <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#paginationOffcanvas" aria-controls="paginationOffcanvas">
-    📄
-  </button>
-</div>
+/* Bouton d’en-tête */
+.accordion-item.sx .accordion-button {
+  background-color: #273449;        /* contraste suffisant */
+  color: var(--bs-body-color);
+  padding: .40rem .5rem;
+  font-size: .95rem;
+}
+.accordion-item.sx .accordion-button:not(.collapsed) {
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.08);
+}
+.accordion-item.sx .accordion-button:focus {
+  box-shadow: none;
+}
 
-<!-- Bouton flottant filtres -->
-<div class="position-fixed bottom-0 start-0 m-3" style="z-index:1030;">
-  <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#filtersOffcanvas" aria-controls="filtersOffcanvas">
-    🔍
-  </button>
-</div>
+/* Strip couleur pleine hauteur, jamais coupée */
+.sx .color-strip {
+  flex: 0 0 12px;
+  align-self: stretch;              /* prend 100% de la hauteur */
+  border-right: 1px solid rgba(255,255,255,.08);
+}
+.sx .color-strip > div {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
 
-<!-- Offcanvas Filtres & Tri -->
+/* Badges lisibles en dark */
+.badge-sx {
+  font-weight: 600;
+  letter-spacing: .02em;
+  padding: .35rem .5rem;
+  border: 1px solid rgba(255,255,255,.08);
+  user-select: none;
+  border-radius: .5rem;
+}
+.badge-sx-sec {               /* neutre sombre lisible */
+  background: rgba(255,255,255,.08);
+  color: #e9ecef;
+}
+.badge-sx-pri {               /* accent/prix */
+  background: var(--bs-primary);
+  color: #fff;
+}
+
+/* Petites pastilles hex dans le sous-détail */
+.hex-pill {
+  display: inline-block;
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,.25);
+  vertical-align: -3px;
+  margin-right: .25rem;
+}
+
+/* Réduction d’écart sur mobile */
+@media (max-width: 576px) {
+  .sx .accordion-button { padding: .35rem .4rem; font-size: .92rem; }
+  .badge-sx { padding: .28rem .45rem; font-size: .85rem; }
+}
+</style>
+
+<h2 class="mb-2">Catalogue des filaments</h2>
+
+{# --- Offcanvas filtres (existant si tu l’as déjà) --- #}
 <div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="filtersOffcanvas" aria-labelledby="filtersOffcanvasLabel">
   <div class="offcanvas-header">
     <h5 class="offcanvas-title" id="filtersOffcanvasLabel">Filtres & Tri</h5>
@@ -61,11 +97,9 @@
       <div class="col-md-4">
         <input type="text" name="search" class="form-control" placeholder="Recherche nom, matériau, fabricant, couleur" value="{{ search }}">
       </div>
-
       <input type="hidden" name="page" value="1">
-
       <div class="col-md-3">
-        {% if all_manufacturers is defined and all_manufacturers %}
+        {% if all_manufacturers %}
           <select name="manufacturer" class="form-select select2" data-placeholder="Fabricant">
             <option value=""></option>
             {% for manu in all_manufacturers %}
@@ -76,9 +110,8 @@
           <input type="text" name="manufacturer" class="form-control" placeholder="Fabricant" value="{{ manufacturer or '' }}">
         {% endif %}
       </div>
-
       <div class="col-md-3">
-        {% if all_materials is defined and all_materials %}
+        {% if all_materials %}
           <select name="material" class="form-select select2" data-placeholder="Matériau">
             <option value=""></option>
             {% for mat in all_materials %}
@@ -89,7 +122,6 @@
           <input type="text" name="material" class="form-control" placeholder="Matériau" value="{{ material or '' }}">
         {% endif %}
       </div>
-
       <div class="col-md-2">
         <select name="color" class="form-select select2" data-placeholder="Famille couleur">
           <option value=""></option>
@@ -102,9 +134,9 @@
       <div class="col-md-3">
         <select name="sort" class="form-select">
           <option value="default" {% if sort == 'default' %}selected{% endif %}>Trier par Matériau/Fabricant/Nom</option>
-          <option value="name" {% if sort == 'name' %}selected{% endif %}>Trier par Nom</option>
-          <option value="price" {% if sort == 'price' %}selected{% endif %}>Trier par Prix</option>
-          <option value="weight" {% if sort == 'weight' %}selected{% endif %}>Trier par Poids filament</option>
+          <option value="name"    {% if sort == 'name' %}selected{% endif %}>Trier par Nom</option>
+          <option value="price"   {% if sort == 'price' %}selected{% endif %}>Trier par Prix</option>
+          <option value="weight"  {% if sort == 'weight' %}selected{% endif %}>Trier par Poids filament</option>
         </select>
       </div>
 
@@ -115,114 +147,75 @@
   </div>
 </div>
 
-<!-- Offcanvas Pagination -->
-<div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="paginationOffcanvas" aria-labelledby="paginationOffcanvasLabel">
-  <div class="offcanvas-header">
-    <h5 class="offcanvas-title" id="paginationOffcanvasLabel">Pagination</h5>
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
-  </div>
-  <div class="offcanvas-body text-center">
-    <div class="d-inline-flex flex-wrap gap-1 align-items-center justify-content-center">
-      {% if page > 1 %}
-        <a href="{{ url_with_args(page=1) }}" class="btn btn-outline-primary btn-sm">&laquo;</a>
-        <a href="{{ url_with_args(page=page-1) }}" class="btn btn-outline-primary btn-sm">&lsaquo;</a>
-      {% endif %}
-
-      <form method="get" class="d-inline-flex align-items-center mx-2">
-        {{ macros.render_filtered_args(args, ['page']) }}
-        <label for="pageInput" class="me-1">Page</label>
-        <input type="number" min="1" max="{{ total_pages }}" id="pageInput" name="page" class="form-control form-control-sm" style="width: 64px;" value="{{ page }}">
-        <button type="submit" class="btn btn-sm btn-primary ms-1">Aller</button>
-      </form>
-
-      <span>/{{ total_pages }}</span>
-
-      {% if page < total_pages %}
-        <a href="{{ url_with_args(page=page+1) }}" class="btn btn-outline-primary btn-sm">&rsaquo;</a>
-        <a href="{{ url_with_args(page=total_pages) }}" class="btn btn-outline-primary btn-sm">&raquo;</a>
-      {% endif %}
-    </div>
-  </div>
-</div>
-
-<!-- Statistiques -->
+{# --- Stats (optionnel) --- #}
 <div class="row row-cols-3 g-2 mb-3 text-center align-items-stretch">
-  <div class="col">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
-        <div class="fs-5 fs-md-4">🧵</div>
-        <div class="small fw-bold">{{ total_filaments }}</div>
-        <div class="text-muted small">Filaments</div>
-      </div>
-    </div>
-  </div>
-  <div class="col">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
-        <div class="fs-5 fs-md-4">🏷️</div>
-        <div class="small fw-bold">{{ total_manufacturers }}</div>
-        <div class="text-muted small">Fabricants</div>
-      </div>
-    </div>
-  </div>
-  <div class="col">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
-        <div class="fs-5 fs-md-4">⚗️</div>
-        <div class="small fw-bold">{{ total_materials }}</div>
-        <div class="text-muted small">Matériaux</div>
-      </div>
-    </div>
-  </div>
+  <div class="col"><div class="card border-0 shadow-sm h-100"><div class="card-body py-2 d-flex flex-column justify-content-center align-items-center">
+    <div class="fs-5">🧵</div><div class="small fw-bold">{{ total_filaments }}</div><div class="text-muted small">Filaments</div>
+  </div></div></div>
+  <div class="col"><div class="card border-0 shadow-sm h-100"><div class="card-body py-2 d-flex flex-column justify-content-center align-items-center">
+    <div class="fs-5">🏷️</div><div class="small fw-bold">{{ total_manufacturers }}</div><div class="text-muted small">Fabricants</div>
+  </div></div></div>
+  <div class="col"><div class="card border-0 shadow-sm h-100"><div class="card-body py-2 d-flex flex-column justify-content-center align-items-center">
+    <div class="fs-5">⚗️</div><div class="small fw-bold">{{ total_materials }}</div><div class="text-muted small">Matériaux</div>
+  </div></div></div>
 </div>
 
-<!-- Liste en accordéon -->
+{# --- Liste accordéon --- #}
 <div class="accordion" id="filamentsCatalogAccordion">
   {% for fil in filaments %}
-    <div class="accordion-item" style="border-radius: 0.75rem; margin-bottom: .3rem; background-color: #1e293b; box-shadow: 0 0 10px rgba(0,0,0,0.3);">
-      <h2 class="accordion-header d-flex justify-content-between align-items-center" id="headingFilament{{ fil.id }}" style="border-radius: 0.75rem;">
-        <div class="flex-grow-1">
-          <button class="accordion-button collapsed py-1 px-3 w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFilament{{ fil.id }}" aria-expanded="false" aria-controls="collapseFilament{{ fil.id }}" style="border-radius: 0.75rem; font-size: 0.9rem;">
-            <div class="d-flex w-100 align-items-stretch gap-2">
-              <!-- Barre couleur à gauche -->
-              <div class="d-flex align-items-stretch" style="width: 12px;">
+    <div class="accordion-item sx">
+      <h2 class="accordion-header" id="headingFilament{{ fil.id }}">
+        <button class="accordion-button collapsed" type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapseFilament{{ fil.id }}"
+                aria-expanded="false"
+                aria-controls="collapseFilament{{ fil.id }}">
+          <div class="d-flex w-100 align-items-stretch gap-2">
+            <!-- Strip couleur -->
+            <div class="color-strip">
+              {% if fil.colors_array %}
+                {% set colors = fil.colors_array.split(',') if fil.colors_array is string else fil.colors_array %}
+                <div style="background: linear-gradient(180deg,{% for c in colors %}#{{ c|trim|replace('#','') }}{% if not loop.last %}, {% endif %}{% endfor %});"></div>
+              {% elif fil.color %}
+                <div style="background:#{{ fil.color|replace('#','') }};"></div>
+              {% else %}
+                <div style="background:#666;"></div>
+              {% endif %}
+            </div>
+
+            <!-- Titre -->
+            <div class="flex-grow-1 d-flex flex-column justify-content-center ps-1">
+              <div class="fw-bold">
+                {{ fil.material or '—' }} · {{ fil.manufacturer or '—' }} · {{ fil.name or '—' }}
+              </div>
+              <div class="small text-muted">
+                {% if fil.multicolor_type and fil.multicolor_type != 'none' %}
+                  Multi: {{ fil.multicolor_type }} ·
+                {% endif %}
                 {% if fil.colors_array %}
-                  {% set colors = fil.colors_array.split(',') if fil.colors_array is string else fil.colors_array %}
-                  <div style="width: 12px; border-radius: 0.5rem 0 0 0.5rem; background: linear-gradient(180deg, {% for c in colors %}#{{ c.strip().lstrip('#') }}{% if not loop.last %}, {% endif %}{% endfor %});"></div>
+                  {% for c in colors %}
+                    <span class="hex-pill" style="background:#{{ c|trim|replace('#','') }}"></span>
+                  {% endfor %}
                 {% elif fil.color %}
-                  <div style="width: 12px; border-radius: 0.5rem 0 0 0.5rem; background: #{{ fil.color.lstrip('#') }};"></div>
-                {% else %}
-                  <div style="width: 12px; border-radius: 0.5rem 0 0 0.5rem; background: #999;"></div>
+                  <span class="hex-pill" style="background:#{{ fil.color|replace('#','') }}"></span>
                 {% endif %}
               </div>
-
-              <!-- Titre principal -->
-              <div class="flex-grow-1 d-flex flex-column justify-content-center">
-                <div class="fw-bold">
-                  {{ fil.material or '—' }} · {{ fil.manufacturer or '—' }} · {{ fil.name or '—' }}
-                </div>
-                <div class="small text-muted">
-                  {% if fil.multicolor_type and fil.multicolor_type != 'none' %}
-                    Multi: {{ fil.multicolor_type }} ·
-                  {% endif %}
-                  {% if fil.colors_array %}
-                    {% set colors = fil.colors_array.split(',') if fil.colors_array is string else fil.colors_array %}
-                    {% for c in colors %}<span class="badge rounded-pill bg-secondary me-1">#{{ c.strip().lstrip('#') }}</span>{% endfor %}
-                  {% elif fil.color %}
-                    <span class="badge rounded-pill bg-secondary">#{{ fil.color.lstrip('#') }}</span>
-                  {% endif %}
-                </div>
-              </div>
-
-              <!-- Prix & Poids synthèse -->
-              <div class="d-flex align-items-center gap-3 pe-2">
-                <span class="badge bg-dark-subtle text-dark">{{ fil.filament_weight_g or '—' }} g</span>
-                <span class="badge bg-dark-subtle text-dark">{{ fil.spool_weight_g or '—' }} g tare</span>
-                <span class="badge bg-primary">{{ fil.price is not none and (fil.price ~ ' €') or '—' }}</span>
-              </div>
             </div>
-          </button>
-        </div>
+
+            <!-- Badges à droite -->
+            <div class="d-flex align-items-center gap-2 pe-2">
+              {% if fil.filament_weight_g %}
+                <span class="badge badge-sx badge-sx-sec">{{ fil.filament_weight_g }} g</span>
+              {% endif %}
+              {% if fil.spool_weight_g %}
+                <span class="badge badge-sx badge-sx-sec">{{ fil.spool_weight_g }} g tare</span>
+              {% endif %}
+              <span class="badge badge-sx badge-sx-pri">
+                {{ fil.price is not none and (fil.price ~ ' €') or '—' }}
+              </span>
+            </div>
+          </div>
+        </button>
       </h2>
 
       <div id="collapseFilament{{ fil.id }}" class="accordion-collapse collapse" aria-labelledby="headingFilament{{ fil.id }}" data-bs-parent="#filamentsCatalogAccordion">
@@ -235,15 +228,12 @@
                 <li><strong>Matériau :</strong> {{ fil.material or '—' }}</li>
                 <li><strong>Couleur(s) :</strong>
                   {% if fil.colors_array %}
-                    {% set colors = fil.colors_array.split(',') if fil.colors_array is string else fil.colors_array %}
-                    <span style="display:inline-block;width:20px;height:20px;vertical-align:middle; background: linear-gradient(90deg, {% for c in colors %}#{{ c.strip().lstrip('#') }}{% if not loop.last %}, {% endif %}{% endfor %}); border-radius:4px; border:1px solid #ccc;"></span>
-                    <span class="ms-2">{% for c in colors %}#{{ c.strip().lstrip('#') }}{% if not loop.last %} / {% endif %}{% endfor %}</span>
+                    <span class="hex-pill" style="width:22px;height:22px;vertical-align:-5px;background: linear-gradient(90deg,{% for c in colors %}#{{ c|trim|replace('#','') }}{% if not loop.last %}, {% endif %}{% endfor %});"></span>
+                    <span class="ms-2">{% for c in colors %}#{{ c|trim|replace('#','') }}{% if not loop.last %} / {% endif %}{% endfor %}</span>
                   {% elif fil.color %}
-                    <span style="display:inline-block;width:20px;height:20px;vertical-align:middle; background:#{{ fil.color.lstrip('#') }}; border-radius:4px; border:1px solid #ccc;"></span>
-                    <span class="ms-2">#{{ fil.color.lstrip('#') }}</span>
-                  {% else %}
-                    —
-                  {% endif %}
+                    <span class="hex-pill" style="width:22px;height:22px;vertical-align:-5px;background:#{{ fil.color|replace('#','') }}"></span>
+                    <span class="ms-2">#{{ fil.color|replace('#','') }}</span>
+                  {% else %} — {% endif %}
                 </li>
                 <li><strong>Profil ID :</strong> {{ fil.profile_id or '—' }}</li>
                 <li><strong>Référence :</strong> {{ fil.reference_id or '—' }}</li>
@@ -272,5 +262,5 @@
     <div class="alert alert-secondary">Aucun filament trouvé.</div>
   {% endfor %}
 </div>
-
+<div style="height: 4rem;"></div>
 {% endblock %}
