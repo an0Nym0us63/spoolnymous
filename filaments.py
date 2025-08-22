@@ -698,6 +698,7 @@ def consume_weight(bobine_id: int, grams: float) -> float:
             raise ValueError(f"Bobine introuvable id={bobine_id}")
         current = row[0] if row[0] is not None else 0.0
         new_val = max(0.0, float(current) - float(grams))
+        logger.debug('Old weight : ' + str(current) + ' New weight : ' + str(new_val) + ' for spool ' + str(bobine_id))
         cur.execute("UPDATE bobines SET remaining_weight_g = ? WHERE id = ?", (new_val, bobine_id))
         return new_val
 
@@ -1618,14 +1619,16 @@ def spendFilaments(printdata):
         if spool.get("extra") and spool.get("extra").get("active_tray"):
             #filament = ams_usage.get()
             active_tray = spool.get("extra").get("active_tray")
-        
+            logger.debug('Searching usage for ' + str(spool))
             # iterate over all ams_trays and set spool in print history, at the same time sum the usage for the tray and consume it from the spool
             used_grams = 0
             #print(ams_usage)
             for ams_tray in ams_usage:
                 if active_tray == ams_tray["trayUid"]:
                     used_grams += ams_tray["usedGrams"]
+                    logger.debug('Found usage for ' + active_tray)
                     update_filament_spool(printdata["print_id"], ams_tray["id"], spool["id"])
+            logger.debug('Used Grams ' + str(used_grams))
                 
             if used_grams != 0:
                 consume_weight(spool["id"], used_grams)
