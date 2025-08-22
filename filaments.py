@@ -1339,6 +1339,9 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
                 "price": (float(r["f_price"]) if r["f_price"] is not None else None),
                 "multi_color_hexes": multi_list,
                 "multi_color_direction": r["f_multicolor_type"],
+                "vendor": {
+                    "name": r["f_manufacturer"]  # même si None, l'objet existe → pas d’UndefinedError
+                },
             },
         }
         out.append(spool)
