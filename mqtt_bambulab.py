@@ -615,9 +615,9 @@ def on_message(client, userdata, msg):
                     if not spool.get("extra", {}).get("tag") and not spool.get("filament", {}).get("extra",{}).get("filament_id"):
                         continue
                     if spool.get("extra", {}).get("tag"):
-                        tag = json.loads(spool["extra"]["tag"])
+                        tag = spool["extra"]["tag"]
                     if spool.get("filament", {}).get("extra",{}).get("filament_id"):
-                        filament_id = json.loads(spool["filament"]["extra"]["filament_id"])
+                        filament_id = spool["filament"]["extra"]["filament_id"]
                     if tag != tray["tray_uuid"] and filament_id != tray["tray_info_idx"]:
                         continue
                     if tray_uuid == tag:
