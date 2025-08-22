@@ -1327,7 +1327,10 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
             "filament_price": float(filament_price),
             "cost_per_gram": float(cost_per_gram),
             "filament_cost_per_gram": float(filament_cost_per_gram),
-
+            "extra" :{
+                "tag":r["b_tag_number"],
+                "active_tray":r["b_ams_tray"]
+            };
             "filament": {
                 "id": int(r["f_id"]),
                 "name": r["f_name"],
