@@ -2,6 +2,11 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
+from config import EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID,get_app_setting
+
+import json
+import urllib.parse
+import urllib.request
 
 
 # On réutilise la config DB telle qu'elle existe déjà dans le projet
@@ -11,6 +16,9 @@ from print_history import db_config
 # ----------------------------------------------------------------------------
 # Connexion & transactions
 # ----------------------------------------------------------------------------
+
+def trayUid(ams_id, tray_id):
+  return f"{get_app_setting("PRINTER_ID","")}_{ams_id}_{tray_id}"
 
 def _connect() -> sqlite3.Connection:
     """Retourne une connexion SQLite avec row_factory et clés étrangères actives."""
@@ -741,10 +749,6 @@ def sync_from_spoolman(api_url: str, token: Optional[str] = None) -> Dict[str, A
 # Import / Sync Spoolman (v1 REST)
 # ----------------------------------------------------------------------------
 
-import json
-import urllib.parse
-import urllib.request
-
 class _HTTPError(RuntimeError):
     pass
 
@@ -1355,6 +1359,40 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
         out.append(spool)
 
     return out
+
+def patchLocation(spool_id, ams_id='', tray_id=''):
+    location = ''
+    ams_name = 'AMS_' + str(ams_id)
+    mapping = get_app_setting("LOCATION_MAPPING", "")
+    if mapping:
+        d = dict(item.split(":", 1) for item in mapping.split(";"))
+        if ams_name in d:
+            location = d[ams_name] if ams_id == 100 else d[ams_name] + ' ' + str(tray_id)
+    update_field_spool(field="location",value=location,bobine_id=spool_id)
+    return
+
+def setActiveTray(spool_id, ams_id, tray_id):
+    bobine = get_bobine(spool_id)
+    
+    if bobine["ams_tray"] != trayUid(ams_id, tray_id):
+        update_field_spool(field="ams_tray",value=trayUid(ams_id, tray_id),bobine_id=spool_id)
+    
+    if (int(tray_id) >200):
+        patchLocation(spool_id,ams_id)
+    else:
+        patchLocation(spool_id,ams_id,int(tray_id)+1)
+    
+    # Remove active tray from inactive spools
+    for old_spool in fetch_spools():
+        if spool_id != old_spool["id"] and old_spool["ams_tray"] == trayUid(ams_id, tray_id):
+            update_field_spool(field="ams_tray",value="",bobine_id=old_spool["id"])
+            patchLocation(old_spool["id"],100)
+        
+def clearActiveTray(ams_id,tray_id):
+    for old_spool in fetch_spools():
+      if old_spool["ams_tray"] == trayUid(ams_id, tray_id):
+        update_field_spool(field="ams_tray",value="",bobine_id=old_spool["id"])
+        patchLocation(old_spool["id"],100)
 
 
 
