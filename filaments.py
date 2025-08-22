@@ -978,7 +978,7 @@ def sync_from_spoolman(base_url: str, token: Optional[str] = None) -> Dict[str, 
     ensure_schema()
 
     filaments_remote = _paginate_spoolman(base_url, "filament", token)
-    spools_remote    = _paginate_spoolman(base_url, "spool", token)
+    spools_remote    = _paginate_spoolman(base_url, "spool?allow_archived=1", token)
 
     filament_map: Dict[str, int] = {}
     created_f = updated_f = 0
