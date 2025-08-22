@@ -98,29 +98,35 @@
   <li class="nav-item">
     <a href="{{ url_for('print_history') }}" class="nav-link">🖨️ Impressions</a>
   </li>
+  {# --- MENU FILAMENTS : Catalogue + Bobines --- #}
   <li class="nav-item dropdown">
-  <a class="nav-link dropdown-toggle" href="#" id="filamentsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-    🧵 Filaments
-  </a>
-  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filamentsDropdown">
-    <li>
-      <a class="dropdown-item" href="{{ url_for('filaments_catalog') }}">
-        📚 Catalogue
-      </a>
-    </li>
-    <li>
-      <a class="dropdown-item" href="{{ url_for('filaments') }}">
-        🌀 Bobines
-      </a>
-    </li>
-  </ul>
-</li>
-          <li class="nav-item" data-requires-write>
-            <a class="nav-link" href="{{ url_for('objects_page') }}">📦 Objets</a>
-          </li>
-          <li class="nav-item" data-requires-write>
-            <a class="nav-link" href="{{ url_for('accessories_list') }}">🧰 Accessoires</a>
-          </li>
+    <a class="nav-link dropdown-toggle" href="#" id="filamentsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+      🧵 Filaments
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filamentsDropdown">
+      <li>
+        <a class="dropdown-item" href="{{ url_for('filaments_catalog') }}">📚 Catalogue</a>
+      </li>
+      <li>
+        <a class="dropdown-item" href="{{ url_for('filaments') }}">🌀 Bobines</a>
+      </li>
+    </ul>
+  </li>
+
+  {# --- MENU INVENTAIRE : Objets + Accessoires (write only) --- #}
+  <li class="nav-item dropdown" data-requires-write>
+    <a class="nav-link dropdown-toggle" href="#" id="inventoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+      🧺 Inventaire
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="inventoryDropdown" style="min-width: 260px;">
+      <li data-requires-write>
+        <a class="dropdown-item" href="{{ url_for('objects_page') }}">📦 Objets</a>
+      </li>
+      <li data-requires-write>
+        <a class="dropdown-item" href="{{ url_for('accessories_list') }}">🧰 Accessoires</a>
+      </li>
+    </ul>
+  </li>
   <li class="nav-item">
     <a href="{{ url_for('stats') }}" class="nav-link">📊 Statistiques</a>
   </li>
