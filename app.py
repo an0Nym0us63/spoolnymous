@@ -28,7 +28,7 @@ from auth import auth_bp, User, get_stored_user
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-
+from filaments import ensure_schema, sync_from_spoolman
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
@@ -2578,5 +2578,30 @@ def objects_group_set_desired_price_all(group_id: int):
         flash(msg, "success")
 
     return redirect_with_context("objects_page")
+
+@app.route("/sync_spoolman", methods=["POST"])
+@login_required
+def sync_spoolman():
+    base_url = get_app_setting("SPOOLMAN_BASE_URL", "")
+    if not base_url:
+        flash("❗ URL de Spoolman non configurée (SPOOLMAN_BASE_URL).", "warning")
+        return redirect(url_for("auth.settings"))
+
+    try:
+        ensure_schema()  # au cas où
+        summary = sync_from_spoolman(base_url, token=None)
+        fsum = summary.get("filaments", {})
+        ssum = summary.get("spools", {})
+        flash(
+            f"✔️ Synchro effectuée — Filaments: +{fsum.get('created',0)}/~{fsum.get('updated',0)} (total {fsum.get('total',0)}) ; "
+            f"Bobines: +{ssum.get('created',0)}/~{ssum.get('updated',0)} (total {ssum.get('total',0)})",
+            "success"
+        )
+    except Exception as e:
+        import logging, traceback
+        logging.error("Spoolman sync failed:\n%s", traceback.format_exc())
+        flash(f"❌ Échec de la synchro Spoolman : {e}", "danger")
+
+    return redirect(url_for("auth.settings"))
 
 app.register_blueprint(auth_bp)

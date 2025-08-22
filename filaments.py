@@ -1,0 +1,1030 @@
+import sqlite3
+from contextlib import contextmanager
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+# On réutilise la config DB telle qu'elle existe déjà dans le projet
+from print_history import db_config
+
+
+# ----------------------------------------------------------------------------
+# Connexion & transactions
+# ----------------------------------------------------------------------------
+
+def _connect() -> sqlite3.Connection:
+    """Retourne une connexion SQLite avec row_factory et clés étrangères actives."""
+    conn = sqlite3.connect(db_config["db_path"])  # même DB que le reste du projet
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
+
+@contextmanager
+def _tx() -> Iterable[sqlite3.Cursor]:
+    """Contexte transactionnel pratique.
+
+    Usage:
+        with _tx() as cur:
+            cur.execute(...)
+            ...
+    """
+    conn = _connect()
+    cur = conn.cursor()
+    try:
+        yield cur
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+# ----------------------------------------------------------------------------
+# Schéma (filaments & bobines)
+# ----------------------------------------------------------------------------
+
+
+def _column_exists(cur: sqlite3.Cursor, table: str, column: str) -> bool:
+    cur.execute(f"PRAGMA table_info({table})")
+    return any(r[1] == column for r in cur.fetchall())
+
+
+def ensure_schema() -> None:
+    """
+    Crée/Met à jour le schéma minimal pour gérer filaments et bobines.
+
+    Tables créées:
+      - filaments: méta d'un modèle de filament (fabricant, matière, couleur, poids, etc.)
+      - bobines  : instances physiques rattachées à un filament (poids restant, localisation, etc.)
+
+    Notes de design:
+      - Les dates sont stockées en ISO (TEXT) avec défaut `datetime('now')` côté SQLite.
+      - `colors_array` est un TEXT (on peut y stocker du JSON ou une liste CSV).
+      - `reference_id` et `external_filament_id` permettent de mapper avec des sources externes (ex: Spoolman).
+      - Suppression d'un filament => suppression en cascade de ses bobines.
+    """
+    with _tx() as cur:
+        # -----------------------------------------------------------------
+        # Table FILAMENTS (modèle/catalogue)
+        # -----------------------------------------------------------------
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS filaments (
+                id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at           TEXT    NOT NULL DEFAULT (datetime('now')),
+                updated_at           TEXT    NOT NULL DEFAULT (datetime('now')),
+
+                name                 TEXT    NOT NULL,            -- nom commercial
+                manufacturer         TEXT,                        -- fabricant/marque
+
+                -- Gestion de couleur
+                color                TEXT,                        -- couleur principale (hex ou nom)
+                multicolor_type      TEXT,                        -- 'none', 'coaxial', 'gradient', etc.
+                colors_array         TEXT,                        -- CSV de hex ex: "0047BB,BB22A3"
+
+                material             TEXT,                        -- PLA, PETG, ABS, TPU, ...
+
+                price                REAL,                        -- prix de référence (peut être surchargé par bobine)
+                filament_weight_g    REAL,                        -- masse de filament utile (g)
+                spool_weight_g       REAL,                        -- tare de la bobine (g)
+
+                comment              TEXT,
+
+                external_filament_id TEXT,                        -- identifiant externe (ex: Spoolman filament.id)
+                reference_id         TEXT,                        -- ref libre interne/externe
+                profile_id           TEXT                         -- ex: extra.filament_id (profil matériau)
+            )
+            """
+        )
+
+        # Index utiles sur filaments
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_filaments_name ON filaments(name)")
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_filaments_manu_mat ON filaments(manufacturer, material)"
+        )
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_filaments_ext ON filaments(external_filament_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_filaments_profile ON filaments(profile_id)")
+
+        # Trigger de mise à jour du timestamp
+        cur.execute(
+            """
+            CREATE TRIGGER IF NOT EXISTS trg_filaments_updated_at
+            AFTER UPDATE ON filaments
+            BEGIN
+                UPDATE filaments SET updated_at = datetime('now') WHERE id = NEW.id;
+            END;
+            """
+        )
+
+        # -----------------------------------------------------------------
+        # Table BOBINES (instances physiques)
+        # -----------------------------------------------------------------
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bobines (
+                id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+                filament_id        INTEGER NOT NULL,
+
+                created_at         TEXT    NOT NULL DEFAULT (datetime('now')),
+                first_used_at      TEXT,                          -- date de première utilisation
+                last_used_at       TEXT,                          -- date de dernière utilisation
+                updated_at         TEXT    NOT NULL DEFAULT (datetime('now')),
+
+                price_override     REAL,                          -- si NULL => fallback sur filaments.price
+                remaining_weight_g REAL,                          -- poids restant (g)
+                location           TEXT,                          -- emplacement (ex: étagère A2)
+                tag_number         TEXT,                          -- numéro de tag (RFID/QR...)
+                ams_tray           TEXT,                          -- emplacement AMS (slot/cartouche)
+                archived           INTEGER NOT NULL DEFAULT 0,    -- 0 actif / 1 archivé
+                comment            TEXT,
+
+                -- Champs d'intégration externes
+                external_spool_id  TEXT,                          -- identifiant spool côté Spoolman
+
+                FOREIGN KEY (filament_id) REFERENCES filaments(id) ON DELETE CASCADE
+            )
+            """
+        )
+
+        # Ajout rétroactif de colonnes manquantes
+        def _maybe_add(table: str, column: str, ddl: str) -> None:
+            cur.execute(f"PRAGMA table_info({table})")
+            if not any(r[1] == column for r in cur.fetchall()):
+                cur.execute(f"ALTER TABLE {table} ADD COLUMN {ddl}")
+
+        _maybe_add("filaments", "profile_id", "TEXT")
+        _maybe_add("filaments", "external_filament_id", "TEXT")
+        _maybe_add("filaments", "colors_array", "TEXT")
+        _maybe_add("filaments", "multicolor_type", "TEXT")
+
+        _maybe_add("bobines", "external_spool_id", "TEXT")
+
+        # Index utiles sur bobines
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_bobines_filament ON bobines(filament_id)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_bobines_archived ON bobines(archived)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_bobines_extspool ON bobines(external_spool_id)")
+
+        # Trigger de mise à jour du timestamp
+        cur.execute(
+            """
+            CREATE TRIGGER IF NOT EXISTS trg_bobines_updated_at
+            AFTER UPDATE ON bobines
+            BEGIN
+                UPDATE bobines SET updated_at = datetime('now') WHERE id = NEW.id;
+            END;
+            """
+        )
+
+
+# ----------------------------------------------------------------------------
+# Utilitaires communs
+# ----------------------------------------------------------------------------
+
+_FILAMENT_ALLOWED_UPDATE = {
+    "name",
+    "manufacturer",
+    "color",
+    "multicolor_type",
+    "colors_array",
+    "material",
+    "price",
+    "filament_weight_g",
+    "spool_weight_g",
+    "comment",
+    "external_filament_id",
+    "reference_id",
+    "profile_id",
+    "created_at",
+}
+
+_BOBINE_ALLOWED_UPDATE = {
+    "filament_id",
+    "first_used_at",
+    "last_used_at",
+    "price_override",
+    "remaining_weight_g",
+    "location",
+    "tag_number",
+    "ams_tray",
+    "archived",
+    "comment",
+    "external_spool_id",
+    "created_at",
+}
+
+
+def _validate_non_negative(name: str, value: Optional[float]) -> None:
+    if value is None:
+        return
+    if value < 0:  # type: ignore[operator]
+        raise ValueError(f"{name} ne peut pas être négatif")
+
+
+# ----------------------------------------------------------------------------
+# Filaments – CRUD & helpers
+# ----------------------------------------------------------------------------
+
+def add_filament(
+    *,
+    name: str,
+    manufacturer: Optional[str] = None,
+    color: Optional[str] = None,
+    multicolor_type: Optional[str] = None,
+    colors_array: Optional[str] = None,  # CSV string "#RRGGBB,#RRGGBB"
+    material: Optional[str] = None,
+    price: Optional[float] = None,
+    filament_weight_g: Optional[float] = None,
+    spool_weight_g: Optional[float] = None,
+    comment: Optional[str] = None,
+    external_filament_id: Optional[str] = None,
+    reference_id: Optional[str] = None,
+    profile_id: Optional[str] = None,
+    created_at: Optional[str] = None,  # permet d'injecter registered depuis Spoolman
+) -> int:
+    """Insère un filament et retourne son id."""
+    _validate_non_negative("price", price)
+    _validate_non_negative("filament_weight_g", filament_weight_g)
+    _validate_non_negative("spool_weight_g", spool_weight_g)
+
+    with _tx() as cur:
+        if created_at:
+            cur.execute(
+                """
+                INSERT INTO filaments(
+                    created_at, name, manufacturer, color, multicolor_type, colors_array, material,
+                    price, filament_weight_g, spool_weight_g, comment,
+                    external_filament_id, reference_id, profile_id
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    created_at, name, manufacturer, color, multicolor_type, colors_array, material,
+                    price, filament_weight_g, spool_weight_g, comment,
+                    external_filament_id, reference_id, profile_id,
+                ),
+            )
+        else:
+            cur.execute(
+                """
+                INSERT INTO filaments(
+                    name, manufacturer, color, multicolor_type, colors_array, material,
+                    price, filament_weight_g, spool_weight_g, comment,
+                    external_filament_id, reference_id, profile_id
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    name, manufacturer, color, multicolor_type, colors_array, material,
+                    price, filament_weight_g, spool_weight_g, comment,
+                    external_filament_id, reference_id, profile_id,
+                ),
+            )
+        return int(cur.lastrowid)
+
+
+def update_filament(filament_id: int, **fields: Any) -> None:
+    """Met à jour un filament (update partiel)."""
+    if not fields:
+        return
+
+    invalid = set(fields) - _FILAMENT_ALLOWED_UPDATE
+    if invalid:
+        raise ValueError(f"Champs non autorisés pour update_filament: {sorted(invalid)}")
+
+    # validations simples
+    for k in ("price", "filament_weight_g", "spool_weight_g"):
+        if k in fields:
+            _validate_non_negative(k, fields[k])
+
+    sets = ", ".join(f"{k} = ?" for k in fields)
+    values = list(fields.values())
+    values.append(filament_id)
+
+    with _tx() as cur:
+        cur.execute(f"UPDATE filaments SET {sets} WHERE id = ?", values)
+        if cur.rowcount == 0:
+            raise ValueError(f"Filament introuvable id={filament_id}")
+
+
+def remove_filament(filament_id: int) -> None:
+    """Supprime un filament et ses bobines associées (cascade)."""
+    with _tx() as cur:
+        cur.execute("DELETE FROM filaments WHERE id = ?", (filament_id,))
+        if cur.rowcount == 0:
+            raise ValueError(f"Filament introuvable id={filament_id}")
+
+
+def get_filament(filament_id: int) -> Optional[sqlite3.Row]:
+    """Retourne un filament (ou None)."""
+    conn = _connect()
+    try:
+        row = conn.execute("SELECT * FROM filaments WHERE id = ?", (filament_id,)).fetchone()
+        return row
+    finally:
+        conn.close()
+
+
+def list_filaments(
+    *,
+    manufacturer: Optional[str] = None,
+    material: Optional[str] = None,
+    search: Optional[str] = None,  # recherchera sur name/manufacturer/material/color
+    limit: Optional[int] = None,
+    offset: int = 0,
+    order_by: str = "created_at DESC",
+) -> List[sqlite3.Row]:
+    """Liste paginée/filtrée des filaments."""
+    where: List[str] = []
+    params: List[Any] = []
+
+    if manufacturer:
+        where.append("manufacturer = ?")
+        params.append(manufacturer)
+    if material:
+        where.append("material = ?")
+        params.append(material)
+    if search:
+        like = f"%{search}%"
+        where.append("(name LIKE ? OR manufacturer LIKE ? OR material LIKE ? OR color LIKE ?)")
+        params.extend([like, like, like, like])
+
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+    lim = f" LIMIT {int(limit)}" if limit is not None else ""
+    off = f" OFFSET {int(offset)}" if offset and limit is not None else (f" OFFSET {int(offset)}" if offset and limit is None else "")
+
+    sql = f"SELECT * FROM filaments {where_sql} ORDER BY {order_by}{lim}{off}".strip()
+
+    conn = _connect()
+    try:
+        rows = conn.execute(sql, params).fetchall()
+        return list(rows)
+    finally:
+        conn.close()
+
+
+def count_filaments() -> int:
+    conn = _connect()
+    try:
+        (n,) = conn.execute("SELECT COUNT(*) FROM filaments").fetchone()
+        return int(n)
+    finally:
+        conn.close()
+
+
+# ----------------------------------------------------------------------------
+# Bobines – CRUD & helpers
+# ----------------------------------------------------------------------------
+
+def add_bobine(
+    *,
+    filament_id: int,
+    price_override: Optional[float] = None,
+    remaining_weight_g: Optional[float] = None,
+    location: Optional[str] = None,
+    tag_number: Optional[str] = None,
+    ams_tray: Optional[str] = None,
+    archived: bool = False,
+    comment: Optional[str] = None,
+    created_at: Optional[str] = None,  # ISO optionnel si on veut backfiller
+    first_used_at: Optional[str] = None,
+    last_used_at: Optional[str] = None,
+    external_spool_id: Optional[str] = None,
+) -> int:
+    """Crée une bobine et retourne son id."""
+    _validate_non_negative("price_override", price_override)
+    _validate_non_negative("remaining_weight_g", remaining_weight_g)
+
+    with _tx() as cur:
+        # s'assure que le filament existe
+        cur.execute("SELECT 1 FROM filaments WHERE id = ?", (filament_id,))
+        if cur.fetchone() is None:
+            raise ValueError(f"Filament introuvable id={filament_id}")
+
+        cur.execute(
+            """
+            INSERT INTO bobines(
+                filament_id, price_override, remaining_weight_g, location,
+                tag_number, ams_tray, archived, comment,
+                created_at, first_used_at, last_used_at, external_spool_id
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                filament_id, price_override, remaining_weight_g, location,
+                tag_number, ams_tray, 1 if archived else 0, comment,
+                created_at, first_used_at, last_used_at, external_spool_id,
+            ),
+        )
+        return int(cur.lastrowid)
+
+
+def update_bobine(bobine_id: int, **fields: Any) -> None:
+    """Met à jour une bobine (update partiel)."""
+    if not fields:
+        return
+
+    invalid = set(fields) - _BOBINE_ALLOWED_UPDATE
+    if invalid:
+        raise ValueError(f"Champs non autorisés pour update_bobine: {sorted(invalid)}")
+
+    for k in ("price_override", "remaining_weight_g"):
+        if k in fields:
+            _validate_non_negative(k, fields[k])
+
+    # si on modifie filament_id, vérifier la FK cible
+    if "filament_id" in fields and fields["filament_id"] is not None:
+        with _tx() as cur:
+            cur.execute("SELECT 1 FROM filaments WHERE id = ?", (fields["filament_id"],))
+            if cur.fetchone() is None:
+                raise ValueError(f"Filament introuvable id={fields['filament_id']}")
+
+    sets = ", ".join(f"{k} = ?" for k in fields)
+    values = list(fields.values())
+    values.append(bobine_id)
+
+    with _tx() as cur:
+        cur.execute(f"UPDATE bobines SET {sets} WHERE id = ?", values)
+        if cur.rowcount == 0:
+            raise ValueError(f"Bobine introuvable id={bobine_id}")
+
+
+def remove_bobine(bobine_id: int) -> None:
+    with _tx() as cur:
+        cur.execute("DELETE FROM bobines WHERE id = ?", (bobine_id,))
+        if cur.rowcount == 0:
+            raise ValueError(f"Bobine introuvable id={bobine_id}")
+
+
+def archive_bobine(bobine_id: int, archived: bool = True) -> None:
+    update_bobine(bobine_id, archived=1 if archived else 0)
+
+
+def get_bobine(bobine_id: int) -> Optional[sqlite3.Row]:
+    conn = _connect()
+    try:
+        row = conn.execute("SELECT * FROM bobines WHERE id = ?", (bobine_id,)).fetchone()
+        return row
+    finally:
+        conn.close()
+
+
+def list_bobines(
+    *,
+    filament_id: Optional[int] = None,
+    archived: Optional[bool] = None,
+    ams_tray: Optional[str] = None,
+    location: Optional[str] = None,
+    search: Optional[str] = None,  # recherche dans commentaire + tag_number
+    limit: Optional[int] = None,
+    offset: int = 0,
+    order_by: str = "created_at DESC",
+) -> List[sqlite3.Row]:
+    where: List[str] = []
+    params: List[Any] = []
+
+    if filament_id is not None:
+        where.append("filament_id = ?")
+        params.append(filament_id)
+    if archived is not None:
+        where.append("archived = ?")
+        params.append(1 if archived else 0)
+    if ams_tray:
+        where.append("ams_tray = ?")
+        params.append(ams_tray)
+    if location:
+        where.append("location = ?")
+        params.append(location)
+    if search:
+        like = f"%{search}%"
+        where.append("(comment LIKE ? OR tag_number LIKE ?)")
+        params.extend([like, like])
+
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+    lim = f" LIMIT {int(limit)}" if limit is not None else ""
+    off = f" OFFSET {int(offset)}" if offset and limit is not None else (f" OFFSET {int(offset)}" if offset and limit is None else "")
+
+    sql = f"SELECT * FROM bobines {where_sql} ORDER BY {order_by}{lim}{off}".strip()
+
+    conn = _connect()
+    try:
+        return list(conn.execute(sql, params).fetchall())
+    finally:
+        conn.close()
+
+
+def get_bobine_effective_price(bobine_id: int) -> Optional[float]:
+    """Retourne le prix effectif de la bobine (override sinon prix du filament)."""
+    conn = _connect()
+    try:
+        row = conn.execute(
+            """
+            SELECT COALESCE(b.price_override, f.price) AS effective_price
+            FROM bobines b
+            JOIN filaments f ON f.id = b.filament_id
+            WHERE b.id = ?
+            """,
+            (bobine_id,),
+        ).fetchone()
+        return None if row is None else (None if row[0] is None else float(row[0]))
+    finally:
+        conn.close()
+
+
+def set_first_used_if_null(bobine_id: int, when_iso: Optional[str] = None) -> None:
+    """Pose `first_used_at` si absent."""
+    with _tx() as cur:
+        cur.execute(
+            """
+            UPDATE bobines
+               SET first_used_at = COALESCE(first_used_at, COALESCE(?, datetime('now')))
+             WHERE id = ?
+            """,
+            (when_iso, bobine_id),
+        )
+        if cur.rowcount == 0:
+            raise ValueError(f"Bobine introuvable id={bobine_id}")
+
+
+def touch_last_used(bobine_id: int, when_iso: Optional[str] = None) -> None:
+    """Met `last_used_at` à now (ou valeur fournie)."""
+    with _tx() as cur:
+        cur.execute(
+            "UPDATE bobines SET last_used_at = COALESCE(?, datetime('now')) WHERE id = ?",
+            (when_iso, bobine_id),
+        )
+        if cur.rowcount == 0:
+            raise ValueError(f"Bobine introuvable id={bobine_id}")
+
+
+def consume_weight(bobine_id: int, grams: float) -> float:
+    """Décrémente `remaining_weight_g` (clamp à 0) et retourne le nouveau restant.
+
+    Lève si `grams` est négatif.
+    """
+    if grams < 0:
+        raise ValueError("grams doit être positif")
+
+    with _tx() as cur:
+        cur.execute("SELECT remaining_weight_g FROM bobines WHERE id = ?", (bobine_id,))
+        row = cur.fetchone()
+        if row is None:
+            raise ValueError(f"Bobine introuvable id={bobine_id}")
+        current = row[0] if row[0] is not None else 0.0
+        new_val = max(0.0, float(current) - float(grams))
+        cur.execute("UPDATE bobines SET remaining_weight_g = ? WHERE id = ?", (new_val, bobine_id))
+        return new_val
+
+
+def refill_weight(bobine_id: int, grams: float) -> float:
+    """Incrémente `remaining_weight_g` (utile pour correction / recharge) et retourne le nouveau restant."""
+    if grams < 0:
+        raise ValueError("grams doit être positif")
+    with _tx() as cur:
+        cur.execute("SELECT remaining_weight_g FROM bobines WHERE id = ?", (bobine_id,))
+        row = cur.fetchone()
+        if row is None:
+            raise ValueError(f"Bobine introuvable id={bobine_id}")
+        current = row[0] if row[0] is not None else 0.0
+        new_val = float(current) + float(grams)
+        cur.execute("UPDATE bobines SET remaining_weight_g = ? WHERE id = ?", (new_val, bobine_id))
+        return new_val
+
+
+def total_remaining_for_filament(filament_id: int, include_archived: bool = False) -> float:
+    """Somme des `remaining_weight_g` pour un filament donné."""
+    conn = _connect()
+    try:
+        if include_archived:
+            row = conn.execute(
+                "SELECT SUM(remaining_weight_g) FROM bobines WHERE filament_id = ?",
+                (filament_id,),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT SUM(remaining_weight_g) FROM bobines WHERE filament_id = ? AND archived = 0",
+                (filament_id,),
+            ).fetchone()
+        total = 0.0 if row is None or row[0] is None else float(row[0])
+        return total
+    finally:
+        conn.close()
+
+
+def count_bobines(*, active_only: bool = False) -> int:
+    conn = _connect()
+    try:
+        if active_only:
+            (n,) = conn.execute("SELECT COUNT(*) FROM bobines WHERE archived = 0").fetchone()
+        else:
+            (n,) = conn.execute("SELECT COUNT(*) FROM bobines").fetchone()
+        return int(n)
+    finally:
+        conn.close()
+
+
+# ----------------------------------------------------------------------------
+# (WIP) Import / Sync Spoolman (placeholder pour future implémentation)
+# ----------------------------------------------------------------------------
+
+def sync_from_spoolman(api_url: str, token: Optional[str] = None) -> Dict[str, Any]:
+    """Placeholder de sync depuis Spoolman.
+
+    Idée (à implémenter plus tard):
+      - GET /api/filaments, /api/spools
+      - pour chaque filament/spool, mapper -> add/update locaux
+      - conserver le mapping via `external_filament_id` et éventuellement `tag_number`
+
+    Retourne un petit résumé d'opération.
+    """
+    # volontairement non implémenté ici; on fournira ultérieurement une version
+    # utilisant `requests` avec pagination et upserts.
+    return {
+        "ok": False,
+        "message": "sync_from_spoolman non implémenté pour l'instant",
+    }
+
+
+# ----------------------------------------------------------------------------
+# Import / Sync Spoolman (v1 REST)
+# ----------------------------------------------------------------------------
+
+import json
+import urllib.parse
+import urllib.request
+
+class _HTTPError(RuntimeError):
+    pass
+
+
+def _http_get(url: str, headers: Optional[Dict[str, str]] = None) -> Any:
+    req = urllib.request.Request(url, headers=headers or {})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        raise _HTTPError(f"GET {url} failed: {e}")
+
+
+def _paginate_spoolman(base_url: str, endpoint: str, token: Optional[str]) -> List[Dict[str, Any]]:
+    """Récupère toutes les pages d'un endpoint Spoolman.
+
+    Supporte 2 styles courants:
+      - DRF-like: {count, next, previous, results}
+      - Classic:  {items, total, page, page_size}
+    """
+    headers = {"Accept": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    # Normalise base_url (pas de slash final)
+    base = base_url.rstrip("/")
+    url = f"{base}/api/v1/{endpoint.lstrip('/')}"
+
+    out: List[Dict[str, Any]] = []
+    seen = set()
+
+    while url:
+        data = _http_get(url, headers=headers)
+        if isinstance(data, dict):
+            if "results" in data:  # DRF-like
+                items = data.get("results") or []
+                next_url = data.get("next")
+            elif "items" in data:  # classic
+                items = data.get("items") or []
+                # Essaye de construire URL page suivante si dispo
+                if data.get("page") and data.get("page_size") and data.get("total"):
+                    page = int(data["page"]) + 1
+                    page_size = int(data["page_size"])
+                    total = int(data["total"])
+                    next_url = None
+                    if (page - 1) * page_size + len(items) < total:
+                        # Reconstruit depuis url courante
+                        parsed = urllib.parse.urlparse(url)
+                        q = urllib.parse.parse_qs(parsed.query)
+                        q["page"] = [str(page)]
+                        q["page_size"] = [str(page_size)]
+                        next_url = urllib.parse.urlunparse(
+                            parsed._replace(query=urllib.parse.urlencode(q, doseq=True))
+                        )
+                else:
+                    next_url = None
+            else:
+                # Non paginé: tente liste brute
+                if isinstance(data, list):
+                    items = data
+                else:
+                    items = [data]
+                next_url = None
+        elif isinstance(data, list):
+            items = data
+            next_url = None
+        else:
+            items = []
+            next_url = None
+
+        for it in items:
+            # évite doublons basés sur (endpoint,id)
+            rid = (endpoint, json.dumps(it.get("id", it), sort_keys=True))
+            if rid not in seen:
+                out.append(it)
+                seen.add(rid)
+        url = next_url
+
+    return out
+
+
+# ------------------------------ Mapping helpers ------------------------------
+
+def _spoolman_vendor_name(f: Dict[str, Any]) -> Optional[str]:
+    v = f.get("vendor")
+    if isinstance(v, dict):
+        return v.get("name")
+    return None
+
+    if isinstance(v, dict):
+        return v.get("name") or v.get("display_name")
+    return f.get("vendor_name")
+
+
+def _spoolman_material(f: Dict[str, Any]) -> Optional[str]:
+    m = f.get("material")
+    if isinstance(m, dict):
+        return m.get("name") or m.get("type")
+    return f.get("material")
+
+
+def _spoolman_color(f: Dict[str, Any]) -> Optional[str]:
+    return f.get("color_hex")
+
+
+
+def _spoolman_price(f: Dict[str, Any]) -> Optional[float]:
+    return f.get("price") or f.get("price_eur") or f.get("msrp")
+
+
+def _spoolman_filament_weight(f: Dict[str, Any]) -> Optional[float]:
+    return (
+        f.get("weight_g")
+        or f.get("filament_weight_g")
+        or f.get("net_weight_g")
+        or f.get("weight")
+    )
+
+
+def _spoolman_spool_weight(f: Dict[str, Any]) -> Optional[float]:
+    return f.get("spool_weight_g") or f.get("spool_weight")
+
+
+# ------------------------------ Upserts ------------------------------
+
+def _clean_profile_id(val: Any) -> Optional[str]:
+    if val is None:
+        return None
+    s = str(val)
+    if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+        s = s[1:-1]
+    return s or None
+
+
+def _clean_quoted(val: Any) -> Optional[str]:
+    """Nettoie les strings de Spoolman parfois encadrées de quotes doubles dans JSON."""
+    if val is None:
+        return None
+    s = str(val)
+    if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+        s = s[1:-1]
+    return s or None
+
+
+def _upsert_filament_from_spoolman_exact(f: Dict[str, Any]) -> int:
+    """Crée/Met à jour un filament local depuis l'objet Spoolman selon le mapping imposé.
+
+    Mapping:
+      - created_at           <- registered
+      - name                 <- name
+      - manufacturer         <- vendor.name
+      - color                <- color_hex
+      - material             <- material
+      - price                <- price
+      - spool_weight_g       <- spool_weight
+      - filament_weight_g    <- weight
+      - profile_id           <- extra.filament_id (nettoyé)
+      - colors_array         <- multi_color_hexes (CSV, inchangé)
+      - multicolor_type      <- multi_color_direction (ou 'none')
+      - comment              <- append "Importé depuis Spoolman le <now>"
+      - external_filament_id <- id (string)
+    """
+    external_id = str(f.get("id")) if f.get("id") is not None else None
+
+    # multi-couleur
+    colors_array = f.get("multi_color_hexes")
+    multicolor_type = f.get("multi_color_direction") or ("none" if colors_array in (None, "") else None)
+
+    # profile id dans extra
+    extra = f.get("extra") or {}
+    profile_id = _clean_profile_id(extra.get("filament_id"))
+        "external_filament_id": external_id,
+    }
+
+    # Cherche un filament existant par external_filament_id
+    conn = _connect()
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute(
+            "SELECT id, comment FROM filaments WHERE external_filament_id = ?",
+            (external_id,),
+        ).fetchone() if external_id else None
+    finally:
+        conn.close()
+
+    if row:
+        # On append le tag d'import au commentaire existant
+                update_filament(int(row[0]), **fields)
+        return int(row[0])
+    else:
+        # Insertion avec created_at forcé depuis registered
+        return add_filament(**payload)
+
+def _clean_profile_id(val: Any) -> Optional[str]:
+    if val is None:
+        return None
+    s = str(val)
+    # Certains payloads contiennent des quotes incluses, ex: '"GFA00"' -> 'GFA00'
+    if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+        s = s[1:-1]
+    return s or None
+
+
+def _upsert_filament_from_spoolman(f: Dict[str, Any]) -> int:
+    """Crée/Met à jour un filament local depuis l'objet Spoolman et retourne son id local."""
+    external_id = str(f.get("id")) if f.get("id") is not None else None
+    name = f.get("name") or f.get("display_name") or "Sans nom"
+
+    payload = {
+        "name": name,
+        "manufacturer": _spoolman_vendor_name(f),
+        "color": _spoolman_color(f),
+        "material": _spoolman_material(f),
+        "price": _spoolman_price(f),
+        "filament_weight_g": _spoolman_filament_weight(f),
+        "spool_weight_g": _spoolman_spool_weight(f),
+
+        "external_filament_id": external_id,
+        "reference_id": f.get("sku") or f.get("reference") or None,
+    }
+
+    # Cherche un filament existant par external_filament_id
+    conn = _connect()
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute(
+            "SELECT id FROM filaments WHERE external_filament_id = ?",
+            (external_id,),
+        ).fetchone() if external_id else None
+    finally:
+        conn.close()
+
+    if row:
+        update_filament(int(row[0]), **{k: v for k, v in payload.items() if k in _FILAMENT_ALLOWED_UPDATE})
+        return int(row[0])
+    else:
+        return add_filament(**payload)
+
+
+def _upsert_bobine_from_spoolman_exact(s: Dict[str, Any], filament_local_id: int) -> int:
+    """Crée/Met à jour une bobine locale depuis l'objet *spool* Spoolman selon le mapping suivant:
+
+    Mapping bobine:
+      - created_at         <- registered
+      - first_used_at      <- first_used
+      - last_used_at       <- last_used
+      - price_override     <- price
+      - remaining_weight_g <- remaining_weight
+      - location           <- location
+      - tag_number         <- extra.tag (nettoyé via _clean_quoted)
+      - ams_tray           <- extra.active_tray (nettoyé)
+      - archived           <- archived (bool)
+      - comment            <- append "Importé depuis Spoolman le <now>"
+      - external_spool_id  <- id (string)
+      - filament_id        <- `filament_local_id` (résolu en amont)
+    """
+    external_spool_id = str(s.get("id")) if s.get("id") is not None else None
+    extra = s.get("extra") or {}
+
+    from datetime import datetime, timezone
+    now_iso = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+    import_tag = f"Importé depuis Spoolman le {now_iso}"
+
+    payload = {
+        "filament_id": filament_local_id,
+        "price_override": s.get("price"),
+        "remaining_weight_g": s.get("remaining_weight"),
+        "location": s.get("location"),
+        "tag_number": _clean_quoted(extra.get("tag")),
+        "ams_tray": _clean_quoted(extra.get("active_tray")),
+        "archived": bool(s.get("archived", False)),
+                "created_at": s.get("registered"),
+        "first_used_at": s.get("first_used"),
+        "last_used_at": s.get("last_used"),
+        "external_spool_id": external_spool_id,
+    }
+
+    # Cherche par external_spool_id
+    conn = _connect()
+    try:
+        row = conn.execute(
+            "SELECT id, comment FROM bobines WHERE external_spool_id = ?",
+            (external_spool_id,),
+        ).fetchone() if external_spool_id else None
+    finally:
+        conn.close()
+
+    if row:
+                update_bobine(int(row[0]), **fields)
+        return int(row[0])
+    else:
+        return add_bobine(**payload)
+
+
+def sync_from_spoolman(base_url: str, token: Optional[str] = None) -> Dict[str, Any]:
+    """Synchronise depuis Spoolman -> base locale.
+
+    Paramètres:
+      - base_url: URL de base de Spoolman (ex: http://host:port)
+      - token   : Bearer token si l'instance en requiert un
+
+    Comportement:
+      - Récupère tous les *filaments* puis toutes les *spools* (bobines) via `/api/v1/`.
+      - Upsert côté local via `external_filament_id` et `external_spool_id`.
+      - Fait au mieux quel que soit le schéma exact (clés déduites de façon souple).
+
+    Retourne un résumé de l'opération.
+    """
+    ensure_schema()
+
+    filaments_remote = _paginate_spoolman(base_url, "filament", token)
+    spools_remote    = _paginate_spoolman(base_url, "spool", token)
+
+    filament_map: Dict[str, int] = {}
+    created_f = updated_f = 0
+
+    # Upsert des filaments
+    for f in filaments_remote:
+        # existence approximative, si pas d'external id on s'en remettra au nom
+        had_local = False
+        if f.get("id") is not None:
+            conn = _connect()
+            try:
+                r = conn.execute("SELECT 1 FROM filaments WHERE external_filament_id = ?", (str(f["id"]),)).fetchone()
+                had_local = r is not None
+            finally:
+                conn.close()
+        local_id = _upsert_filament_from_spoolman_exact(f)
+        filament_map[str(f.get("id"))] = local_id
+        if had_local:
+            updated_f += 1
+        else:
+            created_f += 1
+
+    # Upsert des spools/bobines
+    created_s = updated_s = 0
+    for s in spools_remote:
+        # map filament_id distant -> local
+        remote_fid = s.get("filament_id") or (s.get("filament") and s["filament"].get("id"))
+        if remote_fid is None:
+            # impossible d'ancrer la bobine -> on ignore
+            continue
+        local_fid = filament_map.get(str(remote_fid))
+        if not local_fid:
+            # si filament non sync (cas limite), on tente un upsert direct depuis nested obj
+            if isinstance(s.get("filament"), dict):
+                local_fid = _upsert_filament_from_spoolman_exact(s["filament"])  # type: ignore[arg-type]
+            else:
+                # sécurité: skip
+                continue
+
+        # Détermine existence locale
+        before = False
+        if s.get("id") is not None:
+            conn = _connect()
+            try:
+                r = conn.execute(
+                    "SELECT 1 FROM bobines WHERE external_spool_id = ?",
+                    (str(s["id"]),),
+                ).fetchone()
+                before = r is not None
+            finally:
+                conn.close()
+
+        _upsert_bobine_from_spoolman_exact(s, local_fid)
+        if before:
+            updated_s += 1
+        else:
+            created_s += 1
+
+    return {
+        "filaments": {"created": created_f, "updated": updated_f, "total": len(filaments_remote)},
+        "spools": {"created": created_s, "updated": updated_s, "total": len(spools_remote)},
+    }
+
+
+if __name__ == "__main__":
+    ensure_schema()
+    print("Schéma filaments/bobines OK")
