@@ -2681,7 +2681,7 @@ def api_ui_update_filament(filament_id):
         return jsonify({"ok": False, "error": "server", "message": str(e)}), 500
 
 @app.route("/upload_photo/<int:print_id>", methods=["POST"])
-def upload_print_photo_legacy(print_id):
+def upload_print_photo(print_id):
     # redirige vers la logique générique prints
     with app.test_request_context():
         return upload_entity_photo("prints", print_id)
