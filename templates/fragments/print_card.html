@@ -182,16 +182,16 @@
 
 {# --- Aperçu/carrousel du print --- #}
 {% set pid = print.id %}
-<div id="carousel-{{ pid }}" class="carousel slide print-carousel" data-bs-ride="false">
+<div id="carousel-{{ pid }}" class="carousel slide print-carousel" data-bs-ride="false" data-bs-touch="true" data-bs-interval="false">
   <div class="carousel-inner rounded">
 
     {# Slide 0 : miniature (PNG) comme avant #}
-    <div class="carousel-item active">
+    <div class="carousel-item active" 
       <div class="preview-frame d-flex align-items-center justify-content-center">
         {% if print.image_file %}
           <img
             src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
-            alt="Aperçu"
+            alt="3mf"
             class="preview-img"
             loading="lazy"
           >
@@ -199,14 +199,14 @@
           <div class="preview-placeholder text-muted small">Aucune image</div>
         {% endif %}
       </div>
-      <div class="carousel-caption d-none d-md-block">
-        <small class="caption-badge">Aperçu</small>
+      <div class="carousel-caption d-block">
+        <small class="caption-badge">3mf</small>
       </div>
     </div>
 
     {# Slides suivantes : images disque (si présentes) #}
     {% for img in print.images or [] %}
-      <div class="carousel-item">
+      <div class="carousel-item" data-name="{{ img.name }}">
         <div class="preview-frame d-flex align-items-center justify-content-center">
           <img
             src="{{ img.url }}"
@@ -215,7 +215,7 @@
             loading="lazy"
           >
         </div>
-        <div class="carousel-caption d-none d-md-block">
+        <div class="carousel-caption d-block">
           <small class="caption-badge">{{ img.name }}</small>
         </div>
       </div>
