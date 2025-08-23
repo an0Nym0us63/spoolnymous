@@ -5,8 +5,13 @@ import subprocess
 import logging
 from threading import Lock
 from flask import Response
+from pathlib import Path
+import re
+import os
 
 logger = logging.getLogger(__name__)
+
+_SAFE_NAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
 
 # État global (thread-safe) du snapshot
 _SNAP_LOCK = Lock()
@@ -25,6 +30,32 @@ _FAIL_BASE       = 10.0  # s : premier palier de backoff en cas d'échec
 _FAIL_MAX        = 120.0 # s : plafond de backoff
 _FAIL_JITTER     = 0.20  # ±20% de jitter
 _FFMPEG_TIMEOUTS = 6.0   # délai pour ffmpeg
+
+def get_camera_urls():
+    """
+    Construit la/les URL(s) de la caméra à partir de la config appli.
+    Retourne (urls: list[str], error: str). Si error != "", config invalide.
+    """
+    try:
+        # import paresseux pour éviter les cycles
+        from app import get_app_setting  # type: ignore
+    except Exception:
+        # fallback éventuel via env, pour ne pas casser en dev
+        def get_app_setting(key, default=""):
+            return os.environ.get(key, default)
+
+    ip   = get_app_setting("PRINTER_IP", "")
+    code = get_app_setting("PRINTER_ACCESS_CODE", "")
+
+    if not ip or not code:
+        return [], "IP et/ou code d'accès manquants."
+
+    urls = [
+        f"rtsps://bblp:{code}@{ip}:322/streaming/live/1",
+        # Tu peux en rajouter ici si besoin, p.ex. un RTSP alternatif en fallback
+        # f"rtsp://bblp:{code}@{ip}:322/streaming/live/1",
+    ]
+    return urls, ""
 
 def svg_fallback(message: str) -> Response:
     svg = f"""<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 450'>
@@ -61,13 +92,18 @@ def _snapshot_once(url: str, timeout_s: float = _FFMPEG_TIMEOUTS) -> bytes:
         raise RuntimeError("ffmpeg returned no data")
     return out.stdout
 
-def serve_snapshot(urls: list[str]) -> Response:
+def serve_snapshot() -> Response:
     """
     Tente de capturer une frame sur la première URL disponible.
     - TTL succès : ressert l'image récente sans relancer ffmpeg.
     - Backoff échec : évite les tentatives trop fréquentes.
     - Lock global : garantit au plus 1 ffmpeg à la fois (multi-threads).
     """
+    urls, err = get_camera_urls()
+    if err:
+        return svg_fallback(err)
+    if not urls:
+        return svg_fallback("Aucune URL caméra disponible.")
     now = time.monotonic()
 
     with _SNAP_LOCK:
@@ -137,3 +173,60 @@ def serve_snapshot(urls: list[str]) -> Response:
     r = svg_fallback(msg)
     r.headers["X-Retry-In"] = f"{wait_s:.3f}"
     return r
+
+def _sanitize_filename(name: str) -> str:
+    """
+    Nettoie un nom de fichier (sans extension) : remplace tout caractère
+    non autorisé par '_', et supprime les points initiaux.
+    """
+    if not name:
+        return "snapshot"
+    name = name.strip()
+    # retirer extension si l'appelant en a mis une par erreur
+    name = name.split(".")[0]
+    name = _SAFE_NAME_RE.sub("_", name)
+    # éviter les noms vides/cachés
+    if not name or name.startswith("."):
+        name = "snapshot"
+    return name
+
+def snapshot_to_print_file(print_id: str | int, filename_no_ext: str) -> tuple[str, str]:
+    """
+    Capture un snapshot (JPEG) et l'enregistre dans:
+      static/uploads/prints/{print_id}/{filename}.jpg
+
+    Retourne (absolute_path, static_url). Lève en cas d'échec capture.
+    """
+    urls, err = get_camera_urls()
+    if err:
+        raise RuntimeError(err)
+    if not urls:
+        raise RuntimeError("Aucune URL caméra disponible.")
+
+    # 1) capturer (essaie chaque URL)
+    data = None
+    last_exc = None
+    for u in urls:
+        try:
+            data = _snapshot_once(u, timeout_s=_FFMPEG_TIMEOUTS)
+            break
+        except Exception as e:
+            last_exc = e
+            continue
+    if data is None:
+        raise RuntimeError(f"Snapshot failed on all URLs: {last_exc}")
+
+    # 2) chemin
+    base_dir = Path(__file__).resolve().parent
+    target_dir = base_dir / "static" / "uploads" / "prints" / str(print_id)
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    basename = _sanitize_filename(filename_no_ext)
+    target_path = target_dir / f"{basename}.jpg"
+
+    # 3) écrire
+    target_path.write_bytes(data)
+
+    # 4) URL statique
+    rel_url = f"/static/uploads/prints/{print_id}/{basename}.jpg"
+    return str(target_path), rel_url

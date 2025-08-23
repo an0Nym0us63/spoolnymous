@@ -333,15 +333,7 @@ def _abs_static_path(rel_path: str) -> str:
 
 @app.get("/camera/snapshot")
 def camera_snapshot():
-    ip   = get_app_setting("PRINTER_IP", "")
-    code = get_app_setting("PRINTER_ACCESS_CODE", "")
-    if not ip or not code:
-        return svg_fallback("IP et/ou code d'accès manquants.")
-    urls = [
-        f"rtsps://bblp:{code}@{ip}:322/streaming/live/1",
-        # on peut en rajouter d'autres en fallback si besoin
-    ]
-    return serve_snapshot(urls)
+    return serve_snapshot()
     
 def url_for_page(page: int, endpoint: str | None = None, **extra):
     args = request.args.to_dict(flat=True)
