@@ -8,6 +8,13 @@ from deep_translator import GoogleTranslator
 import re
 import config
 from config import get_app_setting,get_electric_rate_at
+from camera import snapshot_to_print_file
+from pathlib import Path
+
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
@@ -456,6 +463,24 @@ def update_filament_usage(print_id, spool_id, new_grams_used):
     conn.commit()
     conn.close()
     trigger_cost_recalculation(print_id)
+
+def get_print_id_by_job_id(job_id: str | int) -> int | None:
+    """
+    Retourne l'ID du print lié à un job_id BambuLab.
+    - Si plusieurs prints existent pour ce job_id, renvoie le plus récent.
+    - Retourne None si introuvable.
+    """
+    if not job_id:
+        return None
+    conn = sqlite3.connect(db_config["db_path"])
+    cursor = conn.cursor()
+    row = cursor.execute("SELECT id FROM prints WHERE job_id = ? ORDER BY id DESC LIMIT 1",(str(job_id),)).fetchone()
+
+    if row:
+        # selon ton row_factory: row["id"] ou row[0]
+        return row["id"] if "id" in row.keys() else row[0]
+
+    return None
 
 def update_filament_spool(print_id: int, filament_id: int, spool_id: int) -> None:
     conn = sqlite3.connect(db_config["db_path"])
@@ -1664,5 +1689,44 @@ def delete_all_tray_spool_mappings() -> None:
     conn.commit()
     conn.close()
     tray_spool_map_cache = None  # Invalider le cache
+
+
+def snapshot_milestone(job_id: str, pct: int, basename: str | None = None) -> None:
+    """
+    Déclenche un snapshot pour un milestone (50/99/100) d'un job donné.
+    - Résout print_id à partir de job_id (via la fonction *existante* du projet).
+    - Si le fichier existe déjà (ex. après reboot), ne fait rien.
+    - Sinon enregistre via camera.snapshot_to_print_file(print_id, basename).
+    """
+    # 1) Résoudre print_id via ta fonction existante
+    try:
+        # ✎✎✎ REMPLACE le nom par la fonction réelle de ton code :
+        print_id = get_print_id_by_job_id(job_id)  # <-- EXISTANTE DANS TON PROJET
+    except NameError:
+        # Si le nom diffère, crée un alias/adapter ici.
+        raise RuntimeError("Fonction 'get_print_id_by_job_id(job_id)' introuvable dans print_history.")
+
+    if not print_id:
+        logger.debug("snapshot_milestone: aucun print lié au job_id=%s", job_id)
+        return
+
+    # 2) Préparer le nom de fichier
+    if not basename:
+        basename = f"Impression {pct}%"
+
+    # 3) Vérifier si le fichier existe déjà (utile au reboot)
+    base_dir = Path(__file__).resolve().parent
+    target = base_dir / "static" / "uploads" / "prints" / str(print_id) / f"{basename}.jpg"
+    if target.exists():
+        logger.debug("snapshot_milestone: déjà présent: %s", target)
+        return
+
+    # 4) Assurer un app_context pour que camera lise la config (PRINTER_IP/PRINTER_ACCESS_CODE)
+    try:
+        snapshot_to_print_file(print_id, basename)
+        logger.info("Snapshot milestone %s (job_id=%s, print_id=%s) OK", basename, job_id, print_id)
+    except Exception as e:
+        logger.warning("Snapshot milestone %s (job_id=%s, print_id=%s) ÉCHEC: %s", basename, job_id, print_id, e)
+        raise
 
 create_database()

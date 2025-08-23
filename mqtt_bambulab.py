@@ -12,13 +12,20 @@ from tools_3mf import getMetaDataFrom3mf
 import time
 import copy
 import math
+from typing import Dict
 from collections.abc import Mapping
 from logger import append_to_rotating_file
-from print_history import  insert_print, insert_filament_usage, update_filament_spool,update_print_field_with_job_id,get_tray_spool_map,delete_tray_spool_map_by_id
+from print_history import  insert_print, insert_filament_usage, update_filament_spool,update_print_field_with_job_id,get_tray_spool_map,delete_tray_spool_map_by_id,snapshot_milestone
 from filaments import fetch_spools,clearActiveTray,setActiveTray,spendFilaments
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK, PROCESSED_JOBS, PENDING_JOBS
 import logging
+
 logger = logging.getLogger(__name__)
+
+
+
+# État mémoire par job_id (évite doublons durant le run)
+_MILESTONE_STATE: Dict[str, dict] = {}  # { job_id: {"last": float, "m50": bool, "m99": bool, "m100": bool} }
 
 
 MQTT_CLIENT = {}  # Global variable storing MQTT Client
@@ -33,6 +40,30 @@ PENDING_PRINT_METADATA = {}
 
 # --- Async helper pour ne pas bloquer le thread MQTT ---
 PROCESSMSG_LOCK = Lock()  # empêche les exécutions concurrentes de processMessage
+
+def _state(job_id: str) -> dict:
+    st = _MILESTONE_STATE.get(job_id)
+    if not st:
+        st = {"last": -1.0, "m50": False, "m99": False, "m100": False}
+        _MILESTONE_STATE[job_id] = st
+    return st
+
+def _milestones_to_fire(prev: float, curr: float, done_50: bool, done_99: bool, done_100: bool):
+    """
+    Retourne la liste des milestones à déclencher maintenant, parmi [50, 99, 100].
+    Règles:
+      - une seule fois par palier,
+      - rattrapage si on n’a pas vu la valeur exacte (déclenche au 1er passage >= palier),
+      - l’ordre n’est pas garanti (on peut recevoir 100 directement).
+    """
+    fire = []
+    if not done_50 and prev < 50.0 and curr >= 50.0:
+        fire.append(50)
+    if not done_99 and prev < 99.0 and curr >= 99.0:
+        fire.append(99)
+    if not done_100 and prev < 100.0 and curr >= 100.0:
+        fire.append(100)
+    return fire
 
 def fire_and_forget(fn, *args, name=None, **kwargs):
     def _runner():
@@ -534,7 +565,37 @@ def safe_update_status(data):
         hours = int(remaining // 60)
         minutes = int(remaining % 60)
         fields["remaining_time_str"] = f"{hours}h {minutes:02d}min" if hours > 0 else f"{minutes}min"
+    ####----snapshot-----
+    try:
+        job_id = data.get("job_id")
+        prog_raw = fields.get("progress")
+        if job_id is not None and prog_raw is not None:
+            job_id = str(job_id)
+            try:
+                prog = float(prog_raw)
+            except Exception:
+                prog = None
 
+            if prog is not None and 0.0 <= prog <= 100.0:
+                st = _state(job_id)
+                to_fire = _milestones_to_fire(st["last"], prog, st["m50"], st["m99"], st["m100"])
+
+                for pct in to_fire:
+                    try:
+                        # DÉLÉGUÉ À print_history : il résout job_id -> print_id et déclenche la capture.
+                        # Il gère aussi la vérif disque pour reboot.
+                        snapshot_milestone(job_id, pct, basename=f"Impression {pct}%")
+                        # Si ça n’a pas levé, on marque ce palier comme atteint
+                        if pct == 50:  st["m50"]  = True
+                        if pct == 99:  st["m99"]  = True
+                        if pct == 100: st["m100"] = True
+                    except Exception as e:
+                        logger.warning("Snapshot milestone %s%% échoué (job=%s): %s", pct, job_id, e)
+
+                # on met à jour le last après traitement
+                st["last"] = prog
+    except Exception as e:
+        logger.debug("Milestones snapshot: ignore erreur non bloquante: %s", e)
     # ---------- Détection fin/échec (antirebond) ----------
     job_id = data.get("job_id")
     status = (fields.get("status") or "").upper()
