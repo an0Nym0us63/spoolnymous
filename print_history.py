@@ -464,7 +464,7 @@ def update_filament_usage(print_id, spool_id, new_grams_used):
     conn.close()
     trigger_cost_recalculation(print_id)
 
-def get_print_id_by_job_id(job_id: str | int) -> int | None:
+ef get_print_id_by_job_id(job_id: str | int) -> int | None:
     """
     Retourne l'ID du print lié à un job_id BambuLab.
     - Si plusieurs prints existent pour ce job_id, renvoie le plus récent.
@@ -474,13 +474,12 @@ def get_print_id_by_job_id(job_id: str | int) -> int | None:
         return None
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
-    row = cursor.execute("SELECT id FROM prints WHERE job_id = ? ORDER BY id DESC LIMIT 1",(str(job_id),)).fetchone()
+    row = cursor.execute(
+        "SELECT id FROM prints WHERE job_id = ? ORDER BY id DESC LIMIT 1",
+        (str(job_id),)
+    ).fetchone()
 
-    if row:
-        # selon ton row_factory: row["id"] ou row[0]
-        return row["id"] if "id" in row.keys() else row[0]
-
-    return None
+    return int(row[0]) if row else None
 
 def update_filament_spool(print_id: int, filament_id: int, spool_id: int) -> None:
     conn = sqlite3.connect(db_config["db_path"])
@@ -1728,5 +1727,40 @@ def snapshot_milestone(job_id: str, pct: int, basename: str | None = None) -> No
     except Exception as e:
         logger.warning("Snapshot milestone %s (job_id=%s, print_id=%s) ÉCHEC: %s", basename, job_id, print_id, e)
         raise
+
+def list_print_images(print_id: str | int | None = None):
+    """
+    Retourne une liste de dicts {url, name} des images trouvées pour ce print.
+    On cherche d’abord dans .../prints/{job_id}/ puis (optionnel) .../prints/{print_id}/
+    """
+    base_dir = Path(__file__).resolve().parent
+    exts = {".jpg", ".jpeg", ".png", ".webp"}
+    results = []
+
+    def scan(dir_id):
+        if dir_id is None:
+            return
+        d = base_dir / "static" / "uploads" / "prints" / str(dir_id)
+        if not d.exists():
+            return
+        for p in sorted(d.iterdir()):
+            if p.is_file() and p.suffix.lower() in exts:
+                results.append({
+                    "url": f"/static/uploads/prints/{dir_id}/{p.name}",
+                    "name": p.stem,
+                })
+
+    # priorité au job_id comme demandé
+    scan(print_id)
+
+    # dédoublonne (même nom dans 2 dossiers)
+    seen = set()
+    uniq = []
+    for r in results:
+        key = (r["url"], r["name"])
+        if key not in seen:
+            seen.add(key)
+            uniq.append(r)
+    return uniq
 
 create_database()

@@ -34,7 +34,7 @@ from filament import generate_filament_brand_code, generate_filament_temperature
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel,insert_manual_print
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print,get_all_tray_spool_mappings,set_tray_spool_map,delete_all_tray_spool_mappings, get_tags_for_prints, get_tags_for_group, add_tag_to_group, remove_tag_from_group
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print,get_all_tray_spool_mappings,set_tray_spool_map,delete_all_tray_spool_mappings, get_tags_for_prints, get_tags_for_group, add_tag_to_group, remove_tag_from_group,list_print_images
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
@@ -881,6 +881,13 @@ def print_history():
             model_path = os.path.join(app.static_folder, 'prints', model_file)
             if os.path.isfile(model_path):
                 p["model_file"] = model_file
+        
+        images = list_print_images(p["id"])  # retourne p.ex. [{"url": "...", "name": "..."}]
+        p["images"] = images
+        p["images_count"] = len(images)
+        p["has_images"] = bool(images)
+        # Accès rapide (utile côté template si besoin d’une première image)
+        p["first_image_url"] = images[0]["url"] if images else None
 
         if p.get("group_id"):
             gid = p["group_id"]

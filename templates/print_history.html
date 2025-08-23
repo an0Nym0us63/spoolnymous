@@ -1,6 +1,14 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<style>
+  .carousel .ratio img {
+    object-fit: contain;
+    max-height: 100%;
+    max-width: 100%;
+  }
+  .carousel-inner { background: #f8f9fa; }
+</style>
 {% import 'macros/hidden_args.jinja2' as macros %}
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
