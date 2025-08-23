@@ -21,6 +21,8 @@ import signal
 import hashlib
 from pathlib import Path
 import math
+import subprocess
+import tempfile
 
 from flask_login import LoginManager, login_required
 from auth import auth_bp, User, get_stored_user
@@ -48,6 +50,51 @@ logging.basicConfig(
 for name in ("urllib3", "urllib3.connectionpool", "requests.packages.urllib3"):
     lg = logging.getLogger(name)
     lg.setLevel(logging.WARNING)
+    
+
+ALLOWED_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}
+PHOTO_RE = re.compile(r"^Photo-(\d{2,})$", re.IGNORECASE)
+
+def _next_photo_index(upload_dir: Path) -> int:
+    """Retourne l'indice max trouvé (Photo-XX.*) + 1."""
+    max_idx = 0
+    if upload_dir.exists():
+        for p in upload_dir.iterdir():
+            if not p.is_file():
+                continue
+            m = PHOTO_RE.match(p.stem)
+            if m:
+                try:
+                    max_idx = max(max_idx, int(m.group(1)))
+                except ValueError:
+                    pass
+    return max_idx + 1
+
+def _ffmpeg_compress(in_path: Path, out_path: Path, to_webp: bool = True,
+                     max_w: int = 1600, max_h: int = 1600, quality: int = 80) -> None:
+    """
+    Compresse l'image via ffmpeg sans dépendances Python.
+    - to_webp=True : encode libwebp (garde l'alpha), sinon JPEG.
+    - Redimensionne à max_w×max_h (aspect conservé).
+    - Supprime les métadonnées.
+    """
+    scale = f"scale='min(iw,{max_w})':'min(ih,{max_h})':force_original_aspect_ratio=decrease"
+    common = [
+        "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+        "-nostdin",
+        "-i", str(in_path),
+        "-vf", scale,
+        "-map_metadata", "-1",
+        "-an",
+    ]
+    if to_webp:
+        # WebP : bon ratio, alpha supporté. quality 0-100 ; compression_level 0-6
+        cmd = common + ["-c:v", "libwebp", "-q:v", str(quality), "-compression_level", "4", str(out_path)]
+    else:
+        # JPEG : universel, pas d’alpha. quality via -q:v (2-5 ≈ 90-70%)
+        # On force l’espace couleur compatible.
+        cmd = common + ["-c:v", "mjpeg", "-q:v", "3", "-pix_fmt", "yuvj420p", str(out_path)]
+    subprocess.run(cmd, check=True)
 
 COLOR_FAMILIES = {
     # Neutres
@@ -2632,7 +2679,7 @@ def api_ui_update_filament(filament_id):
 
 @app.route("/upload_photo/<int:print_id>", methods=["POST"])
 def upload_print_photo(print_id):
-    # Récupère plusieurs fichiers (champ 'photos') ou fallback 'photo'
+    # Plusieurs fichiers sous 'photos' (notre input multiple), fallback 'photo'
     files = request.files.getlist("photos")
     if not files:
         one = request.files.get("photo")
@@ -2646,32 +2693,42 @@ def upload_print_photo(print_id):
     upload_dir = Path(app.static_folder) / "uploads" / "prints" / str(print_id)
     upload_dir.mkdir(parents=True, exist_ok=True)
 
-    # Trouver l'indice max existant (Photo-XX.ext)
-    max_idx = 0
-    for p in upload_dir.iterdir():
-        if not p.is_file(): 
+    saved = 0
+    for storage in files:
+        if not storage or not storage.filename:
             continue
-        stem = p.stem  # sans extension
-        m = PHOTO_RE.match(stem)
-        if m:
+        ext = os.path.splitext(storage.filename)[1].lower()
+        if ext not in ALLOWED_EXTS:
+            continue
+
+        # Écrit le fichier uploadé en temporaire
+        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
+            storage.save(tmp.name)
+            tmp_path = Path(tmp.name)
+
+        try:
+            # Choix du format de sortie : WebP conseillé (alpha + poids), sinon JPEG
+            to_webp = True
+            out_ext = ".webp" if to_webp else ".jpg"
+
+            # Nom Photo-XX.ext basé sur le max existant
+            idx = _next_photo_index(upload_dir)
+            out_path = upload_dir / f"Photo-{idx:02d}{out_ext}"
+
+            # Compression
+            _ffmpeg_compress(tmp_path, out_path, to_webp=to_webp, max_w=800, max_h=800, quality=80)
+            saved += 1
+        except subprocess.CalledProcessError as e:
+            # ffmpeg a échoué → on ignore ce fichier (option : flash d’erreur)
+            app.logger.warning("ffmpeg compress error: %s", e)
+        finally:
             try:
-                max_idx = max(max_idx, int(m.group(1)))
-            except ValueError:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
                 pass
 
-    saved = 0
-    for f in files:
-        ext = os.path.splitext(f.filename)[1].lower()
-        if ext not in ALLOWED_EXTS:
-            # on ignore silencieusement (ou flash si tu préfères)
-            continue
-        max_idx += 1
-        filename = f"Photo-{max_idx:02d}{ext}"
-        f.save(upload_dir / filename)
-        saved += 1
-
     if saved == 0:
-        flash("Aucune photo valide (extensions autorisées: JPG, PNG, WEBP).", "warning")
+        flash("Aucune photo valide (extensions: JPG, PNG, WEBP, HEIC).", "warning")
     elif saved == 1:
         flash("Photo ajoutée.", "success")
     else:

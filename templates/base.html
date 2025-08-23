@@ -250,55 +250,116 @@ document.addEventListener("DOMContentLoaded", function () {
 })();
 </script>
 {% endblock %}
-<input id="__hidden_photo_input__" type="file" accept="image/*" class="d-none" multiple>
+<!-- Inputs fichiers globaux -->
+<input id="__hidden_photo_input_gallery__" type="file" accept="image/*" class="d-none" multiple>
+<input id="__hidden_photo_input_camera__"  type="file" accept="image/*" capture="environment" class="d-none">
+
+<!-- Petite modale de choix (affichée uniquement sur mobile par JS) -->
+<div class="modal fade" id="photoChoiceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title">Ajouter une photo</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body d-grid gap-2">
+        <button type="button" class="btn btn-primary"  id="btnPhotoCapture">📷 Prendre une photo</button>
+        <button type="button" class="btn btn-outline-secondary" id="btnPhotoGallery">🖼️ Choisir depuis la galerie</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <script>
-   window.__currentPrintId__ = null;
-  window.__isUploading__ = false;
+  // État global minimal
+  window.__currentPrintId__ = null;
+  window.__isUploading__    = false;
 
+  // Détection "mobile" raisonnable (Android/iOS)
+  function isMobileDevice() {
+    const ua = navigator.userAgent || navigator.vendor || window.opera || "";
+    const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    return /android|iphone|ipad|ipod/i.test(ua) || coarse;
+  }
+
+  // Ouvre la galerie (multi)
   window.triggerPhotoUpload = function (printId) {
     if (window.__isUploading__) return;
     window.__currentPrintId__ = printId;
-    const input = document.getElementById('__hidden_photo_input__');
+    const input = document.getElementById('__hidden_photo_input_gallery__');
     if (!input) return;
     input.value = '';
-    input.click(); // gesture direct → OK mobile
+    input.click();
   };
 
-  document.addEventListener('DOMContentLoaded', function () {
-    const input = document.getElementById('__hidden_photo_input__');
+  // Ouvre directement la caméra (une photo)
+  window.triggerPhotoCapture = function (printId) {
+    if (window.__isUploading__) return;
+    window.__currentPrintId__ = printId;
+    const input = document.getElementById('__hidden_photo_input_camera__');
     if (!input) return;
+    input.value = '';
+    input.click();
+  };
 
-    input.addEventListener('change', async function () {
-      const files = Array.from(input.files || []);
-      const pid   = window.__currentPrintId__;
-      if (!files.length || !pid) return;
+  // Entrée unique dans le menu Actions
+  window.triggerPhotoUnified = function (printId) {
+    if (window.__isUploading__) return;
+    if (isMobileDevice()) {
+      window.__currentPrintId__ = printId;
+      const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('photoChoiceModal'));
+      modal.show();
+    } else {
+      // Desktop : on va direct sur sélection multiple
+      window.triggerPhotoUpload(printId);
+    }
+  };
 
-      try {
-        window.__isUploading__ = true;
-
-        // On envoie TOUT en une seule requête (champ 'photos')
-        const fd = new FormData();
-        for (const f of files) fd.append('photos', f);
-
-        const resp = await fetch(`/upload_photo/${pid}`, {
-          method: 'POST',
-          body: fd
-        });
-
-        if (!resp.ok) {
-          console.error('Upload failed', resp.status);
-        } else {
-          location.reload(); // pour que le carrousel récupère les nouvelles images
-        }
-      } catch (e) {
-        console.error('Upload error', e);
-      } finally {
-        window.__isUploading__ = false;
-        window.__currentPrintId__ = null;
-        input.value = '';
+  async function uploadFiles(files, printId) {
+    if (!files || !files.length || !printId) return;
+    try {
+      window.__isUploading__ = true;
+      const fd = new FormData();
+      for (const f of files) fd.append('photos', f); // backend accepte déjà 'photos'
+      const resp = await fetch(`/upload_photo/${printId}`, { method: 'POST', body: fd });
+      if (!resp.ok) {
+        console.error('Upload failed', resp.status);
+      } else {
+        location.reload(); // rafraîchir carrousel
       }
+    } catch (e) {
+      console.error('Upload error', e);
+    } finally {
+      window.__isUploading__ = false;
+      window.__currentPrintId__ = null;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const gal   = document.getElementById('__hidden_photo_input_gallery__');
+    const cam   = document.getElementById('__hidden_photo_input_camera__');
+    const modalEl = document.getElementById('photoChoiceModal');
+
+    if (gal) gal.addEventListener('change', () => {
+      const pid = window.__currentPrintId__; uploadFiles(Array.from(gal.files || []), pid); gal.value = '';
+      // Fermer la modale si elle est ouverte (mobile)
+      if (modalEl) { const m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
     }, { passive: true });
+
+    if (cam) cam.addEventListener('change', () => {
+      const pid = window.__currentPrintId__; uploadFiles(Array.from(cam.files || []), pid); cam.value = '';
+      if (modalEl) { const m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
+    }, { passive: true });
+
+    // Boutons de la modale (mobile)
+    const btnCap = document.getElementById('btnPhotoCapture');
+    const btnGal = document.getElementById('btnPhotoGallery');
+    if (btnCap) btnCap.addEventListener('click', () => window.triggerPhotoCapture(window.__currentPrintId__));
+    if (btnGal) btnGal.addEventListener('click', () => window.triggerPhotoUpload(window.__currentPrintId__));
+
+    // Améliore l’expérience dans le dropdown Actions (évite autoclose instantané)
+    document.querySelectorAll('.dropdown[data-bs-auto-close="outside"]').forEach(() => {});
   });
 </script>
 </body>
