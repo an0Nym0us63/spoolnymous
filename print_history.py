@@ -1777,4 +1777,47 @@ def list_print_images(print_id: str | int | None = None):
 
     return sorted(uniq, key=sort_key)
 
+def list_group_images(group_id: str | int | None = None):
+    """
+    Retourne une liste de dicts {url, name} des images trouvées pour ce group.
+    Même logique de tri que pour les prints.
+    """
+    base_dir = Path(__file__).resolve().parent
+    exts = {".jpg", ".jpeg", ".png", ".webp"}
+    results = []
+
+    def scan(dir_id):
+        if dir_id is None:
+            return
+        d = base_dir / "static" / "uploads" / "groups" / str(dir_id)
+        if not d.exists():
+            return
+        for p in sorted(d.iterdir()):
+            if p.is_file() and p.suffix.lower() in exts:
+                results.append({
+                    "url": f"/static/uploads/groups/{dir_id}/{p.name}",
+                    "name": p.stem,
+                })
+
+    scan(group_id)
+
+    # dédoublonnage
+    seen = set()
+    uniq = []
+    for r in results:
+        key = (r["url"], r["name"])
+        if key not in seen:
+            seen.add(key)
+            uniq.append(r)
+
+    def sort_key(item):
+        m = _IMPRESSION_RE.match(item["name"])
+        if m:
+            pct = int(m.group(1))
+            return (0, -pct)
+        else:
+            return (1, item["name"].lower())
+
+    return sorted(uniq, key=sort_key)
+
 create_database()

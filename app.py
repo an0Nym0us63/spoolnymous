@@ -36,7 +36,7 @@ from filament import generate_filament_brand_code, generate_filament_temperature
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel,insert_manual_print
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print,get_all_tray_spool_mappings,set_tray_spool_map,delete_all_tray_spool_mappings, get_tags_for_prints, get_tags_for_group, add_tag_to_group, remove_tag_from_group,list_print_images
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print,get_all_tray_spool_mappings,set_tray_spool_map,delete_all_tray_spool_mappings, get_tags_for_prints, get_tags_for_group, add_tag_to_group, remove_tag_from_group,list_print_images,list_group_images
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
@@ -1000,6 +1000,9 @@ def print_history():
                     usage["grams_used"] += filament["grams_used"]
                     usage["cost"] += filament.get("cost", 0.0)
                     usage["normal_cost"] += filament.get("normal_cost", 0.0)
+            entry["images"] = list_group_images(entry["id"])
+            entry["images_count"] = len(entry["images"])
+            entry["has_images"] = bool(entry["images"])
 
 
         else:
@@ -2678,19 +2681,31 @@ def api_ui_update_filament(filament_id):
         return jsonify({"ok": False, "error": "server", "message": str(e)}), 500
 
 @app.route("/upload_photo/<int:print_id>", methods=["POST"])
-def upload_print_photo(print_id):
-    # Plusieurs fichiers sous 'photos' (notre input multiple), fallback 'photo'
+def upload_print_photo_legacy(print_id):
+    # redirige vers la logique générique prints
+    with app.test_request_context():
+        return upload_entity_photo("prints", print_id)
+
+@app.route("/upload_photo/<entity>/<int:entity_id>", methods=["POST"])
+def upload_entity_photo(entity, entity_id):
+    """
+    Upload photo(s) pour une entité ('prints' ou 'groups').
+    Sauvegarde en: static/uploads/<entity>/<entity_id>/Photo-XX.webp
+    """
+    entity = (entity or "").strip().lower()
+    if entity not in {"prints", "groups"}:
+        abort(404)
+
     files = request.files.getlist("photos")
     if not files:
         one = request.files.get("photo")
         if one:
             files = [one]
-
     if not files:
         flash("Aucun fichier fourni", "danger")
         return redirect(request.referrer or url_for("print_history"))
 
-    upload_dir = Path(app.static_folder) / "uploads" / "prints" / str(print_id)
+    upload_dir = Path(app.static_folder) / "uploads" / entity / str(entity_id)
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     saved = 0
@@ -2701,25 +2716,18 @@ def upload_print_photo(print_id):
         if ext not in ALLOWED_EXTS:
             continue
 
-        # Écrit le fichier uploadé en temporaire
         with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
             storage.save(tmp.name)
             tmp_path = Path(tmp.name)
 
         try:
-            # Choix du format de sortie : WebP conseillé (alpha + poids), sinon JPEG
             to_webp = True
             out_ext = ".webp" if to_webp else ".jpg"
-
-            # Nom Photo-XX.ext basé sur le max existant
             idx = _next_photo_index(upload_dir)
             out_path = upload_dir / f"Photo-{idx:02d}{out_ext}"
-
-            # Compression
             _ffmpeg_compress(tmp_path, out_path, to_webp=to_webp, max_w=800, max_h=800, quality=80)
             saved += 1
         except subprocess.CalledProcessError as e:
-            # ffmpeg a échoué → on ignore ce fichier (option : flash d’erreur)
             app.logger.warning("ffmpeg compress error: %s", e)
         finally:
             try:
@@ -2735,4 +2743,5 @@ def upload_print_photo(print_id):
         flash(f"{saved} photos ajoutées.", "success")
 
     return redirect(request.referrer or url_for("print_history"))
+
 app.register_blueprint(auth_bp)

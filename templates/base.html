@@ -272,21 +272,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 <script>
-  // État global minimal
-  window.__currentPrintId__ = null;
-  window.__isUploading__    = false;
-
-  // Détection "mobile" raisonnable (Android/iOS)
-  function isMobileDevice() {
-    const ua = navigator.userAgent || navigator.vendor || window.opera || "";
-    const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-    return /android|iphone|ipad|ipod/i.test(ua) || coarse;
+  // --- Helpers de normalisation de cible ---
+  function normalizeTarget(arg) {
+    // Legacy: nombre => print
+    if (typeof arg === 'number') return { type: 'prints', id: arg };
+    // Objet {type,id}
+    if (arg && typeof arg === 'object' && (arg.type === 'prints' || arg.type === 'groups') && Number.isFinite(arg.id)) {
+      return { type: arg.type, id: arg.id };
+    }
+    // Sécurité: null
+    return null;
   }
 
+  // État courant
+  window.__isUploading__ = false;
+  window.__currentPhotoTarget__ = null;
+
   // Ouvre la galerie (multi)
-  window.triggerPhotoUpload = function (printId) {
+  window.triggerPhotoUpload = function (target) {
     if (window.__isUploading__) return;
-    window.__currentPrintId__ = printId;
+    const norm = normalizeTarget(target);
+    if (!norm) return;
+    window.__currentPhotoTarget__ = norm;
     const input = document.getElementById('__hidden_photo_input_gallery__');
     if (!input) return;
     input.value = '';
@@ -294,45 +301,63 @@ document.addEventListener("DOMContentLoaded", function () {
   };
 
   // Ouvre directement la caméra (une photo)
-  window.triggerPhotoCapture = function (printId) {
+  window.triggerPhotoCapture = function (target) {
     if (window.__isUploading__) return;
-    window.__currentPrintId__ = printId;
+    const norm = normalizeTarget(target);
+    if (!norm) return;
+    window.__currentPhotoTarget__ = norm;
     const input = document.getElementById('__hidden_photo_input_camera__');
     if (!input) return;
     input.value = '';
     input.click();
   };
 
-  // Entrée unique dans le menu Actions
-  window.triggerPhotoUnified = function (printId) {
+  // Entrée unifiée (menu Actions) — mobile: modale, desktop: galerie
+  window.triggerPhotoUnified = function (target) {
     if (window.__isUploading__) return;
+    const norm = normalizeTarget(target);
+    if (!norm) return;
+
+    function isMobileDevice() {
+      const ua = navigator.userAgent || '';
+      const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
+      return /android|iphone|ipad|ipod/i.test(ua) || coarse;
+    }
+
     if (isMobileDevice()) {
-      window.__currentPrintId__ = printId;
+      window.__currentPhotoTarget__ = norm;
       const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('photoChoiceModal'));
       modal.show();
     } else {
-      // Desktop : on va direct sur sélection multiple
-      window.triggerPhotoUpload(printId);
+      window.triggerPhotoUpload(norm);
     }
   };
 
-  async function uploadFiles(files, printId) {
-    if (!files || !files.length || !printId) return;
+  async function uploadFiles(files) {
+    const target = window.__currentPhotoTarget__;
+    if (!files || !files.length || !target) return;
+
     try {
       window.__isUploading__ = true;
       const fd = new FormData();
-      for (const f of files) fd.append('photos', f); // backend accepte déjà 'photos'
-      const resp = await fetch(`/upload_photo/${printId}`, { method: 'POST', body: fd });
+      for (const f of files) fd.append('photos', f);
+
+      // Route générique
+      const resp = await fetch(`/upload_photo/${encodeURIComponent(target.type)}/${encodeURIComponent(target.id)}`, {
+        method: 'POST',
+        body: fd
+      });
+
       if (!resp.ok) {
         console.error('Upload failed', resp.status);
       } else {
-        location.reload(); // rafraîchir carrousel
+        location.reload();
       }
     } catch (e) {
       console.error('Upload error', e);
     } finally {
       window.__isUploading__ = false;
-      window.__currentPrintId__ = null;
+      window.__currentPhotoTarget__ = null;
     }
   }
 
@@ -342,24 +367,16 @@ document.addEventListener("DOMContentLoaded", function () {
     const modalEl = document.getElementById('photoChoiceModal');
 
     if (gal) gal.addEventListener('change', () => {
-      const pid = window.__currentPrintId__; uploadFiles(Array.from(gal.files || []), pid); gal.value = '';
-      // Fermer la modale si elle est ouverte (mobile)
+      uploadFiles(Array.from(gal.files || []));
+      gal.value = '';
       if (modalEl) { const m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
     }, { passive: true });
 
     if (cam) cam.addEventListener('change', () => {
-      const pid = window.__currentPrintId__; uploadFiles(Array.from(cam.files || []), pid); cam.value = '';
+      uploadFiles(Array.from(cam.files || []));
+      cam.value = '';
       if (modalEl) { const m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
     }, { passive: true });
-
-    // Boutons de la modale (mobile)
-    const btnCap = document.getElementById('btnPhotoCapture');
-    const btnGal = document.getElementById('btnPhotoGallery');
-    if (btnCap) btnCap.addEventListener('click', () => window.triggerPhotoCapture(window.__currentPrintId__));
-    if (btnGal) btnGal.addEventListener('click', () => window.triggerPhotoUpload(window.__currentPrintId__));
-
-    // Améliore l’expérience dans le dropdown Actions (évite autoclose instantané)
-    document.querySelectorAll('.dropdown[data-bs-auto-close="outside"]').forEach(() => {});
   });
 </script>
 </body>

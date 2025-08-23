@@ -101,6 +101,12 @@
     🧩 Créer des objets
   </a>
 </li>
+<li>
+  <a class="dropdown-item text-success" href="#"
+     onclick="triggerPhotoUnified({ type: 'groups', id: {{ entry.id }} }); return false;">
+    📸 Uploader photo
+  </a>
+</li>
   </ul>
 </div>
             <div class="row row-cols-2 row-cols-md-5 g-2 mb-2 text-center">
@@ -120,6 +126,40 @@
   </span></div>
 {% endif %}
             </div>
+{% if entry.images and entry.images|length > 0 %}
+  {% set gid = entry.id %}
+  <div id="carousel-group-{{ gid }}" class="carousel slide print-carousel mb-3" data-bs-ride="false" data-bs-touch="true" data-bs-interval="false">
+    <div class="carousel-inner rounded">
+      {% for img in entry.images %}
+        <div class="carousel-item {% if loop.first %}active{% endif %}" data-name="{{ img.name }}">
+          <div class="preview-frame d-flex align-items-center justify-content-center">
+            <img src="{{ img.url }}" alt="{{ img.name }}" class="preview-img" loading="lazy">
+          </div>
+          <div class="carousel-caption d-block">
+            <small class="caption-badge">{{ img.name }}</small>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if entry.images|length > 1 %}
+      <button class="carousel-control-prev" type="button" data-bs-target="#carousel-group-{{ gid }}" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Précédent</span>
+      </button>
+      <button class="carousel-control-next" type="button" data-bs-target="#carousel-group-{{ gid }}" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Suivant</span>
+      </button>
+
+      <div class="carousel-indicators">
+        {% for _ in entry.images %}
+          <button type="button" data-bs-target="#carousel-group-{{ gid }}" data-bs-slide-to="{{ loop.index0 }}" class="{% if loop.first %}active{% endif %}" aria-current="{% if loop.first %}true{% else %}false{% endif %}"></button>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endif %}
 <div style="height: 0.2rem;"></div>
             <div class="mb-3 mt-2">
   <div class="accordion" id="groupFilamentAccordion_{{ entry.id }}">
