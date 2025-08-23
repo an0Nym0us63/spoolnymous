@@ -1557,10 +1557,14 @@ def augmentTrayData(spool_list, tray_data, tray_id):
         
             if "last_used" in spool:
                 try:
-                    dt = datetime.strptime(spool["last_used"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=ZoneInfo("UTC"))
+                    dt = datetime.strptime(spool["last_used"], "%Y-%m-%dT%H:%M:%SZ")
                 except ValueError:
-                    dt = datetime.strptime(spool["last_used"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=ZoneInfo("UTC"))
-        
+                    try:
+                        dt = datetime.strptime(spool["last_used"], "%Y-%m-%dT%H:%M:%S.%fZ")
+                    except ValueError:
+                        dt = datetime.strptime(spool["last_used"], "%Y-%m-%d %H:%M:%S")
+            
+                dt = dt.replace(tzinfo=ZoneInfo("UTC"))
                 local_time = dt.astimezone()
                 tray_data["last_used"] = local_time.strftime("%d.%m.%Y %H:%M:%S")
         
