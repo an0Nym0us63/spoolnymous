@@ -1573,12 +1573,12 @@ def augmentTrayData(spool_list, tray_data, tray_id):
                     except ValueError:
                         continue
 
-    if dt is None:
-        raise ValueError(f"Format de date non reconnu : {raw}")
-
-    dt = dt.replace(tzinfo=ZoneInfo("UTC"))
-    local_time = dt.astimezone()
-    tray_data["last_used"] = local_time.strftime("%d.%m.%Y %H:%M:%S")
+                if dt is None:
+                    raise ValueError(f"Format de date non reconnu : {raw}")
+            
+                dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+                local_time = dt.astimezone()
+                tray_data["last_used"] = local_time.strftime("%d.%m.%Y %H:%M:%S")
         
             else:
                 tray_data["last_used"] = "-"
