@@ -181,16 +181,16 @@
       </div>
 
       {# --- Aperçu/carrousel du print --- #}
-{% set pid = p.id %}
+{% set pid = print.id %}
 <div id="carousel-{{ pid }}" class="carousel slide" data-bs-ride="false">
   <div class="carousel-inner rounded border">
 
     {# Slide 0 : thumbnail 3MF (toujours présent) #}
     <div class="carousel-item active">
       <div class="ratio ratio-16x9 bg-light d-flex align-items-center justify-content-center">
-        {% if p.model_file %}
+        {% if print.model_file %}
           <img
-            src="{{ url_for('static', filename='prints/' ~ p.model_file) }}"
+            src="{{ url_for('static', filename='prints/' ~ print.model_file) }}"
             alt="Aperçu 3MF"
             class="img-fluid"
             loading="lazy"
@@ -206,7 +206,7 @@
     </div>
 
     {# Slides suivantes : images disque (si présentes) #}
-    {% for img in p.images or [] %}
+    {% for img in print.images or [] %}
       <div class="carousel-item">
         <div class="ratio ratio-16x9 bg-light d-flex align-items-center justify-content-center">
           <img
@@ -225,7 +225,7 @@
   </div>
 
   {# Contrôles & indicateurs : seulement si on a au moins une image en plus du 3MF #}
-  {% if p.images and (p.images|length) > 0 %}
+  {% if print.images and (print.images|length) > 0 %}
     <button class="carousel-control-prev" type="button"
             data-bs-target="#carousel-{{ pid }}" data-bs-slide="prev">
       <span class="carousel-control-prev-icon" aria-hidden="true"></span>
@@ -241,7 +241,7 @@
       <button type="button" data-bs-target="#carousel-{{ pid }}"
               data-bs-slide-to="0" class="active"
               aria-current="true" aria-label="Aperçu 3MF"></button>
-      {% for img in p.images %}
+      {% for img in print.images %}
         <button type="button" data-bs-target="#carousel-{{ pid }}"
                 data-bs-slide-to="{{ loop.index }}"
                 aria-label="{{ img.name }}"></button>
