@@ -299,5 +299,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (input) input.focus();
     }, 0);
   });
+  document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.carousel.print-carousel').forEach(function (el) {
+    // force l'instance Bootstrap avec touch activé
+    bootstrap.Carousel.getOrCreateInstance(el, { touch: true, interval: false, ride: false });
+    // laisse le scroll vertical natif, et autorise le geste horizontal
+    el.style.touchAction = 'pan-y';
+  });
+});
 </script>
 {% endblock %}
