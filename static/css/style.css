@@ -533,18 +533,30 @@
       font-size: 0.75rem;
     }
   }
-	  /* flèches en blanc + petite ombre pour contraster */
-  .print-carousel .carousel-control-prev-icon,
-  .print-carousel .carousel-control-next-icon {
-    filter: invert(1) drop-shadow(0 0 2px rgba(0,0,0,.6));
-  }
-  /* puces (indicateurs) claires */
-  .print-carousel .carousel-indicators [data-bs-target] {
-    background-color: rgba(255,255,255,.6);
-  }
-  .print-carousel .carousel-indicators .active {
-    background-color: #fff;
-  }
+  
+  /* Flèches blanches (SVG inline) */
+.print-carousel .carousel-control-prev-icon {
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23ffffff' viewBox='0 0 8 8'%3E%3Cpath d='M5.5 0L4 1.5 6.5 4 4 6.5 5.5 8l4-4-4-4z'/%3E%3C/svg%3E");
+}
+
+.print-carousel .carousel-control-next-icon {
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23ffffff' viewBox='0 0 8 8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z'/%3E%3C/svg%3E");
+}
+
+/* Optionnel : petite ombre pour contraster */
+.print-carousel .carousel-control-prev-icon,
+.print-carousel .carousel-control-next-icon {
+  filter: drop-shadow(0 0 2px rgba(0,0,0,.6));
+}
+
+/* Indicateurs clairs */
+.print-carousel .carousel-indicators [data-bs-target] {
+  background-color: rgba(255,255,255,.6) !important;
+}
+
+.print-carousel .carousel-indicators .active {
+  background-color: #fff !important;
+}
 
   /* cadre/tailles images */
   .print-carousel .carousel-inner { background: transparent; }
