@@ -1716,20 +1716,20 @@ def _get_object_parent(object_id: int | str) -> tuple[str | None, int | None]:
         return (None, None)
     return (row[0], row[1])
 
-
 def list_object_images(object_id: int | str | None) -> List[Dict[str, str]]:
     """
     Retourne la liste d’images pour un objet, en concaténant :
-      1) Celles de l'objet (static/uploads/objects/<object_id>/)
-      2) Celles du référent : print ou group (via print_history), avec nom préfixé par 'Ref-'
-    Ordre : d’abord objet (trié), puis référent (trié).
+      1) Images de l'objet (static/uploads/objects/<object_id>/)
+      2) Images du référent (print ou group) via print_history,
+         préfixées 'Ref-', avec ordre :
+            - d’abord Ref-Photo-*
+            - puis Ref-Impression XX%
     """
     if object_id is None:
         return []
 
     base_dir = Path(__file__).resolve().parent
 
-    # --- 1) Images propres à l'objet ---
     exts = {".jpg", ".jpeg", ".png", ".webp"}
     obj_imgs: List[Dict[str, str]] = []
     obj_dir = base_dir / "static" / "uploads" / "objects" / str(object_id)
@@ -1742,7 +1742,7 @@ def list_object_images(object_id: int | str | None) -> List[Dict[str, str]]:
                 })
     obj_imgs = _sort_images(obj_imgs)
 
-    # --- 2) Images du référent ---
+    # --- Images du référent ---
     parent_type, parent_id = _get_object_parent(object_id)
     ref_imgs: List[Dict[str, str]] = []
 
@@ -1751,13 +1751,155 @@ def list_object_images(object_id: int | str | None) -> List[Dict[str, str]]:
     elif parent_type == "group" and parent_id is not None:
         ref_imgs = list_group_images(parent_id) or []
 
-    # Préfixer les noms des images de référence
+    # Préfixer noms et dispatcher en buckets
+    ref_photos: List[Dict[str, str]] = []
+    ref_progress: List[Dict[str, str]] = []
+
     for r in ref_imgs:
-        r["name"] = f"Ref-{r['name']}"
+        name = r.get("name") or ""
+        if _IMPRESSION_RE.match(name):
+            ref_progress.append({"url": r["url"], "name": f"Ref-{name}"})
+        elif name.lower().startswith("photo-"):
+            ref_photos.append({"url": r["url"], "name": f"Ref-{name}"})
+        else:
+            # Si ce n'est ni Photo-* ni Impression, on l'assimile à Photo- par défaut
+            ref_photos.append({"url": r["url"], "name": f"Ref-{name}"})
 
-    ref_imgs = _sort_images(ref_imgs)
+    # Tri interne des buckets
+    ref_photos = sorted(ref_photos, key=lambda x: (x["name"] or "").lower())
+    def sort_key_progress(item):
+        m = _IMPRESSION_RE.match(item["name"].removeprefix("Ref-"))
+        return (0, -int(m.group(1))) if m else (1, item["name"].lower())
+    ref_progress = sorted(ref_progress, key=sort_key_progress)
 
-    # --- Concat ---
-    return list(obj_imgs) + list(ref_imgs)
+    # Concat: objets → ref_photos → ref_progress
+    return list(obj_imgs) + list(ref_photos) + list(ref_progress)
+
+def _get_group_object_ids(group_id: int | str) -> List[int]:
+    """
+    Récupère les IDs d'objets appartenant au groupe.
+    On tente d'abord une table de liaison (group_objects/object_groups),
+    sinon on fallback sur une colonne group_id dans 'objects',
+    et en dernier recours sur les objets dont le parent est ce group.
+    """
+    conn = _connect(); cur = conn.cursor()
+    ids: List[int] = []
+
+    # 1) table de liaison classique (essaie plusieurs noms possibles)
+    for table, col in (
+        ("group_objects", "object_id"),
+        ("objects_groups", "object_id"),
+    ):
+        try:
+            cur.execute(f"SELECT {col} FROM {table} WHERE group_id = ?", (group_id,))
+            rows = cur.fetchall()
+            if rows:
+                ids = [int(r[0]) for r in rows]
+                break
+        except Exception:
+            pass
+
+    # 2) fallback : colonne group_id sur objects
+    if not ids:
+        try:
+            cur.execute("SELECT id FROM objects WHERE group_id = ?", (group_id,))
+            rows = cur.fetchall()
+            ids = [int(r[0]) for r in rows]
+        except Exception:
+            pass
+
+    # 3) dernier recours : objets dont le parent est ce group
+    if not ids:
+        try:
+            cur.execute("SELECT id FROM objects WHERE parent_type = 'group' AND parent_id = ?", (group_id,))
+            rows = cur.fetchall()
+            ids = [int(r[0]) for r in rows]
+        except Exception:
+            pass
+
+    conn.close()
+    # dédoublonnage
+    seen = set()
+    out: List[int] = []
+    for oid in ids:
+        if oid not in seen:
+            seen.add(oid)
+            out.append(oid)
+    return out
+
+
+def list_group_object_images(group_id: int | str | None) -> List[Dict[str, str]]:
+    """
+    Retourne un flux d'images agrégé pour un *groupe d'objets* en respectant l'ordre :
+      1) Photos des objets du groupe (images propres aux objets)
+      2) Photos 'référentes' des objets (noms préfixés 'Ref-' et qui ne sont pas Impression)
+      3) 'Impression XX%' référentes des objets (préfixées 'Ref-')
+
+    Dédoublonne (url, name) globalement.
+    """
+    if group_id is None:
+        return []
+
+    # Récupère les objets du groupe
+    object_ids = _get_group_object_ids(group_id)
+    if not object_ids:
+        return []
+
+    # Buckets
+    bucket_obj_photos: List[Dict[str, str]] = []
+    bucket_ref_photos: List[Dict[str, str]] = []
+    bucket_ref_progress: List[Dict[str, str]] = []
+
+    for oid in object_ids:
+        # Utilise ta fonction existante qui mélange objet + référent,
+        # puis on re-partitionne en buckets selon le nom.
+        imgs = list_object_images(oid)  # [{url, name}]
+        for img in imgs:
+            name = img.get("name") or ""
+            # Les images objet (non préfixées 'Ref-')
+            if not name.startswith("Ref-"):
+                bucket_obj_photos.append(img)
+                continue
+
+            # Images référentes (préfixées 'Ref-') : distinguer photos vs impressions
+            name_wo_ref = name[4:]  # enlève 'Ref-'
+            if _IMPRESSION_RE.match(name_wo_ref):
+                bucket_ref_progress.append(img)
+            else:
+                bucket_ref_photos.append(img)
+
+    # Tris internes des buckets
+    #  - objets : alpha par name
+    bucket_obj_photos.sort(key=lambda x: (x.get("name") or "").lower())
+
+    #  - ref photos : alpha
+    bucket_ref_photos.sort(key=lambda x: (x.get("name") or "").lower())
+
+    #  - ref impressions : 'Impression XX%' par XX décroissant
+    def sort_key_progress(item: Dict[str, str]) -> Tuple[int, int, str]:
+        nm = (item.get("name") or "")
+        # nm commence par 'Ref-' ici, on retire pour matcher
+        nm_wo_ref = nm[4:] if nm.lower().startswith("ref-") else nm
+        m = _IMPRESSION_RE.match(nm_wo_ref)
+        if m:
+            try:
+                return (0, -int(m.group(1)), nm.lower())
+            except Exception:
+                return (0, 0, nm.lower())
+        return (1, 0, nm.lower())
+
+    bucket_ref_progress.sort(key=sort_key_progress)
+
+    # Dédoublonnage global en respectant l'ordre final
+    seen = set()
+    out: List[Dict[str, str]] = []
+    for coll in (bucket_obj_photos, bucket_ref_photos, bucket_ref_progress):
+        for r in coll:
+            key = (r.get("url"), r.get("name"))
+            if key not in seen:
+                seen.add(key)
+                out.append(r)
+
+    return out
     
 ensure_schema()

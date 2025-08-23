@@ -609,6 +609,9 @@ def safe_update_status(data):
                 if prev_status == status:
                     if now - first_seen >= 10:
                         final_status = "SUCCESS" if status == "FINISH" else "FAILED"
+                        if status == 'FAILED':
+                            pct=float(fields.get("progress"))
+                            snapshot_milestone(job_id, pct, basename=f"Impression-{pct}-echec")
                         update_print_field_with_job_id(job_id, "status", final_status)
                         PROCESSED_JOBS.add(job_id)
                         PENDING_JOBS.pop(job_id, None)

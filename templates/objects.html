@@ -303,6 +303,43 @@
     </ul>
   </div>
 </div>
+{% set imgs = group_obj_images.get(it.group.id, []) if group_obj_images is defined else [] %}
+{% if imgs %}
+  <div id="carousel-group-objects-{{ it.group.id }}" class="carousel slide print-carousel mb-3"
+       data-bs-ride="false" data-bs-touch="true" data-bs-interval="false">
+    <div class="carousel-inner rounded">
+      {% for img in imgs %}
+        <div class="carousel-item {% if loop.first %}active{% endif %}">
+          <div class="preview-frame d-flex align-items-center justify-content-center">
+            <img src="{{ img.url }}" alt="{{ img.name }}" class="preview-img" loading="lazy">
+          </div>
+          <div class="carousel-caption d-block">
+            <small class="caption-badge">{{ img.name }}</small>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if imgs|length > 1 %}
+      <button class="carousel-control-prev" type="button" data-bs-target="#carousel-group-objects-{{ it.group.id }}" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Précédent</span>
+      </button>
+      <button class="carousel-control-next" type="button" data-bs-target="#carousel-group-objects-{{ it.group.id }}" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Suivant</span>
+      </button>
+
+      <div class="carousel-indicators">
+        {% for _ in imgs %}
+          <button type="button" data-bs-target="#carousel-group-objects-{{ it.group.id }}"
+                  data-bs-slide-to="{{ loop.index0 }}" class="{% if loop.first %}active{% endif %}"
+                  aria-current="{% if loop.first %}true{% else %}false{% endif %}"></button>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endif %}
       <div class="d-flex flex-column gap-1 mt-1 card-body p-0">
         {% if g.objects and g.objects|length > 0 %}
                 {% for o in g.objects %}

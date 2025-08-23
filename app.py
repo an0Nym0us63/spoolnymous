@@ -40,7 +40,7 @@ from print_history import get_prints_with_filament, update_filament_spool, get_f
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
-from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects, list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory,rename_accessory, create_object_group, rename_object_group, assign_object_to_group, remove_object_from_group, search_object_groups, list_object_groups_with_counts,get_object_groups,set_desired_price,get_object,set_group_desired_price,get_tags_for_objects, add_object_tag as dal_add_object_tag, remove_object_tag as dal_remove_object_tag, get_tags_for_object_groups, add_tag_to_object_group as dal_add_tag_to_object_group, remove_tag_from_object_group as dal_remove_tag_from_object_group,list_object_images
+from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects, list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory,rename_accessory, create_object_group, rename_object_group, assign_object_to_group, remove_object_from_group, search_object_groups, list_object_groups_with_counts,get_object_groups,set_desired_price,get_object,set_group_desired_price,get_tags_for_objects, add_object_tag as dal_add_object_tag, remove_object_tag as dal_remove_object_tag, get_tags_for_object_groups, add_tag_to_object_group as dal_add_tag_to_object_group, remove_tag_from_object_group as dal_remove_tag_from_object_group,list_object_images,list_group_object_images
 from camera import serve_snapshot, svg_fallback
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
@@ -1952,17 +1952,19 @@ def objects_page():
 
     # 8) Contexte accessoires/tags pour les items visibles
     visible_object_ids = []
+    visible_group_ids = [] 
     for it in items_page:
         if it["type"] == "object":
             visible_object_ids.append(it["object"]["id"])
         else:
+            visible_group_ids.append(it["group"]["id"])
             visible_object_ids.extend([o["id"] for o in it["group"]["objects"]])
 
     all_ids = list(set(visible_object_ids))
     obj_accessories = {oid: list_object_accessories(oid) for oid in all_ids} if all_ids else {}
     obj_tags = get_tags_for_objects(all_ids) if all_ids else {}
     obj_images = {oid: list_object_images(oid) for oid in all_ids} if all_ids else {}
-
+    group_obj_images = {gid: list_group_object_images(gid) for gid in visible_group_ids} if visible_group_ids else {}
     summary = summarize_objects(filters)
 
     return render_template(
@@ -1974,7 +1976,8 @@ def objects_page():
         args=request.args,
         obj_tags=obj_tags,
         obj_accessories=obj_accessories,
-        obj_images=obj_images,     
+        obj_images=obj_images,
+        group_obj_images=group_obj_images
         page_title="Objets",
         currencysymbol="€",
         total_objects=summary["total_objects"],
