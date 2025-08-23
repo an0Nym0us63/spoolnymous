@@ -1780,10 +1780,12 @@ def list_print_images(print_id: str | int | None = None):
 def list_group_images(group_id: str | int | None = None):
     """
     Retourne une liste de dicts {url, name} pour un groupe, en concaténant :
-      1) Images propres au groupe:  static/uploads/groups/<group_id>/
-      2) Images de tous les prints du groupe (via list_print_images),
-         avec nom préfixé par 'Print-'.
-    Ordre : groupe (trié) puis prints (triés).
+      1) Images propres au groupe:                static/uploads/groups/<group_id>/
+      2) Images 'Photo-*' des prints du groupe    (via list_print_images), name préfixé 'Print-'
+      3) Images 'Impression XX%' des prints       (via list_print_images), name préfixé 'Print-'
+
+    Ordre strict : (1) groupe, (2) prints Photo-*, (3) prints Impression XX%.
+    Dédoublonnage global par (url, name).
     """
     base_dir = Path(__file__).resolve().parent
     exts = {".jpg", ".jpeg", ".png", ".webp"}
@@ -1802,18 +1804,21 @@ def list_group_images(group_id: str | int | None = None):
                     "name": p.stem,
                 })
 
-    # Tri: 'Impression XX%' (XX décroissant) puis alpha
-    def sort_key(item):
+    # Tri interne des images du groupe :
+    #  - Impression XX% d'abord (XX décroissant), puis alpha
+    def sort_key_group(item):
         m = _IMPRESSION_RE.match(item["name"])
         if m:
             pct = int(m.group(1))
             return (0, -pct)
         return (1, item["name"].lower())
 
-    group_results = sorted(group_results, key=sort_key)
+    group_results = sorted(group_results, key=sort_key_group)
 
-    # --- 2) Images des prints du groupe ---
-    print_results = []
+    # --- 2 & 3) Images des prints du groupe ---
+    photos_results = []      # uniquement noms commençant par 'Photo-'
+    progress_results = []    # uniquement 'Impression XX%'
+
     try:
         print_ids = get_group_print_ids(int(group_id))
     except Exception:
@@ -1821,25 +1826,44 @@ def list_group_images(group_id: str | int | None = None):
 
     for pid in print_ids:
         for img in (list_print_images(pid) or []):
-            # Préfixer le nom pour marquer la provenance
-            print_results.append({
-                "url": img["url"],
-                "name": f"Print-{img['name']}",
-            })
+            name = img.get("name") or ""
+            if _IMPRESSION_RE.match(name):
+                progress_results.append({
+                    "url": img["url"],
+                    "name": f"Print-{name}",
+                })
+            elif name.lower().startswith("photo-"):
+                photos_results.append({
+                    "url": img["url"],
+                    "name": f"Print-{name}",
+                })
+            else:
+                # Si tu préfères ignorer les autres, commente la ligne suivante.
+                photos_results.append({  # on les place dans le bucket "Photo-*" par défaut
+                    "url": img["url"],
+                    "name": f"Print-{name}",
+                })
 
-    print_results = sorted(print_results, key=sort_key)
+    # Tri interne des buckets prints :
+    #  - 'Photo-*' tri alpha
+    photos_results = sorted(photos_results, key=lambda x: (x["name"] or "").lower())
+    #  - 'Impression XX%' tri par XX décroissant
+    def sort_key_progress(item):
+        m = _IMPRESSION_RE.match(item["name"].removeprefix("Print-"))
+        return (0, -int(m.group(1))) if m else (1, item["name"].lower())
+    progress_results = sorted(progress_results, key=sort_key_progress)
 
-    # --- Dédoublonnage global (au cas où) ---
+    # --- Dédoublonnage global et concat ordre strict ---
     seen = set()
-    deduped = []
-    for coll in (group_results, print_results):
+    out = []
+
+    for coll in (group_results, photos_results, progress_results):
         for r in coll:
             key = (r["url"], r["name"])
             if key not in seen:
                 seen.add(key)
-                deduped.append(r)
+                out.append(r)
 
-    # Concat : groupe d'abord, puis prints
-    return deduped
+    return out
 
 create_database()
