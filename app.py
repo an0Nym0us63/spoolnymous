@@ -2541,7 +2541,6 @@ def sync_spoolman():
         return redirect(url_for("auth.settings"))
 
     try:
-        ensure_schema()  # au cas où
         summary = sync_from_spoolman(base_url, token=None)
         fsum = summary.get("filaments", {})
         ssum = summary.get("spools", {})
