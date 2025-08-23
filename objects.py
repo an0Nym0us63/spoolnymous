@@ -2,10 +2,10 @@ import sqlite3
 from typing import Optional, Dict, Any, List, Tuple, NamedTuple, Literal, TypedDict
 from datetime import datetime, timezone
 from collections.abc import Iterable
-
-# On réutilise la config DB telle qu'elle existe déjà dans le projet
-from print_history import db_config
-
+from pathlib import Path
+import re
+from print_history import db_config,list_print_images, list_group_images
+_IMPRESSION_RE = re.compile(r"^Impression[-_\s]*(\d+)%?$", re.IGNORECASE)
 def _normalize_sale_filter(filters: dict) -> str:
     """
     Harmonise la valeur du filtre 'Vente' en une des valeurs:
@@ -1689,5 +1689,75 @@ def get_tags_for_object_groups(group_ids: list[int]) -> dict[int, list[str]]:
         # uniques + tri case-insensitive
         res[gid] = sorted(sorted(set(res[gid])), key=lambda s: s.lower())
     return res
+    
+def _sort_images(images: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    """Tri générique : Impression XX% décroissant puis alpha par name"""
+    def sort_key(item: Dict[str, str]):
+        m = _IMPRESSION_RE.match(item.get("name") or "")
+        if m:
+            try:
+                return (0, -int(m.group(1)))
+            except Exception:
+                return (0, 0)
+        return (1, (item.get("name") or "").lower())
+    return sorted(images, key=sort_key)
+
+
+def _get_object_parent(object_id: int | str) -> tuple[str | None, int | None]:
+    """
+    Retourne (parent_type, parent_id) pour l'objet ou (None, None) si introuvable.
+    """
+    conn = _connect()
+    cur = conn.cursor()
+    cur.execute("SELECT parent_type, parent_id FROM objects WHERE id = ?", (object_id,))
+    row = cur.fetchone()
+    conn.close()
+    if not row:
+        return (None, None)
+    return (row[0], row[1])
+
+
+def list_object_images(object_id: int | str | None) -> List[Dict[str, str]]:
+    """
+    Retourne la liste d’images pour un objet, en concaténant :
+      1) Celles de l'objet (static/uploads/objects/<object_id>/)
+      2) Celles du référent : print ou group (via print_history), avec nom préfixé par 'Ref-'
+    Ordre : d’abord objet (trié), puis référent (trié).
+    """
+    if object_id is None:
+        return []
+
+    base_dir = Path(__file__).resolve().parent
+
+    # --- 1) Images propres à l'objet ---
+    exts = {".jpg", ".jpeg", ".png", ".webp"}
+    obj_imgs: List[Dict[str, str]] = []
+    obj_dir = base_dir / "static" / "uploads" / "objects" / str(object_id)
+    if obj_dir.exists():
+        for p in sorted(obj_dir.iterdir()):
+            if p.is_file() and p.suffix.lower() in exts:
+                obj_imgs.append({
+                    "url": f"/static/uploads/objects/{object_id}/{p.name}",
+                    "name": p.stem,
+                })
+    obj_imgs = _sort_images(obj_imgs)
+
+    # --- 2) Images du référent ---
+    parent_type, parent_id = _get_object_parent(object_id)
+    ref_imgs: List[Dict[str, str]] = []
+
+    if parent_type == "print" and parent_id is not None:
+        ref_imgs = list_print_images(parent_id) or []
+    elif parent_type == "group" and parent_id is not None:
+        ref_imgs = list_group_images(parent_id) or []
+
+    # Préfixer les noms des images de référence
+    for r in ref_imgs:
+        r["name"] = f"Ref-{r['name']}"
+
+    ref_imgs = _sort_images(ref_imgs)
+
+    # --- Concat ---
+    return list(obj_imgs) + list(ref_imgs)
     
 ensure_schema()

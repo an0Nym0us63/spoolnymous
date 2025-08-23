@@ -177,6 +177,12 @@
           </a>
         </li>
       {% endif %}
+	  <li>
+  <a class="dropdown-item text-success" href="#"
+     onclick="triggerPhotoUnified({ type: 'objects', id: {{ o.id }} }); return false;">
+    📸 Uploader photo
+  </a>
+</li>
       <li>
         <a href="#"
            class="dropdown-item text-danger object-delete-btn"
@@ -193,11 +199,49 @@
   </div>
 </div>
 {% if o.thumbnail %}
-	  <div class="text-center">
-      <div class="thumb" style="--thumb-size: 200px;">
-        <img src="{{o.thumbnail }}"
-             alt="Print Image" class="thumb-img" />
+	  <div class="text-center">{% set imgs = obj_images.get(o.id, []) if obj_images is defined else [] %}
+{% if imgs %}
+  <div id="carousel-object-{{ o.id }}"
+       class="carousel slide print-carousel mb-3"
+       data-bs-ride="false" data-bs-touch="true" data-bs-interval="false">
+
+    <div class="carousel-inner rounded">
+      {% for img in imgs %}
+        <div class="carousel-item {% if loop.first %}active{% endif %}">
+          <div class="preview-frame d-flex align-items-center justify-content-center">
+            <img src="{{ img.url }}" alt="{{ img.name }}" class="preview-img" loading="lazy">
+          </div>
+          <div class="carousel-caption d-block">
+            <small class="caption-badge">{{ img.name }}</small>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if imgs|length > 1 %}
+      <button class="carousel-control-prev" type="button"
+              data-bs-target="#carousel-object-{{ o.id }}" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Précédent</span>
+      </button>
+      <button class="carousel-control-next" type="button"
+              data-bs-target="#carousel-object-{{ o.id }}" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Suivant</span>
+      </button>
+
+      <div class="carousel-indicators">
+        {% for _ in imgs %}
+          <button type="button" data-bs-target="#carousel-object-{{ o.id }}"
+                  data-bs-slide-to="{{ loop.index0 }}"
+                  class="{% if loop.first %}active{% endif %}"
+                  aria-current="{% if loop.first %}true{% else %}false{% endif %}">
+          </button>
+        {% endfor %}
       </div>
+    {% endif %}
+  </div>
+{% endif %}
       </div>
       {% endif %}
 	  {% if o.comment %}

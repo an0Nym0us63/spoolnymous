@@ -257,7 +257,9 @@ document.addEventListener("DOMContentLoaded", function () {
 <script>
   function normalizeTarget(arg) {
     if (typeof arg === 'number') return { type: 'prints', id: arg };
-    if (arg && typeof arg === 'object' && (arg.type === 'prints' || arg.type === 'groups') && Number.isFinite(arg.id)) {
+    if (arg && typeof arg === 'object' &&
+        (arg.type === 'prints' || arg.type === 'groups' || arg.type === 'objects') &&  // ⬅️ + objects
+        Number.isFinite(arg.id)) {
       return { type: arg.type, id: arg.id };
     }
     return null;
