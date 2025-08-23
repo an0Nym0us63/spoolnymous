@@ -214,3 +214,24 @@
     </form>
   </div>
 </div>
+
+
+<div class="modal fade" id="uploadPhotoModal_{{ print.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('upload_print_photo', print_id=print.id) }}" enctype="multipart/form-data">
+        <div class="modal-header">
+          <h5 class="modal-title">📸 Ajouter une photo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <input class="form-control" type="file" name="photo" accept="image/*" required>
+          <small class="text-muted">L’image sera stockée pour le print #{{ print.id }}</small>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Uploader</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

@@ -2629,4 +2629,32 @@ def api_ui_update_filament(filament_id):
         return jsonify({"ok": False, "error": "invalid", "message": str(e)}), 400
     except Exception as e:
         return jsonify({"ok": False, "error": "server", "message": str(e)}), 500
+
+@app.route("/upload_photo/<int:print_id>", methods=["POST"])
+def upload_print_photo(print_id):
+    file = request.files.get("photo")
+    if not file:
+        flash("Aucun fichier fourni", "danger")
+        return redirect(request.referrer or url_for("print_history"))
+
+    # Vérifie extension
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
+        flash("Extension non supportée", "danger")
+        return redirect(request.referrer or url_for("print_history"))
+
+    # Crée dossier cible
+    upload_dir = Path(app.static_folder) / "uploads" / "prints" / str(print_id)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    # Détermine nom de fichier Photo-XX.ext
+    existing = [p for p in upload_dir.iterdir() if p.is_file() and p.stem.startswith("Photo-")]
+    next_idx = len(existing) + 1
+    filename = f"Photo-{next_idx:02d}{ext}"
+
+    # Sauvegarde
+    file.save(upload_dir / filename)
+
+    flash(f"Photo ajoutée : {filename}", "success")
+    return redirect(request.referrer or url_for("print_history"))
 app.register_blueprint(auth_bp)
