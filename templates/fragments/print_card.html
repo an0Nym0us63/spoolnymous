@@ -180,51 +180,50 @@
         {% endif %}
       </div>
 
-      {# --- Aperçu/carrousel du print --- #}
+{# --- Aperçu/carrousel du print --- #}
 {% set pid = print.id %}
-<div id="carousel-{{ pid }}" class="carousel slide" data-bs-ride="false">
-  <div class="carousel-inner rounded border">
+<div id="carousel-{{ pid }}" class="carousel slide print-carousel" data-bs-ride="false">
+  <div class="carousel-inner rounded">
 
-    {# Slide 0 : thumbnail 3MF (toujours présent) #}
+    {# Slide 0 : miniature (PNG) comme avant #}
     <div class="carousel-item active">
-      <div class="ratio ratio-16x9 bg-light d-flex align-items-center justify-content-center">
-        {% if print.model_file %}
+      <div class="preview-frame d-flex align-items-center justify-content-center">
+        {% if print.image_file %}
           <img
-            src="{{ url_for('static', filename='prints/' ~ print.model_file) }}"
-            alt="Aperçu 3MF"
-            class="img-fluid"
+            src="{{ url_for('static', filename='prints/' ~ print.image_file) }}"
+            alt="Aperçu"
+            class="preview-img"
             loading="lazy"
           >
         {% else %}
-          {# fallback visuel si pas de 3MF — remplace par ton placeholder si tu en as un #}
-          <div class="text-muted">Aperçu 3MF indisponible</div>
+          <div class="preview-placeholder text-muted small">Aucune image</div>
         {% endif %}
       </div>
       <div class="carousel-caption d-none d-md-block">
-        <small class="text-bg-dark px-2 py-1 rounded">Aperçu 3MF</small>
+        <small class="caption-badge">Aperçu</small>
       </div>
     </div>
 
     {# Slides suivantes : images disque (si présentes) #}
     {% for img in print.images or [] %}
       <div class="carousel-item">
-        <div class="ratio ratio-16x9 bg-light d-flex align-items-center justify-content-center">
+        <div class="preview-frame d-flex align-items-center justify-content-center">
           <img
             src="{{ img.url }}"
             alt="{{ img.name }}"
-            class="img-fluid"
+            class="preview-img"
             loading="lazy"
           >
         </div>
         <div class="carousel-caption d-none d-md-block">
-          <small class="text-bg-dark px-2 py-1 rounded">{{ img.name }}</small>
+          <small class="caption-badge">{{ img.name }}</small>
         </div>
       </div>
     {% endfor %}
 
   </div>
 
-  {# Contrôles & indicateurs : seulement si on a au moins une image en plus du 3MF #}
+  {# Contrôles & indicateurs si ≥ 1 image supplémentaire #}
   {% if print.images and (print.images|length) > 0 %}
     <button class="carousel-control-prev" type="button"
             data-bs-target="#carousel-{{ pid }}" data-bs-slide="prev">
@@ -240,7 +239,7 @@
     <div class="carousel-indicators">
       <button type="button" data-bs-target="#carousel-{{ pid }}"
               data-bs-slide-to="0" class="active"
-              aria-current="true" aria-label="Aperçu 3MF"></button>
+              aria-current="true" aria-label="Aperçu"></button>
       {% for img in print.images %}
         <button type="button" data-bs-target="#carousel-{{ pid }}"
                 data-bs-slide-to="{{ loop.index }}"
