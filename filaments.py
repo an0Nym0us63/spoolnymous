@@ -356,6 +356,16 @@ def _normalize_colors_array(colors: list[str] | None):
     norm_sorted = sorted(set(norm))
     return norm_sorted[0], ",".join(norm_sorted)
 
+def _to_price(value):
+    if value is None or value == "":
+        return None
+    try:
+        # accepte string "12.34" ou "12,34"
+        s = str(value).replace(",", ".").strip()
+        return float(s)
+    except Exception:
+        return None
+
 def _filament_duplicate_exists(conn, manufacturer, material, multicolor_type, colors_csv, exclude_id=None) -> bool:
     q = """
         SELECT id
@@ -397,17 +407,18 @@ def ui_create_filament(conn, payload: dict) -> int:
     spool_weight_g = int(payload.get("spool_weight_g") or 200)
     profile_id = payload.get("profile_id")
     comment = payload.get("comment")
+    price = _to_price(payload.get("price"))  # <- NEW
 
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     cur = conn.execute("""
         INSERT INTO filaments
         (created_at, updated_at, name, manufacturer, material,
          multicolor_type, color, colors_array,
-         filament_weight_g, spool_weight_g, profile_id, comment)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         filament_weight_g, spool_weight_g, profile_id, comment, price)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (now, now, name, manufacturer, material,
           multicolor_type, color, colors_csv,
-          filament_weight_g, spool_weight_g, profile_id, comment))
+          filament_weight_g, spool_weight_g, profile_id, comment, price))
     conn.commit()
     return cur.lastrowid
 
@@ -430,17 +441,21 @@ def ui_update_filament(conn, filament_id: int, payload: dict) -> None:
     profile_id = payload.get("profile_id")
     comment = payload.get("comment")
 
+    price = _to_price(payload.get("price"))  # <- NEW
+
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     conn.execute("""
         UPDATE filaments
         SET updated_at = ?,
             name = ?, manufacturer = ?, material = ?,
             multicolor_type = ?, color = ?, colors_array = ?,
-            filament_weight_g = ?, spool_weight_g = ?, profile_id = ?, comment = ?
+            filament_weight_g = ?, spool_weight_g = ?, profile_id = ?, comment = ?,
+            price = ?
         WHERE id = ?
     """, (now, name, manufacturer, material,
           multicolor_type, color, colors_csv,
-          filament_weight_g, spool_weight_g, profile_id, comment, filament_id))
+          filament_weight_g, spool_weight_g, profile_id, comment,
+          price, filament_id))
     conn.commit()
 
 def _validate_non_negative(name: str, value: Optional[float]) -> None:

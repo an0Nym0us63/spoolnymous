@@ -26,19 +26,17 @@
 /* Responsive léger */
 @media (max-width: 576px){
   .badge-sx{ padding:.28rem .45rem; font-size:.85rem; }
-  /* Menu d’actions flottant dans l’accordéon (visible seulement quand déplié) */
-  .filament-actions {
+    .filament-actions {
     position: absolute;
     top: .5rem;
     right: .5rem;
     z-index: 5;
-    display: none; /* caché par défaut */
+    display: none;
   }
   .accordion-item .accordion-collapse.show .filament-actions {
-    display: block; /* visible quand le panneau est déplié */
+    display: block;
   }
-  /* Optionnel: bouton compact */
-  .filament-actions .btn-actions {
+  .btn-actions {
     padding: .25rem .5rem;
     border-radius: .5rem;
   }
@@ -173,7 +171,12 @@
     <div class="fs-5 fs-md-4">⚗️</div><div class="small fw-bold">{{ total_materials }}</div><div class="text-muted small">Matériaux</div>
   </div></div></div>
 </div>
-<button class="btn btn-primary" id="btn-add-filament" onclick="openFilamentModal()">➕ Ajouter un filament</button>
+<div class="d-flex align-items-center gap-2">
+    <button class="btn btn-primary" id="btn-add-filament" onclick="openFilamentModal()">
+      <span class="me-1">Ajouter</span>
+      <i class="bi bi-plus-lg"></i> <!-- si Bootstrap Icons, sinon retire l’icône -->
+    </button>
+  </div>
 <!-- LISTE (accordéons *identiques* à bobines) -->
 <div class="accordion" id="filamentsCatalogAccordion">
   {% for fil in filaments %}
@@ -244,25 +247,22 @@
 
       <div id="collapseFilament{{ fil.id }}" class="accordion-collapse collapse"
            aria-labelledby="headingFilament{{ fil.id }}" data-bs-parent="#filamentsCatalogAccordion">
-        <div class="accordion-body">
+        <div class="accordion-body position-relative">
 		<div class="dropdown filament-actions">
-        <button class="btn btn-light btn-sm btn-actions" type="button" id="actionsMenu-{{ fil.id }}"
-                data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">
-          <!-- Trois points verticaux (évite dépendances d’icônes) -->
-          &#8942;
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsMenu-{{ fil.id }}">
-          <li>
-            <button class="dropdown-item"
-                    onclick='openFilamentModal({{ fil|tojson|safe }})'>
-              Éditer
-            </button>
-          </li>
-          <!-- D’AUTRES ACTIONS ARRIVERONT ICI -->
-          <!-- <li><button class="dropdown-item">Dupliquer</button></li> -->
-          <!-- <li><button class="dropdown-item text-danger">Supprimer</button></li> -->
-        </ul>
-      </div>
+  <button class="btn btn-outline-secondary btn-sm dropdown-toggle btn-actions"
+          type="button" id="actionsMenu-{{ fil.id }}"
+          data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">
+    <i class="bi bi-three-dots-vertical"></i> <!-- même icône que la page Objets -->
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsMenu-{{ fil.id }}">
+    <li>
+      <button class="dropdown-item" onclick='openFilamentModal({{ fil|tojson|safe }})'>
+        Éditer
+      </button>
+    </li>
+    <!-- autres actions à venir -->
+  </ul>
+</div>
           <div class="row g-3">
             <div class="col-md-6">
               <ul class="list-unstyled mb-0">
@@ -364,7 +364,10 @@
               <input type="number" min="0" step="1" class="form-control" id="spool_weight_g" value="200">
             </div>
           </div>
-
+		 <div class="col-md-4">
+    <label class="form-label">Prix (€)</label>
+    <input type="number" min="0" step="0.01" inputmode="decimal" class="form-control" id="price" placeholder="ex: 24.90">
+  </div>
           <div class="mt-3">
             <label class="form-label">Profil (profile_id)</label>
             <input type="text" class="form-control" id="profile_id" placeholder="ex: 12">
@@ -518,6 +521,7 @@
     document.getElementById('filamentForm').reset();
     document.getElementById('filament_id').value = filament?.id || '';
     document.getElementById('filamentModalLabel').textContent = filament ? 'Modifier le filament' : 'Ajouter un filament';
+	document.getElementById('price').value = (filament?.price ?? '');
 
     // name
     document.getElementById('name').value = filament?.name || '';
@@ -582,6 +586,7 @@
       filament_weight_g: document.getElementById('filament_weight_g').value,
       spool_weight_g: document.getElementById('spool_weight_g').value,
       profile_id: document.getElementById('profile_id').value || null,
+	  price: document.getElementById('price').value,
       comment: document.getElementById('comment').value || null,
     };
 
@@ -589,6 +594,10 @@
     if (!payload.manufacturer) return showError("Le fabricant est requis.");
     if (!payload.material) return showError("Le matériau est requis.");
     if (!payload.colors || payload.colors.length === 0) return showError("Au moins une couleur est requise.");
+	const priceVal = document.getElementById('price').value.trim();
+if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
+  return showError("Le prix doit être un nombre (ex: 24.90).");
+}
 
     try {
       const resp = await fetch(id ? `/api/filaments/${id}` : '/api/filaments', {
