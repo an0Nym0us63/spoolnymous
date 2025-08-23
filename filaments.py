@@ -331,6 +331,16 @@ _BOBINE_ALLOWED_UPDATE = {
     "created_at",
 }
 
+def _to_price(value):
+    if value is None or value == "":
+        return None
+    try:
+        # accepte string "12.34" ou "12,34"
+        s = str(value).replace(",", ".").strip()
+        return float(s)
+    except Exception:
+        return None
+
 def _normalize_hex(h: str | None) -> str | None:
     if not h:
         return None
@@ -353,27 +363,17 @@ def _normalize_colors_array(colors: list[str] | None):
             norm.append(nc)
     if not norm:
         return None, None
-    norm_sorted = sorted(set(norm))
+    norm_sorted = sorted(set(norm))  # ordre ignoré pour les doublons
     return norm_sorted[0], ",".join(norm_sorted)
 
-def _to_price(value):
-    if value is None or value == "":
-        return None
-    try:
-        # accepte string "12.34" ou "12,34"
-        s = str(value).replace(",", ".").strip()
-        return float(s)
-    except Exception:
-        return None
-
-def _filament_duplicate_exists(conn, manufacturer, material, multicolor_type, colors_csv, exclude_id=None) -> bool:
+def _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv, exclude_id=None) -> bool:
     q = """
         SELECT id
-        FROM filaments
-        WHERE lower(coalesce(manufacturer,'')) = lower(?)
-          AND lower(coalesce(material,'')) = lower(?)
-          AND lower(coalesce(multicolor_type,'')) = lower(?)
-          AND lower(coalesce(colors_array,'')) = lower(?)
+          FROM filaments
+         WHERE lower(coalesce(manufacturer,''))   = lower(?)
+           AND lower(coalesce(material,''))       = lower(?)
+           AND lower(coalesce(multicolor_type,''))= lower(?)
+           AND lower(coalesce(colors_array,''))   = lower(?)
     """
     params = [
         (manufacturer or "").strip(),
@@ -384,14 +384,17 @@ def _filament_duplicate_exists(conn, manufacturer, material, multicolor_type, co
     if exclude_id is not None:
         q += " AND id <> ?"
         params.append(exclude_id)
-    row = conn.execute(q, params).fetchone()
+
+    with _tx() as cur:
+        row = cur.execute(q, params).fetchone()
     return row is not None
 
-def ui_create_filament(conn, payload: dict) -> int:
+
+def ui_create_filament(payload: dict) -> int:
     """
     Création pour l’UI (ne pas utiliser dans la migration).
     payload: name, manufacturer, material, multicolor_type, colors(list[str]),
-             filament_weight_g, spool_weight_g, profile_id, comment
+             filament_weight_g, spool_weight_g, profile_id, comment, price
     """
     name = (payload.get("name") or "").strip()
     manufacturer = (payload.get("manufacturer") or "").strip()
@@ -400,31 +403,33 @@ def ui_create_filament(conn, payload: dict) -> int:
     colors = payload.get("colors") or []
 
     color, colors_csv = _normalize_colors_array(colors)
-    if _filament_duplicate_exists(conn, manufacturer, material, multicolor_type, colors_csv):
+    if _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv):
         raise ValueError("DUPLICATE_FILAMENT")
 
     filament_weight_g = int(payload.get("filament_weight_g") or 1000)
     spool_weight_g = int(payload.get("spool_weight_g") or 200)
     profile_id = payload.get("profile_id")
     comment = payload.get("comment")
-    price = _to_price(payload.get("price"))  # <- NEW
+    price = _to_price(payload.get("price"))
 
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    cur = conn.execute("""
-        INSERT INTO filaments
-        (created_at, updated_at, name, manufacturer, material,
-         multicolor_type, color, colors_array,
-         filament_weight_g, spool_weight_g, profile_id, comment, price)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (now, now, name, manufacturer, material,
-          multicolor_type, color, colors_csv,
-          filament_weight_g, spool_weight_g, profile_id, comment, price))
-    conn.commit()
-    return cur.lastrowid
 
-def ui_update_filament(conn, filament_id: int, payload: dict) -> None:
+    with _tx() as cur:
+        cur.execute("""
+            INSERT INTO filaments
+            (created_at, updated_at, name, manufacturer, material,
+             multicolor_type, color, colors_array,
+             filament_weight_g, spool_weight_g, profile_id, comment, price)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (now, now, name, manufacturer, material,
+              multicolor_type, color, colors_csv,
+              filament_weight_g, spool_weight_g, profile_id, comment, price))
+        return cur.lastrowid
+
+
+def ui_update_filament(filament_id: int, payload: dict) -> None:
     """
-    Edition pour l’UI (ne pas utiliser dans la migration).
+    Édition pour l’UI (ne pas utiliser dans la migration).
     """
     name = (payload.get("name") or "").strip()
     manufacturer = (payload.get("manufacturer") or "").strip()
@@ -433,30 +438,30 @@ def ui_update_filament(conn, filament_id: int, payload: dict) -> None:
     colors = payload.get("colors") or []
 
     color, colors_csv = _normalize_colors_array(colors)
-    if _filament_duplicate_exists(conn, manufacturer, material, multicolor_type, colors_csv, exclude_id=filament_id):
+    if _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv, exclude_id=filament_id):
         raise ValueError("DUPLICATE_FILAMENT")
 
     filament_weight_g = int(payload.get("filament_weight_g") or 1000)
     spool_weight_g = int(payload.get("spool_weight_g") or 200)
     profile_id = payload.get("profile_id")
     comment = payload.get("comment")
-
-    price = _to_price(payload.get("price"))  # <- NEW
+    price = _to_price(payload.get("price"))
 
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    conn.execute("""
-        UPDATE filaments
-        SET updated_at = ?,
-            name = ?, manufacturer = ?, material = ?,
-            multicolor_type = ?, color = ?, colors_array = ?,
-            filament_weight_g = ?, spool_weight_g = ?, profile_id = ?, comment = ?,
-            price = ?
-        WHERE id = ?
-    """, (now, name, manufacturer, material,
-          multicolor_type, color, colors_csv,
-          filament_weight_g, spool_weight_g, profile_id, comment,
-          price, filament_id))
-    conn.commit()
+
+    with _tx() as cur:
+        cur.execute("""
+            UPDATE filaments
+               SET updated_at = ?,
+                   name = ?, manufacturer = ?, material = ?,
+                   multicolor_type = ?, color = ?, colors_array = ?,
+                   filament_weight_g = ?, spool_weight_g = ?, profile_id = ?, comment = ?,
+                   price = ?
+             WHERE id = ?
+        """, (now, name, manufacturer, material,
+              multicolor_type, color, colors_csv,
+              filament_weight_g, spool_weight_g, profile_id, comment,
+              price, filament_id))
 
 def _validate_non_negative(name: str, value: Optional[float]) -> None:
     if value is None:

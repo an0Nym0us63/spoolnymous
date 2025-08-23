@@ -2744,7 +2744,7 @@ def filaments_catalog():
 def api_ui_create_filament():
     data = request.get_json(force=True, silent=True) or {}
     try:
-        fid = ui_create_filament(get_db(), data)
+        fid = ui_create_filament(data)
         return jsonify({"ok": True, "id": fid})
     except ValueError as e:
         if str(e) == "DUPLICATE_FILAMENT":
@@ -2758,7 +2758,7 @@ def api_ui_create_filament():
 def api_ui_update_filament(filament_id):
     data = request.get_json(force=True, silent=True) or {}
     try:
-        ui_update_filament(get_db(), filament_id, data)
+        ui_update_filament(filament_id, data)
         return jsonify({"ok": True, "id": filament_id})
     except ValueError as e:
         if str(e) == "DUPLICATE_FILAMENT":
@@ -2767,5 +2767,4 @@ def api_ui_update_filament(filament_id):
         return jsonify({"ok": False, "error": "invalid", "message": str(e)}), 400
     except Exception as e:
         return jsonify({"ok": False, "error": "server", "message": str(e)}), 500
-
 app.register_blueprint(auth_bp)
