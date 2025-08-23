@@ -20,6 +20,7 @@ from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK, PROCESSED_JOBS, PENDING
 import logging
 logger = logging.getLogger(__name__)
 
+
 MQTT_CLIENT = {}  # Global variable storing MQTT Client
 MQTT_CLIENT_CONNECTED = False
 MQTT_KEEPALIVE = 60

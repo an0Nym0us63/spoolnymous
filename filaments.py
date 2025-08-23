@@ -1,6 +1,6 @@
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 from config import EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID,get_app_setting
 
@@ -1191,8 +1191,6 @@ def _upsert_bobine_from_spoolman_exact(s: Dict[str, Any], filament_local_id: int
     """
     external_spool_id = str(s.get("id")) if s.get("id") is not None else None
     extra = s.get("extra") or {}
-
-    from datetime import datetime, timezone
     now_iso = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
     import_tag = f"Importé depuis Spoolman le {now_iso}"
 
