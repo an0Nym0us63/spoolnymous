@@ -536,17 +536,16 @@
 
 /* Surcharges Bootstrap 5.3 via variables CSS */
 .carousel.print-carousel {
-  /* Taille des chevrons */
-  --bs-carousel-control-icon-width: 1.5rem;
+  --bs-carousel-control-icon-width: 1.25rem; /* réduit un peu la taille */
 
-  /* Flèche gauche (blanche) */
-  --bs-carousel-control-prev-icon-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23fff' viewBox='0 0 16 16'%3E%3Cpath d='M11.354 1.646a.5.5 0 0 1 0 .708L6.707 7l4.647 4.646a.5.5 0 0 1-.708.708l-5-5a.5.5 0 0 1 0-.708l5-5a.5.5 0 0 1 .708 0z'/%3E%3C/svg%3E");
+  /* Flèche gauche (fine, blanche) */
+  --bs-carousel-control-prev-icon-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23fff' stroke-width='2' viewBox='0 0 16 16'%3E%3Cpath d='M10 2 4 8l6 6'/%3E%3C/svg%3E");
 
-  /* Flèche droite (blanche) */
-  --bs-carousel-control-next-icon-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23fff' viewBox='0 0 16 16'%3E%3Cpath d='M4.646 1.646a.5.5 0 0 1 .708 0l5 5a.5.5 0 0 1 0 .708l-5 5a.5.5 0 0 1-.708-.708L9.293 7 4.646 2.354a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+  /* Flèche droite (fine, blanche) */
+  --bs-carousel-control-next-icon-bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23fff' stroke-width='2' viewBox='0 0 16 16'%3E%3Cpath d='M6 2l6 6-6 6'/%3E%3C/svg%3E");
 }
 
-/* Petit halo pour contraster (optionnel) */
+/* Optionnel : halo discret pour contraster */
 .carousel.print-carousel .carousel-control-prev-icon,
 .carousel.print-carousel .carousel-control-next-icon {
   filter: drop-shadow(0 0 2px rgba(0,0,0,.6));
