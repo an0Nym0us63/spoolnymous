@@ -633,3 +633,13 @@
       opacity: .9;
     }
   }
+  
+  .carousel-delete-btn{
+  position:absolute; top:.35rem; right:.35rem; z-index:5;
+  padding:.15rem .35rem; line-height:1; border-radius:.4rem;
+  backdrop-filter: blur(2px);
+}
+@media (hover:hover){
+  .carousel-delete-btn{ opacity:.0; transition:opacity .15s ease }
+  .print-carousel:hover .carousel-delete-btn{ opacity:.95 }
+}

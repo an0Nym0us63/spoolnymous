@@ -358,6 +358,61 @@ document.addEventListener("DOMContentLoaded", function () {
       if (modalEl) { const m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
     }, { passive: true });
   });
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.js-del-photo');
+  if (!btn) return;
+
+  // On récupère l’URL du fichier depuis data-url (ex: /static/uploads/<entity>/<id>/<file>)
+  const fileUrl = btn.dataset.url || '';
+  try {
+    const u = new URL(fileUrl, window.location.origin);
+    const parts = u.pathname.split('/').filter(Boolean); // ['static','uploads',entity,id,filename]
+    const upIdx = parts.indexOf('uploads');
+    if (upIdx < 0 || parts.length < upIdx + 4) {
+      console.error('URL invalide pour suppression:', fileUrl);
+      return;
+    }
+    const entity   = parts[upIdx + 1];
+    const entityId = parts[upIdx + 2];
+    const filename = parts[upIdx + 3];
+
+    // Bloquer .3mf
+    if (filename.toLowerCase().endsWith('.3mf')) {
+      return; // Pas de suppression des .3mf
+    }
+
+    // Confirmation
+    const ask = await Swal.fire({
+      title: "Supprimer la photo ?",
+      text: filename,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Oui, supprimer",
+      cancelButtonText: "Annuler",
+      confirmButtonColor: "#d33"
+    });
+    if (!ask.isConfirmed) return;
+
+    const fd = new FormData();
+    fd.append('filename', filename);
+
+    const resp = await fetch(`/delete_photo/${encodeURIComponent(entity)}/${encodeURIComponent(entityId)}`, {
+      method: 'POST',
+      body: fd
+    });
+
+    if (!resp.ok) {
+      Swal.fire("Erreur", "La suppression a échoué.", "error");
+      return;
+    }
+
+    // Simple: recharger la page ; ou bien retirer l'item du DOM si tu préfères
+    location.reload();
+
+  } catch (err) {
+    console.error('Suppression: erreur', err);
+  }
+});
 </script>
 </body>
 </html>

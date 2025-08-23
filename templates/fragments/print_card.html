@@ -213,6 +213,13 @@
     {# Slides suivantes : images disque (si présentes) #}
     {% for img in print.images or [] %}
       <div class="carousel-item" data-name="{{ img.name }}">
+	  <button type="button"
+          class="btn btn-sm btn-outline-light carousel-delete-btn js-del-photo"
+          title="Supprimer cette photo"
+          data-url="{{ img.url }}"
+          {% if '.3mf' in img.url|lower %}style="display:none"{% endif %}>
+    <i class="bi bi-x-lg"></i>
+  </button>
         <div class="preview-frame d-flex align-items-center justify-content-center">
           <img
             src="{{ img.url }}"
