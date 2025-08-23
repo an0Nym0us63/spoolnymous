@@ -1556,17 +1556,29 @@ def augmentTrayData(spool_list, tray_data, tray_id):
             tray_data["remaining_weight"] = spool["remaining_weight"]
         
             if "last_used" in spool:
-                try:
-                    dt = datetime.strptime(spool["last_used"], "%Y-%m-%dT%H:%M:%SZ")
-                except ValueError:
-                    try:
-                        dt = datetime.strptime(spool["last_used"], "%Y-%m-%dT%H:%M:%S.%fZ")
-                    except ValueError:
-                        dt = datetime.strptime(spool["last_used"], "%Y-%m-%d %H:%M:%S")
+                raw = spool["last_used"]
+                dt = None
             
-                dt = dt.replace(tzinfo=ZoneInfo("UTC"))
-                local_time = dt.astimezone()
-                tray_data["last_used"] = local_time.strftime("%d.%m.%Y %H:%M:%S")
+                # Liste des formats possibles, du plus spécifique au plus générique
+                formats = [
+                    "%Y-%m-%dT%H:%M:%S.%fZ",   # Avec millisecondes
+                    "%Y-%m-%dT%H:%M:%SZ",      # Sans millisecondes
+                    "%Y-%m-%d %H:%M:%S",       # Format sans T ni Z
+                ]
+            
+                for fmt in formats:
+                    try:
+                        dt = datetime.strptime(raw, fmt)
+                        break
+                    except ValueError:
+                        continue
+
+    if dt is None:
+        raise ValueError(f"Format de date non reconnu : {raw}")
+
+    dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+    local_time = dt.astimezone()
+    tray_data["last_used"] = local_time.strftime("%d.%m.%Y %H:%M:%S")
         
             else:
                 tray_data["last_used"] = "-"
