@@ -1711,7 +1711,7 @@ def snapshot_milestone(job_id: str, pct: int, basename: str | None = None) -> No
 
     # 2) Préparer le nom de fichier
     if not basename:
-        basename = f"Impression {pct}%"
+        basename = f"Impression-{pct}"
 
     # 3) Vérifier si le fichier existe déjà (utile au reboot)
     base_dir = Path(__file__).resolve().parent
