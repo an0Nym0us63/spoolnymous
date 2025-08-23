@@ -205,56 +205,40 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-
 document.addEventListener("DOMContentLoaded", function () {
   const alertEl = document.querySelector('#flash-alert[data-autohide="true"]');
   if (!alertEl) return;
-
-  // Récupère le délai en ms (fallback à 3000 ms si absent/malsaisi)
   const delayAttr = parseInt(alertEl.getAttribute('data-autohide-delay'), 10);
   const AUTO_HIDE_MS = Number.isFinite(delayAttr) ? delayAttr : 3000;
-
   const bsAlert = bootstrap.Alert.getOrCreateInstance(alertEl);
-
-  // Timer de fermeture
   let timer = setTimeout(() => bsAlert.close(), AUTO_HIDE_MS);
-
-  // Optionnel : pause si l'utilisateur survole l'alerte
-  alertEl.addEventListener("mouseenter", () => {
-    if (timer) { clearTimeout(timer); timer = null; }
-  });
-  alertEl.addEventListener("mouseleave", () => {
-    if (!timer) timer = setTimeout(() => bsAlert.close(), 1500);
-  });
+  alertEl.addEventListener("mouseenter", () => { if (timer) { clearTimeout(timer); timer = null; }});
+  alertEl.addEventListener("mouseleave", () => { if (!timer) timer = setTimeout(() => bsAlert.close(), 1500); });
 });
 </script>
-{% block scripts %}
 
+{% block scripts %}
 <script>
 (function(){
   function setNavHeightVar(){
-    // Prend la + haute des navbars fixes/sticky si tu en as plusieurs
     let h = 0;
     document.querySelectorAll('.navbar.fixed-top, .navbar.sticky-top').forEach(el => {
       h = Math.max(h, el.offsetHeight || 0);
     });
     document.documentElement.style.setProperty('--nav-h', h + 'px');
   }
-
-  // Init + resize
   document.addEventListener('DOMContentLoaded', setNavHeightVar);
   window.addEventListener('resize', setNavHeightVar);
-
-  // A chaque ouverture de modale, on recalcule (utile si la navbar change de taille)
   document.addEventListener('show.bs.modal', setNavHeightVar);
 })();
 </script>
 {% endblock %}
+
 <!-- Inputs fichiers globaux -->
 <input id="__hidden_photo_input_gallery__" type="file" accept="image/*" class="d-none" multiple>
 <input id="__hidden_photo_input_camera__"  type="file" accept="image/*" capture="environment" class="d-none">
 
-<!-- Petite modale de choix (affichée uniquement sur mobile par JS) -->
+<!-- Modale choix photo -->
 <div class="modal fade" id="photoChoiceModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content">
@@ -270,25 +254,18 @@ document.addEventListener("DOMContentLoaded", function () {
   </div>
 </div>
 
-
 <script>
-  // --- Helpers de normalisation de cible ---
   function normalizeTarget(arg) {
-    // Legacy: nombre => print
     if (typeof arg === 'number') return { type: 'prints', id: arg };
-    // Objet {type,id}
     if (arg && typeof arg === 'object' && (arg.type === 'prints' || arg.type === 'groups') && Number.isFinite(arg.id)) {
       return { type: arg.type, id: arg.id };
     }
-    // Sécurité: null
     return null;
   }
 
-  // État courant
   window.__isUploading__ = false;
   window.__currentPhotoTarget__ = null;
 
-  // Ouvre la galerie (multi)
   window.triggerPhotoUpload = function (target) {
     if (window.__isUploading__) return;
     const norm = normalizeTarget(target);
@@ -300,7 +277,6 @@ document.addEventListener("DOMContentLoaded", function () {
     input.click();
   };
 
-  // Ouvre directement la caméra (une photo)
   window.triggerPhotoCapture = function (target) {
     if (window.__isUploading__) return;
     const norm = normalizeTarget(target);
@@ -312,18 +288,15 @@ document.addEventListener("DOMContentLoaded", function () {
     input.click();
   };
 
-  // Entrée unifiée (menu Actions) — mobile: modale, desktop: galerie
   window.triggerPhotoUnified = function (target) {
     if (window.__isUploading__) return;
     const norm = normalizeTarget(target);
     if (!norm) return;
-
     function isMobileDevice() {
       const ua = navigator.userAgent || '';
       const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
       return /android|iphone|ipad|ipod/i.test(ua) || coarse;
     }
-
     if (isMobileDevice()) {
       window.__currentPhotoTarget__ = norm;
       const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('photoChoiceModal'));
@@ -336,18 +309,17 @@ document.addEventListener("DOMContentLoaded", function () {
   async function uploadFiles(files) {
     const target = window.__currentPhotoTarget__;
     if (!files || !files.length || !target) return;
-
     try {
       window.__isUploading__ = true;
       const fd = new FormData();
       for (const f of files) fd.append('photos', f);
-
-      // Route générique
-      const resp = await fetch(`/upload_photo/${encodeURIComponent(target.type)}/${encodeURIComponent(target.id)}`, {
+      let resp = await fetch(`/upload_photo/${encodeURIComponent(target.type)}/${encodeURIComponent(target.id)}`, {
         method: 'POST',
         body: fd
       });
-
+      if (resp.status === 404 && target.type === 'prints') {
+        resp = await fetch(`/upload_photo/${encodeURIComponent(target.id)}`, { method: 'POST', body: fd });
+      }
       if (!resp.ok) {
         console.error('Upload failed', resp.status);
       } else {
@@ -365,6 +337,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const gal   = document.getElementById('__hidden_photo_input_gallery__');
     const cam   = document.getElementById('__hidden_photo_input_camera__');
     const modalEl = document.getElementById('photoChoiceModal');
+
+    const btnCap = document.getElementById('btnPhotoCapture');
+    const btnGal = document.getElementById('btnPhotoGallery');
+
+    if (btnCap) btnCap.addEventListener('click', () => { if (cam) { cam.value = ''; cam.click(); } });
+    if (btnGal) btnGal.addEventListener('click', () => { if (gal) { gal.value = ''; gal.click(); } });
 
     if (gal) gal.addEventListener('change', () => {
       uploadFiles(Array.from(gal.files || []));
