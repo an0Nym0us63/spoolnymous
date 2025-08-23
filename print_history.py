@@ -10,6 +10,7 @@ import config
 from config import get_app_setting,get_electric_rate_at
 from camera import snapshot_to_print_file
 from pathlib import Path
+import re
 
 
 import logging
@@ -63,6 +64,8 @@ COLOR_FAMILIES = {
     'Purple': (160, 32, 240), 
     'Dark Purple': (90, 60, 120), # violet foncé
 }
+
+_IMPRESSION_RE = re.compile(r"^Impression\s*(\d+)%?$", re.IGNORECASE)
 
 def sort_pie_data(pie):
     """
@@ -1731,7 +1734,9 @@ def snapshot_milestone(job_id: str, pct: int, basename: str | None = None) -> No
 def list_print_images(print_id: str | int | None = None):
     """
     Retourne une liste de dicts {url, name} des images trouvées pour ce print.
-    On cherche d’abord dans .../prints/{job_id}/ puis (optionnel) .../prints/{print_id}/
+    - Priorité aux fichiers dont le nom commence par 'Impression XX%'
+      (triés par XX décroissant)
+    - Puis les autres (triés alphabétiquement).
     """
     base_dir = Path(__file__).resolve().parent
     exts = {".jpg", ".jpeg", ".png", ".webp"}
@@ -1750,10 +1755,9 @@ def list_print_images(print_id: str | int | None = None):
                     "name": p.stem,
                 })
 
-    # priorité au job_id comme demandé
     scan(print_id)
 
-    # dédoublonne (même nom dans 2 dossiers)
+    # dédoublonnage
     seen = set()
     uniq = []
     for r in results:
@@ -1761,6 +1765,16 @@ def list_print_images(print_id: str | int | None = None):
         if key not in seen:
             seen.add(key)
             uniq.append(r)
-    return uniq
+
+    # tri personnalisé
+    def sort_key(item):
+        m = _IMPRESSION_RE.match(item["name"])
+        if m:
+            pct = int(m.group(1))
+            return (0, -pct)   # groupe 0 = impressions, tri décroissant
+        else:
+            return (1, item["name"].lower())  # groupe 1 = autres, tri alphabétique
+
+    return sorted(uniq, key=sort_key)
 
 create_database()
