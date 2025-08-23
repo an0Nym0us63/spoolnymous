@@ -1785,38 +1785,12 @@ def _get_group_object_ids(group_id: int | str) -> List[int]:
     conn = _connect(); cur = conn.cursor()
     ids: List[int] = []
 
-    # 1) table de liaison classique (essaie plusieurs noms possibles)
-    for table, col in (
-        ("group_objects", "object_id"),
-        ("objects_groups", "object_id"),
-    ):
-        try:
-            cur.execute(f"SELECT {col} FROM {table} WHERE group_id = ?", (group_id,))
-            rows = cur.fetchall()
-            if rows:
-                ids = [int(r[0]) for r in rows]
-                break
-        except Exception:
-            pass
-
-    # 2) fallback : colonne group_id sur objects
-    if not ids:
-        try:
-            cur.execute("SELECT id FROM objects WHERE group_id = ?", (group_id,))
-            rows = cur.fetchall()
-            ids = [int(r[0]) for r in rows]
-        except Exception:
-            pass
-
-    # 3) dernier recours : objets dont le parent est ce group
-    if not ids:
-        try:
-            cur.execute("SELECT id FROM objects WHERE parent_type = 'group' AND parent_id = ?", (group_id,))
-            rows = cur.fetchall()
-            ids = [int(r[0]) for r in rows]
-        except Exception:
-            pass
-
+    try:
+        cur.execute("SELECT id FROM objects WHERE object_group_id = ?", (group_id,))
+        rows = cur.fetchall()
+        ids = [int(r[0]) for r in rows]
+    except Exception:
+        pass
     conn.close()
     # dédoublonnage
     seen = set()
