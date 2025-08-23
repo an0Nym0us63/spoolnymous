@@ -65,7 +65,7 @@ COLOR_FAMILIES = {
     'Dark Purple': (90, 60, 120), # violet foncé
 }
 
-_IMPRESSION_RE = re.compile(r"^Impression\s*(\d+)%?$", re.IGNORECASE)
+_IMPRESSION_RE = re.compile(r"^Impression[-_\s]*(\d+)%?$", re.IGNORECASE)
 
 def sort_pie_data(pie):
     """
