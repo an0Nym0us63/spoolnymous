@@ -584,7 +584,7 @@ def safe_update_status(data):
                     try:
                         # DÉLÉGUÉ À print_history : il résout job_id -> print_id et déclenche la capture.
                         # Il gère aussi la vérif disque pour reboot.
-                        snapshot_milestone(job_id, pct, basename=f"Impression {pct}%")
+                        snapshot_milestone(job_id, pct, basename=f"Impression-{pct}")
                         # Si ça n’a pas levé, on marque ce palier comme atteint
                         if pct == 50:  st["m50"]  = True
                         if pct == 99:  st["m99"]  = True
