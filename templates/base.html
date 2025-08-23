@@ -6,7 +6,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SpoolNymous">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
 <title>SpoolNymous
 {% if page_title %}
 - {{ page_title or '' }}
@@ -52,6 +51,7 @@
 </head>
 
 <body>
+<input id="__hidden_photo_input__" type="file" accept="image/*" capture="environment" class="d-none">
 <header class="mb-3 border-bottom sticky-header bg-body shadow-sm">
   <nav class="navbar navbar-expand-lg">
     <div class="container-fluid">
@@ -248,6 +248,53 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // A chaque ouverture de modale, on recalcule (utile si la navbar change de taille)
   document.addEventListener('show.bs.modal', setNavHeightVar);
+})();
+(function () {
+  const input = document.getElementById('__hidden_photo_input__');
+  let currentPrintId = null;
+  let isUploading = false;
+
+  // Appelé par l'item du menu
+  window.triggerPhotoUpload = function (printId) {
+    if (isUploading) return;
+    currentPrintId = printId;
+    // ouvre immédiatement le picker (geste direct)
+    input.value = ''; // reset pour permettre même fichier à nouveau
+    input.click();
+  };
+
+  // Quand l'utilisateur a choisi une image
+  input.addEventListener('change', async function () {
+    if (!input.files || !input.files[0] || !currentPrintId) return;
+    const file = input.files[0];
+
+    try {
+      isUploading = true;
+
+      // construit la requête (équivalent de ton <form enctype="multipart/form-data">)
+      const fd = new FormData();
+      fd.append('photo', file);
+
+      const resp = await fetch(`/upload_photo/${currentPrintId}`, {
+        method: 'POST',
+        body: fd
+      });
+
+      if (!resp.ok) {
+        console.error('Upload failed', resp.status);
+        // Optionnel: toast/alert
+      } else {
+        // Recharge pour que le carrousel récupère la nouvelle image
+        location.reload();
+      }
+    } catch (e) {
+      console.error('Upload error', e);
+    } finally {
+      isUploading = false;
+      currentPrintId = null;
+      input.value = '';
+    }
+  }, { passive: true });
 })();
 </script>
 {% endblock %}

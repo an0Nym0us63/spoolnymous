@@ -77,7 +77,7 @@
     <div class="card-body position-relative small">
 
       <!-- Actions -->
-      <div class="dropdown float-end mt-1" data-requires-write>
+      <div class="dropdown float-end mt-1" data-bs-auto-close="outside" data-requires-write>
         <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
           Actions
         </button>
@@ -145,8 +145,7 @@
           </li>
 <li>
   <a class="dropdown-item text-success" href="#"
-     data-bs-toggle="modal"
-     data-bs-target="#uploadPhotoModal_{{ print.id }}">
+     onclick="triggerPhotoUpload({{ print.id }}); return false;">
     📸 Uploader photo
   </a>
 </li>
