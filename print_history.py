@@ -464,7 +464,7 @@ def update_filament_usage(print_id, spool_id, new_grams_used):
     conn.close()
     trigger_cost_recalculation(print_id)
 
-ef get_print_id_by_job_id(job_id: str | int) -> int | None:
+def get_print_id_by_job_id(job_id: str | int) -> int | None:
     """
     Retourne l'ID du print lié à un job_id BambuLab.
     - Si plusieurs prints existent pour ce job_id, renvoie le plus récent.
