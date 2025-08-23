@@ -26,7 +26,22 @@
 /* Responsive léger */
 @media (max-width: 576px){
   .badge-sx{ padding:.28rem .45rem; font-size:.85rem; }
-}
+  /* Menu d’actions flottant dans l’accordéon (visible seulement quand déplié) */
+  .filament-actions {
+    position: absolute;
+    top: .5rem;
+    right: .5rem;
+    z-index: 5;
+    display: none; /* caché par défaut */
+  }
+  .accordion-item .accordion-collapse.show .filament-actions {
+    display: block; /* visible quand le panneau est déplié */
+  }
+  /* Optionnel: bouton compact */
+  .filament-actions .btn-actions {
+    padding: .25rem .5rem;
+    border-radius: .5rem;
+  }
 </style>
 
 <!-- Boutons flottants (comme bobines) -->
@@ -158,7 +173,7 @@
     <div class="fs-5 fs-md-4">⚗️</div><div class="small fw-bold">{{ total_materials }}</div><div class="text-muted small">Matériaux</div>
   </div></div></div>
 </div>
-
+<button class="btn btn-primary" id="btn-add-filament" onclick="openFilamentModal()">➕ Ajouter un filament</button>
 <!-- LISTE (accordéons *identiques* à bobines) -->
 <div class="accordion" id="filamentsCatalogAccordion">
   {% for fil in filaments %}
@@ -230,6 +245,24 @@
       <div id="collapseFilament{{ fil.id }}" class="accordion-collapse collapse"
            aria-labelledby="headingFilament{{ fil.id }}" data-bs-parent="#filamentsCatalogAccordion">
         <div class="accordion-body">
+		<div class="dropdown filament-actions">
+        <button class="btn btn-light btn-sm btn-actions" type="button" id="actionsMenu-{{ fil.id }}"
+                data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">
+          <!-- Trois points verticaux (évite dépendances d’icônes) -->
+          &#8942;
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsMenu-{{ fil.id }}">
+          <li>
+            <button class="dropdown-item"
+                    onclick='openFilamentModal({{ fil|tojson|safe }})'>
+              Éditer
+            </button>
+          </li>
+          <!-- D’AUTRES ACTIONS ARRIVERONT ICI -->
+          <!-- <li><button class="dropdown-item">Dupliquer</button></li> -->
+          <!-- <li><button class="dropdown-item text-danger">Supprimer</button></li> -->
+        </ul>
+      </div>
           <div class="row g-3">
             <div class="col-md-6">
               <ul class="list-unstyled mb-0">
@@ -272,7 +305,313 @@
     <div class="alert alert-secondary">Aucun filament trouvé.</div>
   {% endfor %}
 </div>
+<div class="modal fade" id="filamentModal" tabindex="-1" aria-labelledby="filamentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="filamentModalLabel">Ajouter un filament</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <form id="filamentForm">
+          <input type="hidden" id="filament_id">
 
+          <div class="mb-3">
+            <label class="form-label">Nom</label>
+            <input type="text" class="form-control" id="name" required>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Fabricant</label>
+              <select id="manufacturer" placeholder="Choisir ou saisir..." class="form-select"></select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Matériau</label>
+              <select id="material" placeholder="Choisir ou saisir..." class="form-select"></select>
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <label class="form-label">Type de couleur</label>
+            <select id="multicolor_type" class="form-select">
+              <option value="monochrome" selected>Monocouleur</option>
+              <option value="coaxial">Coaxial</option>
+              <option value="gradient">Gradient</option>
+            </select>
+          </div>
+
+          <div id="monoColorBlock" class="mt-3">
+            <label class="form-label d-block">Couleur</label>
+            <input type="color" id="mono_color" value="#ffffff">
+            <input type="text" id="mono_color_hex" class="form-control mt-2" placeholder="#RRGGBB" value="#ffffff">
+          </div>
+
+          <div id="multiColorBlock" class="mt-3" style="display:none">
+            <label class="form-label d-block">Couleurs</label>
+            <div id="multiColors"></div>
+            <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="addMultiColor()">Ajouter une couleur</button>
+            <div class="form-text">L’ordre n’a pas d’importance pour la détection de doublons.</div>
+          </div>
+
+          <div class="row g-3 mt-3">
+            <div class="col-md-6">
+              <label class="form-label">Poids filament (g)</label>
+              <input type="number" min="0" step="1" class="form-control" id="filament_weight_g" value="1000">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Poids bobine (g)</label>
+              <input type="number" min="0" step="1" class="form-control" id="spool_weight_g" value="200">
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <label class="form-label">Profil (profile_id)</label>
+            <input type="text" class="form-control" id="profile_id" placeholder="ex: 12">
+          </div>
+
+          <div class="mt-3">
+            <label class="form-label">Commentaire</label>
+            <textarea class="form-control" id="comment" rows="3"></textarea>
+          </div>
+
+          <div class="alert alert-danger mt-3 d-none" id="filamentError"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button class="btn btn-primary" id="filamentSaveBtn" onclick="saveFilament()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  let filamentModal, manufacturerTS, materialTS;
+
+  function initModal(){
+    const el = document.getElementById('filamentModal');
+    if (!el) return;
+    filamentModal = filamentModal || new bootstrap.Modal(el);
+
+    // Options pour selects => construits depuis les sets backend
+    const manufacturers = [{% for m in (all_manufacturers or [])|sort %}{value: "{{ m|e }}", text: "{{ m|e }}"},{% endfor %}];
+    const materials = [{% for m in (all_materials or [])|sort %}{value: "{{ m|e }}", text: "{{ m|e }}"},{% endfor %}];
+
+    function ensureTomSelect(id, options){
+      if (window.TomSelect){
+        return new TomSelect('#'+id, {
+          create: true,
+          persist: false,
+          maxItems: 1,
+          searchField: ['text', 'value'],
+          sortField: {field: 'text', direction: 'asc'},
+          options
+        });
+      } else {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '';
+        options.forEach(o=>{
+          const opt = document.createElement('option');
+          opt.value = o.value;
+          opt.textContent = o.text;
+          sel.appendChild(opt);
+        });
+        return null; // fallback simple
+      }
+    }
+
+    manufacturerTS = ensureTomSelect('manufacturer', manufacturers);
+    materialTS = ensureTomSelect('material', materials);
+
+    // Liens mono/multi
+    document.getElementById('multicolor_type').addEventListener('change', onTypeChange);
+    document.getElementById('mono_color').addEventListener('input', syncMonoHex);
+    document.getElementById('mono_color_hex').addEventListener('input', syncMonoPicker);
+  }
+
+  function onTypeChange(){
+    const t = document.getElementById('multicolor_type').value;
+    const mono = document.getElementById('monoColorBlock');
+    const multi = document.getElementById('multiColorBlock');
+    if (t === 'monochrome'){
+      mono.style.display = '';
+      multi.style.display = 'none';
+    } else {
+      mono.style.display = 'none';
+      multi.style.display = '';
+      if (document.querySelectorAll('#multiColors .multi-color-item').length === 0){
+        addMultiColor('#ffffff');
+      }
+    }
+  }
+
+  function syncMonoHex(){
+    const v = document.getElementById('mono_color').value;
+    document.getElementById('mono_color_hex').value = v;
+  }
+  function syncMonoPicker(){
+    let v = document.getElementById('mono_color_hex').value.trim();
+    if (v && v[0] !== '#') v = '#'+v;
+    document.getElementById('mono_color').value = v;
+  }
+
+  window.addMultiColor = function(initial){
+    const wrap = document.getElementById('multiColors');
+    const div = document.createElement('div');
+    div.className = 'multi-color-item d-flex align-items-center gap-2 mb-2';
+    div.innerHTML = `
+      <input type="color" class="form-control form-control-color flex-shrink-0" value="${initial || '#ffffff'}">
+      <input type="text" class="form-control" placeholder="#RRGGBB" value="${initial || '#ffffff'}">
+      <button type="button" class="btn btn-outline-danger btn-sm">Supprimer</button>
+    `;
+    const [picker, hexInput, removeBtn] = div.querySelectorAll('input,button');
+    picker.addEventListener('input', () => hexInput.value = picker.value);
+    hexInput.addEventListener('input', () => {
+      let v = hexInput.value.trim();
+      if (v && v[0] !== '#') v = '#'+v;
+      picker.value = v;
+    });
+    removeBtn.addEventListener('click', () => div.remove());
+    wrap.appendChild(div);
+  }
+
+  function getSelectValue(ts, id){
+    if (ts && ts.getValue) return ts.getValue();
+    const el = document.getElementById(id);
+    return el.value;
+  }
+
+  function collectColors(){
+    const type = document.getElementById('multicolor_type').value;
+    if (type === 'monochrome'){
+      let v = document.getElementById('mono_color_hex').value.trim();
+      if (v && v[0] !== '#') v = '#'+v;
+      return [v];
+    } else {
+      const items = document.querySelectorAll('#multiColors .multi-color-item input[type="text"]');
+      const arr = [];
+      items.forEach(i=>{
+        let v = i.value.trim();
+        if (v && v[0] !== '#') v = '#'+v;
+        if (v) arr.push(v);
+      });
+      return arr;
+    }
+  }
+
+  function showError(msg){
+    const a = document.getElementById('filamentError');
+    a.textContent = msg;
+    a.classList.remove('d-none');
+  }
+  function clearError(){
+    const a = document.getElementById('filamentError');
+    a.textContent = '';
+    a.classList.add('d-none');
+  }
+
+  window.openFilamentModal = function(filament){
+    initModal();
+    clearError();
+
+    document.getElementById('filamentForm').reset();
+    document.getElementById('filament_id').value = filament?.id || '';
+    document.getElementById('filamentModalLabel').textContent = filament ? 'Modifier le filament' : 'Ajouter un filament';
+
+    // name
+    document.getElementById('name').value = filament?.name || '';
+
+    // manufacturer / material
+    if (manufacturerTS){
+      manufacturerTS.clear(); materialTS.clear();
+      if (filament?.manufacturer) manufacturerTS.addItem(filament.manufacturer, true);
+      if (filament?.material) materialTS.addItem(filament.material, true);
+    } else {
+      document.getElementById('manufacturer').value = filament?.manufacturer || '';
+      document.getElementById('material').value = filament?.material || '';
+    }
+
+    // multicolor type & couleurs
+    const t = (filament?.multicolor_type || 'monochrome').toLowerCase();
+    document.getElementById('multicolor_type').value = ['monochrome','coaxial','gradient'].includes(t) ? t : 'monochrome';
+    onTypeChange();
+
+    if (t === 'monochrome'){
+      const hex = (() => {
+        if (!filament?.color) return '#ffffff';
+        return filament.color[0] === '#' ? filament.color : ('#'+filament.color);
+      })();
+      document.getElementById('mono_color').value = hex;
+      document.getElementById('mono_color_hex').value = hex;
+    } else {
+      const arr = (filament?.colors_array || '').split(',').filter(Boolean);
+      const wrap = document.getElementById('multiColors');
+      wrap.innerHTML = '';
+      if (arr.length){
+        arr.forEach(c=>{
+          const h = (c && c[0] !== '#') ? ('#'+c) : (c || '#ffffff');
+          addMultiColor(h);
+        });
+      } else {
+        addMultiColor('#ffffff');
+      }
+    }
+
+    // poids
+    document.getElementById('filament_weight_g').value = filament?.filament_weight_g ?? 1000;
+    document.getElementById('spool_weight_g').value = filament?.spool_weight_g ?? 200;
+
+    // profile & comment
+    document.getElementById('profile_id').value = filament?.profile_id ?? '';
+    document.getElementById('comment').value = filament?.comment ?? '';
+
+    filamentModal.show();
+  }
+
+  window.saveFilament = async function(){
+    clearError();
+    const id = document.getElementById('filament_id').value || null;
+
+    const payload = {
+      name: document.getElementById('name').value.trim(),
+      manufacturer: getSelectValue(manufacturerTS, 'manufacturer')?.toString().trim(),
+      material: getSelectValue(materialTS, 'material')?.toString().trim(),
+      multicolor_type: document.getElementById('multicolor_type').value,
+      colors: collectColors(),
+      filament_weight_g: document.getElementById('filament_weight_g').value,
+      spool_weight_g: document.getElementById('spool_weight_g').value,
+      profile_id: document.getElementById('profile_id').value || null,
+      comment: document.getElementById('comment').value || null,
+    };
+
+    if (!payload.name) return showError("Le nom est requis.");
+    if (!payload.manufacturer) return showError("Le fabricant est requis.");
+    if (!payload.material) return showError("Le matériau est requis.");
+    if (!payload.colors || payload.colors.length === 0) return showError("Au moins une couleur est requise.");
+
+    try {
+      const resp = await fetch(id ? `/api/filaments/${id}` : '/api/filaments', {
+        method: id ? 'PUT' : 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok){
+        if (data?.error === 'duplicate'){
+          return showError(data.message || "Doublon détecté : même fabricant, matériau et combinaison de couleurs.");
+        }
+        return showError(data?.message || "Erreur lors de l'enregistrement.");
+      }
+      window.location.reload();
+    } catch (e){
+      showError("Erreur réseau : " + (e?.message || e));
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', initModal);
+})();
+</script>
 {% block scripts %}{{ super() }}{% endblock %}
 
 <div style="height:4rem;"></div>

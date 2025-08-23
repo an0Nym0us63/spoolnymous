@@ -29,7 +29,7 @@ from auth import auth_bp, User, get_stored_user
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments
+from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament
 
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
@@ -2740,6 +2740,32 @@ def filaments_catalog():
         args=_merge_context_args(),
     )
 
+@app.post("/api/filaments")
+def api_ui_create_filament():
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        fid = ui_create_filament(get_db(), data)
+        return jsonify({"ok": True, "id": fid})
+    except ValueError as e:
+        if str(e) == "DUPLICATE_FILAMENT":
+            return jsonify({"ok": False, "error": "duplicate",
+                            "message": "Un filament avec le même fabricant, matériau et la même combinaison de couleurs existe déjà."}), 400
+        return jsonify({"ok": False, "error": "invalid", "message": str(e)}), 400
+    except Exception as e:
+        return jsonify({"ok": False, "error": "server", "message": str(e)}), 500
 
+@app.put("/api/filaments/<int:filament_id>")
+def api_ui_update_filament(filament_id):
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        ui_update_filament(get_db(), filament_id, data)
+        return jsonify({"ok": True, "id": filament_id})
+    except ValueError as e:
+        if str(e) == "DUPLICATE_FILAMENT":
+            return jsonify({"ok": False, "error": "duplicate",
+                            "message": "Un filament avec le même fabricant, matériau et la même combinaison de couleurs existe déjà."}), 400
+        return jsonify({"ok": False, "error": "invalid", "message": str(e)}), 400
+    except Exception as e:
+        return jsonify({"ok": False, "error": "server", "message": str(e)}), 500
 
 app.register_blueprint(auth_bp)

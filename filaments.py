@@ -331,6 +331,117 @@ _BOBINE_ALLOWED_UPDATE = {
     "created_at",
 }
 
+def _normalize_hex(h: str | None) -> str | None:
+    if not h:
+        return None
+    h = h.strip().lower()
+    if h.startswith("#"):
+        h = h[1:]
+    if len(h) == 3:
+        h = "".join(ch*2 for ch in h)
+    h = "".join(c for c in h if c in "0123456789abcdef")
+    return h if len(h) == 6 else None
+
+def _normalize_colors_array(colors: list[str] | None):
+    """Retourne (color, colors_csv) normalisés (sans '#', triés/dédoublonnés)."""
+    if not colors:
+        return None, None
+    norm = []
+    for c in colors:
+        nc = _normalize_hex(c)
+        if nc:
+            norm.append(nc)
+    if not norm:
+        return None, None
+    norm_sorted = sorted(set(norm))
+    return norm_sorted[0], ",".join(norm_sorted)
+
+def _filament_duplicate_exists(conn, manufacturer, material, multicolor_type, colors_csv, exclude_id=None) -> bool:
+    q = """
+        SELECT id
+        FROM filaments
+        WHERE lower(coalesce(manufacturer,'')) = lower(?)
+          AND lower(coalesce(material,'')) = lower(?)
+          AND lower(coalesce(multicolor_type,'')) = lower(?)
+          AND lower(coalesce(colors_array,'')) = lower(?)
+    """
+    params = [
+        (manufacturer or "").strip(),
+        (material or "").strip(),
+        (multicolor_type or "monochrome").strip(),
+        (colors_csv or "").strip(),
+    ]
+    if exclude_id is not None:
+        q += " AND id <> ?"
+        params.append(exclude_id)
+    row = conn.execute(q, params).fetchone()
+    return row is not None
+
+def ui_create_filament(conn, payload: dict) -> int:
+    """
+    Création pour l’UI (ne pas utiliser dans la migration).
+    payload: name, manufacturer, material, multicolor_type, colors(list[str]),
+             filament_weight_g, spool_weight_g, profile_id, comment
+    """
+    name = (payload.get("name") or "").strip()
+    manufacturer = (payload.get("manufacturer") or "").strip()
+    material = (payload.get("material") or "").strip()
+    multicolor_type = (payload.get("multicolor_type") or "monochrome").strip().lower()
+    colors = payload.get("colors") or []
+
+    color, colors_csv = _normalize_colors_array(colors)
+    if _filament_duplicate_exists(conn, manufacturer, material, multicolor_type, colors_csv):
+        raise ValueError("DUPLICATE_FILAMENT")
+
+    filament_weight_g = int(payload.get("filament_weight_g") or 1000)
+    spool_weight_g = int(payload.get("spool_weight_g") or 200)
+    profile_id = payload.get("profile_id")
+    comment = payload.get("comment")
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    cur = conn.execute("""
+        INSERT INTO filaments
+        (created_at, updated_at, name, manufacturer, material,
+         multicolor_type, color, colors_array,
+         filament_weight_g, spool_weight_g, profile_id, comment)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (now, now, name, manufacturer, material,
+          multicolor_type, color, colors_csv,
+          filament_weight_g, spool_weight_g, profile_id, comment))
+    conn.commit()
+    return cur.lastrowid
+
+def ui_update_filament(conn, filament_id: int, payload: dict) -> None:
+    """
+    Edition pour l’UI (ne pas utiliser dans la migration).
+    """
+    name = (payload.get("name") or "").strip()
+    manufacturer = (payload.get("manufacturer") or "").strip()
+    material = (payload.get("material") or "").strip()
+    multicolor_type = (payload.get("multicolor_type") or "monochrome").strip().lower()
+    colors = payload.get("colors") or []
+
+    color, colors_csv = _normalize_colors_array(colors)
+    if _filament_duplicate_exists(conn, manufacturer, material, multicolor_type, colors_csv, exclude_id=filament_id):
+        raise ValueError("DUPLICATE_FILAMENT")
+
+    filament_weight_g = int(payload.get("filament_weight_g") or 1000)
+    spool_weight_g = int(payload.get("spool_weight_g") or 200)
+    profile_id = payload.get("profile_id")
+    comment = payload.get("comment")
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    conn.execute("""
+        UPDATE filaments
+        SET updated_at = ?,
+            name = ?, manufacturer = ?, material = ?,
+            multicolor_type = ?, color = ?, colors_array = ?,
+            filament_weight_g = ?, spool_weight_g = ?, profile_id = ?, comment = ?
+        WHERE id = ?
+    """, (now, name, manufacturer, material,
+          multicolor_type, color, colors_csv,
+          filament_weight_g, spool_weight_g, profile_id, comment, filament_id))
+    conn.commit()
 
 def _validate_non_negative(name: str, value: Optional[float]) -> None:
     if value is None:
