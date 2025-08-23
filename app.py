@@ -1977,7 +1977,7 @@ def objects_page():
         obj_tags=obj_tags,
         obj_accessories=obj_accessories,
         obj_images=obj_images,
-        group_obj_images=group_obj_images
+        group_obj_images=group_obj_images,
         page_title="Objets",
         currencysymbol="€",
         total_objects=summary["total_objects"],
