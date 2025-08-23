@@ -2632,29 +2632,50 @@ def api_ui_update_filament(filament_id):
 
 @app.route("/upload_photo/<int:print_id>", methods=["POST"])
 def upload_print_photo(print_id):
-    file = request.files.get("photo")
-    if not file:
+    # Récupère plusieurs fichiers (champ 'photos') ou fallback 'photo'
+    files = request.files.getlist("photos")
+    if not files:
+        one = request.files.get("photo")
+        if one:
+            files = [one]
+
+    if not files:
         flash("Aucun fichier fourni", "danger")
         return redirect(request.referrer or url_for("print_history"))
 
-    # Vérifie extension
-    ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
-        flash("Extension non supportée", "danger")
-        return redirect(request.referrer or url_for("print_history"))
-
-    # Crée dossier cible
     upload_dir = Path(app.static_folder) / "uploads" / "prints" / str(print_id)
     upload_dir.mkdir(parents=True, exist_ok=True)
 
-    # Détermine nom de fichier Photo-XX.ext
-    existing = [p for p in upload_dir.iterdir() if p.is_file() and p.stem.startswith("Photo-")]
-    next_idx = len(existing) + 1
-    filename = f"Photo-{next_idx:02d}{ext}"
+    # Trouver l'indice max existant (Photo-XX.ext)
+    max_idx = 0
+    for p in upload_dir.iterdir():
+        if not p.is_file(): 
+            continue
+        stem = p.stem  # sans extension
+        m = PHOTO_RE.match(stem)
+        if m:
+            try:
+                max_idx = max(max_idx, int(m.group(1)))
+            except ValueError:
+                pass
 
-    # Sauvegarde
-    file.save(upload_dir / filename)
+    saved = 0
+    for f in files:
+        ext = os.path.splitext(f.filename)[1].lower()
+        if ext not in ALLOWED_EXTS:
+            # on ignore silencieusement (ou flash si tu préfères)
+            continue
+        max_idx += 1
+        filename = f"Photo-{max_idx:02d}{ext}"
+        f.save(upload_dir / filename)
+        saved += 1
 
-    flash(f"Photo ajoutée : {filename}", "success")
+    if saved == 0:
+        flash("Aucune photo valide (extensions autorisées: JPG, PNG, WEBP).", "warning")
+    elif saved == 1:
+        flash("Photo ajoutée.", "success")
+    else:
+        flash(f"{saved} photos ajoutées.", "success")
+
     return redirect(request.referrer or url_for("print_history"))
 app.register_blueprint(auth_bp)

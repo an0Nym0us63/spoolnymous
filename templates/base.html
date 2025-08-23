@@ -250,44 +250,46 @@ document.addEventListener("DOMContentLoaded", function () {
 })();
 </script>
 {% endblock %}
-<input id="__hidden_photo_input__" type="file" accept="image/*" capture="environment" class="d-none">
+<input id="__hidden_photo_input__" type="file" accept="image/*" class="d-none" multiple>
 
 <script>
-  // état global minimal
-  window.__currentPrintId__ = null;
+   window.__currentPrintId__ = null;
   window.__isUploading__ = false;
 
-  // ⚠️ Fonction GLOBALE pour l'attribut onclick
   window.triggerPhotoUpload = function (printId) {
     if (window.__isUploading__) return;
     window.__currentPrintId__ = printId;
     const input = document.getElementById('__hidden_photo_input__');
     if (!input) return;
-    input.value = '';          // reset pour re‑choisir le même fichier si besoin
-    input.click();             // geste direct → OK mobile
+    input.value = '';
+    input.click(); // gesture direct → OK mobile
   };
 
-  // écouteur unique pour l'input caché
   document.addEventListener('DOMContentLoaded', function () {
     const input = document.getElementById('__hidden_photo_input__');
     if (!input) return;
 
     input.addEventListener('change', async function () {
-      const file = input.files && input.files[0];
-      const pid  = window.__currentPrintId__;
-      if (!file || !pid) return;
+      const files = Array.from(input.files || []);
+      const pid   = window.__currentPrintId__;
+      if (!files.length || !pid) return;
 
       try {
         window.__isUploading__ = true;
-        const fd = new FormData();
-        fd.append('photo', file);
 
-        const resp = await fetch(`/upload_photo/${pid}`, { method: 'POST', body: fd });
+        // On envoie TOUT en une seule requête (champ 'photos')
+        const fd = new FormData();
+        for (const f of files) fd.append('photos', f);
+
+        const resp = await fetch(`/upload_photo/${pid}`, {
+          method: 'POST',
+          body: fd
+        });
+
         if (!resp.ok) {
           console.error('Upload failed', resp.status);
-          // TODO: toast si tu veux
         } else {
-          location.reload();   // recharge pour maj du carrousel
+          location.reload(); // pour que le carrousel récupère les nouvelles images
         }
       } catch (e) {
         console.error('Upload error', e);
