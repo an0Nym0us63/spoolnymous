@@ -558,27 +558,6 @@
 .carousel.print-carousel .carousel-indicators .active { 
   background-color: #fff !important; 
 }
-  /* Flèches blanches (SVG inline) */
-.print-carousel .carousel-control-prev-icon {
-  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' fill='%23ffffff'%3E%3Cpath d='M5.5 0L4.09 1.41 6.67 4 4.09 6.59 5.5 8l4-4-4-4z'/%3E%3C/svg%3E");
-  width: 2rem;
-  height: 2rem;
-  filter: drop-shadow(0 0 2px rgba(0,0,0,.6));
-}
-
-/* Flèche droite (chevron vers la droite) */
-.print-carousel .carousel-control-next-icon {
-  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' fill='%23ffffff'%3E%3Cpath d='M2.5 0L1.09 1.41 3.67 4 1.09 6.59 2.5 8l4-4-4-4z'/%3E%3C/svg%3E");
-  width: 2rem;
-  height: 2rem;
-  filter: drop-shadow(0 0 2px rgba(0,0,0,.6));
-}
-
-/* Optionnel : petite ombre pour contraster */
-.print-carousel .carousel-control-prev-icon,
-.print-carousel .carousel-control-next-icon {
-  filter: drop-shadow(0 0 2px rgba(0,0,0,.6));
-}
 
 /* Indicateurs clairs */
 .print-carousel .carousel-indicators [data-bs-target] {
