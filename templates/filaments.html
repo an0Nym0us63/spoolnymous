@@ -433,6 +433,7 @@
 </div>
 {% block scripts %}
 {{ super() }}
+<script>
 (function(){
   let filamentModal, manufacturerTS, materialTS;
 
@@ -873,6 +874,7 @@ const selNameEl = document.getElementById('select-name');
   selNameEl.addEventListener('change', onNameChanged);
   btnApply.addEventListener('click', applyToMainModal);
 })();
+</script>
 {% endblock %}
 
 <div style="height:4rem;"></div>
