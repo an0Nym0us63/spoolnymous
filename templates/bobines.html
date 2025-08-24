@@ -335,7 +335,12 @@
               </div>
             </div>
           </div>
-		 <div class="modal fade" id="spoolModal" tabindex="-1" aria-labelledby="spoolModalLabel" aria-hidden="true">
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+<div class="modal fade" id="spoolModal" tabindex="-1" aria-labelledby="spoolModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
@@ -401,12 +406,7 @@
     </div>
   </div>
 </div>
-
-        </div>
-      </div>
-    </div>
-  {% endfor %}
-</div>{% set endpoint = 'filaments' %}
+{% set endpoint = 'filaments' %}
 {% set pages = total_pages %}
 {% include 'components/pagination.html' %}
 
