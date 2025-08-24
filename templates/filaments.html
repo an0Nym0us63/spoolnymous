@@ -826,8 +826,15 @@ const selNameEl = document.getElementById('select-name');
     document.getElementById('name').value = f.name || '';
 
    
-    document.getElementById('manufacturer').value = f.manufacturer || '';
-    document.getElementById('material').value     = f.material || '';
+    if (manufacturerTS) {
+  manufacturerTS.clear();
+  if (f.manufacturer) manufacturerTS.addItem(f.manufacturer, true);
+}
+if (materialTS) {
+  materialTS.clear();
+  if (f.material) materialTS.addItem(f.material, true);
+}
+    document.getElementById('comment').value     = 'Importé depuis catalogue';
 
 
     // multicolor + couleurs (respecte tes valeurs 'monochrome' | 'coaxial' | 'gradient')
