@@ -665,50 +665,23 @@ if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
 })();
 
 (function(){
-  // ---------- Sélecteurs principaux ----------
+  // ---------- Éléments Import ----------
   const btnOpenImport = document.getElementById('btn-open-import-modal');
   const importModalEl = document.getElementById('importFilamentModal');
-  const modalImport = importModalEl ? bootstrap.Modal.getOrCreateInstance(importModalEl) : null;
+  const importModal = importModalEl ? bootstrap.Modal.getOrCreateInstance(importModalEl) : null;
 
-  const selManu = document.getElementById('select-manufacturer');
-  const selMat  = document.getElementById('select-material');
-  const selName = document.getElementById('select-name');
+  const selManuEl = document.getElementById('import_manufacturer');
+  const selMatEl  = document.getElementById('import_material');
+  const selNameEl = document.getElementById('import_name');
+  const btnApply  = document.getElementById('btn-import-apply');
+  const previewEl = document.getElementById('import-preview');
 
-  const filtManu = document.getElementById('filter-manufacturer');
-  const filtMat  = document.getElementById('filter-material');
-  const filtName = document.getElementById('filter-name');
+  let importManuTS = null, importMatTS = null, importNameTS = null;
+  let CATALOG = [];  // liste brute du /catalog/filaments
+  let idx = { manu: new Map(), // manu -> Set(materials)
+              key: new Map()   // `${manu}|||${mat}|||${name}` -> filament
+            };
 
-  const btnApply = document.getElementById('btn-import-apply');
-  const preview  = document.getElementById('import-preview');
-
-  // ---------- Cache du catalogue ----------
-  let CATALOG = []; // liste des filaments (objets JSON)
-  let byManufacturer = new Map(); // "Bambu Lab" -> Set(materials)
-
-  // ---------- Aide : util ----------
-  function uniqueSorted(arr){
-    return Array.from(new Set(arr)).sort((a,b) => (a||'').localeCompare(b||''));
-  }
-  function clearSelect(sel){
-    while(sel.options.length) sel.remove(0);
-  }
-  function addOptions(sel, values){
-    values.forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = v || '';
-      opt.textContent = v || '—';
-      sel.appendChild(opt);
-    });
-  }
-  function filterSelect(selectEl, needle){
-    const q = (needle || '').toLowerCase();
-    for (const opt of selectEl.options) {
-      const show = !q || (opt.textContent || '').toLowerCase().includes(q);
-      opt.hidden = !show;
-    }
-    // scroll top
-    selectEl.scrollTop = 0;
-  }
   function normalizeHex(h){
     if(!h) return null;
     let s = String(h).trim().replace(/^#/, '');
@@ -717,165 +690,192 @@ if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
     return '#' + s.toUpperCase();
   }
 
-  // ---------- Chargement du catalogue local ----------
   async function loadCatalog(){
-    if (CATALOG.length) return CATALOG;
+    if (CATALOG.length) return;
     const res = await fetch('/catalog/filaments');
     const data = await res.json();
     CATALOG = Array.isArray(data.filaments) ? data.filaments : [];
-    // index matériaux par manufacturer
-    byManufacturer.clear();
+
+    idx.manu.clear(); idx.key.clear();
     for (const f of CATALOG){
       const manu = f.manufacturer || '';
       const mat  = f.material || '';
-      if(!byManufacturer.has(manu)) byManufacturer.set(manu, new Set());
-      if(mat) byManufacturer.get(manu).add(mat);
+      const name = f.name || '';
+      if(!idx.manu.has(manu)) idx.manu.set(manu, new Set());
+      if (mat) idx.manu.get(manu).add(mat);
+      idx.key.set(`${manu}|||${mat}|||${name}`, f);
     }
-    return CATALOG;
   }
 
-  // ---------- Peuplement des selects ----------
+  function ensureTomSelect(el, options){
+    if (window.TomSelect){
+      // détruire TS existant s'il existe (pour recharger options)
+      if (el.tomselect) el.tomselect.destroy();
+      return new TomSelect(el, {
+        create: false,
+        persist: false,
+        maxItems: 1,
+        searchField: ['text', 'value'],
+        sortField: {field: 'text', direction: 'asc'},
+        options
+      });
+    } else {
+      // Fallback natif : on remplit juste les <option>
+      el.innerHTML = '';
+      for (const o of options) {
+        const opt = document.createElement('option');
+        opt.value = o.value;
+        opt.textContent = o.text;
+        el.appendChild(opt);
+      }
+      return null;
+    }
+  }
+
+  function toOptions(values){
+    return Array.from(new Set(values)).sort((a,b)=>(a||'').localeCompare(b||'')).map(v => ({value: v, text: v || '—'}));
+  }
+
   async function openImportModal(){
     await loadCatalog();
 
-    // Marque
-    clearSelect(selManu);
-    addOptions(selManu, uniqueSorted(CATALOG.map(f => f.manufacturer)));
-    filtManu.value = ''; filtMat.value = ''; filtName.value = '';
-    filterSelect(selManu, ''); // reset filtres
+    // manufacturer
+    importManuTS = ensureTomSelect(selManuEl, toOptions(CATALOG.map(f=>f.manufacturer||'')));
+    if (importManuTS) importManuTS.clear(); else selManuEl.value = '';
 
-    // Matériau & Nom resets
-    clearSelect(selMat); selMat.disabled = true;
-    clearSelect(selName); selName.disabled = true;
+    // material (dépend du manu)
+    selMatEl.disabled = true;
+    importMatTS = ensureTomSelect(selMatEl, []);
+    if (importMatTS) importMatTS.clear(); else selMatEl.value = '';
+
+    // name (dépend du couple manu/material)
+    selNameEl.disabled = true;
+    importNameTS = ensureTomSelect(selNameEl, []);
+    if (importNameTS) importNameTS.clear(); else selNameEl.value = '';
 
     btnApply.disabled = true;
-    preview.style.display = 'none';
-    preview.textContent = '';
+    previewEl.classList.add('d-none'); previewEl.textContent = '';
 
-    modalImport.show();
+    importModal.show();
   }
 
-  function onManufacturerChange(){
-    const manu = selManu.value || '';
-    const mats = byManufacturer.has(manu) ? Array.from(byManufacturer.get(manu)) : [];
-    clearSelect(selMat);
-    addOptions(selMat, uniqueSorted(mats));
-    selMat.disabled = (mats.length === 0);
-
-    // reset nom
-    clearSelect(selName);
-    selName.disabled = true;
-    filtMat.value = '';
-    filtName.value = '';
-    filterSelect(selMat, '');
+  function onManufacturerChanged(){
+    const manu = importManuTS ? importManuTS.getValue() : selManuEl.value;
+    const materials = idx.manu.has(manu) ? Array.from(idx.manu.get(manu)) : [];
+    selMatEl.disabled = (materials.length === 0);
+    importMatTS = ensureTomSelect(selMatEl, toOptions(materials));
+    if (importMatTS) importMatTS.clear(); else selMatEl.value = '';
+    // reset names
+    selNameEl.disabled = true;
+    importNameTS = ensureTomSelect(selNameEl, []);
+    if (importNameTS) importNameTS.clear(); else selNameEl.value = '';
+    btnApply.disabled = true;
+    previewEl.classList.add('d-none');
   }
 
-  function onMaterialChange(){
-    const manu = selManu.value || '';
-    const mat  = selMat.value || '';
-    const names = CATALOG
-      .filter(f => (f.manufacturer||'') === manu && (f.material||'') === mat)
-      .map(f => f.name || '');
-    clearSelect(selName);
-    addOptions(selName, uniqueSorted(names));
-    selName.disabled = (names.length === 0);
-    filtName.value = '';
-    filterSelect(selName, '');
+  function onMaterialChanged(){
+    const manu = importManuTS ? importManuTS.getValue() : selManuEl.value;
+    const mat  = importMatTS  ? importMatTS.getValue()  : selMatEl.value;
+    const names = CATALOG.filter(f => (f.manufacturer||'')===manu && (f.material||'')===mat).map(f => f.name || '');
+    selNameEl.disabled = (names.length === 0);
+    importNameTS = ensureTomSelect(selNameEl, toOptions(names));
+    if (importNameTS) importNameTS.clear(); else selNameEl.value = '';
+    btnApply.disabled = true;
+    previewEl.classList.add('d-none');
   }
 
-  function onNameChange(){
-    // Preview (facultatif)
-    const manu = selManu.value || '';
-    const mat  = selMat.value || '';
-    const name = selName.value || '';
-    const found = CATALOG.find(f => (f.manufacturer||'')===manu && (f.material||'')===mat && (f.name||'')===name);
-    if(found){
-      btnApply.disabled = false;
-      preview.style.display = 'block';
-      preview.innerHTML = `
-        <div><strong>${found.manufacturer}</strong> • ${found.material} • <em>${found.name}</em></div>
-        <div class="small text-muted">diamètre: ${found.diameter ?? '—'} · poids: ${found.weight ?? '—'}g · tare: ${found.spool_weight ?? '—'}g</div>
+  function onNameChanged(){
+    const manu = importManuTS ? importManuTS.getValue() : selManuEl.value;
+    const mat  = importMatTS  ? importMatTS.getValue()  : selMatEl.value;
+    const name = importNameTS ? importNameTS.getValue() : selNameEl.value;
+    const f = idx.key.get(`${manu}|||${mat}|||${name}`);
+    if (f){
+      previewEl.classList.remove('d-none');
+      previewEl.innerHTML = `
+        <div><strong>${f.manufacturer}</strong> • ${f.material} • <em>${f.name}</em></div>
+        <div class="small text-muted">Ø ${f.diameter ?? '—'} • poids ${f.weight ?? '—'}g • tare ${f.spool_weight ?? '—'}g</div>
       `;
-    }else{
-      btnApply.disabled = true;
-      preview.style.display = 'none';
-      preview.textContent = '';
-    }
-  }
-
-  // ---------- Pré-remplissage de la modale principale ----------
-  function setField(field, value){
-    const el = document.querySelector(`[data-field="${field}"]`);
-    if (!el) return;
-    el.value = value ?? '';
-    // si c'est un select/BS, déclenche change pour ta logique existante
-    el.dispatchEvent(new Event('change', {bubbles:true}));
-  }
-  function applySelectionToMainModal(){
-    const manu = selManu.value || '';
-    const mat  = selMat.value || '';
-    const name = selName.value || '';
-    const f = CATALOG.find(x => (x.manufacturer||'')===manu && (x.material||'')===mat && (x.name||'')===name);
-    if(!f) return;
-
-    // Mapping -> tes champs de la modale d'ajout/édition
-    // IMPORTANT : tes inputs doivent porter ces data-field :
-    // manufacturer, name, material, filament_weight_g, spool_weight_g, color, multicolor_type, colors_array, diameter
-    setField('manufacturer', f.manufacturer || '');
-    setField('name', f.name || '');
-    setField('material', f.material || '');
-    setField('filament_weight_g', f.weight ?? '');
-    setField('spool_weight_g', f.spool_weight ?? '');
-    setField('diameter', f.diameter ?? '');
-
-    // couleur(s)
-    if (Array.isArray(f.color_hexes) && f.color_hexes.length){
-      setField('multicolor_type', (f.multi_color_direction || 'monocouleur')); // ex: 'coaxial', 'longitudinal'…
-      // on stocke la CSV hex sans '#'
-      const csv = f.color_hexes.map(h => (normalizeHex(h)||'').replace('#','')).filter(Boolean).join(',');
-      setField('colors_array', csv);
-      setField('color', ''); // monocouleur non utilisé ici
+      btnApply.disabled = false;
     } else {
-      setField('multicolor_type', 'monocouleur');
-      setField('colors_array', '');
-      setField('color', normalizeHex(f.color_hex || '') || '');
+      previewEl.classList.add('d-none'); previewEl.textContent = '';
+      btnApply.disabled = true;
     }
-
-    // (optionnel) champs annexes si tu as des inputs dédiés :
-    // setField('comment', `Import catalogue: ${f.id || ''}`);
-
-    // ferme la modale Import, on reste dans la modale principale pré-remplie
-    modalImport.hide();
   }
 
-  // ---------- Afficher le bouton Importer seulement en mode "Ajout" ----------
-  // Hypothèse : dans ta modale principale, tu as un champ caché data-field="id" (ou un input pour l'ID).
-  // Si absent, remplace la logique par ton propre "flag" d'édition.
-  function updateImportButtonVisibility(){
-    const idEl = document.querySelector('[data-field="id"]');
-    const isEdit = idEl && (idEl.value || '').trim() !== '';
-    if (!btnOpenImport) return;
-    btnOpenImport.classList.toggle('d-none', !!isEdit);
+  // -------- Pré-remplissage de TA modale existante --------
+  function applyToMainModal(){
+    const manu = importManuTS ? importManuTS.getValue() : selManuEl.value;
+    const mat  = importMatTS  ? importMatTS.getValue()  : selMatEl.value;
+    const name = importNameTS ? importNameTS.getValue() : selNameEl.value;
+    const f = idx.key.get(`${manu}|||${mat}|||${name}`);
+    if (!f) return;
+
+    // Titre/état de la modale principale est déjà gérée par openFilamentModal().
+    // On remplit les champs existants identifiés dans ton code.
+    document.getElementById('name').value = f.name || '';
+
+    // manufacturer & material via TomSelect si dispo
+    if (window.manufacturerTS && window.materialTS){
+      manufacturerTS.clear(); materialTS.clear();
+      if (f.manufacturer) manufacturerTS.addItem(f.manufacturer, true);
+      if (f.material)     materialTS.addItem(f.material, true);
+    } else {
+      document.getElementById('manufacturer').value = f.manufacturer || '';
+      document.getElementById('material').value     = f.material || '';
+    }
+
+    // multicolor + couleurs (respecte tes valeurs 'monochrome' | 'coaxial' | 'gradient')
+    const t = Array.isArray(f.color_hexes) && f.color_hexes.length ? (f.multi_color_direction || 'coaxial') : 'monochrome';
+    document.getElementById('multicolor_type').value = ['monochrome','coaxial','gradient'].includes(String(t).toLowerCase()) ? String(t).toLowerCase() : 'monochrome';
+    // déclenche l'affichage mono/multi via ta fonction existante
+    if (typeof onTypeChange === 'function') onTypeChange();
+
+    if (document.getElementById('multicolor_type').value === 'monochrome'){
+      const hex = normalizeHex(f.color_hex || '') || '#ffffff';
+      document.getElementById('mono_color').value = hex;
+      document.getElementById('mono_color_hex').value = hex;
+    } else {
+      const wrap = document.getElementById('multiColors');
+      wrap.innerHTML = '';
+      const arr = (Array.isArray(f.color_hexes) ? f.color_hexes : []).map(h => normalizeHex(h) || '#ffffff');
+      if (arr.length){
+        arr.forEach(h => addMultiColor(h));
+      } else {
+        addMultiColor('#ffffff');
+      }
+    }
+
+    // poids / tare / diamètre
+    document.getElementById('filament_weight_g').value = f.weight ?? 1000;
+    document.getElementById('spool_weight_g').value   = f.spool_weight ?? 200;
+    document.getElementById('diameter').value         = f.diameter ?? '';
+
+    // optionnel: profile_id/comment si tu veux tracer l’origine
+    // document.getElementById('profile_id').value = document.getElementById('profile_id').value || '';
+    // document.getElementById('comment').value = (document.getElementById('comment').value || '') + `\nImport catalogue: ${f.id}`;
+
+    importModal.hide();
   }
 
   // ---------- Bindings ----------
-  if (btnOpenImport && modalImport){
+  if (btnOpenImport && importModal){
     btnOpenImport.addEventListener('click', openImportModal);
   }
-  if (selManu) selManu.addEventListener('change', onManufacturerChange);
-  if (selMat)  selMat.addEventListener('change', onMaterialChange);
-  if (selName) selName.addEventListener('change', onNameChange);
+  selManuEl.addEventListener('change', onManufacturerChanged);
+  selMatEl.addEventListener('change', onMaterialChanged);
+  selNameEl.addEventListener('change', onNameChanged);
+  btnApply.addEventListener('click', applyToMainModal);
 
-  if (filtManu) filtManu.addEventListener('input', () => filterSelect(selManu, filtManu.value));
-  if (filtMat)  filtMat.addEventListener('input',  () => filterSelect(selMat, filtMat.value));
-  if (filtName) filtName.addEventListener('input', () => filterSelect(selName, filtName.value));
-
-  if (btnApply) btnApply.addEventListener('click', applySelectionToMainModal);
-
-  // Quand ta modale principale s’ouvre / change de mode, appelle :
-  //   updateImportButtonVisibility();
-  // Si tu as déjà un hook "onShow" de ta modale principale, ajoute la ligne dedans.
-  window.updateImportButtonVisibility = updateImportButtonVisibility;
+  // ---------- Afficher/cacher le bouton Import selon AJOUT/EDIT ----------
+  // On étend ta fonction existante openFilamentModal(...) en ne touchant qu'une ligne
+  const _openFilamentModal = window.openFilamentModal;
+  window.openFilamentModal = function(filament){
+    _openFilamentModal(filament);
+    const isEdit = !!(filament && filament.id);
+    if (btnOpenImport){
+      btnOpenImport.classList.toggle('d-none', isEdit);
+    }
+  };
 })();
 </script>
 {% block scripts %}{{ super() }}{% endblock %}
