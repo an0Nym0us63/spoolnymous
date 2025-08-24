@@ -564,6 +564,12 @@
     document.getElementById('filamentForm').reset();
     document.getElementById('filament_id').value = filament?.id || '';
     document.getElementById('filamentModalLabel').textContent = filament ? 'Modifier le filament' : 'Ajouter un filament';
+	// ➜ AJOUTE CES 3 LIGNES ICI
+const importBtn = document.getElementById('btn-open-import-modal');
+if (importBtn) {
+  const isEdit = !!(filament && filament.id);
+  importBtn.classList.toggle('d-none', isEdit);
+}
 	document.getElementById('price').value = (filament?.price ?? '');
 
     // name
@@ -670,9 +676,9 @@ if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
   const importModalEl = document.getElementById('importFilamentModal');
   const importModal = importModalEl ? bootstrap.Modal.getOrCreateInstance(importModalEl) : null;
 
-  const selManuEl = document.getElementById('import_manufacturer');
-  const selMatEl  = document.getElementById('import_material');
-  const selNameEl = document.getElementById('import_name');
+  const selManuEl = document.getElementById('select-manufacturer');
+const selMatEl  = document.getElementById('select-material');
+const selNameEl = document.getElementById('select-name');
   const btnApply  = document.getElementById('btn-import-apply');
   const previewEl = document.getElementById('import-preview');
 
@@ -865,17 +871,6 @@ if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
   selMatEl.addEventListener('change', onMaterialChanged);
   selNameEl.addEventListener('change', onNameChanged);
   btnApply.addEventListener('click', applyToMainModal);
-
-  // ---------- Afficher/cacher le bouton Import selon AJOUT/EDIT ----------
-  // On étend ta fonction existante openFilamentModal(...) en ne touchant qu'une ligne
-  const _openFilamentModal = window.openFilamentModal;
-  window.openFilamentModal = function(filament){
-    _openFilamentModal(filament);
-    const isEdit = !!(filament && filament.id);
-    if (btnOpenImport){
-      btnOpenImport.classList.toggle('d-none', isEdit);
-    }
-  };
 })();
 </script>
 {% block scripts %}{{ super() }}{% endblock %}
