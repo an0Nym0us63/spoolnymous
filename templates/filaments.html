@@ -446,20 +446,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function ensureTomSelect(id, options){
       if (window.TomSelect){
-        return new TomSelect(el, {
-  create: false,
-  persist: false,
-  maxItems: 1,
-  searchField: ['text', 'value'],
-  sortField: {field: 'text', direction: 'asc'},
-  options,
- render: {
-  option: function(data, escape) {
-    const txt = data.text || '';
-    return `<div>${escape(txt.trim())}</div>`;
-  }
-}
-});
+        return new TomSelect('#'+id, {
+          create: true,
+          persist: false,
+          maxItems: 1,
+          searchField: ['text', 'value'],
+          sortField: {field: 'text', direction: 'asc'},
+          options
+        });
       } else {
         const sel = document.getElementById(id);
         sel.innerHTML = '';
@@ -729,7 +723,12 @@ const selNameEl = document.getElementById('select-name');
         maxItems: 1,
         searchField: ['text', 'value'],
         sortField: {field: 'text', direction: 'asc'},
-        options
+        options,
+		render: {
+    option: function(data, escape) {
+      return `<div>${escape(data.text)}</div>`;
+    }
+  }
       });
     } else {
       // Fallback natif : on remplit juste les <option>
