@@ -467,8 +467,10 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
 
-    manufacturerTS = ensureTomSelect('manufacturer', manufacturers);
-    materialTS = ensureTomSelect('material', materials);
+manufacturerTS = ensureTomSelect('manufacturer', manufacturers);
+materialTS = ensureTomSelect('material', materials);
+window.manufacturerTS = manufacturerTS;
+window.materialTS = materialTS;
 
     // Liens mono/multi
     document.getElementById('multicolor_type').addEventListener('change', onTypeChange);
