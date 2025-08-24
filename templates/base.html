@@ -296,18 +296,19 @@ window.triggerPhotoUnified = function (target) {
   const norm = normalizeTarget(target);
   if (!norm) return;
 
-  function isMobileWithModal() {
+  function isTrueMobileDevice() {
     const ua = navigator.userAgent || '';
     const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
+    const screenSmall = Math.min(window.innerWidth, window.innerHeight) < 768;
 
-    // Détecter si c'est un device mobile mais PAS un device Apple
     const isAppleDevice = /iphone|ipad|ipod/i.test(ua);
-    const isAndroidOrOtherTouch = coarse && !isAppleDevice;
-
-    return isAndroidOrOtherTouch;
+    const isWindows = /windows/i.test(ua);
+    
+    // Mobile = tactile + petit écran + pas device Apple ou Windows
+    return coarse && screenSmall && !isAppleDevice && !isWindows;
   }
 
-  if (isMobileWithModal()) {
+  if (isTrueMobileDevice()) {
     window.__currentPhotoTarget__ = norm;
     const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('photoChoiceModal'));
     modal.show();
