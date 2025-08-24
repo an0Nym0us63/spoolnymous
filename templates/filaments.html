@@ -453,11 +453,12 @@ document.addEventListener('DOMContentLoaded', function () {
   searchField: ['text', 'value'],
   sortField: {field: 'text', direction: 'asc'},
   options,
-  render: {
-    option: function(data, escape) {
-      return `<div>${escape(data.text)}</div>`;
-    }
+ render: {
+  option: function(data, escape) {
+    const txt = data.text || '';
+    return `<div>${escape(txt.trim())}</div>`;
   }
+}
 });
       } else {
         const sel = document.getElementById(id);
