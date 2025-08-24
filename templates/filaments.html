@@ -263,7 +263,7 @@
     </li>
 	<li>
   <button class="dropdown-item"
-          onclick="openSpoolModalForFilament({{ fil.id }}, {{ fil|tojson|safe }})">
+           onclick='openSpoolModalForFilament({{ fil|tojson|safe }})'>
     ➕ Créer une bobine
   </button>
 </li>
@@ -1001,7 +1001,8 @@ if (materialTS) {
   }
 
   // >>> Ouvre la modale en mode "création" et pré‑sélectionne un filament
-  window.openSpoolModalForFilament = async function(filamentId, filObj){
+  window.openSpoolModalForFilament = async function(filObj){
+	const filamentId = filObj.id;
     clearSpoolError();
 
     // Instancie la modal si besoin
