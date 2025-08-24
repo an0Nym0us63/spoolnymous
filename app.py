@@ -2807,7 +2807,6 @@ def sync_catalog():
     return redirect(url_for("auth.settings"))
 
 @app.route("/catalog/filaments", methods=["GET"])
-@login_required
 def catalog_filaments():
     CATALOG_DIR = os.path.join("data", "filaments")
     path = os.path.join(CATALOG_DIR, "filaments.json")
