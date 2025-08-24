@@ -585,7 +585,7 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     // petite validation
-    const p = (payload.price||'').toString().trim();
+    const p = (payload.price_override||'').toString().trim();
     if (p && isNaN(Number(p.replace(',', '.')))) {
       return showSpoolError("Le prix doit être un nombre (ex: 24.90).");
     }

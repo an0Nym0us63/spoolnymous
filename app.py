@@ -2849,8 +2849,8 @@ def api_create_spool():
     try:
         sp = add_bobine(
             filament_id = data.get("filament_id"),
-            price       = data.get("price"),
-            remaining_g = data.get("remaining_weight_g"),
+            price_override       = data.get("price_override"),
+            remaining_weight_g = data.get("remaining_weight_g"),
             location    = data.get("location"),
             tag_number  = data.get("tag_number"),
             ams_tray    = data.get("ams_tray"),
@@ -2869,8 +2869,8 @@ def api_update_spool(spool_id):
         sp = update_bobine(
             spool_id,
             filament_id = data.get("filament_id"),
-            price       = data.get("price"),
-            remaining_g = data.get("remaining_weight_g"),
+            price_override       = data.get("price_override"),
+            remaining_weight_g = data.get("remaining_weight_g"),
             location    = data.get("location"),
             tag_number  = data.get("tag_number"),
             ams_tray    = data.get("ams_tray"),
