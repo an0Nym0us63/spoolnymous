@@ -8,7 +8,7 @@ log = logging.getLogger(__name__)
 
 # --- Config en dur (paramétrables ici) ---
 DATA_DIR = os.path.join("data", "filaments")
-INTERVAL_SEC = 60
+INTERVAL_SEC = 3600
 TIMEOUT_SEC = 15
 USER_AGENT = "SpoolNymous-CatalogSync/1.0"
 FILAMENTS_URL = "https://donkie.github.io/SpoolmanDB/filaments.json"
