@@ -825,15 +825,10 @@ const selNameEl = document.getElementById('select-name');
     // On remplit les champs existants identifiés dans ton code.
     document.getElementById('name').value = f.name || '';
 
-    // manufacturer & material via TomSelect si dispo
-    if (window.manufacturerTS && window.materialTS){
-      manufacturerTS.clear(); materialTS.clear();
-      if (f.manufacturer) manufacturerTS.addItem(f.manufacturer, true);
-      if (f.material)     materialTS.addItem(f.material, true);
-    } else {
-      document.getElementById('manufacturer').value = f.manufacturer || '';
-      document.getElementById('material').value     = f.material || '';
-    }
+   
+    document.getElementById('manufacturer').value = f.manufacturer || '';
+    document.getElementById('material').value     = f.material || '';
+
 
     // multicolor + couleurs (respecte tes valeurs 'monochrome' | 'coaxial' | 'gradient')
     const t = Array.isArray(f.color_hexes) && f.color_hexes.length ? (f.multi_color_direction || 'coaxial') : 'monochrome';
@@ -859,6 +854,7 @@ const selNameEl = document.getElementById('select-name');
     // poids / tare / diamètre
     document.getElementById('filament_weight_g').value = f.weight ?? 1000;
     document.getElementById('spool_weight_g').value   = f.spool_weight ?? 200;
+    document.getElementById('price').value   = f.price ?? 20;
 
     // optionnel: profile_id/comment si tu veux tracer l’origine
     // document.getElementById('profile_id').value = document.getElementById('profile_id').value || '';
