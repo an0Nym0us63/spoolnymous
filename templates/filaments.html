@@ -686,7 +686,7 @@ const selNameEl = document.getElementById('select-name');
   const previewEl = document.getElementById('import-preview');
 
   let importManuTS = null, importMatTS = null, importNameTS = null;
-  let CATALOG = [];  // liste brute du /catalog/filaments
+  let CATALOG = [];  // liste brute du /catalog/filaments/import
   let idx = { manu: new Map(), // manu -> Set(materials)
               key: new Map()   // `${manu}|||${mat}|||${name}` -> filament
             };
@@ -701,7 +701,7 @@ const selNameEl = document.getElementById('select-name');
 
   async function loadCatalog(){
     if (CATALOG.length) return;
-    const res = await fetch('/catalog/filaments');
+    const res = await fetch('/catalog/filaments/import');
     const data = await res.json();
     CATALOG = Array.isArray(data.filaments) ? data.filaments : [];
 

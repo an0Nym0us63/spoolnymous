@@ -2782,7 +2782,6 @@ def delete_entity_photo(entity, entity_id):
     return redirect(request.referrer or url_for("print_history"))
 
 @app.route("/sync_catalog", methods=["POST"])
-@login_required
 def sync_catalog():
     # Aligné avec le style existant: flash + redirect vers Settings
     svc = getattr(current_app, "catalog_sync", None)
@@ -2806,7 +2805,7 @@ def sync_catalog():
 
     return redirect(url_for("auth.settings"))
 
-@app.route("/catalog/filaments", methods=["GET"])
+@app.route("/catalog/filaments/import", methods=["GET"])
 def catalog_filaments():
     CATALOG_DIR = os.path.join("data", "filaments")
     path = os.path.join(CATALOG_DIR, "filaments.json")
