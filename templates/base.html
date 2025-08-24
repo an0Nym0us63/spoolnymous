@@ -209,7 +209,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const alertEl = document.querySelector('#flash-alert[data-autohide="true"]');
   if (!alertEl) return;
   const delayAttr = parseInt(alertEl.getAttribute('data-autohide-delay'), 10);
-  const AUTO_HIDE_MS = Number.isFinite(delayAttr) ? delayAttr : 3000;
+  const AUTO_HIDE_MS = Number.isFinite(delayAttr) ? delayAttr : 5000;
   const bsAlert = bootstrap.Alert.getOrCreateInstance(alertEl);
   let timer = setTimeout(() => bsAlert.close(), AUTO_HIDE_MS);
   alertEl.addEventListener("mouseenter", () => { if (timer) { clearTimeout(timer); timer = null; }});
@@ -290,23 +290,31 @@ document.addEventListener("DOMContentLoaded", function () {
     input.click();
   };
 
-  window.triggerPhotoUnified = function (target) {
-    if (window.__isUploading__) return;
-    const norm = normalizeTarget(target);
-    if (!norm) return;
-    function isMobileDevice() {
-      const ua = navigator.userAgent || '';
-      const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
-      return /android|iphone|ipad|ipod/i.test(ua) || coarse;
-    }
-    if (isMobileDevice()) {
-      window.__currentPhotoTarget__ = norm;
-      const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('photoChoiceModal'));
-      modal.show();
-    } else {
-      window.triggerPhotoUpload(norm);
-    }
-  };
+window.triggerPhotoUnified = function (target) {
+  if (window.__isUploading__) return;
+
+  const norm = normalizeTarget(target);
+  if (!norm) return;
+
+  function isMobileWithModal() {
+    const ua = navigator.userAgent || '';
+    const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
+
+    // Détecter si c'est un device mobile mais PAS un device Apple
+    const isAppleDevice = /iphone|ipad|ipod/i.test(ua);
+    const isAndroidOrOtherTouch = coarse && !isAppleDevice;
+
+    return isAndroidOrOtherTouch;
+  }
+
+  if (isMobileWithModal()) {
+    window.__currentPhotoTarget__ = norm;
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('photoChoiceModal'));
+    modal.show();
+  } else {
+    window.triggerPhotoUpload(norm);
+  }
+};
 
   async function uploadFiles(files) {
     const target = window.__currentPhotoTarget__;
