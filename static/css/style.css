@@ -643,3 +643,32 @@
   .carousel-delete-btn{ opacity:.0; transition:opacity .15s ease }
   .print-carousel:hover .carousel-delete-btn{ opacity:.95 }
 }
+
+
+/* Correction TomSelect pour thème sombre */
+.ts-control,
+.ts-dropdown,
+.ts-dropdown .option {
+  background-color: #1e293b !important;
+  color: #f8f9fa !important;
+  border-color: #495057;
+}
+
+.ts-control input {
+  color: #f8f9fa !important;
+}
+
+.ts-dropdown .option:hover,
+.ts-dropdown .option.active {
+  background-color: #334155 !important;
+  color: #fff !important;
+}
+
+.ts-control .item {
+  color: #f8f9fa !important;
+}
+
+.ts-control input::placeholder {
+  color: #ced4da !important;
+  opacity: 1;
+}
