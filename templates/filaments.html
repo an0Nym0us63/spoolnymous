@@ -403,21 +403,18 @@
         <!-- MARQUE -->
         <div class="mb-3">
           <label class="form-label">Marque</label>
-          <input type="text" class="form-control mb-2" placeholder="Rechercher une marque…" id="filter-manufacturer">
           <select class="form-select" id="select-manufacturer" size="8"></select>
         </div>
 
         <!-- MATÉRIAU -->
         <div class="mb-3">
           <label class="form-label">Matériau</label>
-          <input type="text" class="form-control mb-2" placeholder="Rechercher un matériau…" id="filter-material">
           <select class="form-select" id="select-material" size="8" disabled></select>
         </div>
 
         <!-- NOM COMMERCIAL -->
         <div class="mb-3">
           <label class="form-label">Nom</label>
-          <input type="text" class="form-control mb-2" placeholder="Rechercher un nom…" id="filter-name">
           <select class="form-select" id="select-name" size="10" disabled></select>
         </div>
 
@@ -449,14 +446,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function ensureTomSelect(id, options){
       if (window.TomSelect){
-        return new TomSelect('#'+id, {
-          create: true,
-          persist: false,
-          maxItems: 1,
-          searchField: ['text', 'value'],
-          sortField: {field: 'text', direction: 'asc'},
-          options
-        });
+        return new TomSelect(el, {
+  create: false,
+  persist: false,
+  maxItems: 1,
+  searchField: ['text', 'value'],
+  sortField: {field: 'text', direction: 'asc'},
+  options,
+  render: {
+    option: function(data, escape) {
+      return `<div>${escape(data.text)}</div>`;
+    }
+  }
+});
       } else {
         const sel = document.getElementById(id);
         sel.innerHTML = '';
