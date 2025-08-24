@@ -2806,4 +2806,16 @@ def sync_catalog():
 
     return redirect(url_for("auth.settings"))
 
+@app.route("/catalog/filaments", methods=["GET"])
+@login_required
+def catalog_filaments():
+    CATALOG_DIR = os.path.join("data", "filaments")
+    path = os.path.join(CATALOG_DIR, "filaments.json")
+    if not os.path.exists(path):
+        return jsonify({"filaments": [], "error": "filaments.json introuvable"}), 200
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    # On renvoie brut; le client fera ses regroupements
+    return jsonify({"filaments": data})
+
 app.register_blueprint(auth_bp)

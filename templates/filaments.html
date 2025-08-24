@@ -313,6 +313,9 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
       </div>
       <div class="modal-body">
+		<button type="button" class="btn btn-outline-primary d-none" id="btn-open-import-modal">
+  📥 Importer depuis le catalogue
+</button>
         <form id="filamentForm">
           <input type="hidden" id="filament_id">
 
@@ -384,6 +387,46 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
         <button class="btn btn-primary" id="filamentSaveBtn" onclick="saveFilament()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="importFilamentModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Importer un filament depuis le catalogue</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- MARQUE -->
+        <div class="mb-3">
+          <label class="form-label">Marque</label>
+          <input type="text" class="form-control mb-2" placeholder="Rechercher une marque…" id="filter-manufacturer">
+          <select class="form-select" id="select-manufacturer" size="8"></select>
+        </div>
+
+        <!-- MATÉRIAU -->
+        <div class="mb-3">
+          <label class="form-label">Matériau</label>
+          <input type="text" class="form-control mb-2" placeholder="Rechercher un matériau…" id="filter-material">
+          <select class="form-select" id="select-material" size="8" disabled></select>
+        </div>
+
+        <!-- NOM COMMERCIAL -->
+        <div class="mb-3">
+          <label class="form-label">Nom</label>
+          <input type="text" class="form-control mb-2" placeholder="Rechercher un nom…" id="filter-name">
+          <select class="form-select" id="select-name" size="10" disabled></select>
+        </div>
+
+        <div class="alert alert-info small" id="import-preview" style="display:none;"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" id="btn-import-apply" disabled>Utiliser ce filament</button>
       </div>
     </div>
   </div>
@@ -619,6 +662,220 @@ if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
   }
 
   document.addEventListener('DOMContentLoaded', initModal);
+})();
+
+(function(){
+  // ---------- Sélecteurs principaux ----------
+  const btnOpenImport = document.getElementById('btn-open-import-modal');
+  const importModalEl = document.getElementById('importFilamentModal');
+  const modalImport = importModalEl ? bootstrap.Modal.getOrCreateInstance(importModalEl) : null;
+
+  const selManu = document.getElementById('select-manufacturer');
+  const selMat  = document.getElementById('select-material');
+  const selName = document.getElementById('select-name');
+
+  const filtManu = document.getElementById('filter-manufacturer');
+  const filtMat  = document.getElementById('filter-material');
+  const filtName = document.getElementById('filter-name');
+
+  const btnApply = document.getElementById('btn-import-apply');
+  const preview  = document.getElementById('import-preview');
+
+  // ---------- Cache du catalogue ----------
+  let CATALOG = []; // liste des filaments (objets JSON)
+  let byManufacturer = new Map(); // "Bambu Lab" -> Set(materials)
+
+  // ---------- Aide : util ----------
+  function uniqueSorted(arr){
+    return Array.from(new Set(arr)).sort((a,b) => (a||'').localeCompare(b||''));
+  }
+  function clearSelect(sel){
+    while(sel.options.length) sel.remove(0);
+  }
+  function addOptions(sel, values){
+    values.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v || '';
+      opt.textContent = v || '—';
+      sel.appendChild(opt);
+    });
+  }
+  function filterSelect(selectEl, needle){
+    const q = (needle || '').toLowerCase();
+    for (const opt of selectEl.options) {
+      const show = !q || (opt.textContent || '').toLowerCase().includes(q);
+      opt.hidden = !show;
+    }
+    // scroll top
+    selectEl.scrollTop = 0;
+  }
+  function normalizeHex(h){
+    if(!h) return null;
+    let s = String(h).trim().replace(/^#/, '');
+    if (s.length === 3) s = s.split('').map(c => c + c).join('');
+    if (s.length !== 6) return null;
+    return '#' + s.toUpperCase();
+  }
+
+  // ---------- Chargement du catalogue local ----------
+  async function loadCatalog(){
+    if (CATALOG.length) return CATALOG;
+    const res = await fetch('/catalog/filaments');
+    const data = await res.json();
+    CATALOG = Array.isArray(data.filaments) ? data.filaments : [];
+    // index matériaux par manufacturer
+    byManufacturer.clear();
+    for (const f of CATALOG){
+      const manu = f.manufacturer || '';
+      const mat  = f.material || '';
+      if(!byManufacturer.has(manu)) byManufacturer.set(manu, new Set());
+      if(mat) byManufacturer.get(manu).add(mat);
+    }
+    return CATALOG;
+  }
+
+  // ---------- Peuplement des selects ----------
+  async function openImportModal(){
+    await loadCatalog();
+
+    // Marque
+    clearSelect(selManu);
+    addOptions(selManu, uniqueSorted(CATALOG.map(f => f.manufacturer)));
+    filtManu.value = ''; filtMat.value = ''; filtName.value = '';
+    filterSelect(selManu, ''); // reset filtres
+
+    // Matériau & Nom resets
+    clearSelect(selMat); selMat.disabled = true;
+    clearSelect(selName); selName.disabled = true;
+
+    btnApply.disabled = true;
+    preview.style.display = 'none';
+    preview.textContent = '';
+
+    modalImport.show();
+  }
+
+  function onManufacturerChange(){
+    const manu = selManu.value || '';
+    const mats = byManufacturer.has(manu) ? Array.from(byManufacturer.get(manu)) : [];
+    clearSelect(selMat);
+    addOptions(selMat, uniqueSorted(mats));
+    selMat.disabled = (mats.length === 0);
+
+    // reset nom
+    clearSelect(selName);
+    selName.disabled = true;
+    filtMat.value = '';
+    filtName.value = '';
+    filterSelect(selMat, '');
+  }
+
+  function onMaterialChange(){
+    const manu = selManu.value || '';
+    const mat  = selMat.value || '';
+    const names = CATALOG
+      .filter(f => (f.manufacturer||'') === manu && (f.material||'') === mat)
+      .map(f => f.name || '');
+    clearSelect(selName);
+    addOptions(selName, uniqueSorted(names));
+    selName.disabled = (names.length === 0);
+    filtName.value = '';
+    filterSelect(selName, '');
+  }
+
+  function onNameChange(){
+    // Preview (facultatif)
+    const manu = selManu.value || '';
+    const mat  = selMat.value || '';
+    const name = selName.value || '';
+    const found = CATALOG.find(f => (f.manufacturer||'')===manu && (f.material||'')===mat && (f.name||'')===name);
+    if(found){
+      btnApply.disabled = false;
+      preview.style.display = 'block';
+      preview.innerHTML = `
+        <div><strong>${found.manufacturer}</strong> • ${found.material} • <em>${found.name}</em></div>
+        <div class="small text-muted">diamètre: ${found.diameter ?? '—'} · poids: ${found.weight ?? '—'}g · tare: ${found.spool_weight ?? '—'}g</div>
+      `;
+    }else{
+      btnApply.disabled = true;
+      preview.style.display = 'none';
+      preview.textContent = '';
+    }
+  }
+
+  // ---------- Pré-remplissage de la modale principale ----------
+  function setField(field, value){
+    const el = document.querySelector(`[data-field="${field}"]`);
+    if (!el) return;
+    el.value = value ?? '';
+    // si c'est un select/BS, déclenche change pour ta logique existante
+    el.dispatchEvent(new Event('change', {bubbles:true}));
+  }
+  function applySelectionToMainModal(){
+    const manu = selManu.value || '';
+    const mat  = selMat.value || '';
+    const name = selName.value || '';
+    const f = CATALOG.find(x => (x.manufacturer||'')===manu && (x.material||'')===mat && (x.name||'')===name);
+    if(!f) return;
+
+    // Mapping -> tes champs de la modale d'ajout/édition
+    // IMPORTANT : tes inputs doivent porter ces data-field :
+    // manufacturer, name, material, filament_weight_g, spool_weight_g, color, multicolor_type, colors_array, diameter
+    setField('manufacturer', f.manufacturer || '');
+    setField('name', f.name || '');
+    setField('material', f.material || '');
+    setField('filament_weight_g', f.weight ?? '');
+    setField('spool_weight_g', f.spool_weight ?? '');
+    setField('diameter', f.diameter ?? '');
+
+    // couleur(s)
+    if (Array.isArray(f.color_hexes) && f.color_hexes.length){
+      setField('multicolor_type', (f.multi_color_direction || 'monocouleur')); // ex: 'coaxial', 'longitudinal'…
+      // on stocke la CSV hex sans '#'
+      const csv = f.color_hexes.map(h => (normalizeHex(h)||'').replace('#','')).filter(Boolean).join(',');
+      setField('colors_array', csv);
+      setField('color', ''); // monocouleur non utilisé ici
+    } else {
+      setField('multicolor_type', 'monocouleur');
+      setField('colors_array', '');
+      setField('color', normalizeHex(f.color_hex || '') || '');
+    }
+
+    // (optionnel) champs annexes si tu as des inputs dédiés :
+    // setField('comment', `Import catalogue: ${f.id || ''}`);
+
+    // ferme la modale Import, on reste dans la modale principale pré-remplie
+    modalImport.hide();
+  }
+
+  // ---------- Afficher le bouton Importer seulement en mode "Ajout" ----------
+  // Hypothèse : dans ta modale principale, tu as un champ caché data-field="id" (ou un input pour l'ID).
+  // Si absent, remplace la logique par ton propre "flag" d'édition.
+  function updateImportButtonVisibility(){
+    const idEl = document.querySelector('[data-field="id"]');
+    const isEdit = idEl && (idEl.value || '').trim() !== '';
+    if (!btnOpenImport) return;
+    btnOpenImport.classList.toggle('d-none', !!isEdit);
+  }
+
+  // ---------- Bindings ----------
+  if (btnOpenImport && modalImport){
+    btnOpenImport.addEventListener('click', openImportModal);
+  }
+  if (selManu) selManu.addEventListener('change', onManufacturerChange);
+  if (selMat)  selMat.addEventListener('change', onMaterialChange);
+  if (selName) selName.addEventListener('change', onNameChange);
+
+  if (filtManu) filtManu.addEventListener('input', () => filterSelect(selManu, filtManu.value));
+  if (filtMat)  filtMat.addEventListener('input',  () => filterSelect(selMat, filtMat.value));
+  if (filtName) filtName.addEventListener('input', () => filterSelect(selName, filtName.value));
+
+  if (btnApply) btnApply.addEventListener('click', applySelectionToMainModal);
+
+  // Quand ta modale principale s’ouvre / change de mode, appelle :
+  //   updateImportButtonVisibility();
+  // Si tu as déjà un hook "onShow" de ta modale principale, ajoute la ligne dedans.
+  window.updateImportButtonVisibility = updateImportButtonVisibility;
 })();
 </script>
 {% block scripts %}{{ super() }}{% endblock %}
