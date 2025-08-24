@@ -223,6 +223,11 @@
               Actions
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
+				<li>
+    <button class="dropdown-item" onclick='openSpoolModal({{ spool|tojson|safe }})'>
+      Éditer la bobine
+    </button>
+  </li>
               <li>
                 <button class="dropdown-item text-primary" type="button"
                         data-bs-toggle="modal" data-bs-target="#reajustModal_{{ spool.id }}">
@@ -330,6 +335,72 @@
               </div>
             </div>
           </div>
+		 <div class="modal fade" id="spoolModal" tabindex="-1" aria-labelledby="spoolModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="spoolModalLabel">Ajouter une bobine</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <form id="spoolForm">
+          <input type="hidden" id="spool_id">
+
+          <!-- Filament rattaché -->
+          <div class="mb-3">
+            <label class="form-label">Filament</label>
+            <select id="spool_filament_id" class="form-select" placeholder="Choisir un filament…"></select>
+            <div class="form-text">Tape pour rechercher (fabricant, matériau, nom).</div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Prix (€)</label>
+              <input type="number" min="0" step="0.01" inputmode="decimal" class="form-control" id="spool_price" placeholder="ex: 24.90">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Poids restant (g)</label>
+              <input type="number" min="0" step="1" class="form-control" id="spool_remaining_g" placeholder="ex: 735">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">AMS Tray</label>
+              <input type="text" class="form-control" id="spool_ams_tray" placeholder="ex: A1, 2, ...">
+            </div>
+          </div>
+
+          <div class="row g-3 mt-1">
+            <div class="col-md-6">
+              <label class="form-label">Location</label>
+              <input type="text" class="form-control" id="spool_location" placeholder="ex: Étagère 2 / Boîte verte">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Tag NFC / UID</label>
+              <input type="text" class="form-control" id="spool_tag_number" placeholder="ex: 04A3…">
+            </div>
+          </div>
+
+          <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" id="spool_archived">
+            <label class="form-check-label" for="spool_archived">
+              Archiver cette bobine
+            </label>
+          </div>
+
+          <div class="mt-3">
+            <label class="form-label">Commentaire</label>
+            <textarea class="form-control" id="spool_comment" rows="3"></textarea>
+          </div>
+
+          <div class="alert alert-danger mt-3 d-none" id="spoolError"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button class="btn btn-primary" id="spoolSaveBtn" onclick="saveSpool()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
 
         </div>
       </div>
@@ -398,5 +469,143 @@ document.addEventListener("DOMContentLoaded", function () {
     // Réinitialise proprement les select2
     $('.select2').val(null).trigger('change');
   });
+ (function(){
+  let spoolModal, filamentTS = null;
+
+  function ensureTomSelect(selector, options){
+    if (window.TomSelect){
+      // (re)crée avec options
+      if (document.querySelector(selector).tomselect) {
+        document.querySelector(selector).tomselect.destroy();
+      }
+      return new TomSelect(selector, {
+        create: false,          // ← pas de création libre ici
+        persist: false,
+        maxItems: 1,
+        searchField: ['text', 'value'],
+        sortField: { field: 'text', direction: 'asc' },
+        options: options || [],
+        render: {
+          option: function(data, escape){ return `<div>${escape(data.text)}</div>`; },
+          item:   function(data, escape){ return `<div>${escape(data.text)}</div>`; }
+        }
+      });
+    } else {
+      // fallback natif: injecte simplement les <option>
+      const sel = document.querySelector(selector);
+      sel.innerHTML = '';
+      (options||[]).forEach(o=>{
+        const opt = document.createElement('option');
+        opt.value = o.value;
+        opt.textContent = o.text;
+        sel.appendChild(opt);
+      });
+      return null;
+    }
+  }
+
+  async function loadFilamentChoices(){
+    const res = await fetch('/api/filaments/choices');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.message || 'Erreur /api/filaments/choices');
+    return data.choices || [];
+  }
+
+  function showSpoolError(msg){
+    const el = document.getElementById('spoolError');
+    el.textContent = msg;
+    el.classList.remove('d-none');
+  }
+  function clearSpoolError(){
+    const el = document.getElementById('spoolError');
+    el.textContent = '';
+    el.classList.add('d-none');
+  }
+
+  window.openSpoolModal = async function(spool){
+    clearSpoolError();
+
+    // init Bootstrap modal (lazy)
+    if (!spoolModal){
+      const el = document.getElementById('spoolModal');
+      if (!el) return;
+      spoolModal = bootstrap.Modal.getOrCreateInstance(el);
+    }
+
+    // Reset form
+    document.getElementById('spoolForm').reset();
+    document.getElementById('spool_id').value = spool?.id || '';
+
+    // Charger les options de filaments et initialiser TomSelect
+    try {
+      const choices = await loadFilamentChoices();
+      filamentTS = ensureTomSelect('#spool_filament_id', choices);
+      if (filamentTS){
+        filamentTS.clear();
+        if (spool?.filament_id) filamentTS.addItem(String(spool.filament_id), true);
+      } else {
+        // fallback natif
+        const sel = document.getElementById('spool_filament_id');
+        sel.value = spool?.filament_id || '';
+      }
+    } catch (e){
+      showSpoolError(e.message || e);
+      return;
+    }
+
+    // Remplissage champs
+    document.getElementById('spoolModalLabel').textContent = spool?.id ? 'Modifier la bobine' : 'Créer une bobine';
+    document.getElementById('spool_price').value = spool?.price ?? '';
+    document.getElementById('spool_remaining_weight_g').value = spool?.remaining_weight_g ?? '';
+    document.getElementById('spool_location').value = spool?.location ?? '';
+    document.getElementById('spool_tag_number').value = spool?.tag_number ?? '';
+    document.getElementById('spool_ams_tray').value = spool?.ams_tray ?? '';
+    document.getElementById('spool_archived').checked = !!spool?.archived;
+    document.getElementById('spool_comment').value = spool?.comment ?? '';
+
+    spoolModal.show();
+  }
+
+  window.saveSpool = async function(){
+    clearSpoolError();
+    const id = document.getElementById('spool_id').value || null;
+
+    const filament_id = (filamentTS && filamentTS.getValue) ? filamentTS.getValue() : document.getElementById('spool_filament_id').value;
+    if (!filament_id) return showSpoolError("Choisis un filament.");
+
+    const payload = {
+      filament_id: Number(filament_id),
+      price: document.getElementById('spool_price').value || null,
+      remaining_weight_g: document.getElementById('spool_remaining_weight_g').value || null,
+      location: document.getElementById('spool_location').value || null,
+      tag_number: document.getElementById('spool_tag_number').value || null,
+      ams_tray: document.getElementById('spool_ams_tray').value || null,
+      archived: document.getElementById('spool_archived').checked,
+      comment: document.getElementById('spool_comment').value || null,
+    };
+
+    // petite validation
+    const p = (payload.price||'').toString().trim();
+    if (p && isNaN(Number(p.replace(',', '.')))) {
+      return showSpoolError("Le prix doit être un nombre (ex: 24.90).");
+    }
+
+    try {
+      const resp = await fetch(id ? `/api/spools/${id}` : '/api/spools', {
+        method: id ? 'PUT' : 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.ok){
+        return showSpoolError(data?.message || "Erreur lors de l'enregistrement.");
+      }
+      // rafraîchit la page pour voir les maj
+      window.location.reload();
+    } catch (e){
+      showSpoolError("Erreur réseau : " + (e?.message || e));
+    }
+  }
+})();
 </script>
 {% endblock %}

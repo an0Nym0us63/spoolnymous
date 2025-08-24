@@ -29,7 +29,7 @@ from auth import auth_bp, User, get_stored_user
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament
+from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine
 
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
@@ -711,7 +711,7 @@ def tray_load():
   try:
     # Update Spoolman with the selected tray
     spool_data = fetch_spool_by_id(spool_id)
-    setActiveTray(spool_id, spool_data["extra"], ams_id, tray_id)
+    setActiveTray(spool_id, ams_id, tray_id)
     setActiveSpool(ams_id, tray_id, spool_data)
 
     return redirect(url_for('home', success_message=f"Updated Spool ID {spool_id} with TAG id {tag_id} to AMS {ams_id}, Tray {tray_id}."))
@@ -1265,7 +1265,7 @@ def filaments():
         tray_color = request.args.get("tray_color")
         if tray_uuid and tray_info_idx and tray_color:
             set_tray_spool_map(tray_uuid, tray_info_idx, tray_color, spool_id)
-        setActiveTray(spool_id, spool_data["extra"], ams_id, tray_id)
+        setActiveTray(spool_id, ams_id, tray_id)
         setActiveSpool(ams_id, tray_id, spool_data)
         return redirect(url_for('home', success_message=f"La bobine {spool_id} a été assigné à l'emplacement {tray_id} de l'AMS {ams_id}."))
 
@@ -2815,5 +2815,72 @@ def catalog_filaments():
         data = json.load(f)
     # On renvoie brut; le client fera ses regroupements
     return jsonify({"filaments": data})
+
+@app.get("/api/filaments/choices")
+@login_required
+def api_filament_choices():
+    """Options pour la modale bobine (TomSelect)."""
+    rows = list_filaments()  # ← depuis filaments.py (DB)
+    # On renvoie un format simple pour TS: {value, text}
+    out = []
+    for f in rows or []:
+        fid = f.get("id")
+        mat = (f.get("material") or "—").strip()
+        manu = (f.get("manufacturer") or "—").strip()
+        name = (f.get("name") or "—").strip()
+        out.append({
+            "value": fid,
+            "text": f"{mat} · {manu} · {name}"
+        })
+    return jsonify({"ok": True, "choices": out})
+
+@app.get("/api/spools/<int:spool_id>")
+@login_required
+def api_get_spool(spool_id):
+    sp = get_bobine(spool_id)  # filaments.py
+    if not sp:
+        return jsonify({"ok": False, "message": "Spool introuvable"}), 404
+    return jsonify({"ok": True, "spool": sp})
+
+@app.post("/api/spools")
+@login_required
+def api_create_spool():
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        sp = add_bobine(
+            filament_id = data.get("filament_id"),
+            price       = data.get("price"),
+            remaining_g = data.get("remaining_weight_g"),
+            location    = data.get("location"),
+            tag_number  = data.get("tag_number"),
+            ams_tray    = data.get("ams_tray"),
+            archived    = bool(data.get("archived")),
+            comment     = data.get("comment"),
+        )
+        return jsonify({"ok": True, "spool": sp}), 201
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)}), 400
+
+@app.put("/api/spools/<int:spool_id>")
+@login_required
+def api_update_spool(spool_id):
+    data = request.get_json(force=True, silent=True) or {}
+    try:
+        sp = update_bobine(
+            spool_id,
+            filament_id = data.get("filament_id"),
+            price       = data.get("price"),
+            remaining_g = data.get("remaining_weight_g"),
+            location    = data.get("location"),
+            tag_number  = data.get("tag_number"),
+            ams_tray    = data.get("ams_tray"),
+            archived    = bool(data.get("archived")),
+            comment     = data.get("comment"),
+        )
+        if not sp:
+            return jsonify({"ok": False, "message": "Spool introuvable"}), 404
+        return jsonify({"ok": True, "spool": sp})
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)}), 400
 
 app.register_blueprint(auth_bp)
