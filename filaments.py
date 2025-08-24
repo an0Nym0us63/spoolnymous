@@ -91,7 +91,7 @@ def ensure_schema() -> None:
 
                 -- Gestion de couleur
                 color                TEXT,                        -- couleur principale (hex ou nom)
-                multicolor_type TEXT DEFAULT 'monocouleur',                        -- 'none', 'coaxial', 'gradient', etc.
+                multicolor_type TEXT DEFAULT 'monochrome',                        -- 'none', 'coaxial', 'gradient', etc.
                 colors_array         TEXT,                        -- CSV de hex ex: "0047BB,BB22A3"
 
                 material             TEXT,                        -- PLA, PETG, ABS, TPU, ...
@@ -167,7 +167,7 @@ def ensure_schema() -> None:
         _maybe_add("filaments", "profile_id", "TEXT")
         _maybe_add("filaments", "external_filament_id", "TEXT")
         _maybe_add("filaments", "colors_array", "TEXT")
-        _maybe_add("filaments", "multicolor_type", "TEXT DEFAULT 'monocouleur'")
+        _maybe_add("filaments", "multicolor_type", "TEXT DEFAULT 'monochrome'")
 
         _maybe_add("bobines", "external_spool_id", "TEXT")
 
@@ -201,9 +201,9 @@ def ensure_schema() -> None:
         )
         cur.execute("""
             UPDATE filaments
-            SET multicolor_type = 'monocouleur'
+            SET multicolor_type = 'monochrome'
             WHERE multicolor_type IS NULL
-               OR TRIM(multicolor_type) IN ('', 'none', 'undefined')
+               OR TRIM(multicolor_type) IN ('', 'none', 'undefined','monocouleur')
         """)
 
 def ensure_filaments_usage_schema() -> None:
