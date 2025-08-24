@@ -42,6 +42,7 @@ from installations import load_installations
 from switcher import switch_bp
 from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects, list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory,rename_accessory, create_object_group, rename_object_group, assign_object_to_group, remove_object_from_group, search_object_groups, list_object_groups_with_counts,get_object_groups,set_desired_price,get_object,set_group_desired_price,get_tags_for_objects, add_object_tag as dal_add_object_tag, remove_object_tag as dal_remove_object_tag, get_tags_for_object_groups, add_tag_to_object_group as dal_add_tag_to_object_group, remove_tag_from_object_group as dal_remove_tag_from_object_group,list_object_images,list_group_object_images
 from camera import serve_snapshot, svg_fallback
+from catalog_sync import CatalogSync
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -336,7 +337,8 @@ if not secret_key:
     secret_key = secrets.token_hex(32)
     set_app_setting("SECRET_KEY", secret_key)
 app.secret_key = secret_key
-
+app.catalog_sync = CatalogSync()  # intervalle et chemins configurés "en dur" dans le service
+app.catalog_sync.start()
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'  # redirige vers /login si non connecté
 login_manager.init_app(app)
@@ -2778,5 +2780,30 @@ def delete_entity_photo(entity, entity_id):
         flash("Erreur lors de la suppression.", "danger")
 
     return redirect(request.referrer or url_for("print_history"))
+
+@app.route("/sync_catalog", methods=["POST"])
+@login_required
+def sync_catalog():
+    # Aligné avec le style existant: flash + redirect vers Settings
+    svc = getattr(current_app, "catalog_sync", None)
+    if svc is None:
+        flash("❗ Service de synchronisation du catalogue non initialisé.", "warning")
+        return redirect(url_for("auth.settings"))
+
+    try:
+        manifest = svc.sync_once()
+        w = manifest.get("written", {})
+        flash(
+            f"✔️ Catalogue synchronisé — filaments.json: "
+            f"{'écrit' if w.get('filaments') else 'inchangé'} ; materials.json: "
+            f"{'écrit' if w.get('materials') else 'inchangé'}",
+            "success"
+        )
+    except Exception as e:
+        import logging, traceback
+        logging.error("Catalog sync failed:\n%s", traceback.format_exc())
+        flash(f"❌ Échec de la synchronisation du catalogue : {e}", "danger")
+
+    return redirect(url_for("auth.settings"))
 
 app.register_blueprint(auth_bp)

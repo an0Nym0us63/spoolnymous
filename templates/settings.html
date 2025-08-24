@@ -301,6 +301,11 @@
     🔁 Synchroniser Spoolman → base locale
   </button>
 </form>
+<form method="post" action="{{ url_for('catalog.sync_catalog') }}" class="mb-2">
+  <button class="btn btn-outline-warning w-100">
+    🔁 Rafraîchir le catalogue (manuel)
+  </button>
+</form>
   </section>
 
   <!-- 🧑‍💼 Ajout manuel impression -->
