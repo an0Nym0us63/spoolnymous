@@ -2822,17 +2822,17 @@ def api_filament_choices():
     """Options pour la modale bobine (TomSelect)."""
     rows = list_filaments()  # ← depuis filaments.py (DB)
     # On renvoie un format simple pour TS: {value, text}
-    out = []
-    for f in rows or []:
-        fid = f.get("id")
-        mat = (f.get("material") or "—").strip()
-        manu = (f.get("manufacturer") or "—").strip()
-        name = (f.get("name") or "—").strip()
-        out.append({
+    choices = []
+    for f in rows:
+        fid  = f["id"]
+        manu = f["manufacturer"] or "—"
+        mat  = f["material"] or "—"
+        name = f["name"] or "—"
+        choices.append({
             "value": fid,
             "text": f"{mat} · {manu} · {name}"
         })
-    return jsonify({"ok": True, "choices": out})
+    return jsonify({"ok": True, "choices": choices})
 
 @app.get("/api/spools/<int:spool_id>")
 @login_required
