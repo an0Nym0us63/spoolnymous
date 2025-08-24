@@ -556,7 +556,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Remplissage champs
     document.getElementById('spoolModalLabel').textContent = spool?.id ? 'Modifier la bobine' : 'Créer une bobine';
     document.getElementById('spool_price').value = spool?.price ?? '';
-    document.getElementById('spool_remaining_weight_g').value = spool?.remaining_weight_g ?? '';
+    document.getElementById('spool_remaining_weight_g').value = spool?.remaining_weight ?? '';
     document.getElementById('spool_location').value = spool?.location ?? '';
     document.getElementById('spool_tag_number').value = spool?.tag_number ?? '';
     document.getElementById('spool_ams_tray').value = spool?.ams_tray ?? '';
@@ -575,7 +575,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const payload = {
       filament_id: Number(filament_id),
-      price: document.getElementById('spool_price').value || null,
+      price_override: document.getElementById('spool_price').value || null,
       remaining_weight_g: document.getElementById('spool_remaining_weight_g').value || null,
       location: document.getElementById('spool_location').value || null,
       tag_number: document.getElementById('spool_tag_number').value || null,
