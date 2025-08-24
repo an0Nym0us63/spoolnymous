@@ -432,7 +432,9 @@
   </div>
 </div>
 {% block scripts %}
+{{ super() }}
 <script>
+document.addEventListener('DOMContentLoaded', function () {
 (function(){
   let filamentModal, manufacturerTS, materialTS;
 
@@ -873,6 +875,7 @@ const selNameEl = document.getElementById('select-name');
   selNameEl.addEventListener('change', onNameChanged);
   btnApply.addEventListener('click', applyToMainModal);
 })();
+});
 </script>
 {% endblock %}
 
