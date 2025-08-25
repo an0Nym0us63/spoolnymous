@@ -1813,5 +1813,69 @@ def spendFilaments(printdata):
                 
             if used_grams != 0:
                 consume_weight(spool["id"], used_grams)
+def _is_null_or_empty(value: Any) -> bool:
+    """True si value est None, chaîne vide ou uniquement des espaces."""
+    if value is None:
+        return True
+    if isinstance(value, str) and value.strip() == "":
+        return True
+    return False
+
+def _is_all_zeros(s: Optional[str]) -> bool:
+    """True si s est non-nul et composé uniquement de '0' (après trim)."""
+    if _is_null_or_empty(s):
+        return False
+    s = s.strip()
+    return all(ch == "0" for ch in s)
+
+def update_bobine_tag(*, spool_id: int, tray_uuid: Optional[str], tray_info_idx: Optional[str]) -> Dict[str, bool]:
+    """
+    Met à jour:
+      - la bobine (tag_number) si elle n'en a pas déjà un et si tray_uuid n'est pas 'tout 0'
+      - le filament associé (profile_id) s'il est vide/NUL, avec tray_info_idx
+
+    Règles:
+      - Si la bobine a déjà un tag_number non vide -> on ne touche pas au tag.
+      - Si tray_uuid est composé uniquement de '0' -> on ignore la mise à jour du tag_number.
+      - Si le filament associé a déjà un profile_id non vide -> on ne le modifie pas.
+    Retourne: {"tag_updated": bool, "profile_updated": bool}
+    """
+    tag_updated = False
+    profile_updated = False
+
+    # 1) Charger la bobine
+    bobine = get_bobine(spool_id)
+    if bobine is None:
+        raise ValueError(f"Bobine introuvable id={spool_id}")
+
+    # 2) Mettre à jour le tag_number de la bobine si absent
+    current_tag = bobine["tag_number"] if "tag_number" in bobine.keys() else None
+    if _is_null_or_empty(current_tag):
+        # pas de tag, on peut envisager une MAJ si tray_uuid pertinent
+        if not _is_all_zeros(tray_uuid) and not _is_null_or_empty(tray_uuid):
+            # MAJ du tag_number
+            update_bobine(spool_id, tag_number=tray_uuid.strip())
+            tag_updated = True
+        # sinon: tray_uuid vide ou composé uniquement de '0' -> on ignore
+    # else: tag déjà présent -> on ne modifie pas
+
+    # 3) Mettre à jour le profile_id du filament si absent
+    filament_id = bobine["filament_id"] if "filament_id" in bobine.keys() else None
+    if filament_id is not None:
+        filament = get_filament(int(filament_id))
+        if filament is None:
+            # cohérence DB rompue, on signale explicitement
+            raise ValueError(f"Filament introuvable id={filament_id} (référencé par bobine id={spool_id})")
+
+        current_profile = filament["profile_id"] if "profile_id" in filament.keys() else None
+        if _is_null_or_empty(current_profile) and not _is_null_or_empty(tray_info_idx):
+            # MAJ du profile_id avec tray_info_idx
+            update_filament(int(filament_id), profile_id=str(tray_info_idx).strip())
+            profile_updated = True
+        # else: profile_id déjà renseigné -> on ne modifie pas
+
+    # 4) Retourner un petit récapitulatif
+    return {"tag_updated": tag_updated, "profile_updated": profile_updated}
+
 
 ensure_schema()

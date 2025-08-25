@@ -29,7 +29,7 @@ from auth import auth_bp, User, get_stored_user
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine,attach_spool_counts,remove_filament
+from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine,attach_spool_counts,remove_filament,update_bobine_tag
 
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
@@ -1260,6 +1260,8 @@ def filaments():
     ams_id = request.args.get("ams")
     tray_id = request.args.get("tray")
     spool_id = request.args.get("spool_id")
+    tray_uuid = request.args.get("tray_uuid")
+    tray_info_idx = request.args.get("tray_info_idx")
     # 🎯 Si un spool est sélectionné en mode fill : action directe
     if spool_id and ams_id and tray_id:
         spool_data = fetch_spool_by_id(spool_id)
@@ -1287,12 +1289,17 @@ def filaments():
     filament_usage = request.args.get("filament_usage", '0')
 
     is_assign_mode = all([assign_print_id, assign_filament_index])
-    is_fill_mode = all([ams_id, tray_id])
+    is_fill_mode = all([ams_id, tray_id,request.args.get("manual") ])
+    is_tag_mode = all([tray_uuid, tray_info_idx,request.args.get("manual") ])
     tray_uuid = tray_info_idx = tray_color = None
     if is_fill_mode:
         tray_uuid = request.args.get("tray_uuid")
         tray_info_idx = request.args.get("tray_info_idx")
         tray_color = request.args.get("tray_color")
+    else if is_tag_mode :
+        tray_uuid = request.args.get("tray_uuid")
+        tray_info_idx = request.args.get("tray_info_idx")
+        
     all_filaments = fetch_spools(archived=include_archived) or []
 
     if search:
@@ -1370,6 +1377,7 @@ def filaments():
         assign_page=assign_page,
         assign_search=assign_search,
         is_assign_mode=is_assign_mode,
+        is_tag_mode=is_tag_mode,
         ams_id=ams_id,
         tray_id=tray_id,
         filament_usage=filament_usage,
@@ -1623,6 +1631,16 @@ def assign_spool_to_print():
     return redirect_with_context(
        "print_history",
         focus_print_id=print_id
+    )
+
+@app.route('/assign_spool_to_print', methods=['POST'])
+def assign_spool_to_print():
+    spool_id = int(request.form['spool_id'])
+    tray_uuid = request.form['tray_uuid']
+    tray_info_idx = request.form['tray_info_idx']
+    update_bobine_tag(spool_id=spool_id, tray_uuid=tray_uuid, tray_info_idx=tray_info_idx)
+    return redirect_with_context(
+       "home"
     )
 
 
