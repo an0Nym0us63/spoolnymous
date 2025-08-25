@@ -1861,21 +1861,9 @@ def update_bobine_tag(*, spool_id: int, tray_uuid: Optional[str], tray_info_idx:
     tag_updated = False
     profile_updated = False
 
-    # 1) Charger la bobine
-    bobine = get_bobine(spool_id)
-    if bobine is None:
-        raise ValueError(f"Bobine introuvable id={spool_id}")
-
-    # 2) Mettre à jour le tag_number de la bobine si absent
-    current_tag = bobine["tag_number"] if "tag_number" in bobine.keys() else None
-    if _is_null_or_empty(current_tag):
-        # pas de tag, on peut envisager une MAJ si tray_uuid pertinent
-        if not _is_all_zeros(tray_uuid) and not _is_null_or_empty(tray_uuid):
-            # MAJ du tag_number
-            update_bobine(spool_id, tag_number=tray_uuid.strip())
-            tag_updated = True
-        # sinon: tray_uuid vide ou composé uniquement de '0' -> on ignore
-    # else: tag déjà présent -> on ne modifie pas
+    if not _is_all_zeros(tray_uuid) and not _is_null_or_empty(tray_uuid):
+        update_bobine(spool_id, tag_number=tray_uuid.strip())
+        tag_updated = True
 
     # 3) Mettre à jour le profile_id du filament si absent
     filament_id = bobine["filament_id"] if "filament_id" in bobine.keys() else None
@@ -1885,14 +1873,8 @@ def update_bobine_tag(*, spool_id: int, tray_uuid: Optional[str], tray_info_idx:
             # cohérence DB rompue, on signale explicitement
             raise ValueError(f"Filament introuvable id={filament_id} (référencé par bobine id={spool_id})")
 
-        current_profile = filament["profile_id"] if "profile_id" in filament.keys() else None
-        if _is_null_or_empty(current_profile) and not _is_null_or_empty(tray_info_idx):
-            # MAJ du profile_id avec tray_info_idx
-            update_filament(int(filament_id), profile_id=str(tray_info_idx).strip())
-            profile_updated = True
-        # else: profile_id déjà renseigné -> on ne modifie pas
-
-    # 4) Retourner un petit récapitulatif
+        update_filament(int(filament_id), profile_id=str(tray_info_idx).strip())
+        profile_updated = True
     return {"tag_updated": tag_updated, "profile_updated": profile_updated}
 
 

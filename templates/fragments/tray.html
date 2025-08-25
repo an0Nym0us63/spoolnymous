@@ -69,7 +69,10 @@
             </span>
           </div>
         {% endif %}
-		<div class="text-xs opacity-75 mb-1">
+      {% endif %}
+    </div>
+	{% if tray_data.foundMode %}
+    <div class="absolute top-1 right-2 text-xs opacity-80" style="pointer-events:none;">
       {% if tray_data.foundMode == "Tag" %}
         <span title="Assigné par Tag">🏷️</span>
       {% elif tray_data.foundMode == "Manual" %}
@@ -78,8 +81,7 @@
         <span title="Assigné par Profil">🤖</span>
       {% endif %}
     </div>
-      {% endif %}
-    </div>
+  {% endif %}
   </div>
 
   <!-- Détails -->
