@@ -330,7 +330,7 @@
 <div class="modal fade" id="deleteFilamentModal_{{ fil.id }}" tabindex="-1" aria-labelledby="deleteFilamentLabel_{{ fil.id }}" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <form method="post" action="{{ url_for('remove_filament', filament_id=fil.id) }}">
+      <form method="post" action="{{ url_for('remove_filament_route', filament_id=fil.id) }}">
         {{ macros.render_filtered_args(args, ['search','color','material','manufacturer','sort','page']) }}
         <div class="modal-header">
           <h5 class="modal-title" id="deleteFilamentLabel_{{ fil.id }}">Supprimer le filament « {{ fil.name }} » ?</h5>
