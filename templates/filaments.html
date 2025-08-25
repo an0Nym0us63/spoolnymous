@@ -69,9 +69,12 @@
     align-items: start;
   }
   .fil-badges {
-    flex-direction: column; align-items: flex-end;
-    gap: .2rem;
-  }
+  display: flex;
+  flex-direction: column;  /* déjà en colonne */
+  align-items: flex-end;   /* badges collés à droite */
+  justify-content: flex-start; /* ⬅️ aligne en haut */
+  gap: .2rem;
+}
   .badge-sx { font-size: .72rem; padding: .16rem .32rem; }
 }
 </style>
