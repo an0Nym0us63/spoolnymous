@@ -228,9 +228,10 @@
       {% if request.args.get('assign_filament_id') %}<input type="hidden" name="filament_id" value="{{ request.args.get('assign_filament_id') }}">{% endif %}
       {% if request.args.get('assign_sold_filter') %}<input type="hidden" name="sold_filter" value="{{ request.args.get('assign_sold_filter') }}">{% endif %}
 
-      <button type="button"
-              class="btn btn-sm btn-success rounded-circle"
-              title="Attribuer à cette bobine">✅</button>
+      <button type="submit"
+        class="btn btn-sm btn-success rounded-circle"
+        title="Attribuer à cette bobine"
+        onclick="return confirm('Attribuer ce tag/profile à cette bobine ?');">✅</button>
     </form>
   </div>
   {% elif ams_id and tray_id %}
