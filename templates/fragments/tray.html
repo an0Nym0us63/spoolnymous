@@ -146,22 +146,33 @@
       </div>
     </div>
 
-	<div class="dropdown" data-requires-write>
-  <button class="btn btn-sm btn-outline-warning dropdown-toggle" type="button" data-bs-toggle="dropdown">
-    Actions
-  </button>
-  <ul class="dropdown-menu dropdown-menu-dark">
-    <li>
-      <a class="dropdown-item text-info" href="{{ url_for('filaments', tray_uuid=tray_data.tray_uuid, tray_info_idx=tray_data.tray_info_idx, search=tray_data.tray_type, tag='assign_tag') }}">
-       🏷️ Attribuer tag/profile ID
-      </a>
-    </li>
-    <li>
-      <a class="dropdown-item" href="{{ url_for('filaments', ams=ams_id, tray=tray_data.id, tray_uuid=tray_data.tray_uuid, tray_info_idx=tray_data.tray_info_idx, tray_color=tray_data.tray_color, search=tray_data.tray_type, manual='assign_manual') }}">
-        🧵 Assigner manuellement (dernier recours)
-      </a>
-    </li>
-  </ul>
+	<div class="tray-actions py-2 d-flex justify-content-center">
+  <div class="dropdown">
+    <button class="btn btn-warning px-4 rounded-3 d-flex align-items-center"
+            data-bs-toggle="dropdown" aria-expanded="false">
+      <span>Actions</span>
+      <i class="bi bi-caret-down-fill ms-2"></i>
+    </button>
+    <ul class="dropdown-menu shadow">
+      <li>
+        <a class="dropdown-item"
+           href="{{ url_for('filaments', ams=ams_id, tray=tray_id,
+                            tray_uuid=tray_data.tray_uuid, tray_info_idx=tray_data.tray_info_idx,
+                            tray_color=tray_data.tray_color, search=tray_data.tray_type) }}">
+          🧵 Assigner manuellement
+        </a>
+      </li>
+      <li><hr class="dropdown-divider"></li>
+      <li>
+        <a class="dropdown-item"
+           href="{{ url_for('filaments', ams=ams_id, tray=tray_id,
+                            tray_uuid=tray_data.tray_uuid, tray_info_idx=tray_data.tray_info_idx,
+                            tray_color=tray_data.tray_color, mode='assign_tag', search=tray_data.tray_type) }}">
+          🏷️ Attribuer tag/profile id
+        </a>
+      </li>
+    </ul>
+  </div>
 </div>
   </div>
 </div>

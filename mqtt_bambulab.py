@@ -666,6 +666,7 @@ def on_message(client, userdata, msg):
             #logger.info(f"    - [{num2letter(ams['id'])}{tray['id']}] {tray['tray_sub_brands']} {tray['tray_color']} ({str(tray['remain']).zfill(3)}%) [[{tray['tray_uuid']}]] [[{tray['tray_info_idx']}]]")
 
             foundspool = None
+            foundMode =''
             tray_uuid = tray["tray_uuid"]
             tray_info_idx = tray["tray_info_idx"]
             tray_color = tray["tray_color"]
@@ -676,6 +677,7 @@ def on_message(client, userdata, msg):
             if mapped_spool_id:
                 spool_match = next((s for s in spools if s["id"] == mapped_spool_id), None)
                 if spool_match:
+                    foundMode='Manual'
                     foundspool = spool_match
                 else:
                     delete_tray_spool_map_by_id(mapped_spool_id)
@@ -692,6 +694,7 @@ def on_message(client, userdata, msg):
                     if tray_uuid == tag:
                         #logger.info('Found spool with tag')
                         foundspool= spool
+                        foundMode='Tag'
                         break
                     else:
                         if spool.get("filament", {}).get("extra",{}).get("filament_id"):
@@ -700,16 +703,18 @@ def on_message(client, userdata, msg):
                             #logger.info(filament_id + ' ' +spool["filament"]["color_hex"] + ' : ' + str(color_dist)) 
                             if foundspool == None:
                                 if color_dist<50:
+                                    foundMode='Profile'
                                     foundspool= spool
                             else:
                                 if color_dist<foundspool['color_dist']:
+                                    foundMode='Profile'
                                     foundspool= spool
             if foundspool == None:
               logger.info("      - Not found. Update spool tag or filament_id and color!")
               clearActiveTray(ams['id'], tray["id"])
             else:
                 #logger.info("Found spool " + str(foundspool))
-                setActiveTray(foundspool['id'], ams['id'], tray["id"])
+                setActiveTray(foundspool['id'], ams['id'], tray["id"],foundMode)
           else:
               clearActiveTray(ams['id'], tray["id"])
   except Exception as e:

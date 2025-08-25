@@ -104,7 +104,8 @@ def ensure_schema() -> None:
 
                 external_filament_id TEXT,                        -- identifiant externe (ex: Spoolman filament.id)
                 reference_id         TEXT,                        -- ref libre interne/externe
-                profile_id           TEXT                         -- ex: extra.filament_id (profil matériau)
+                profile_id           TEXT,                        -- ref libre interne/externe
+                swatch           INTEGER NOT NULL DEFAULT 0                         -- ex: extra.filament_id (profil matériau)
             )
             """
         )
@@ -152,6 +153,7 @@ def ensure_schema() -> None:
 
                 -- Champs d'intégration externes
                 external_spool_id  TEXT,                          -- identifiant spool côté Spoolman
+                foundMode           TEXT,                         -- ex: extra.filament_id (profil matériau)
 
                 FOREIGN KEY (filament_id) REFERENCES filaments(id) ON DELETE CASCADE
             )
@@ -170,7 +172,7 @@ def ensure_schema() -> None:
         _maybe_add("filaments", "multicolor_type", "TEXT DEFAULT 'monochrome'")
 
         _maybe_add("bobines", "external_spool_id", "TEXT")
-
+        _maybe_add("bobines", "foundMode", "TEXT")
         # Index utiles sur bobines
         cur.execute("CREATE INDEX IF NOT EXISTS idx_bobines_filament ON bobines(filament_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_bobines_archived ON bobines(archived)")
@@ -1675,11 +1677,12 @@ def patchLocation(spool_id, ams_id='', tray_id=''):
     update_field_spool(field="location",value=location,bobine_id=spool_id)
     return
 
-def setActiveTray(spool_id, ams_id, tray_id):
+def setActiveTray(spool_id, ams_id, tray_id,foundmode):
     bobine = get_bobine(spool_id)
     
     if bobine["ams_tray"] != trayUid(ams_id, tray_id):
         update_field_spool(field="ams_tray",value=trayUid(ams_id, tray_id),bobine_id=spool_id)
+        update_field_spool(field="foundMode",value=foundmode,bobine_id=spool_id)
     
     if (int(tray_id) >200):
         patchLocation(spool_id,ams_id)
@@ -1690,12 +1693,14 @@ def setActiveTray(spool_id, ams_id, tray_id):
     for old_spool in fetch_spools():
         if spool_id != old_spool["id"] and old_spool["ams_tray"] == trayUid(ams_id, tray_id):
             update_field_spool(field="ams_tray",value="",bobine_id=old_spool["id"])
+            update_field_spool(field="foundMode",value="",bobine_id=old_spool["id"])
             patchLocation(old_spool["id"],100)
         
 def clearActiveTray(ams_id,tray_id):
     for old_spool in fetch_spools():
       if old_spool["ams_tray"] == trayUid(ams_id, tray_id):
         update_field_spool(field="ams_tray",value="",bobine_id=old_spool["id"])
+        update_field_spool(field="foundMode",value="",bobine_id=old_spool["id"])
         patchLocation(old_spool["id"],100)
 
 def augmentTrayData(spool_list, tray_data, tray_id):
