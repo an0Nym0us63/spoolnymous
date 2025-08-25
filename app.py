@@ -2895,6 +2895,6 @@ def remove_filament_route(filament_id):
     params = {k: v for k, v in request.args.items() if k in keep}
     if not ok:
         params["focus_id"] = str(filament_id)
-    return redirect(url_for("filaments", **params), 303)
+    return redirect(url_for("catalog_filaments", **params), 303)
 
 app.register_blueprint(auth_bp)
