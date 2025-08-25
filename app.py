@@ -793,6 +793,7 @@ def home():
         if ams_name in d:
             location = d[ams_name]
       ams['location']=location
+      ams['drying_time']=status_copy["ams"][ams["id"]]["drying_time"]
     AMS_ORDER=get_app_setting("AMS_ORDER","")
     if AMS_ORDER != '':
       mapping = {int(k): int(v) for k, v in (item.split(":") for item in AMS_ORDER.split(";"))}

@@ -533,7 +533,7 @@ def safe_update_status(data):
                 ams_id = int(ams.get("id"))
             except (TypeError, ValueError):
                 continue
-            fields["ams"][ams_id]=ams.get("dry_time",0)
+            fields["ams"][ams_id]={"drying_time" : ams.get("dry_time",0)}
             for tray in ams.get("tray", []):
                 try:
                     tray_id = int(tray.get("id"))

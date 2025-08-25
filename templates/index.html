@@ -305,6 +305,13 @@
   <div class="text-xs text-gray-300 flex flex-col items-end space-y-1 whitespace-nowrap">
     <div class="flex items-center gap-1">💧 {{ ams.humidity_raw }}%</div>
     <div class="flex items-center gap-1">🌡️ {{ ams.temp }}°C</div>
+	{% if ams.dry_time and ams.dry_time > 0 %}
+    {% set hours = (ams.dry_time // 60)|int %}
+    {% set minutes = (ams.dry_time % 60)|int %}
+    <span class="ms-2 text-warning" title="Temps restant de séchage">
+      ☀️ {{ "%d:%02d"|format(hours, minutes) }}
+    </span>
+  {% endif %}
   </div>
   {% endif %}
 </div>
