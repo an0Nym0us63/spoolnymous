@@ -4,6 +4,8 @@
 {% import 'macros/hidden_args.jinja2' as macros %}
 {% if is_assign_mode %}
   <h2>Assigner une bobine au print #{{ assign_print_id }}</h2>
+{% elif is_tag_moded %}
+	<h2>Assigner un tag/profileId à une bobine</h2>
 {% elif ams_id and tray_id %}
   <h2>AMS: {{ ams_id }}, Tray: {{ tray_id }}</h2>
 {% endif %}
