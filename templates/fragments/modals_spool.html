@@ -232,46 +232,56 @@ window.openSpoolModalForFilament = function(filament){
   hideBlock('spool_field_initial_weight', true); 
 };
 
-  window.saveSpool = async function(){
-    clearSpoolError();
-    const id = (document.getElementById('spool_id') || {}).value || null;
+  function numOrNull(raw){
+  if (raw == null) return null;
+  const s = String(raw).trim().replace(',', '.');
+  if (s === '') return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
 
-    const filament_id = (filamentTS && filamentTS.getValue)
-      ? filamentTS.getValue()
-      : (document.getElementById('spool_filament_id') || {}).value;
+window.saveSpool = async function(){
+  clearSpoolError();
+  const id = (document.getElementById('spool_id') || {}).value || null;
 
-    if (!filament_id) return showSpoolError("Choisis un filament.");
+  const filament_id = (filamentTS && filamentTS.getValue)
+    ? filamentTS.getValue()
+    : (document.getElementById('spool_filament_id') || {}).value;
 
-    const payload = {
-      filament_id: Number(filament_id),
-      price_override: (document.getElementById('spool_price') || {}).value || null,
-      remaining_weight_g: (document.getElementById('spool_remaining_weight_g') || {}).value || null,
-      location: (document.getElementById('spool_location') || {}).value || null,
-      tag_number: (document.getElementById('spool_tag_number') || {}).value || null,
-      ams_tray: (document.getElementById('spool_ams_tray') || {}).value || null,
-      archived: !!((document.getElementById('spool_archived') || {}).checked),
-      comment: (document.getElementById('spool_comment') || {}).value || null,
-    };
+  if (!filament_id) return showSpoolError("Choisis un filament.");
 
-    const p = (payload.price_override||'').toString().trim();
-    if (p && isNaN(Number(p.replace(',', '.')))) {
-      return showSpoolError('Le prix doit être un nombre (ex: 24.90).');
-    }
-
-    try{
-      const resp = await fetch(id ? `/api/spools/${id}` : '/api/spools', {
-        method: id ? 'PUT' : 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(payload),
-      });
-      const data = await resp.json();
-      if (!resp.ok || !data.ok){
-        return showSpoolError((data && data.message) || "Erreur lors de l'enregistrement.");
-      }
-      window.location.reload();
-    } catch (e){
-      showSpoolError("Erreur réseau : " + (e && e.message ? e.message : e));
-    }
+  const payload = {
+    filament_id: Number(filament_id),
+    price_override: numOrNull(document.getElementById('spool_price')?.value),
+    initial_weight_g: numOrNull(document.getElementById('spool_initial_weight')?.value),
+    remaining_weight_g: numOrNull(document.getElementById('spool_remaining_weight_g')?.value),
+    location: (document.getElementById('spool_location') || {}).value || null,
+    tag_number: (document.getElementById('spool_tag_number') || {}).value || null,
+    ams_tray: (document.getElementById('spool_ams_tray') || {}).value || null,
+    archived: !!((document.getElementById('spool_archived') || {}).checked),
+    comment: (document.getElementById('spool_comment') || {}).value || null,
   };
+
+  // garde ton check de prix si tu veux un message plus précis :
+  const p = document.getElementById('spool_price')?.value ?? '';
+  if (p.trim() && numOrNull(p) == null) {
+    return showSpoolError('Le prix doit être un nombre (ex: 24.90).');
+  }
+
+  try{
+    const resp = await fetch(id ? `/api/spools/${id}` : '/api/spools', {
+      method: id ? 'PUT' : 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.ok){
+      return showSpoolError((data && data.message) || "Erreur lors de l'enregistrement.");
+    }
+    window.location.reload();
+  } catch (e){
+    showSpoolError("Erreur réseau : " + (e?.message || e));
+  }
+};
 })();
 </script>
