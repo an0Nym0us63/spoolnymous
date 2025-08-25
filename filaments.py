@@ -1771,7 +1771,7 @@ def augmentTrayData(spool_list, tray_data, tray_id):
             # Couleur mono/multi
             multi_hexes = filament.get("multi_color_hexes")
             multi_dir = (filament.get("multi_color_direction") or "").lower()
-            if multi_hexes and multi_dir and multi_dir != "none":
+            if multi_dir != "monochrome":
                 tray_data["tray_color"] = multi_hexes
                 tray_data["tray_color_orientation"] = filament.get("multi_color_direction")
             else:
