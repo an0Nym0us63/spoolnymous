@@ -1633,8 +1633,8 @@ def assign_spool_to_print():
         focus_print_id=print_id
     )
 
-@app.route('/assign_spool_to_print', methods=['POST'])
-def assign_spool_to_print():
+@app.route('/assign_tag_to_spool', methods=['POST'])
+def assign_tag_to_spool():
     spool_id = int(request.form['spool_id'])
     tray_uuid = request.form['tray_uuid']
     tray_info_idx = request.form['tray_info_idx']
