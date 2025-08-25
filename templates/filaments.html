@@ -196,55 +196,44 @@
                   aria-expanded="false"
                   aria-controls="collapseFilament{{ fil.id }}"
                   style="border-radius: 0.75rem; font-size: 0.85rem;">
+				<div class="d-flex w-100 align-items-stretch gap-2">
+  <!-- Strip couleur (inchangé) -->
+  <div class="color-strip">
+    {% if fil.colors_array %}
+      {% set colors = fil.colors_array.split(',') if fil.colors_array is string else fil.colors_array %}
+      <div style="background: linear-gradient(180deg,{% for c in colors %}#{{ c|trim|replace('#','') }}{% if not loop.last %}, {% endif %}{% endfor %});"></div>
+    {% elif fil.color %}
+      <div style="background:#{{ fil.color|replace('#','') }};"></div>
+    {% else %}
+      <div style="background:#666;"></div>
+    {% endif %}
+  </div>
 
-            <div class="d-flex w-100 align-items-stretch gap-2">
-              <!-- Strip couleur -->
-              <div class="color-strip">
-                {% if fil.colors_array %}
-                  {% set colors = fil.colors_array.split(',') if fil.colors_array is string else fil.colors_array %}
-                  <div style="background: linear-gradient(180deg,{% for c in colors %}#{{ c|trim|replace('#','') }}{% if not loop.last %}, {% endif %}{% endfor %});"></div>
-                {% elif fil.color %}
-                  <div style="background:#{{ fil.color|replace('#','') }};"></div>
-                {% else %}
-                  <div style="background:#666;"></div>
-                {% endif %}
-              </div>
+  <!-- Bloc titre sur 2 lignes -->
+  <div class="flex-grow-1 d-flex flex-column justify-content-center ps-2">
+    <div class="fw-semibold">
+      {{ fil.material or '—' }} · {{ fil.name or '—' }}
+    </div>
+    <div class="small fst-italic text-muted">
+      {{ fil.manufacturer or '—' }}
+    </div>
+  </div>
 
-              <!-- Titre -->
-              <div class="flex-grow-1 d-flex flex-column justify-content-center ps-1">
-                <div class="fw-bold">
-                  {{ fil.material or '—' }} · {{ fil.manufacturer or '—' }} · {{ fil.name or '—' }}
-                </div>
-                <div class="small text-muted">
-                  {% if fil.multicolor_type and fil.multicolor_type != 'none' %}
-                    Multi: {{ fil.multicolor_type }} ·
-                  {% endif %}
-                  {% if fil.colors_array %}
-                    {% for c in colors %}
-                      <span class="hex-pill" style="background:#{{ c|trim|replace('#','') }}"></span>
-                    {% endfor %}
-                  {% elif fil.color %}
-                    <span class="hex-pill" style="background:#{{ fil.color|replace('#','') }}"></span>
-                  {% endif %}
-                </div>
-              </div>
-
-              <!-- Badges à droite (gris) -->
-              <div class="d-flex align-items-center gap-2 pe-2">
-  {% if fil.filament_weight_g %}
-    <span class="badge badge-sx">{{ fil.filament_weight_g }} g</span>
-  {% endif %}
-  {% if fil.spool_weight_g %}
-    <span class="badge badge-sx">{{ fil.spool_weight_g }} g tare</span>
-  {% endif %}
-  <span class="badge badge-sx">{{ fil.price is not none and (fil.price ~ ' €') or '—' }}</span>
-
-  {# --- NOUVEAU : compteur bobines --- #}
-  <span class="badge badge-sx" title="Bobines rattachées">
-    🧵 {{ fil.spools_count or 0 }}
-  </span>
+  <!-- Badges à droite : prix, poids filament, profile_id -->
+  <div class="d-flex align-items-center gap-2 pe-2">
+    <span class="badge badge-sx">
+      {{ fil.price is not none and (fil.price ~ ' €') or '—' }}
+    </span>
+    {% if fil.filament_weight_g %}
+      <span class="badge badge-sx">{{ fil.filament_weight_g }} g</span>
+    {% else %}
+      <span class="badge badge-sx">— g</span>
+    {% endif %}
+    <span class="badge badge-sx">
+      Profil {{ fil.profile_id or '—' }}
+    </span>
+  </div>
 </div>
-            </div>
           </button>
         </div>
       </h2>
