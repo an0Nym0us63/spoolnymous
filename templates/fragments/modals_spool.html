@@ -162,8 +162,8 @@ window.openSpoolModal = async function(spool, opts){
   };
 
   // Valeurs communes (édition)
-  set('spool_price', (spool && spool.price_override) || '');
-  set('spool_remaining_weight_g', (spool && spool.remaining_weight_g) || '');
+  set('spool_price', (spool && spool.price) || '');
+  set('spool_remaining_weight_g', (spool && spool.remaining_weight) || '');
   set('spool_ams_tray', (spool && spool.ams_tray) || '');
   set('spool_location', (spool && spool.location) || '');
   set('spool_tag_number', (spool && spool.tag_number) || '');
