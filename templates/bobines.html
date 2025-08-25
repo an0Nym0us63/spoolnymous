@@ -230,7 +230,7 @@
 
       <button type="button"
               class="btn btn-sm btn-success rounded-circle trigger-assign-modal"
-              title="Assigner cette bobine">✅</button>
+              title="Attribuer à cette bobine">✅</button>
     </form>
   </div>
   {% elif ams_id and tray_id %}
@@ -376,7 +376,7 @@
 {% include 'components/pagination.html' %}
 
 <div style="height: 4rem;"></div>
-{% if is_assign_mode %}
+{% if is_assign_mode or is_assign_tag %}
   {% include 'fragments/modals_confirm_assign.html' %}
 {% endif %}
 {% endblock %}
