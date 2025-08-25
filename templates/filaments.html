@@ -308,9 +308,13 @@
                 </li>
                 <li>
                   <button class="dropdown-item"
-                          onclick='openSpoolModalForFilament({{ fil|tojson|safe }})'>
-                    ➕ Créer une bobine
-                  </button>
+        onclick='openSpoolModal(null, {
+          filament_id: {{ fil.id }},
+          filament_price: {{ fil.price|default("null") }},
+          filament_weight_g: {{ fil.filament_weight_g|default("null") }}
+        })'>
+  ➕ Créer une bobine
+</button>
                 </li>
 {% if (fil.spools_count or 0) > 0 %}
     <li>
