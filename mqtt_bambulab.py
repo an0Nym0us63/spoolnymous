@@ -393,7 +393,6 @@ def safe_update_status(data):
     RIGHT_NOZZLE_ID = 0  # droite
 
     # ---------- Champs de base ----------
-    logger.debug(json.dumps(data))
     fields = {
         "status": data.get("gcode_state"),
         "progress": data.get("mc_percent"),
@@ -403,6 +402,7 @@ def safe_update_status(data):
         "total_layers": data.get("total_layer_num"),
         "remaining_time": data.get("mc_remaining_time"),
         "tray_now": data.get("ams", {}).get("tray_now"),
+        "ams": [],
     }
 
     # ---------- BED TEMP (nouveaux firmwares: device.bed.info.temp 32 bits) ----------
@@ -533,6 +533,7 @@ def safe_update_status(data):
                 ams_id = int(ams.get("id"))
             except (TypeError, ValueError):
                 continue
+            fields["ams"][ams_id]=ams.get("dry_time",0)
             for tray in ams.get("tray", []):
                 try:
                     tray_id = int(tray.get("id"))
