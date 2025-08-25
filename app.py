@@ -793,9 +793,6 @@ def home():
         if ams_name in d:
             location = d[ams_name]
       ams['location']=location
-      logger.debug(str(status_copy))
-      
-      logger.debug(str(ams["id"]))
       ams['dry_time']=status_copy["ams"][int(ams["id"])]["dry_time"]
     AMS_ORDER=get_app_setting("AMS_ORDER","")
     if AMS_ORDER != '':
