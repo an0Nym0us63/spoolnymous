@@ -1296,7 +1296,7 @@ def filaments():
         tray_uuid = request.args.get("tray_uuid")
         tray_info_idx = request.args.get("tray_info_idx")
         tray_color = request.args.get("tray_color")
-    else if is_tag_mode :
+    elif is_tag_mode :
         tray_uuid = request.args.get("tray_uuid")
         tray_info_idx = request.args.get("tray_info_idx")
         
