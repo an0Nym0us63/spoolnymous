@@ -565,17 +565,13 @@ def remove_filament(filament_id: int) -> None:
     n = count_spools_for_filament(filament_id)
     if n > 0:
         return False, f"Suppression impossible : {n} bobine(s) rattachée(s)."
-    with closing(sqlite3.connect(db_config["db_path"])) as conn:
-        cur = conn.cursor()
+    with _tx() as cur:
         cur.execute("DELETE FROM filaments WHERE id = ?", (filament_id,))
-        conn.commit()
     return True, "Filament supprimé."
 
 def count_spools_for_filament(filament_id: int) -> int:
     """Retourne le nombre de bobines rattachées à ce filament (toutes, archivées ou non)."""
-    with closing(sqlite3.connect(db_config["db_path"])) as conn:
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
+    with _tx as cur:
         cur.execute("SELECT COUNT(1) AS n FROM spools WHERE filament_id = ?", (filament_id,))
         row = cur.fetchone()
         return int(row["n"] if row and "n" in row.keys() else 0)
