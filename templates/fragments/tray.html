@@ -71,18 +71,10 @@
       {% endif %}
     </div>
 
-    {# --- Icône foundMode collée en bas à droite du header --- #}
-    {% if tray_data.foundMode %}
-      <div class="absolute bottom-0.5 right-0.5 text-[0.5rem] opacity-80" style="pointer-events:none;">
-        {% if tray_data.foundMode == "Tag" %}
-          <span title="Assigné par Tag">🏷️</span>
-        {% elif tray_data.foundMode == "Manual" %}
-          <span title="Assigné manuellement">✋</span>
-        {% elif tray_data.foundMode == "Profile" %}
-          <span title="Assigné par Profil">🤖</span>
-        {% endif %}
-      </div>
-    {% endif %}
+    <div id="tray-foundmode-{{ ams_id|string }}_{{ tray_data.id|string }}"
+     class="absolute bottom-0.5 right-0.5 text-[0.5rem] opacity-80 pointer-events-none">
+  {# rempli côté JS; on peut laisser vide côté serveur #}
+</div>
   </div>
 
   <!-- Détails -->

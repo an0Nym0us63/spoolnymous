@@ -534,74 +534,113 @@ if (nameEl) {
 		const updateTrayUI = (amsId, tray) => {
   const key = `${String(amsId)}_${String(tray.id)}`;
 
-  // Nom
-  const nameEl = document.getElementById(`tray-name-${key}`);
-  if (nameEl && tray.name) nameEl.textContent = tray.name;
+  // --- petits helpers ---
+  const textOr = (v, fallback = '') => (v !== undefined && v !== null && String(v).trim() !== '' ? String(v) : fallback);
+  const exists = v => v !== undefined && v !== null;
 
-  // Meta (type - subbrand - vendor)
+  const setOrHide = (el, value, wrapperSelector = null) => {
+    if (!el) return;
+    if (exists(value) && String(value).trim() !== '') {
+      el.textContent = value;
+      if (wrapperSelector) el.closest(wrapperSelector)?.classList.remove('d-none');
+    } else {
+      el.textContent = '';
+      if (wrapperSelector) el.closest(wrapperSelector)?.classList.add('d-none');
+    }
+  };
+
+  const foundModeIcon = (mode) => {
+    if (!mode) return '';
+    switch (String(mode)) {
+      case 'Tag':     return '🏷️';
+      case 'Manual':  return '✋';
+      case 'Profile': return '🤖';
+      default:        return '';
+    }
+  };
+
+  // --- Nom ---
+  const nameEl = document.getElementById(`tray-name-${key}`);
+  if (nameEl) nameEl.textContent = textOr(tray.name, '');
+
+  // --- Meta (type - subbrand - vendor) ---
   const metaEl = document.getElementById(`tray-meta-${key}`);
   if (metaEl) {
     const parts = [];
-    if (tray.tray_type) parts.push(tray.tray_type);
-    if (tray.tray_sub_brands) parts.push(tray.tray_sub_brands);
-    if (tray.vendor) parts.push(tray.vendor);
+    if (textOr(tray.tray_type)) parts.push(tray.tray_type);
+    if (textOr(tray.tray_sub_brands)) parts.push(tray.tray_sub_brands);
+    if (textOr(tray.vendor)) parts.push(tray.vendor);
     metaEl.textContent = parts.length ? parts.join(' - ') : 'Vide';
   }
 
-  // Couleurs
+  // --- Couleur(s) ---
   const colorEl = document.getElementById(`tray-color-${key}`);
   if (colorEl) {
+    // Réinitialisation
+    colorEl.innerHTML = '';
+    colorEl.style.background = '';
+    colorEl.style.backgroundColor = '';
+
     if (Array.isArray(tray.tray_color) && tray.tray_color.length) {
-      colorEl.innerHTML = tray.tray_color.map(c => `<div style="background-color:#${c}" title="#${c}"></div>`).join('');
-      colorEl.style.background = '';
-      colorEl.style.backgroundColor = '';
+      colorEl.setAttribute('data-mode', 'multi');
+      colorEl.innerHTML = tray.tray_color
+        .map(c => `<div style="background-color:#${c}" title="#${c}"></div>`)
+        .join('');
+    } else if (textOr(tray.tray_color)) {
+      colorEl.setAttribute('data-mode', 'mono');
+      colorEl.style.backgroundColor = `#${tray.tray_color}`;
     } else {
-      colorEl.innerHTML = '';
-      colorEl.style.background = '';
-      colorEl.style.backgroundColor = tray.tray_color ? `#${tray.tray_color}` : 'transparent';
+      // pas de couleur -> rien
     }
   }
 
-  // Dernier usage
-  const lastEl = document.getElementById(`tray-last-used-${key}`);
-  if (lastEl && tray.last_used != null) lastEl.textContent = tray.last_used;
+  // --- Dernier usage ---
+  setOrHide(document.getElementById(`tray-last-used-${key}`), textOr(tray.last_used, ''));
 
-  // Poids restant (si présent)
+  // --- Poids restant ---
   const rwEl = document.getElementById(`tray-remaining-weight-${key}`);
   if (rwEl) {
-    if (tray.remaining_weight != null) {
+    if (exists(tray.remaining_weight)) {
       rwEl.textContent = `${Math.round(tray.remaining_weight)}g`;
-      rwEl.closest('div')?.classList.remove('d-none');
+      rwEl.closest('[data-remaining-weight-wrapper]')?.classList.remove('d-none');
     } else {
       rwEl.textContent = '';
-      rwEl.closest('div')?.classList.add('d-none');
+      rwEl.closest('[data-remaining-weight-wrapper]')?.classList.add('d-none');
     }
   }
 
-  // % restant (si présent)
+  // --- % restant ---
   const remEl = document.getElementById(`tray-remain-${key}`);
   if (remEl) {
-    if (tray.remain != null && tray.remain !== -1) {
+    if (exists(tray.remain) && Number(tray.remain) !== -1) {
       remEl.textContent = `${Math.round(tray.remain)}%`;
-      remEl.closest('div')?.classList.remove('d-none');
+      remEl.closest('[data-remain-wrapper]')?.classList.remove('d-none');
     } else {
       remEl.textContent = '';
-      remEl.closest('div')?.classList.add('d-none');
+      remEl.closest('[data-remain-wrapper]')?.classList.add('d-none');
     }
   }
 
-  // Barrettes dans la grille AMS (élément déjà présent)
+  // --- Icône foundMode (emoji en bas-droite du header) ---
+  const fmEl = document.getElementById(`tray-foundmode-${key}`);
+  if (fmEl) {
+    const icon = foundModeIcon(tray.foundMode);
+    fmEl.textContent = icon;
+    if (icon === '🏷️')      fmEl.title = 'Assigné par Tag';
+    else if (icon === '✋')  fmEl.title = 'Assigné manuellement';
+    else if (icon === '🤖')  fmEl.title = 'Assigné par Profil';
+    else                     fmEl.removeAttribute('title');
+  }
+
+  // --- Barrettes dans la grille AMS ---
   const g = document.getElementById(`tray-graphic-${key}`);
   if (g) {
+    g.style.background = '';
+    g.style.backgroundColor = '';
     if (Array.isArray(tray.tray_color) && tray.tray_color.length) {
       g.style.background = `linear-gradient(90deg, ${tray.tray_color.map(c => `#${c}`).join(',')})`;
-      g.style.backgroundColor = '';
-    } else if (tray.tray_color) {
-      g.style.background = '';
+    } else if (textOr(tray.tray_color)) {
       g.style.backgroundColor = `#${tray.tray_color}`;
-    } else {
-      g.style.background = '';
-      g.style.backgroundColor = '';
     }
   }
 };
