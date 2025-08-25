@@ -184,11 +184,13 @@ window.openSpoolModal = async function(spool, opts){
     hideBlock('spool_field_ams_tray', true);
     hideBlock('spool_field_location', true);
     hideBlock('spool_field_archived', true);
+    hideBlock('spool_remaining_weight_g', true);
   } else {
     // en édition : toujours visibles
     hideBlock('spool_field_ams_tray', false);
     hideBlock('spool_field_location', false);
     hideBlock('spool_field_archived', false);
+    hideBlock('spool_remaining_weight_g', false);
   }
 
   // titre
@@ -226,7 +228,8 @@ window.openSpoolModalForFilament = function(filament){
   // --- Masquages en mode création ---
   hideBlock('spool_field_ams_tray', true);    // AMS / Tray caché
   hideBlock('spool_field_location', true);    // Location caché (reste envoyé car input visible dans le DOM)
-  hideBlock('spool_field_archived', true);    // Archivé caché
+  hideBlock('spool_field_archived', true);    // Archivé caché 
+  hideBlock('spool_remaining_weight_g', true); 
 };
 
   window.saveSpool = async function(){
