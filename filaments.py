@@ -1711,6 +1711,7 @@ def augmentTrayData(spool_list, tray_data, tray_id):
             tray_data["name"] = spool["filament"]["name"]
             tray_data["vendor"] = spool["filament"]["vendor"]["name"]
             tray_data["remaining_weight"] = spool["remaining_weight"]
+            tray_data["foundMode"] = spool["foundMode"]
         
             if "last_used" in spool:
                 raw = spool["last_used"]

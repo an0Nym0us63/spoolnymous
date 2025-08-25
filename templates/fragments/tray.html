@@ -44,6 +44,15 @@
 
     <div class="text-end text-white text-sm">
       {% if tray_data.tray_type %}
+	  <div class="text-xs opacity-75 mb-1">
+      {% if tray_data.foundMode == "Tag" %}
+        <span title="Assigné par Tag">🏷️</span>
+      {% elif tray_data.foundMode == "Manual" %}
+        <span title="Assigné manuellement">✋</span>
+      {% elif tray_data.foundMode == "Profile" %}
+        <span title="Assigné par Profil">🤖</span>
+      {% endif %}
+    </div>
         <!-- Couleur(s) -->
         <div>
           {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
