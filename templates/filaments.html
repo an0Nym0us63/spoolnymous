@@ -325,6 +325,29 @@
         </div>
       </div>
     </div>
+	
+{% if (fil.spools_count or 0) == 0 %}
+<div class="modal fade" id="deleteFilamentModal_{{ fil.id }}" tabindex="-1" aria-labelledby="deleteFilamentLabel_{{ fil.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('delete_filament_route', filament_id=fil.id) }}">
+        {{ macros.render_filtered_args(args, ['search','color','material','manufacturer','sort','page']) }}
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteFilamentLabel_{{ fil.id }}">Supprimer le filament « {{ fil.name }} » ?</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0">Cette action est <strong>définitive</strong>. Aucune bobine n’est rattachée à ce filament.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-danger">🗑️ Supprimer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
   {% else %}
     <div class="alert alert-secondary">Aucun filament trouvé.</div>
   {% endfor %}
@@ -452,28 +475,6 @@
     </div>
   </div>
 </div>
-{% if (fil.spools_count or 0) == 0 %}
-<div class="modal fade" id="deleteFilamentModal_{{ fil.id }}" tabindex="-1" aria-labelledby="deleteFilamentLabel_{{ fil.id }}" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <form method="post" action="{{ url_for('delete_filament_route', filament_id=fil.id) }}">
-        {{ macros.render_filtered_args(args, ['search','color','material','manufacturer','sort','page']) }}
-        <div class="modal-header">
-          <h5 class="modal-title" id="deleteFilamentLabel_{{ fil.id }}">Supprimer le filament « {{ fil.name }} » ?</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-        </div>
-        <div class="modal-body">
-          <p class="mb-0">Cette action est <strong>définitive</strong>. Aucune bobine n’est rattachée à ce filament.</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-          <button type="submit" class="btn btn-danger">🗑️ Supprimer</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-{% endif %}
 {% include 'fragments/modals_spool.html' %}
 {% block scripts %}
 {{ super() }}
