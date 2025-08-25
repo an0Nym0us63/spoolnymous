@@ -208,12 +208,12 @@
     <div class="fs-5 fs-md-4">⚗️</div><div class="small fw-bold">{{ total_materials }}</div><div class="text-muted small">Matériaux</div>
   </div></div></div>
 </div>
-<div class="d-flex align-items-center gap-2">
-    <button class="btn btn-primary" id="btn-add-filament" onclick="openFilamentModal()">
-      <span class="me-1">Ajouter</span>
-      <i class="bi bi-plus-lg"></i> <!-- si Bootstrap Icons, sinon retire l’icône -->
-    </button>
-  </div>
+<button class="btn btn-sm btn-outline-primary rounded-circle"
+        id="btn-add-filament"
+        onclick="openFilamentModal()"
+        title="Ajouter un filament">
+  <i class="bi bi-plus-lg"></i>
+</button>
 <!-- LISTE (accordéons *identiques* à bobines) -->
 <div class="accordion" id="filamentsCatalogAccordion">
   {% for fil in filaments %}
