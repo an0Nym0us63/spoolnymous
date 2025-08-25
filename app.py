@@ -796,7 +796,7 @@ def home():
       logger.debug(str(status_copy))
       
       logger.debug(str(ams["id"]))
-      ams['dry_time']=status_copy["ams"][ams["id"]]["dry_time"]
+      ams['dry_time']=status_copy["ams"][int(ams["id"])]["dry_time"]
     AMS_ORDER=get_app_setting("AMS_ORDER","")
     if AMS_ORDER != '':
       mapping = {int(k): int(v) for k, v in (item.split(":") for item in AMS_ORDER.split(";"))}
