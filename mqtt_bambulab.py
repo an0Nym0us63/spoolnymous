@@ -393,6 +393,7 @@ def safe_update_status(data):
     RIGHT_NOZZLE_ID = 0  # droite
 
     # ---------- Champs de base ----------
+    logger.debug(json.dumps(data))
     fields = {
         "status": data.get("gcode_state"),
         "progress": data.get("mc_percent"),
