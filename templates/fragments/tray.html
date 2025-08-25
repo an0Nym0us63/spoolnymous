@@ -152,12 +152,12 @@
   </button>
   <ul class="dropdown-menu dropdown-menu-dark">
     <li>
-      <a class="dropdown-item text-info" href="{{ url_for('filaments', tray_uuid=tray_data.uuid, tray_info_idx=tray_data.tray_info_idx, search=tray_data.tray_type, tag='assign_tag') }}">
+      <a class="dropdown-item text-info" href="{{ url_for('filaments', tray_uuid=tray_data.tray_uuid, tray_info_idx=tray_data.tray_info_idx, search=tray_data.tray_type, tag='assign_tag') }}">
        🏷️ Attribuer tag/profile ID
       </a>
     </li>
     <li>
-      <a class="dropdown-item" href="{{ url_for('filaments', ams=ams_id, tray=tray_data.id, tray_uuid=tray_data.uuid, tray_info_idx=tray_data.tray_info_idx, tray_color=tray_data.tray_color, search=tray_data.tray_type, manual='assign_manual') }}">
+      <a class="dropdown-item" href="{{ url_for('filaments', ams=ams_id, tray=tray_data.id, tray_uuid=tray_data.tray_uuid, tray_info_idx=tray_data.tray_info_idx, tray_color=tray_data.tray_color, search=tray_data.tray_type, manual='assign_manual') }}">
         🧵 Assigner manuellement (dernier recours)
       </a>
     </li>
