@@ -6,7 +6,7 @@
 >
   <!-- Header cliquable -->
   <div
-    class="px-4 py-2 cursor-pointer text-sm bg-gray-800 hover:bg-gray-700 transition flex justify-between items-start"
+    class="px-4 py-2 cursor-pointer text-sm bg-gray-800 hover:bg-gray-700 transition flex justify-between items-start relative"
     data-bs-toggle="collapse"
     data-bs-target="#trayDetails_{{ ams_id|string }}_{{ tray_data.id|string }}"
     aria-expanded="false"
@@ -44,7 +44,6 @@
 
     <div class="text-end text-white text-sm">
       {% if tray_data.tray_type %}
-	  
         <!-- Couleur(s) -->
         <div>
           {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
@@ -70,19 +69,20 @@
           </div>
         {% endif %}
       {% endif %}
-	  {% if tray_data.foundMode %}
-    <div class="absolute top-1 right-2 text-xs opacity-80" style="pointer-events:none;">
-      {% if tray_data.foundMode == "Tag" %}
-        <span title="Assigné par Tag">🏷️</span>
-      {% elif tray_data.foundMode == "Manual" %}
-        <span title="Assigné manuellement">✋</span>
-      {% elif tray_data.foundMode == "Profile" %}
-        <span title="Assigné par Profil">🤖</span>
-      {% endif %}
     </div>
-  {% endif %}
-    </div>
-	
+
+    {# --- Icône foundMode collée en bas à droite du header --- #}
+    {% if tray_data.foundMode %}
+      <div class="absolute bottom-1 right-2 text-[0.7rem] opacity-80" style="pointer-events:none;">
+        {% if tray_data.foundMode == "Tag" %}
+          <span title="Assigné par Tag">🏷️</span>
+        {% elif tray_data.foundMode == "Manual" %}
+          <span title="Assigné manuellement">✋</span>
+        {% elif tray_data.foundMode == "Profile" %}
+          <span title="Assigné par Profil">🤖</span>
+        {% endif %}
+      </div>
+    {% endif %}
   </div>
 
   <!-- Détails -->
@@ -159,33 +159,33 @@
       </div>
     </div>
 
-	<div class="tray-actions py-2 d-flex justify-content-center">
-  <div class="dropdown">
-    <button class="btn btn-warning px-4 rounded-3 d-flex align-items-center"
-            data-bs-toggle="dropdown" aria-expanded="false">
-      <span>Actions</span>
-      <i class="bi bi-caret-down-fill ms-2"></i>
-    </button>
-    <ul class="dropdown-menu shadow">
-      <li>
-        <a class="dropdown-item"
-           href="{{ url_for('filaments', ams=ams_id, tray=tray_id,
-                            tray_uuid=tray_data.tray_uuid, tray_info_idx=tray_data.tray_info_idx,
-                            tray_color=tray_data.tray_color, tag='assign_tag', search=tray_data.tray_type) }}">
-          🏷️ Attribuer tag/profile id
-        </a>
-      </li>
-      <li><hr class="dropdown-divider"></li>
-      <li>
-        <a class="dropdown-item"
-           href="{{ url_for('filaments', ams=ams_id, tray=tray_id,
-                            tray_uuid=tray_data.tray_uuid, tray_info_idx=tray_data.tray_info_idx,
-                            tray_color=tray_data.tray_color, search=tray_data.tray_type ,mode = 'assign_mode') }}">
-          🧵 Assigner manuellement
-        </a>
-      </li>
-    </ul>
-  </div>
-</div>
+    <div class="tray-actions py-2 d-flex justify-content-center">
+      <div class="dropdown">
+        <button class="btn btn-warning px-4 rounded-3 d-flex align-items-center"
+                data-bs-toggle="dropdown" aria-expanded="false">
+          <span>Actions</span>
+          <i class="bi bi-caret-down-fill ms-2"></i>
+        </button>
+        <ul class="dropdown-menu shadow">
+          <li>
+            <a class="dropdown-item"
+               href="{{ url_for('filaments', ams=ams_id, tray=tray_id,
+                                tray_uuid=tray_data.tray_uuid, tray_info_idx=tray_data.tray_info_idx,
+                                tray_color=tray_data.tray_color, search=tray_data.tray_type) }}">
+              🧵 Assigner manuellement
+            </a>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <a class="dropdown-item"
+               href="{{ url_for('filaments', ams=ams_id, tray=tray_id,
+                                tray_uuid=tray_data.tray_uuid, tray_info_idx=tray_data.tray_info_idx,
+                                tray_color=tray_data.tray_color, mode='assign_tag', search=tray_data.tray_type) }}">
+              🏷️ Attribuer tag/profile id
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
   </div>
 </div>
