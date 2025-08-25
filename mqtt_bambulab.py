@@ -713,7 +713,7 @@ def on_message(client, userdata, msg):
               logger.info("      - Not found. Update spool tag or filament_id and color!")
               clearActiveTray(ams['id'], tray["id"])
             else:
-                #logger.info("Found spool " + str(foundspool))
+                logger.info("Found spool " + str(foundMode))
                 setActiveTray(foundspool['id'], ams['id'], tray["id"],foundMode)
           else:
               clearActiveTray(ams['id'], tray["id"])
