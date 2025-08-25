@@ -2887,7 +2887,7 @@ def api_update_spool(spool_id):
 @app.post("/filaments/<int:filament_id>/delete")
 @login_required
 def remove_filament(filament_id):
-    ok, msg = safe_delete_filament(filament_id)
+    ok, msg = remove_filament(filament_id)
     flash(msg, "success" if ok else "warning")
 
     # Conserver le contexte (filtres/pagination) + focus si échec
