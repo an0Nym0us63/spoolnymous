@@ -29,7 +29,7 @@ from auth import auth_bp, User, get_stored_user
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine
+from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine,attach_spool_counts,remove_filament
 
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
@@ -2625,7 +2625,6 @@ def filaments_catalog():
     rows.sort(key=sort_key, reverse=reverse)
 
     # 4) Pagination
-    import math
     total = len(rows)
     total_pages = max(1, math.ceil(total / per_page))
     start = (page - 1) * per_page
@@ -2639,7 +2638,8 @@ def filaments_catalog():
 
     avg_price = round(sum(prices) / len(prices), 2) if prices else None
     avg_weight = round(sum(weights) / len(weights), 0) if weights else None
-
+    
+    filaments_page = attach_spool_counts(filaments_page)
     return render_template(
         "filaments.html",
         filaments=filaments_page,
@@ -2886,5 +2886,18 @@ def api_update_spool(spool_id):
         return jsonify({"ok": True, "spool": sp})
     except Exception as e:
         return jsonify({"ok": False, "message": str(e)}), 400
+
+@app.post("/filaments/<int:filament_id>/delete")
+@login_required
+def remove_filament(filament_id):
+    ok, msg = safe_delete_filament(filament_id)
+    flash(msg, "success" if ok else "warning")
+
+    # Conserver le contexte (filtres/pagination) + focus si échec
+    keep = {"search","color","material","manufacturer","sort","page"}
+    params = {k: v for k, v in request.args.items() if k in keep}
+    if not ok:
+        params["focus_id"] = str(filament_id)
+    return redirect(url_for("filaments", **params), 303)
 
 app.register_blueprint(auth_bp)

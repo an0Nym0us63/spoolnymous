@@ -231,16 +231,19 @@
 
               <!-- Badges à droite (gris) -->
               <div class="d-flex align-items-center gap-2 pe-2">
-                {% if fil.filament_weight_g %}
-                  <span class="badge badge-sx">{{ fil.filament_weight_g }} g</span>
-                {% endif %}
-                {% if fil.spool_weight_g %}
-                  <span class="badge badge-sx">{{ fil.spool_weight_g }} g tare</span>
-                {% endif %}
-                <span class="badge badge-sx">
-                  {{ fil.price is not none and (fil.price ~ ' €') or '—' }}
-                </span>
-              </div>
+  {% if fil.filament_weight_g %}
+    <span class="badge badge-sx">{{ fil.filament_weight_g }} g</span>
+  {% endif %}
+  {% if fil.spool_weight_g %}
+    <span class="badge badge-sx">{{ fil.spool_weight_g }} g tare</span>
+  {% endif %}
+  <span class="badge badge-sx">{{ fil.price is not none and (fil.price ~ ' €') or '—' }}</span>
+
+  {# --- NOUVEAU : compteur bobines --- #}
+  <span class="badge badge-sx" title="Bobines rattachées">
+    🧵 {{ fil.spools_count or 0 }}
+  </span>
+</div>
             </div>
           </button>
         </div>
@@ -267,6 +270,20 @@
     ➕ Créer une bobine
   </button>
 </li>
+{% if (fil.spools_count or 0) > 0 %}
+    <li>
+      <button class="dropdown-item disabled text-muted" title="Impossible : des bobines sont rattachées" type="button">
+        🗑️ Supprimer
+      </button>
+    </li>
+  {% else %}
+    <li>
+      <button class="dropdown-item text-danger" type="button"
+              data-bs-toggle="modal" data-bs-target="#deleteFilamentModal_{{ fil.id }}">
+        🗑️ Supprimer
+      </button>
+    </li>
+  {% endif %}
     <!-- autres actions à venir -->
   </ul>
 </div>
@@ -435,6 +452,28 @@
     </div>
   </div>
 </div>
+{% if (fil.spools_count or 0) == 0 %}
+<div class="modal fade" id="deleteFilamentModal_{{ fil.id }}" tabindex="-1" aria-labelledby="deleteFilamentLabel_{{ fil.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('delete_filament_route', filament_id=fil.id) }}">
+        {{ macros.render_filtered_args(args, ['search','color','material','manufacturer','sort','page']) }}
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteFilamentLabel_{{ fil.id }}">Supprimer le filament « {{ fil.name }} » ?</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0">Cette action est <strong>définitive</strong>. Aucune bobine n’est rattachée à ce filament.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-danger">🗑️ Supprimer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% include 'fragments/modals_spool.html' %}
 {% block scripts %}
 {{ super() }}

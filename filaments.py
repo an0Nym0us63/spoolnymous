@@ -561,12 +561,32 @@ def update_filament(filament_id: int, **fields: Any) -> None:
 
 
 def remove_filament(filament_id: int) -> None:
-    """Supprime un filament et ses bobines associées (cascade)."""
-    with _tx() as cur:
+    """Supprime un filament si aucune bobine n’y est rattachée."""
+    n = count_spools_for_filament(filament_id)
+    if n > 0:
+        return False, f"Suppression impossible : {n} bobine(s) rattachée(s)."
+    with closing(sqlite3.connect(db_config["db_path"])) as conn:
+        cur = conn.cursor()
         cur.execute("DELETE FROM filaments WHERE id = ?", (filament_id,))
-        if cur.rowcount == 0:
-            raise ValueError(f"Filament introuvable id={filament_id}")
+        conn.commit()
+    return True, "Filament supprimé."
 
+def count_spools_for_filament(filament_id: int) -> int:
+    """Retourne le nombre de bobines rattachées à ce filament (toutes, archivées ou non)."""
+    with closing(sqlite3.connect(db_config["db_path"])) as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(1) AS n FROM spools WHERE filament_id = ?", (filament_id,))
+        row = cur.fetchone()
+        return int(row["n"] if row and "n" in row.keys() else 0)
+
+def attach_spool_counts(filaments: list[dict]) -> list[dict]:
+    """Enrichit chaque filament avec .spools_count (clé compatible Jinja)."""
+    # Batch naïf; si perf à optimiser, faire un IN (...) + GROUP BY
+    for f in filaments:
+        fid = int(f.get("id")) if isinstance(f, dict) else int(getattr(f, "id"))
+        f["spools_count"] = count_spools_for_filament(fid)
+    return filaments
 
 def get_filament(filament_id: int) -> Optional[sqlite3.Row]:
     """Retourne un filament (ou None)."""
