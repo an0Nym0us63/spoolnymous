@@ -572,7 +572,7 @@ def remove_filament(filament_id: int) -> None:
 def count_spools_for_filament(filament_id: int) -> int:
     """Retourne le nombre de bobines rattachées à ce filament (toutes, archivées ou non)."""
     with _tx() as cur:
-        cur.execute("SELECT COUNT(1) AS n FROM spools WHERE filament_id = ?", (filament_id,))
+        cur.execute("SELECT COUNT(1) AS n FROM bobines WHERE filament_id = ?", (filament_id,))
         row = cur.fetchone()
         return int(row["n"] if row and "n" in row.keys() else 0)
 
