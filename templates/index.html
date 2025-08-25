@@ -308,9 +308,9 @@
 	{% if ams.dry_time and ams.dry_time > 0 %}
     {% set hours = (ams.dry_time // 60)|int %}
     {% set minutes = (ams.dry_time % 60)|int %}
-    <span class="ms-2 text-warning" title="Temps restant de séchage">
+    <div class="flex items-center gap-1">
       ☀️ {{ "%d:%02d"|format(hours, minutes) }}
-    </span>
+    </div>
   {% endif %}
   </div>
   {% endif %}
