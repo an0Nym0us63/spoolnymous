@@ -261,6 +261,9 @@
     <span class="badge badge-sx">{{ fil.price is not none and (fil.price ~ ' €') or '—' }}</span>
     <span class="badge badge-sx">{{ fil.filament_weight_g or '—' }} g</span>
     <span class="badge badge-sx">{{ fil.profile_id or '—' }}</span>
+	<span class="badge badge-sx">
+    🧵 {{ fil.spools_count or 0 }}
+  </span>
   </div>
 </div>
           </button>
