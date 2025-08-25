@@ -2859,6 +2859,7 @@ def api_create_spool():
             ams_tray    = data.get("ams_tray"),
             archived    = bool(data.get("archived")),
             comment     = data.get("comment"),
+            created_at=datetime.utcnow(),
         )
         return jsonify({"ok": True, "spool": sp}), 201
     except Exception as e:
