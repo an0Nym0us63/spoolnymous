@@ -435,69 +435,7 @@
     </div>
   </div>
 </div>
-<div class="modal fade" id="spoolModal" tabindex="-1" aria-labelledby="spoolModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="spoolModalLabel">Créer une bobine</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-      </div>
-      <div class="modal-body">
-        <form id="spoolForm">
-          <input type="hidden" id="spool_id">
-
-          <div class="mb-3">
-            <label class="form-label">Filament</label>
-            <select id="spool_filament_id" class="form-select" placeholder="Choisir un filament…"></select>
-            <div class="form-text">Tape pour rechercher (fabricant, matériau, nom).</div>
-          </div>
-
-          <div class="row g-3">
-            <div class="col-md-4">
-              <label class="form-label">Prix (€)</label>
-              <input type="number" min="0" step="0.01" inputmode="decimal" class="form-control" id="spool_price">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Poids restant (g)</label>
-              <input type="number" min="0" step="1" class="form-control" id="spool_remaining_weight_g">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">AMS Tray</label>
-              <input type="text" class="form-control" id="spool_ams_tray">
-            </div>
-          </div>
-
-          <div class="row g-3 mt-1">
-            <div class="col-md-6">
-              <label class="form-label">Location</label>
-              <input type="text" class="form-control" id="spool_location">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Tag NFC / UID</label>
-              <input type="text" class="form-control" id="spool_tag_number">
-            </div>
-          </div>
-
-          <div class="form-check mt-3">
-            <input class="form-check-input" type="checkbox" id="spool_archived">
-            <label class="form-check-label" for="spool_archived">Archiver cette bobine</label>
-          </div>
-
-          <div class="mt-3">
-            <label class="form-label">Commentaire</label>
-            <textarea class="form-control" id="spool_comment" rows="3"></textarea>
-          </div>
-
-          <div class="alert alert-danger mt-3 d-none" id="spoolError"></div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-        <button class="btn btn-primary" id="spoolSaveBtn" onclick="saveSpool()">Enregistrer</button>
-      </div>
-    </div>
-  </div>
-</div>
+{% include 'fragments/modals_spool.html' %}
 {% block scripts %}
 {{ super() }}
 <script>
@@ -563,6 +501,7 @@ window.materialTS = materialTS;
       }
     }
   }
+  window.onFilamentTypeChange = onTypeChange;
 
   function syncMonoHex(){
     const v = document.getElementById('mono_color').value;
@@ -913,7 +852,7 @@ if (materialTS) {
     const t = Array.isArray(f.color_hexes) && f.color_hexes.length ? (f.multi_color_direction || 'coaxial') : 'monochrome';
     document.getElementById('multicolor_type').value = ['monochrome','coaxial','gradient'].includes(String(t).toLowerCase()) ? String(t).toLowerCase() : 'monochrome';
     // déclenche l'affichage mono/multi via ta fonction existante
-    if (typeof onTypeChange === 'function') onTypeChange();
+    if (typeof window.onFilamentTypeChange === 'function') window.onFilamentTypeChange();
 
     if (document.getElementById('multicolor_type').value === 'monochrome'){
       const hex = normalizeHex(f.color_hex || '') || '#ffffff';
@@ -950,143 +889,6 @@ if (materialTS) {
   selMatEl.addEventListener('change', onMaterialChanged);
   selNameEl.addEventListener('change', onNameChanged);
   btnApply.addEventListener('click', applyToMainModal);
-})();
-(function(){
-  let spoolModal, filamentTS = null;
-
-  function ensureTomSelect(selector, options){
-    if (window.TomSelect){
-      const el = document.querySelector(selector);
-      if (el.tomselect) el.tomselect.destroy();
-      return new TomSelect(selector, {
-        create: false,
-        persist: false,
-        maxItems: 1,
-        searchField: ['text','value'],
-        sortField: {field:'text', direction:'asc'},
-        options: options || [],
-        render: {
-          option: (d, esc)=> `<div>${esc(d.text)}</div>`,
-          item:   (d, esc)=> `<div>${esc(d.text)}</div>`
-        }
-      });
-    } else {
-      const sel = document.querySelector(selector);
-      sel.innerHTML = '';
-      (options||[]).forEach(o=>{
-        const opt = document.createElement('option');
-        opt.value = o.value; opt.textContent = o.text;
-        sel.appendChild(opt);
-      });
-      return null;
-    }
-  }
-
-  async function loadFilamentChoices(){
-    const res = await fetch('/api/filaments/choices');
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.message || 'Erreur /api/filaments/choices');
-    return data.choices || [];
-  }
-
-  function showSpoolError(msg){
-    const el = document.getElementById('spoolError');
-    el.textContent = msg;
-    el.classList.remove('d-none');
-  }
-  function clearSpoolError(){
-    const el = document.getElementById('spoolError');
-    el.textContent = '';
-    el.classList.add('d-none');
-  }
-
-  // >>> Ouvre la modale en mode "création" et pré‑sélectionne un filament
-  window.openSpoolModalForFilament = async function(filObj){
-	const filamentId = filObj.id;
-    clearSpoolError();
-
-    // Instancie la modal si besoin
-    if (!spoolModal){
-      const el = document.getElementById('spoolModal');
-      spoolModal = bootstrap.Modal.getOrCreateInstance(el);
-    }
-
-    // Reset formulaire
-    document.getElementById('spoolForm').reset();
-    document.getElementById('spool_id').value = ''; // => création
-    document.getElementById('spoolModalLabel').textContent = 'Créer une bobine';
-
-    // Charge les choix + TomSelect
-    try{
-      const choices = await loadFilamentChoices();
-      filamentTS = ensureTomSelect('#spool_filament_id', choices);
-
-      if (filamentTS){
-        filamentTS.clear();
-        if (filamentId != null) filamentTS.addItem(String(filamentId), true);
-      } else {
-        // fallback natif
-        const sel = document.getElementById('spool_filament_id');
-        sel.value = filamentId || '';
-      }
-    }catch(e){
-      showSpoolError(e.message || e);
-      return;
-    }
-
-    // Optionnel: pré-remplis quelques champs avec ce qu’on sait
-    if (filObj){
-      // ex. commentaire d’origine
-      const c = document.getElementById('spool_comment');
-      if (c && !c.value) c.value = `Bobine créée pour ${filObj.manufacturer || ''} ${filObj.material || ''} • ${filObj.name || ''}`;
-    }
-
-    spoolModal.show();
-  };
-
-  // Enregistre (POST si création)
-  window.saveSpool = async function(){
-    clearSpoolError();
-    const id = document.getElementById('spool_id').value || null;
-
-    const filament_id = (filamentTS && filamentTS.getValue)
-      ? filamentTS.getValue()
-      : document.getElementById('spool_filament_id').value;
-
-    if (!filament_id) return showSpoolError('Choisis un filament.');
-
-    const payload = {
-      filament_id: Number(filament_id),
-      price_override: document.getElementById('spool_price').value || null,
-      remaining_weight_g: document.getElementById('spool_remaining_weight_g').value || null,
-      location: document.getElementById('spool_location').value || null,
-      tag_number: document.getElementById('spool_tag_number').value || null,
-      ams_tray: document.getElementById('spool_ams_tray').value || null,
-      archived: document.getElementById('spool_archived').checked,
-      comment: document.getElementById('spool_comment').value || null,
-    };
-
-    // petite validation
-    const p = (payload.price_override||'').toString().trim();
-    if (p && isNaN(Number(p.replace(',', '.')))) {
-      return showSpoolError('Le prix doit être un nombre (ex: 24.90).');
-    }
-
-    try{
-      const resp = await fetch(id ? `/api/spools/${id}` : '/api/spools', {
-        method: id ? 'PUT' : 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(payload)
-      });
-      const data = await resp.json();
-      if (!resp.ok || !data.ok){
-        return showSpoolError(data?.message || "Erreur lors de l'enregistrement.");
-      }
-      window.location.reload();
-    }catch(e){
-      showSpoolError("Erreur réseau : " + (e?.message || e));
-    }
-  };
 })();
 });
 </script>
