@@ -520,6 +520,8 @@ def safe_update_status(data):
         tray_now = None
 
     ams_list = data.get("ams", {}).get("ams", [])
+    for ams in ams_list:
+        fields["ams"][int(ams.get("id"))]={"dry_time" : ams.get("dry_time",0)}
     fields["tray_local_id"] = None
     fields["tray_ams_id"] = None
 
@@ -533,7 +535,6 @@ def safe_update_status(data):
                 ams_id = int(ams.get("id"))
             except (TypeError, ValueError):
                 continue
-            fields["ams"][ams_id]={"dry_time" : ams.get("dry_time",0)}
             for tray in ams.get("tray", []):
                 try:
                     tray_id = int(tray.get("id"))
