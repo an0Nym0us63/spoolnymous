@@ -101,39 +101,45 @@
     </div>
   </div>
 </div>
-<!-- Statistiques filament responsive -->
-<div class="row row-cols-3 g-2 mb-3 text-center align-items-stretch">
-  <div class="col">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
-        <div class="fs-5 fs-md-4">🧵</div>
-        <div class="small fw-bold">{{ total_filaments }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
-        <div class="fs-5 fs-md-4">🏭</div>
-        <div class="small fw-bold">{{ total_vendors }}</div>
-      </div>
-    </div>
-  </div>
-  <div class="col">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
-        <div class="fs-5 fs-md-4">⚖️</div>
-        <div class="small fw-bold">
-          {% if total_remaining >= 1000 %}
-            {{ (total_remaining / 1000) | round(2) }} kg
-          {% else %}
-            {{ total_remaining | round(1) }} g
-          {% endif %}
-        </div>
+
+<div class="row row-cols-3 g-3 g-md-3 mb-3 text-center align-items-stretch">
+  
+<div class="col">
+  <div class="card border border-secondary-subtle shadow-sm h-100">
+    <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+      <div class="fs-5 fs-md-4">🧵</div>
+      <div class="small fw-bold">
+        {{ total_filaments }}
       </div>
     </div>
   </div>
 </div>
+<div class="col">
+  <div class="card border border-secondary-subtle shadow-sm h-100">
+    <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+      <div class="fs-5 fs-md-4">🏭</div>
+      <div class="small fw-bold">
+        {{ total_vendors }}
+      </div>
+    </div>
+  </div>
+</div>
+<div class="col">
+  <div class="card border border-secondary-subtle shadow-sm h-100">
+    <div class="card-body px-2 d-flex flex-column justify-content-center align-items-center py-1 py-md-2">
+      <div class="fs-5 fs-md-4">⚖️</div>
+      <div class="small fw-bold">
+         {% if total_remaining >= 1000 %}
+            {{ (total_remaining / 1000) | round(2) }} kg
+          {% else %}
+            {{ total_remaining | round(1) }} g
+          {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
 <div class="accordion" id="filamentsAccordion">
   {% for spool in filaments %}
     <div class="accordion-item {% if spool.archived %}opacity-50{% endif %}" 
