@@ -208,12 +208,14 @@
     <div class="fs-5 fs-md-4">⚗️</div><div class="small fw-bold">{{ total_materials }}</div><div class="text-muted small">Matériaux</div>
   </div></div></div>
 </div>
-<button class="btn btn-sm btn-outline-primary rounded-circle"
-        id="btn-add-filament"
-        onclick="openFilamentModal()"
-        title="Ajouter un filament">
-  <i class="bi bi-plus-lg"></i>
-</button>
+<div class="d-flex justify-content-end mb-2">
+  <button class="btn btn-primary d-flex align-items-center gap-1"
+          id="btn-add-filament"
+          onclick="openFilamentModal()">
+    <i class="bi bi-plus-lg"></i>
+    Ajouter
+  </button>
+</div>
 <!-- LISTE (accordéons *identiques* à bobines) -->
 <div class="accordion" id="filamentsCatalogAccordion">
   {% for fil in filaments %}
