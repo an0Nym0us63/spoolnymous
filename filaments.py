@@ -715,6 +715,7 @@ def update_bobine(bobine_id: int, **fields: Any) -> None:
         cur.execute(f"UPDATE bobines SET {sets} WHERE id = ?", values)
         if cur.rowcount == 0:
             raise ValueError(f"Bobine introuvable id={bobine_id}")
+    return True
 
 
 def remove_bobine(bobine_id: int) -> None:
