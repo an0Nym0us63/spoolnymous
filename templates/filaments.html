@@ -32,6 +32,26 @@
     border-radius: .5rem;
   }
  }
+ /* Header de l'accordéon (layout) */
+.fil-header { display: flex; align-items: stretch; gap: .5rem; }
+.fil-title  { flex: 1 1 auto; min-width: 0; } /* autorise ellipsis */
+.fil-badges { flex: 0 1 45%; display: flex; align-items: center; justify-content: flex-end;
+              gap: .35rem; flex-wrap: wrap; }
+
+/* Deux lignes du titre avec ellipsis */
+.fil-title .line1,
+.fil-title .line2 {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* XS/SM : laisser plus de place au titre, autoriser l'empilement */
+@media (max-width: 576px){
+  .fil-badges { flex-basis: 48%; }   /* badges sur ~la moitié */
+  .badge-sx { font-size: .8rem; padding: .25rem .4rem; } /* badges compacts */
+}
+@media (max-width: 420px){
+  .fil-badges { flex-basis: 56%; }   /* encore plus de place pour le titre */
+}
 </style>
 
 <!-- Boutons flottants (comme bobines) -->
@@ -187,7 +207,7 @@
                   aria-expanded="false"
                   aria-controls="collapseFilament{{ fil.id }}"
                   style="border-radius: 0.75rem; font-size: 0.85rem;">
-				<div class="d-flex w-100 align-items-stretch gap-2">
+				<div class="fil-header w-100">
   <!-- Strip couleur (inchangé) -->
   <div class="color-strip">
     {% if fil.colors_array %}
@@ -200,26 +220,24 @@
     {% endif %}
   </div>
 
-  <!-- Bloc titre sur 2 lignes -->
-  <div class="flex-grow-1 d-flex flex-column justify-content-center ps-2">
-    <div class="fw-semibold">
+  <!-- Titre 2 lignes, ellipsis -->
+  <div class="fil-title d-flex flex-column justify-content-center ps-2">
+    <div class="line1 fw-semibold">
       {{ fil.material or '—' }} · {{ fil.name or '—' }}
     </div>
-    <div class="small fst-italic text-muted">
+    <div class="line2 small fst-italic text-muted">
       {{ fil.manufacturer or '—' }}
     </div>
   </div>
 
-  <!-- Badges à droite : prix, poids filament, profile_id -->
-  <div class="d-flex align-items-center gap-2 pe-2">
+  <!-- Badges à droite : wrap si besoin -->
+  <div class="fil-badges pe-2">
     <span class="badge badge-sx">
       {{ fil.price is not none and (fil.price ~ ' €') or '—' }}
     </span>
-    {% if fil.filament_weight_g %}
-      <span class="badge badge-sx">{{ fil.filament_weight_g }} g</span>
-    {% else %}
-      <span class="badge badge-sx">— g</span>
-    {% endif %}
+    <span class="badge badge-sx">
+      {{ fil.filament_weight_g or '—' }} g
+    </span>
     <span class="badge badge-sx">
       Profil {{ fil.profile_id or '—' }}
     </span>
