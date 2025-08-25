@@ -1245,7 +1245,7 @@ def filaments():
 
     is_assign_mode = all([assign_print_id, assign_filament_index])
     is_fill_mode = all([ams_id, tray_id,request.args.get("manual") ])
-    is_tag_mode = all([tray_uuid, tray_info_idx,request.args.get("manual") ])
+    is_tag_mode = all([tray_uuid, tray_info_idx,request.args.get("tag") ])
     tray_uuid = tray_info_idx = tray_color = None
     if is_fill_mode:
         tray_uuid = request.args.get("tray_uuid")
