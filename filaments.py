@@ -1752,33 +1752,49 @@ def clearActiveTray(ams_id,tray_id):
 
 def augmentTrayData(spool_list, tray_data, tray_id):
     tray_data["matched"] = False
-    for spool in spool_list:
-        if spool.get("extra") and spool["extra"].get("active_tray") and spool["extra"]["active_tray"] == tray_id:
-            #TODO: check for mismatch
-            tray_data["name"] = spool["filament"]["name"]
-            tray_data["vendor"] = spool["filament"]["vendor"]["name"]
-            tray_data["remaining_weight"] = spool["remaining_weight"]
-            tray_data["foundMode"] = spool["foundMode"]
-        
-            tray_data["last_used"] = _to_local_dt_string(spool.get("last_used"))
-        
-            filament = spool.get("filament") or {}
 
+    for spool in spool_list:
+        extra = spool.get("extra") or {}
+        if extra.get("active_tray") == tray_id:
+            # Données de base
+            filament = spool.get("filament") or {}
+            vendor = (filament.get("vendor") or {}).get("name")
+
+            tray_data["name"] = filament.get("name") or ""
+            tray_data["vendor"] = vendor or ""
+            tray_data["remaining_weight"] = spool.get("remaining_weight")
+            tray_data["foundMode"] = spool.get("foundMode") or extra.get("foundMode")
+
+            # Date last_used (robuste)
+            tray_data["last_used"] = _to_local_dt_string(spool.get("last_used"))
+
+            # Couleur mono/multi
             multi_hexes = filament.get("multi_color_hexes")
-            multi_dir = filament.get("multi_color_direction")
-            if multi_hexes and multi_dir and str(multi_dir).lower() != "none":
-                tray_data["tray_color"] = spool["filament"]["multi_color_hexes"]
-                tray_data["tray_color_orientation"] = spool["filament"]["multi_color_direction"]
+            multi_dir = (filament.get("multi_color_direction") or "").lower()
+            if multi_hexes and multi_dir and multi_dir != "none":
+                tray_data["tray_color"] = multi_hexes
+                tray_data["tray_color_orientation"] = filament.get("multi_color_direction")
             else:
-                tray_data["tray_color"] = spool["filament"]["color_hex"]
-                
+                tray_data["tray_color"] = filament.get("color_hex")
+                tray_data["tray_color_orientation"] = None
+
             tray_data["matched"] = True
             break
-    
-    if tray_data.get("tray_type") and tray_data["tray_type"] != "" and tray_data["matched"] == False:
-        tray_data["issue"] = True
-    else:
-        tray_data["issue"] = False
+
+    # S'il y a une config (type) mais qu'on n'a rien trouvé: flag issue
+    tray_data["issue"] = bool(tray_data.get("tray_type")) and not tray_data["matched"]
+
+    # Si non matché -> purger l'affichage pour éviter les reliquats
+    if not tray_data["matched"]:
+        tray_data["name"] = ""
+        tray_data["vendor"] = ""
+        tray_data["tray_type"] = ""
+        tray_data["tray_sub_brands"] = ""
+        tray_data["remaining_weight"] = None
+        tray_data["tray_color"] = None
+        tray_data["tray_color_orientation"] = None
+        tray_data["last_used"] = "-"
+        tray_data["foundMode"] = None
 
 def getAMSFromTray(n):
     return n // 4
