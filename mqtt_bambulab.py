@@ -521,7 +521,7 @@ def safe_update_status(data):
 
     ams_list = data.get("ams", {}).get("ams", [])
     for ams in ams_list:
-        fields["ams"].append({int(ams.get("id"):{"dry_time" : ams.get("dry_time",0)}}
+        fields["ams"].append({int(ams.get("id")):{"dry_time" : ams.get("dry_time",0)}}
     fields["tray_local_id"] = None
     fields["tray_ams_id"] = None
 
