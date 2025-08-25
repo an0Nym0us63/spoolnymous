@@ -164,12 +164,13 @@ def ensure_schema() -> None:
         def _maybe_add(table: str, column: str, ddl: str) -> None:
             cur.execute(f"PRAGMA table_info({table})")
             if not any(r[1] == column for r in cur.fetchall()):
-                cur.execute(f"ALTER TABLE {table} ADD COLUMN {ddl}")
+                cur.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
 
         _maybe_add("filaments", "profile_id", "TEXT")
         _maybe_add("filaments", "external_filament_id", "TEXT")
         _maybe_add("filaments", "colors_array", "TEXT")
         _maybe_add("filaments", "multicolor_type", "TEXT DEFAULT 'monochrome'")
+        _maybe_add("filaments", "swatch", "INTEGER NOT NULL DEFAULT 0")
 
         _maybe_add("bobines", "external_spool_id", "TEXT")
         _maybe_add("bobines", "foundMode", "TEXT")
