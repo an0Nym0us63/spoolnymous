@@ -26,16 +26,6 @@
 /* Responsive léger */
 @media (max-width: 576px){
   .badge-sx{ padding:.28rem .45rem; font-size:.85rem; }
-    .filament-actions {
-    position: absolute;
-    top: .5rem;
-    right: .5rem;
-    z-index: 5;
-    display: none;
-  }
-  .accordion-item .accordion-collapse.show .filament-actions {
-    display: block;
-  }
   .btn-actions {
     padding: .25rem .5rem;
     border-radius: .5rem;
@@ -241,24 +231,25 @@
       <div id="collapseFilament{{ fil.id }}" class="accordion-collapse collapse"
            aria-labelledby="headingFilament{{ fil.id }}" data-bs-parent="#filamentsCatalogAccordion">
         <div class="accordion-body position-relative">
-		<div class="dropdown filament-actions">
-  <button class="btn btn-outline-secondary btn-sm dropdown-toggle btn-actions"
-          type="button" id="actionsMenu-{{ fil.id }}"
-          data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">
-    <i class="bi bi-three-dots-vertical"></i> <!-- même icône que la page Objets -->
-  </button>
-  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsMenu-{{ fil.id }}">
-    <li>
-      <button class="dropdown-item" onclick='openFilamentModal({{ fil|tojson|safe }})'>
-        Éditer
-      </button>
-    </li>
-	<li>
-  <button class="dropdown-item"
-           onclick='openSpoolModalForFilament({{ fil|tojson|safe }})'>
-    ➕ Créer une bobine
-  </button>
-</li>
+          <div class="d-flex justify-content-end mb-2">
+            <div class="dropdown">
+              <button class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                      type="button" id="actionsMenu-{{ fil.id }}"
+                      data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsMenu-{{ fil.id }}">
+                <li>
+                  <button class="dropdown-item" onclick='openFilamentModal({{ fil|tojson|safe }})'>
+                    ✏️ Éditer
+                  </button>
+                </li>
+                <li>
+                  <button class="dropdown-item"
+                          onclick='openSpoolModalForFilament({{ fil|tojson|safe }})'>
+                    ➕ Créer une bobine
+                  </button>
+                </li>
 {% if (fil.spools_count or 0) > 0 %}
     <li>
       <button class="dropdown-item disabled text-muted" title="Impossible : des bobines sont rattachées" type="button">
@@ -291,8 +282,7 @@
                     <span class="ms-2">#{{ fil.color|replace('#','') }}</span>
                   {% else %} — {% endif %}
                 </li>
-                <li><strong>Profil ID :</strong> {{ fil.profile_id or '—' }}</li>
-                <li><strong>Référence :</strong> {{ fil.reference_id or '—' }}</li>
+				<li><strong>Type couleur :</strong>{{ (fil.multicolor_type or 'monochrome')|capitalize }}</li>
               </ul>
             </div>
             <div class="col-md-6">
@@ -302,7 +292,7 @@
                 <li><strong>Tare bobine :</strong> {{ fil.spool_weight_g or '—' }} g</li>
                 <li><strong>Créé le :</strong> {% if fil.created_at %}{{ fil.created_at|datetimeformat }}{% else %}—{% endif %}</li>
                 <li><strong>Mis à jour :</strong> {% if fil.updated_at %}{{ fil.updated_at|datetimeformat }}{% else %}—{% endif %}</li>
-                <li><strong>External ID :</strong> {{ fil.external_filament_id or '—' }}</li>
+                <li><strong>Profil ID :</strong> {{ fil.profile_id or '—' }}</li>
               </ul>
             </div>
             {% if fil.comment %}
