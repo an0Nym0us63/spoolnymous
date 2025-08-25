@@ -322,6 +322,7 @@ _FILAMENT_ALLOWED_UPDATE = {
     "external_filament_id",
     "reference_id",
     "profile_id",
+    "swatch",
     "created_at",
 }
 
@@ -337,6 +338,7 @@ _BOBINE_ALLOWED_UPDATE = {
     "archived",
     "comment",
     "external_spool_id",
+    "foundMode",
     "created_at",
 }
 
