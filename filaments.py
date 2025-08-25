@@ -1459,6 +1459,7 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
         b.archived        AS b_archived,
         b.comment         AS b_comment,
         b.external_spool_id AS b_external_spool_id,
+        b.foundMode AS b_foundMode,
 
         f.id              AS f_id,
         f.name            AS f_name,
@@ -1470,6 +1471,7 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
         f.filament_weight_g AS f_filament_weight_g,
         f.spool_weight_g  AS f_spool_weight_g,
         f.colors_array    AS f_colors_array,
+        f.swatch AS f_swatch,
         f.multicolor_type AS f_multicolor_type
       FROM bobines b
       JOIN filaments f ON f.id = b.filament_id
@@ -1521,6 +1523,8 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
             "ams_tray": r["b_ams_tray"],
             "archived": bool(r["b_archived"]),
             "comment": r["b_comment"],
+            "foundMode": row["b_foundMode"],
+
 
             "initial_weight": float(initial_weight) if initial_weight else 0.0,
             "price": float(price),
@@ -1543,6 +1547,7 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
                 "price": (float(r["f_price"]) if r["f_price"] is not None else None),
                 "multi_color_hexes": multi_list,
                 "multi_color_direction": r["f_multicolor_type"],
+                "swatch": row["f_swatch"],
                 "vendor": {
                     "name": r["f_manufacturer"]  # même si None, l'objet existe → pas d’UndefinedError
                 },
@@ -1578,6 +1583,7 @@ def fetch_spool_by_id(spool_id: int) -> Optional[Dict[str, Any]]:
         b.archived        AS b_archived,
         b.comment         AS b_comment,
         b.external_spool_id AS b_external_spool_id,
+        b.foundMode AS b_foundMode,
 
         f.id              AS f_id,
         f.name            AS f_name,
@@ -1589,6 +1595,7 @@ def fetch_spool_by_id(spool_id: int) -> Optional[Dict[str, Any]]:
         f.filament_weight_g AS f_filament_weight_g,
         f.spool_weight_g  AS f_spool_weight_g,
         f.colors_array    AS f_colors_array,
+        f.swatch AS f_swatch,
         f.multicolor_type AS f_multicolor_type
       FROM bobines b
       JOIN filaments f ON f.id = b.filament_id
@@ -1633,6 +1640,7 @@ def fetch_spool_by_id(spool_id: int) -> Optional[Dict[str, Any]]:
         "ams_tray": row["b_ams_tray"],
         "archived": bool(row["b_archived"]),
         "comment": row["b_comment"],
+        "foundMode": row["b_foundMode"],
 
         "initial_weight": float(initial_weight) if initial_weight else 0.0,
         "price": float(price),
@@ -1655,6 +1663,7 @@ def fetch_spool_by_id(spool_id: int) -> Optional[Dict[str, Any]]:
             "price": (float(row["f_price"]) if row["f_price"] is not None else None),
             "multi_color_hexes": multi_list,
             "multi_color_direction": row["f_multicolor_type"],
+            "swatch": row["f_swatch"],
             "vendor": {
                 "name": row["f_manufacturer"]
             },
