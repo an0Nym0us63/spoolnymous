@@ -1860,6 +1860,9 @@ def update_bobine_tag(*, spool_id: int, tray_uuid: Optional[str], tray_info_idx:
     """
     tag_updated = False
     profile_updated = False
+    bobine = get_bobine(spool_id)
+    if bobine is None:
+        raise ValueError(f"Bobine introuvable id={spool_id}")
 
     if not _is_all_zeros(tray_uuid) and not _is_null_or_empty(tray_uuid):
         update_bobine(spool_id, tag_number=tray_uuid.strip())
