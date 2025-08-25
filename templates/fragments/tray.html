@@ -169,9 +169,8 @@
         <ul class="dropdown-menu shadow">
           <li>
             <a class="dropdown-item"
-               href="{{ url_for('filaments', ams=ams_id, tray=tray_id,
-                                tray_uuid=tray_data.tray_uuid, tray_info_idx=tray_data.tray_info_idx,
-                                tray_color=tray_data.tray_color, tag='assign_tag', search=tray_data.tray_type) }}">
+               href="{{ url_for('filaments', tray_uuid=tray_data.tray_uuid, tray_info_idx=tray_data.tray_info_idx,
+                                 tag='assign_tag', search=tray_data.tray_type) }}">
               🏷️ Attribuer tag/profile id
             </a>
           </li>
