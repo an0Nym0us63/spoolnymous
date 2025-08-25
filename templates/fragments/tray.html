@@ -44,15 +44,7 @@
 
     <div class="text-end text-white text-sm">
       {% if tray_data.tray_type %}
-	  <div class="text-xs opacity-75 mb-1">
-      {% if tray_data.foundMode == "Tag" %}
-        <span title="Assigné par Tag">🏷️</span>
-      {% elif tray_data.foundMode == "Manual" %}
-        <span title="Assigné manuellement">✋</span>
-      {% elif tray_data.foundMode == "Profile" %}
-        <span title="Assigné par Profil">🤖</span>
-      {% endif %}
-    </div>
+	  
         <!-- Couleur(s) -->
         <div>
           {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
@@ -77,6 +69,15 @@
             </span>
           </div>
         {% endif %}
+		<div class="text-xs opacity-75 mb-1">
+      {% if tray_data.foundMode == "Tag" %}
+        <span title="Assigné par Tag">🏷️</span>
+      {% elif tray_data.foundMode == "Manual" %}
+        <span title="Assigné manuellement">✋</span>
+      {% elif tray_data.foundMode == "Profile" %}
+        <span title="Assigné par Profil">🤖</span>
+      {% endif %}
+    </div>
       {% endif %}
     </div>
   </div>
@@ -167,8 +168,8 @@
         <a class="dropdown-item"
            href="{{ url_for('filaments', ams=ams_id, tray=tray_id,
                             tray_uuid=tray_data.tray_uuid, tray_info_idx=tray_data.tray_info_idx,
-                            tray_color=tray_data.tray_color, search=tray_data.tray_type) }}">
-          🧵 Assigner manuellement
+                            tray_color=tray_data.tray_color, tag='assign_tag', search=tray_data.tray_type) }}">
+          🏷️ Attribuer tag/profile id
         </a>
       </li>
       <li><hr class="dropdown-divider"></li>
@@ -176,8 +177,8 @@
         <a class="dropdown-item"
            href="{{ url_for('filaments', ams=ams_id, tray=tray_id,
                             tray_uuid=tray_data.tray_uuid, tray_info_idx=tray_data.tray_info_idx,
-                            tray_color=tray_data.tray_color, mode='assign_tag', search=tray_data.tray_type) }}">
-          🏷️ Attribuer tag/profile id
+                            tray_color=tray_data.tray_color, search=tray_data.tray_type ,mode = 'assign_mode') }}">
+          🧵 Assigner manuellement
         </a>
       </li>
     </ul>
