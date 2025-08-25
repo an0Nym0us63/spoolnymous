@@ -1523,7 +1523,7 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
             "ams_tray": r["b_ams_tray"],
             "archived": bool(r["b_archived"]),
             "comment": r["b_comment"],
-            "foundMode": row["b_foundMode"],
+            "foundMode": r["b_foundMode"],
 
 
             "initial_weight": float(initial_weight) if initial_weight else 0.0,
@@ -1547,7 +1547,7 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
                 "price": (float(r["f_price"]) if r["f_price"] is not None else None),
                 "multi_color_hexes": multi_list,
                 "multi_color_direction": r["f_multicolor_type"],
-                "swatch": row["f_swatch"],
+                "swatch": r["f_swatch"],
                 "vendor": {
                     "name": r["f_manufacturer"]  # même si None, l'objet existe → pas d’UndefinedError
                 },
