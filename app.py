@@ -712,56 +712,12 @@ def tray_load():
     # Update Spoolman with the selected tray
     spool_data = fetch_spool_by_id(spool_id)
     setActiveTray(spool_id, ams_id, tray_id)
-    setActiveSpool(ams_id, tray_id, spool_data)
 
     return redirect(url_for('home', success_message=f"Updated Spool ID {spool_id} with TAG id {tag_id} to AMS {ams_id}, Tray {tray_id}."))
   except Exception as e:
     traceback.print_exc()
     return render_template('error.html', exception=str(e))
 
-def setActiveSpool(ams_id, tray_id, spool_data):
-  if not isMqttClientConnected():
-    return render_template('error.html', exception="L'imprimante est elle allumée ? Avez vous renseigné les paramètres ?")
-  
-  ams_message = AMS_FILAMENT_SETTING
-  ams_message["print"]["sequence_id"] = 0
-  ams_message["print"]["ams_id"] = int(ams_id)
-  ams_message["print"]["tray_id"] = int(tray_id)
-  
-  if "color_hex" in spool_data["filament"]:
-    ams_message["print"]["tray_color"] = spool_data["filament"]["color_hex"].upper() + "FF"
-  else:
-    ams_message["print"]["tray_color"] = spool_data["filament"]["multi_color_hexes"].split(',')[0].upper() + "FF"
-      
-  if "nozzle_temperature" in spool_data["filament"]["extra"]:
-    nozzle_temperature_range = spool_data["filament"]["extra"]["nozzle_temperature"].strip("[]").split(",")
-    ams_message["print"]["nozzle_temp_min"] = int(nozzle_temperature_range[0])
-    ams_message["print"]["nozzle_temp_max"] = int(nozzle_temperature_range[1])
-  else:
-    nozzle_temperature_range_obj = generate_filament_temperatures(spool_data["filament"]["material"],
-                                                                  spool_data["filament"]["vendor"]["name"])
-    ams_message["print"]["nozzle_temp_min"] = int(nozzle_temperature_range_obj["filament_min_temp"])
-    ams_message["print"]["nozzle_temp_max"] = int(nozzle_temperature_range_obj["filament_max_temp"])
-
-  ams_message["print"]["tray_type"] = spool_data["filament"]["material"]
-
-  filament_brand_code = {}
-  filament_brand_code["brand_code"] = spool_data["filament"]["extra"].get("filament_id", "").strip('"')
-  filament_brand_code["sub_brand_code"] = ""
-
-  if filament_brand_code["brand_code"] == "":
-    filament_brand_code = generate_filament_brand_code(spool_data["filament"]["material"],
-                                                      spool_data["filament"]["vendor"]["name"],
-                                                      spool_data["filament"]["extra"].get("type", ""))
-    
-  ams_message["print"]["tray_info_idx"] = filament_brand_code["brand_code"]
-
-  # TODO: test sub_brand_code
-  # ams_message["print"]["tray_sub_brands"] = filament_brand_code["sub_brand_code"]
-  ams_message["print"]["tray_sub_brands"] = ""
-
-  print(ams_message)
-  #publish(getMqttClient(), ams_message)
 @app.route("/")
 def home():
   if not isMqttClientConnected():
@@ -1271,7 +1227,6 @@ def filaments():
         if tray_uuid and tray_info_idx and tray_color:
             set_tray_spool_map(tray_uuid, tray_info_idx, tray_color, spool_id)
         setActiveTray(spool_id, ams_id, tray_id)
-        setActiveSpool(ams_id, tray_id, spool_data)
         return redirect(url_for('home', success_message=f"La bobine {spool_id} a été assigné à l'emplacement {tray_id} de l'AMS {ams_id}."))
 
     # 🔁 Sinon, affichage des bobines filtrées/paginées
