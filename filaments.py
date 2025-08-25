@@ -1692,8 +1692,8 @@ def setActiveTray(spool_id, ams_id, tray_id,foundmode):
     
     if bobine["ams_tray"] != trayUid(ams_id, tray_id):
         update_field_spool(field="ams_tray",value=trayUid(ams_id, tray_id),bobine_id=spool_id)
+    if bobine["foundMode"]!=foundmode:
         update_field_spool(field="foundMode",value=foundmode,bobine_id=spool_id)
-    
     if (int(tray_id) >200):
         patchLocation(spool_id,ams_id)
     else:
