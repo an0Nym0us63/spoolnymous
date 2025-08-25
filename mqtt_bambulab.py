@@ -402,7 +402,6 @@ def safe_update_status(data):
         "total_layers": data.get("total_layer_num"),
         "remaining_time": data.get("mc_remaining_time"),
         "tray_now": data.get("ams", {}).get("tray_now"),
-        "ams": [],
     }
 
     # ---------- BED TEMP (nouveaux firmwares: device.bed.info.temp 32 bits) ----------
@@ -520,8 +519,11 @@ def safe_update_status(data):
         tray_now = None
 
     ams_list = data.get("ams", {}).get("ams", [])
+    fields["ams"] = {}
     for ams in ams_list:
-        fields["ams"].append({int(ams.get("id")):{"dry_time" : ams.get("dry_time",0)}})
+        ams_id = int(ams.get("id"))
+        dry_time = int(ams.get("dry_time", 0))
+        fields["ams"][ams_id] = {"dry_time": dry_time}
     fields["tray_local_id"] = None
     fields["tray_ams_id"] = None
 
