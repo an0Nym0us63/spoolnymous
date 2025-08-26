@@ -1881,8 +1881,10 @@ def _item_title(entity: str, entity_id: int) -> str:
     Récupère un titre humain pour l’item :
     - print  : file_name ou 'Print #<id>'
     - group  : label/nom du groupe ou 'Groupe #<id>'
-    Robuste : tente plusieurs tables, fallback si manquantes.
+    Robuste    : tente plusieurs tables, fallback si manquantes.
     """
+    
+    logger.debug(entity + ' ' + str(entity_id))
     title = None
     try:
         db = db_config
