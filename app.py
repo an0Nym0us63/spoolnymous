@@ -2873,11 +2873,35 @@ def remove_filament_route(filament_id):
         params["focus_id"] = str(filament_id)
     return redirect(url_for("filaments_catalog", **params), 303)
 
+
 @app.route('/gallery')
 def gallery():
-    # Optionnel: tu peux décoder ici ?imgs=… si tu préfères côté serveur
     title = request.args.get('title', '')
-    return render_template('gallery.html', title=title)
+    images = []
+
+    raw = request.args.get('imgs')  # JSON encodé par encodeURIComponent côté client
+    if raw:
+        try:
+            # Flask a déjà décodé le %XX → essaye direct
+            images = json.loads(raw)
+        except Exception:
+            # au cas où c’était double-encodé
+            try:
+                images = json.loads(urllib.parse.unquote(raw))
+            except Exception:
+                images = []
+
+        # Normalisation {url,name}
+        norm = []
+        for it in images if isinstance(images, list) else []:
+            if isinstance(it, dict):
+                url = it.get('url') or it.get('href') or it.get('src')
+                name = it.get('name') or ''
+                if url:
+                    norm.append({'url': url, 'name': name})
+        images = norm
+
+    return render_template('gallery.html', title=title, images=images)
 
 @app.route("/gallery/all")
 def gallery_all():

@@ -440,7 +440,7 @@ function openGalleryFromEntry(images, title) {
       images.map(x => ({ url: x.url, name: x.name || '' }))
     ));
     const t = encodeURIComponent(title || '');
-    window.location.href = `/gallery?imgs=${payload}&title=${t}`;
+    window.location.href = `/gallery?images=${payload}&title=${t}`;
   } catch (e) {
     console.error("Erreur openGalleryFromEntry", e);
   }

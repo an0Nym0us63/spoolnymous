@@ -109,16 +109,17 @@
 {% block scripts %}
 {{ super() }}
 
-  {% if images %}
-  <script>
-    // Pré-injecte côté serveur si fourni
-    window.__IMAGES__ = {{ images|tojson }};
-    {% if title %}window.__TITLE__ = {{ title|tojson }};{% endif %}
-  </script>
-  {% endif %}
+{% if images %}
+<script>
+  // Injection serveur si fournie par la route Flask
+  window.__IMAGES__ = {{ images|tojson }};
+  {% if title %}window.__TITLE__ = {{ title|tojson }};{% endif %}
+</script>
+{% endif %}
+
 <script>
 (function(){
-  // Parse source images: Jinja -> window.__IMAGES__ OU ?imgs=JSON
+  // 1) Récup images/titre depuis window.__IMAGES__ (Jinja) ou ?imgs=JSON
   function parseImagesFromQuery() {
     try {
       const p = new URLSearchParams(location.search);
@@ -131,37 +132,45 @@
     } catch { return null; }
   }
 
+  const images =
+    (window.__IMAGES__ && Array.isArray(window.__IMAGES__)) ? window.__IMAGES__ :
+    (parseImagesFromQuery() || []);
+
+  const title =
+    (typeof window.__TITLE__ === 'string' && window.__TITLE__) ? window.__TITLE__ :
+    (new URLSearchParams(location.search).get('title') || '');
+
+  // 2) Header (protégé si l’élément n’existe pas)
   const titleEl = document.getElementById('jsTitle');
-if (titleEl) titleEl.textContent = title ? `— ${title}` : '';
+  if (titleEl) titleEl.textContent = title ? `— ${title}` : '';
 
-const countEl = document.getElementById('jsCount');
-if (countEl) countEl.textContent = images.length;
+  const countEl = document.getElementById('jsCount');
+  if (countEl) countEl.textContent = images.length;
 
-  // Hydrate header
-  document.getElementById('jsTitle').textContent = title ? `— ${title}` : '';
-  document.getElementById('jsCount').textContent = images.length;
-
-  // Build grid
+  // 3) Grille
   const grid = document.getElementById('grid');
+  if (!grid) return; // sécurité
+
   images.forEach((img, i) => {
     const card = document.createElement('div');
     card.className = 'g-thumb';
+    card.dataset.url = img.url;
     card.innerHTML = `
-      <button type="button" class="btn btn-sm btn-outline-light del js-del-photo" title="Supprimer" data-url="${img.url}" ${/\.3mf$/i.test(img.url) ? 'style="display:none"' : ''} data-requires-write>
+      <button type="button" class="btn btn-sm btn-outline-light del js-del-photo"
+              title="Supprimer" data-url="${img.url}" ${/\.3mf$/i.test(img.url) ? 'style="display:none"' : ''} data-requires-write>
         <i class="bi bi-x-lg"></i>
       </button>
       <img src="${img.url}" alt="${(img.name||'').replaceAll('"','&quot;')}">
       <div class="name">${img.name || ''}</div>
     `;
     card.addEventListener('click', (e) => {
-      // Ne pas ouvrir si clic sur le bouton supprimer
       if (e.target.closest('.js-del-photo')) return;
       openLightbox(i);
     });
     grid.appendChild(card);
   });
 
-  // Lightbox state
+  // 4) Lightbox
   const lb     = document.getElementById('lightbox');
   const lbImg  = document.getElementById('lbImg');
   const lbName = document.getElementById('lbName');
@@ -173,14 +182,14 @@ if (countEl) countEl.textContent = images.length;
   const lbClose= document.getElementById('lbClose');
   let index = 0;
 
-  lbTot.textContent = images.length;
+  if (lbTot) lbTot.textContent = images.length;
 
   function render() {
     const it = images[index];
-    lbImg.src = it?.url || '';
-    lbName.textContent = it?.name || '';
-    lbIdx.textContent = String(index + 1);
-    lbDel.style.display = (it && !/\.3mf$/i.test(it.url)) ? '' : 'none';
+    if (lbImg)  lbImg.src = it?.url || '';
+    if (lbName) lbName.textContent = it?.name || '';
+    if (lbIdx)  lbIdx.textContent = String(index + 1);
+    if (lbDel)  lbDel.style.display = (it && !/\.3mf$/i.test(it.url)) ? '' : 'none';
   }
 
   function openLightbox(i) {
@@ -198,78 +207,73 @@ if (countEl) countEl.textContent = images.length;
   function prev() { index = (index - 1 + images.length) % images.length; render(); }
   function next() { index = (index + 1) % images.length; render(); }
 
-  lbPrev.addEventListener('click', prev);
-  lbNext.addEventListener('click', next);
-  lbClose.addEventListener('click', closeLightbox);
+  lbPrev?.addEventListener('click', prev);
+  lbNext?.addEventListener('click', next);
+  lbClose?.addEventListener('click', closeLightbox);
 
   document.addEventListener('keydown', (e) => {
-    if (lb.classList.contains('open')) {
-      if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowLeft') prev();
-      if (e.key === 'ArrowRight') next();
-    }
+    if (!lb.classList.contains('open')) return;
+    if (e.key === 'Escape')    closeLightbox();
+    if (e.key === 'ArrowLeft') prev();
+    if (e.key === 'ArrowRight')next();
   });
 
+  // 5) Suppression (SweetAlert2 chargé par base.html)
   async function deleteByUrl(fileUrl) {
-  try {
-    const u = new URL(fileUrl, window.location.origin);
-    const parts = u.pathname.split('/').filter(Boolean); // ['static','uploads',entity,id,filename]
-    const upIdx = parts.indexOf('uploads');
-    if (upIdx < 0 || parts.length < upIdx + 4) return false;
+    try {
+      const u = new URL(fileUrl, window.location.origin);
+      const parts = u.pathname.split('/').filter(Boolean);
+      const upIdx = parts.indexOf('uploads');
+      if (upIdx < 0 || parts.length < upIdx + 4) return false;
 
-    const entity   = parts[upIdx + 1];
-    const entityId = parts[upIdx + 2];
-    const filename = parts[upIdx + 3];
+      const entity   = parts[upIdx + 1];
+      const entityId = parts[upIdx + 2];
+      const filename = parts[upIdx + 3];
+      if (filename.toLowerCase().endsWith('.3mf')) return false;
 
-    if (filename.toLowerCase().endsWith('.3mf')) return false;
+      const ask = await Swal.fire({
+        title: "Supprimer la photo ?",
+        text: filename,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Oui, supprimer",
+        cancelButtonText: "Annuler",
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#6c757d"
+      });
+      if (!ask.isConfirmed) return false;
 
-    // Confirmation SweetAlert2
-    const ask = await Swal.fire({
-      title: "Supprimer la photo ?",
-      text: filename,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Oui, supprimer",
-      cancelButtonText: "Annuler",
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#6c757d"
-    });
-    if (!ask.isConfirmed) return false;
+      const fd = new FormData();
+      fd.append('filename', filename);
+      const resp = await fetch(`/delete_photo/${encodeURIComponent(entity)}/${encodeURIComponent(entityId)}`, {
+        method: 'POST', body: fd
+      });
+      if (!resp.ok) {
+        Swal.fire("Erreur", "La suppression a échoué.", "error");
+        return false;
+      }
 
-    const fd = new FormData();
-    fd.append('filename', filename);
+      const idx = images.findIndex(x => x.url === fileUrl);
+      if (idx >= 0) {
+        images.splice(idx, 1);
+        const tile = grid.querySelector(\`.g-thumb[data-url="\${CSS.escape(fileUrl)}"]\`);
+        tile?.remove();
+        if (countEl) countEl.textContent = images.length;
+        if (lbTot)   lbTot.textContent   = images.length;
+        if (images.length === 0) closeLightbox();
+        else {
+          if (index >= images.length) index = images.length - 1;
+          render();
+        }
+      }
 
-    const resp = await fetch(`/delete_photo/${encodeURIComponent(entity)}/${encodeURIComponent(entityId)}`, {
-      method: 'POST',
-      body: fd
-    });
-
-    if (!resp.ok) {
-      Swal.fire("Erreur", "La suppression a échoué.", "error");
+      Swal.fire("Supprimé", "La photo a été supprimée.", "success");
+      return true;
+    } catch (err) {
+      Swal.fire("Erreur", "Une erreur est survenue.", "error");
       return false;
     }
-
-    // MAJ locale : retire de images + UI
-    const idx = images.findIndex(x => x.url === fileUrl);
-    if (idx >= 0) {
-      images.splice(idx, 1);
-      document.querySelectorAll('.g-thumb')[idx]?.remove();
-      document.getElementById('jsCount').textContent = images.length;
-      lbTot.textContent = images.length;
-      if (images.length === 0) closeLightbox();
-      else {
-        if (index >= images.length) index = images.length - 1;
-        render();
-      }
-    }
-
-    Swal.fire("Supprimé", "La photo a été supprimée.", "success");
-    return true;
-  } catch (err) {
-    Swal.fire("Erreur", "Une erreur est survenue.", "error");
-    return false;
   }
-}
 
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('.js-del-photo');
@@ -279,11 +283,10 @@ if (countEl) countEl.textContent = images.length;
     e.stopPropagation();
   });
 
-  lbDel.addEventListener('click', () => {
+  lbDel?.addEventListener('click', () => {
     const it = images[index];
     if (it) deleteByUrl(it.url);
   });
 })();
 </script>
-
 {% endblock %}
