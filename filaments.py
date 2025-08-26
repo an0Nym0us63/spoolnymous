@@ -617,11 +617,31 @@ def count_spools_for_filament(filament_id: int) -> int:
         return int(row["n"] if row and "n" in row.keys() else 0)
 
 def attach_spool_counts(filaments: list[dict]) -> list[dict]:
-    """Enrichit chaque filament avec .spools_count (clé compatible Jinja)."""
-    # Batch naïf; si perf à optimiser, faire un IN (...) + GROUP BY
+    """Enrichit chaque filament avec .spools_count et .active_spool_count (clés compatibles Jinja)."""
+    ids = [int(f.get("id")) if isinstance(f, dict) else int(getattr(f, "id")) for f in filaments]
+    id_set = set(ids)
+    if not ids:
+        return filaments
+
+    with _tx() as cur:
+        query = """
+            SELECT
+                filament_id,
+                COUNT(1) AS spools_count,
+                SUM(CASE WHEN archived = 0 THEN 1 ELSE 0 END) AS active_spools_count
+            FROM bobines
+            WHERE filament_id IN ({seq})
+            GROUP BY filament_id
+        """.format(seq=", ".join(["?"] * len(ids)))
+        cur.execute(query, ids)
+
+        counts = {row["filament_id"]: row for row in cur.fetchall()}
+
     for f in filaments:
         fid = int(f.get("id")) if isinstance(f, dict) else int(getattr(f, "id"))
-        f["spools_count"] = count_spools_for_filament(fid)
+        data = counts.get(fid, {})
+        f["spools_count"] = data.get("spools_count", 0)
+        f["active_spools_count"] = data.get("active_spools_count", 0)
     return filaments
 
 def get_filament(filament_id: int) -> Optional[sqlite3.Row]:
