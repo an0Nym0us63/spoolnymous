@@ -672,3 +672,13 @@
   color: #ced4da !important;
   opacity: 1;
 }
+
+.caption-badge { 
+  background: rgba(0,0,0,.55);
+  color:#fff;
+  padding:.15rem .5rem;
+  border-radius:.35rem;
+  max-width:65vw;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.carousel-meta { margin-top:.35rem; }
