@@ -48,61 +48,9 @@
   [data-requires-write] {
     display: none !important;
   }
-  
-  /* Hover open uniquement sur desktop (≥ lg) et souris */
-@media (min-width: 992px) and (hover: hover) and (pointer: fine) {
-  .navbar .dropdown > .dropdown-menu {
-    display: none;           /* par défaut: caché */
-    margin-top: .25rem;      /* petit espace sous le toggle */
-  }
-  .navbar .dropdown:hover > .dropdown-menu {
-    display: block;          /* s’affiche au survol */
-  }
-  /* feedback visuel optionnel sur le lien actif */
-  .navbar .nav-item.dropdown:hover > .nav-link {
-    color: var(--bs-primary);
-  }
-}
-.sticky-header { overflow: visible; }
 {% endif %}
 </style>
 </head>
-<script>
-/**
- * Empêche le clic de toggler les dropdowns en mode desktop (≥ lg),
- * pour que seul le "hover" pilote l’ouverture/fermeture.
- * Sur mobile, rien n’est bloqué ⇒ comportement Bootstrap normal.
- */
-(function () {
-  const bpDesktop = '(min-width: 992px)';
-  const hasMouse  = '(hover: hover) and (pointer: fine)';
-
-  function isDesktopHover() {
-    return matchMedia(bpDesktop).matches && matchMedia(hasMouse).matches;
-  }
-
-  function applyClickPolicy() {
-    document.querySelectorAll('.navbar .dropdown [data-bs-toggle="dropdown"]').forEach((toggle) => {
-      // Nettoie ancien handler si présent
-      if (toggle.__hoverClickHandler__) {
-        toggle.removeEventListener('click', toggle.__hoverClickHandler__);
-        toggle.__hoverClickHandler__ = null;
-      }
-      // En desktop hover: on empêche le clic
-      if (isDesktopHover()) {
-        toggle.__hoverClickHandler__ = (e) => e.preventDefault();
-        toggle.addEventListener('click', toggle.__hoverClickHandler__);
-      }
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded', applyClickPolicy);
-  window.addEventListener('resize', () => {
-    clearTimeout(window.__ddResizeTimer__);
-    window.__ddResizeTimer__ = setTimeout(applyClickPolicy, 100);
-  });
-})();
-</script>
 <body>
 <header class="mb-3 border-bottom sticky-header bg-body shadow-sm">
   <nav class="navbar navbar-expand-lg">
@@ -475,100 +423,6 @@ document.addEventListener('click', async (e) => {
     console.error('Suppression: erreur', err);
   }
 });
-(function setupHoverDropdowns(){
-  const DELAY_HIDE = 180;
-  let cleanup = null;
-
-  function isHoverablePointer(){
-    return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-  }
-  function navbarIsExpanded(){
-    // Si le toggler est *non visible*, on est en mode étendu (≥ lg avec .navbar-expand-lg)
-    const toggler = document.querySelector('.navbar .navbar-toggler');
-    if (!toggler) return true;
-    return window.getComputedStyle(toggler).display === 'none';
-  }
-
-  function attach(){
-    if (!isHoverablePointer() || !navbarIsExpanded()) return;
-
-    const timers = new WeakMap();
-    const listeners = [];
-
-    document.querySelectorAll('.navbar .nav-item.dropdown').forEach((item) => {
-      const toggle = item.querySelector('[data-bs-toggle="dropdown"]');
-      const menu   = item.querySelector('.dropdown-menu');
-      if (!toggle || !menu) return;
-
-      // On crée/recup l’instance Bootstrap
-      const instance = bootstrap.Dropdown.getOrCreateInstance(toggle, {
-        autoClose: true,
-        popperConfig: { strategy: 'fixed' }
-      });
-
-      const show = () => {
-        clearTimeout(timers.get(item));
-        // sync aria-expanded pour l’accessibilité
-        toggle.setAttribute('aria-expanded', 'true');
-        instance.show();
-      };
-      const hide = () => {
-        const t = setTimeout(() => {
-          instance.hide();
-          toggle.setAttribute('aria-expanded', 'false');
-        }, DELAY_HIDE);
-        timers.set(item, t);
-      };
-
-      // En mode étendu, on gère *au survol* et on n’empêche pas le focus clavier
-      const onEnterItem = () => show();
-      const onLeaveItem = () => hide();
-      const onEnterMenu = () => show();
-      const onLeaveMenu = () => hide();
-
-      item.addEventListener('mouseenter', onEnterItem);
-      item.addEventListener('mouseleave', onLeaveItem);
-      menu.addEventListener('mouseenter', onEnterMenu);
-      menu.addEventListener('mouseleave', onLeaveMenu);
-
-      // Empêcher le clic *uniquement* en mode étendu (sinon conflit avec le hover)
-      const onClickToggle = (e) => e.preventDefault();
-      toggle.addEventListener('click', onClickToggle);
-
-      // Mémorise pour cleanup
-      listeners.push([item, 'mouseenter', onEnterItem]);
-      listeners.push([item, 'mouseleave', onLeaveItem]);
-      listeners.push([menu, 'mouseenter', onEnterMenu]);
-      listeners.push([menu, 'mouseleave', onLeaveMenu]);
-      listeners.push([toggle, 'click', onClickToggle]);
-    });
-
-    cleanup = () => {
-      listeners.forEach(([el, ev, fn]) => el.removeEventListener(ev, fn));
-      cleanup = null;
-    };
-  }
-
-  function detach(){
-    if (typeof cleanup === 'function') cleanup();
-    cleanup = null;
-  }
-
-  function refresh(){
-    detach();
-    // N’attache qu’en mode étendu + pointeur hoverable
-    if (isHoverablePointer() && navbarIsExpanded()) attach();
-  }
-
-  // Premier setup
-  document.addEventListener('DOMContentLoaded', refresh);
-  // Recalcule si on change de breakpoint / rotation / redimensionnement
-  window.addEventListener('resize', () => {
-    // petit debounce
-    clearTimeout(window.__hoverDDResizeTimer__);
-    window.__hoverDDResizeTimer__ = setTimeout(refresh, 150);
-  });
-})();
 </script>
 </body>
 </html>
