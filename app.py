@@ -2969,14 +2969,24 @@ def installations_overview():
 
     remote_installations = []
     for inst in installations:
-        base = inst.get("url", "").rstrip("/")
-        token = inst.get("token", "")
-        if not base or not token:
+        full_url = inst.get("url", "").rstrip("/")
+        name = inst.get("name", "Sans nom")
+
+        # On attend une URL du type https://.../guest/<token>
+        if "/guest/" not in full_url:
             continue
+
+        try:
+            base_url, token = full_url.split("/guest/", 1)
+            base_url = base_url.rstrip("/")
+            token = token.strip()
+        except ValueError:
+            continue  # format invalide
+
         remote_installations.append({
-            "name": inst.get("name", "Sans nom"),
-            "snapshot_url": f"{base}/api/public/snapshot?token={token}",
-            "status_url": f"{base}/api/public/status?token={token}"
+            "name": name,
+            "snapshot_url": f"{base_url}/api/public/snapshot?token={token}",
+            "status_url": f"{base_url}/api/public/status?token={token}"
         })
 
     return render_template(
