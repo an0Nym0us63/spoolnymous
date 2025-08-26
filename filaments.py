@@ -640,8 +640,8 @@ def attach_spool_counts(filaments: list[dict]) -> list[dict]:
     for f in filaments:
         fid = int(f.get("id")) if isinstance(f, dict) else int(getattr(f, "id"))
         data = counts.get(fid, {})
-        f["spools_count"] = data.get("spools_count", 0)
-        f["active_spools_count"] = data.get("active_spools_count", 0)
+        f["spools_count"] = data["spools_count"]
+        f["active_spools_count"] = data["active_spools_count"]
     return filaments
 
 def get_filament(filament_id: int) -> Optional[sqlite3.Row]:
