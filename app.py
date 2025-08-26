@@ -6,7 +6,7 @@ import uuid
 import math
 from datetime import datetime, timedelta, date, timezone
 import time
-import os, base64, mimetypes
+import os
 import re
 from collections import defaultdict,deque
 from urllib.parse import urlencode, urlparse, urlunparse
@@ -2977,7 +2977,7 @@ def api_gallery_photos():
         "total": total, "pages": pages,
         "has_more": end < total,
     })
-    
+
 @app.route("/api/public/overview", methods=["GET"])
 def public_overview():
     token = request.args.get("token", "")
@@ -2986,31 +2986,12 @@ def public_overview():
 
     status_resp = api_printer_status()
     status = status_resp.get_json()
-    thumb = status.get("thumbnail")
-    if thumb:
-        try:
-            # normaliser: accepte "filename.jpg", "static/prints/filename.jpg" ou "/static/prints/filename.jpg"
-            if thumb.startswith("/static/prints/"):
-                rel = thumb[len("/static/prints/"):]
-            elif thumb.startswith("static/prints/"):
-                rel = thumb[len("static/prints/"):]
-            else:
-                rel = thumb  # juste le nom du fichier
 
-            fs_path = os.path.join(app.static_folder, "prints", rel)
-            if os.path.isfile(fs_path):
-                mime = mimetypes.guess_type(fs_path)[0] or "image/jpeg"
-                with open(fs_path, "rb") as f:
-                    b64 = base64.b64encode(f.read()).decode("ascii")
-                thumb_data_url = f"data:{mime};base64,{b64}"
-        except Exception:
-            thumb_data_url = None
     return jsonify({
         "snapshot_url": url_for("camera_snapshot", _external=True),
         "printName": status.get("printName"),
         "estimated_end": status.get("estimated_end"),
-        "progress": status.get("progress"),
-        "thumbnail_data_url": thumb_data_url,
+        "progress": status.get("progress")
     })
 
     
@@ -3018,31 +2999,12 @@ def public_overview():
 def local_overview():
     status_resp = api_printer_status()
     status = status_resp.get_json()
-    thumb = status.get("thumbnail")
-    if thumb:
-        try:
-            # normaliser: accepte "filename.jpg", "static/prints/filename.jpg" ou "/static/prints/filename.jpg"
-            if thumb.startswith("/static/prints/"):
-                rel = thumb[len("/static/prints/"):]
-            elif thumb.startswith("static/prints/"):
-                rel = thumb[len("static/prints/"):]
-            else:
-                rel = thumb  # juste le nom du fichier
 
-            fs_path = os.path.join(app.static_folder, "prints", rel)
-            if os.path.isfile(fs_path):
-                mime = mimetypes.guess_type(fs_path)[0] or "image/jpeg"
-                with open(fs_path, "rb") as f:
-                    b64 = base64.b64encode(f.read()).decode("ascii")
-                thumb_data_url = f"data:{mime};base64,{b64}"
-        except Exception:
-            thumb_data_url = None
     return jsonify({
         "snapshot_url": url_for("camera_snapshot"),
         "printName": status.get("printName"),
         "estimated_end": status.get("estimated_end"),
-        "progress": status.get("progress"),
-        "thumbnail_data_url": thumb_data_url,
+        "progress": status.get("progress")
     })
     
 @app.route("/installations")
