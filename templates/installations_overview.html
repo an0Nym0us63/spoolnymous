@@ -2,16 +2,16 @@
 
 {% block content %}
 <div class="container py-3">
-  <div class="tile-grid" id="tiles">
+  <div class="overview-grid" id="tiles">
     <!-- Tuile locale -->
-    <div class="tile card shadow-sm" data-overview="{{ local_overview_url }}">
-      <div class="card-header p-2 d-flex align-items-center justify-content-between">
-        <span class="tile-title text-truncate">🏠 Installation locale</span>
+    <div class="overview-tile card shadow-sm" data-overview="{{ local_overview_url }}">
+      <div class="overview-header card-header p-2 d-flex align-items-center justify-content-between">
+        <span class="overview-title text-truncate">🏠 Installation locale</span>
         <span class="badge bg-primary">LOCAL</span>
       </div>
-      <div class="card-body p-2 text-center">
-        <img src="" alt="Snapshot local" class="tile-img rounded">
-        <div class="tile-info mt-2 text-start">
+      <div class="overview-body card-body p-2 text-center">
+        <img src="" alt="Snapshot local" class="overview-img rounded">
+        <div class="overview-info mt-2 text-start">
           <div class="small mb-1">📦 <strong>Impression</strong> : <span class="printName">—</span></div>
           <div class="small">🕒 <strong>Fin estimée</strong> : <span class="estimated_end">—</span></div>
           <div class="progress mt-2" role="progressbar" aria-valuemin="0" aria-valuemax="100">
@@ -23,14 +23,14 @@
 
     <!-- Tuiles distantes -->
     {% for inst in remote_installations %}
-    <div class="tile card shadow-sm" data-overview="{{ inst.overview_url }}">
-      <div class="card-header p-2 d-flex align-items-center justify-content-between">
-        <span class="tile-title text-truncate">🌐 {{ inst.name }}</span>
+    <div class="overview-tile card shadow-sm" data-overview="{{ inst.overview_url }}">
+      <div class="overview-header card-header p-2 d-flex align-items-center justify-content-between">
+        <span class="overview-title text-truncate">🌐 {{ inst.name }}</span>
         <span class="badge bg-secondary">DISTANT</span>
       </div>
-      <div class="card-body p-2 text-center">
-        <img src="" alt="Snapshot {{ inst.name }}" class="tile-img rounded">
-        <div class="tile-info mt-2 text-start">
+      <div class="overview-body card-body p-2 text-center">
+        <img src="" alt="Snapshot {{ inst.name }}" class="overview-img rounded">
+        <div class="overview-info mt-2 text-start">
           <div class="small mb-1">📦 <strong>Impression</strong> : <span class="printName">—</span></div>
           <div class="small">🕒 <strong>Fin estimée</strong> : <span class="estimated_end">—</span></div>
           <div class="progress mt-2" role="progressbar" aria-valuemin="0" aria-valuemax="100">
@@ -44,40 +44,47 @@
 </div>
 {% endblock %}
 
-
 {% block styles %}
 <style>
-  .tile-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3 colonnes par défaut */
-  gap: 16px;
-}
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 colonnes par défaut */
+    gap: 16px;
+  }
+  @media (max-width: 1200px) {
+    .overview-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 768px) {
+    .overview-grid { grid-template-columns: 1fr; }
+  }
 
-@media (max-width: 1200px) {
-  .tile-grid { grid-template-columns: repeat(2, 1fr); }
-}
+  .overview-tile {
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    overflow: hidden;
+  }
 
-@media (max-width: 768px) {
-  .tile-grid { grid-template-columns: 1fr; }
-}
+  .overview-title {
+    font-weight: 600;
+    font-size: .95rem;
+    max-width: 70%;
+  }
 
-.tile {
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-  overflow: hidden;
-}
+  .overview-img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    display: block;
+    background: #f5f5f5;
+    border-bottom: 1px solid #eee;
+  }
 
-.tile-img {
-  width: 100%;
-  height: 140px;        /* 👉 hauteur fixe */
-  object-fit: cover;    /* 👉 garde l’effet vignette */
-  display: block;
-  background: #f5f5f5;
-}
+  .overview-info {
+    font-size: .9rem;
+  }
 </style>
 {% endblock %}
-
 
 {% block scripts %}
 <script>
@@ -99,9 +106,9 @@
   function absUrl(u, base){ try{ return new URL(u, base).toString(); }catch{ return u; } }
 
   function refreshTiles(){
-    document.querySelectorAll('.tile').forEach(tile=>{
+    document.querySelectorAll('.overview-tile').forEach(tile=>{
       const overviewUrl = tile.dataset.overview;
-      const img = tile.querySelector('.tile-img');
+      const img = tile.querySelector('.overview-img');
       const pbar = tile.querySelector('.progress-bar');
       fetch(overviewUrl, {cache:'no-store'})
         .then(r=>r.json())
@@ -118,7 +125,7 @@
           tile.querySelector('.printName').textContent = data.printName || '—';
           tile.querySelector('.estimated_end').textContent = data.estimated_end || '—';
 
-          // progression pleine largeur
+          // progression
           const p = pct(data.progress);
           pbar.style.width = p + '%';
           pbar.textContent = p + '%';
@@ -138,4 +145,3 @@
   setInterval(refreshTiles, 5000);
 </script>
 {% endblock %}
-
