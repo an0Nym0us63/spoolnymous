@@ -488,18 +488,38 @@ def load_user(user_id: str):
 def detect_webview():
     g.is_webview = request.cookies.get('webview') == '1'
 
+# Endpoints exemptés par nom (login, autologin, static…)
+EXEMPT_ENDPOINTS = {
+    "auth.login",
+    "auth.autologin_token",
+    "auth.guest_autologin",
+    "static",
+}
+
+# Chemins exemptés par préfixe (API publiques et snapshot si on veut public)
+EXEMPT_PATH_PREFIXES = (
+    "/api/public/",
+    "/camera/snapshot",   # <- garde si tu exposes le snapshot sans auth
+)
+
 @app.before_request
 def require_login():
-    from flask_login import current_user
-    exempt_routes = {
-        'auth.login',
-        'auth.autologin_token',   # tu l'avais déjà
-        'auth.guest_autologin',   # <-- AJOUT pour le lien invité /guest/<token>
-        'static',
-    }
-    # ⚠️ Retire 'auth.settings' de la whitelist pour protéger la page
-    if request.endpoint not in exempt_routes and not current_user.is_authenticated:
-        return redirect(url_for('auth.login'))
+    p = request.path or ""
+    # 1) Whitelist par préfixe (IMPORTANT pour éviter les redirections API)
+    if any(p.startswith(prefix) for prefix in EXEMPT_PATH_PREFIXES):
+        return None
+
+    # 2) Whitelist par endpoint
+    if request.endpoint in EXEMPT_ENDPOINTS:
+        return None
+
+    # 3) Si pas connecté :
+    if not current_user.is_authenticated:
+        # Pour les API: PAS de redirection, renvoie JSON 401
+        if p.startswith("/api/"):
+            return jsonify({"error": "unauthorized"}), 401
+        # Pour le reste: redirection standard vers login
+        return redirect(url_for("auth.login"))
 
 @app.after_request
 def add_cache_headers(response):
