@@ -434,6 +434,34 @@ function openGalleryFromEntry(images, title) {
     console.error("Erreur openGalleryFromEntry", e);
   }
 }
+(function(){
+  // Initialise la barre "nom + Galerie" pour un carrousel donné
+  function setupCarouselMeta(pid){
+    const car = document.getElementById(`carousel-${pid}`);
+    const nameEl = document.getElementById(`cname-${pid}`);
+    if (!car || !nameEl) return;
+
+    function updateFromActive(){
+      const active = car.querySelector('.carousel-item.active');
+      const name = active?.getAttribute('data-name') || '';
+      nameEl.textContent = name || '';
+    }
+
+    // Valeur initiale
+    updateFromActive();
+
+    // MAJ après transition
+    car.addEventListener('slid.bs.carousel', updateFromActive);
+  }
+
+  // Auto-init pour tous les carrousels de prints présents
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.print-carousel[id^="carousel-"]').forEach(el => {
+      const pid = el.id.replace('carousel-','');
+      setupCarouselMeta(pid);
+    });
+  });
+})();
 </script>
 </body>
 </html>

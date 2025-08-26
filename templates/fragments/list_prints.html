@@ -166,6 +166,14 @@
       </div>
     {% endif %}
   </div>
+{% if entry.images and (entry.images|length) > 0 %}
+  <div class="text-center mt-2">
+    <button type="button" class="btn btn-outline-light btn-sm"
+         onclick='openGalleryFromEntry({{ (entry.images or [])|tojson }}, {{ (entry.name or ("Groupe #" ~ entry.id))|tojson }})'>
+      🖼 Galerie
+    </button>
+  </div>
+{% endif %}
 {% endif %}
 <div style="height: 0.2rem;"></div>
             <div class="mb-3 mt-2">
