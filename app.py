@@ -2954,24 +2954,20 @@ def public_snapshot():
     token = request.args.get("token", "")
     if not validate_guest_token(token):
         return abort(403)
-    return snapshot_handler()  # réutilise la route existante
+    return serve_snapshot()  # réutilise la route existante
 
 @app.route("/api/public/status", methods=["GET"])
 def public_status():
     token = request.args.get("token", "")
     if not validate_guest_token(token):
         return abort(403)
-    return jsonify(get_printer_status())
+    return jsonify(api_printer_status())
 
 @app.route("/installations")
 def installations_overview():
-    from camera import snapshot_handler  # assure compatibilité
-    from print_status import get_printer_status
-    from installations import load_installations
-
     installations = load_installations()
-    local_snapshot_url = url_for("snapshot_handler")  # route existante locale
-    local_status_url = url_for("printer_status")      # route locale existante
+    local_snapshot_url = url_for("camera_snapshot")  # route existante locale
+    local_status_url = url_for("api_printer_status")      # route locale existante
 
     remote_installations = []
     for inst in installations:
