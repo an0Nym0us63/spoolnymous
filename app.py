@@ -2968,6 +2968,7 @@ def installations_overview():
     installations = load_installations()
 
     remote_installations = []
+    logger.debug(str(installations))
     for inst in installations:
         full_url = inst.get("url", "").rstrip("/")
         name = inst.get("name", "Sans nom")
