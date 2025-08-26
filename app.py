@@ -2887,7 +2887,6 @@ def gallery_all():
 
 @app.route("/api/gallery/photos")
 def api_gallery_photos():
-    from math import ceil
     page = max(1, int(request.args.get("page", 1)) if request.args.get("page") else 1)
     per  = int(request.args.get("per", 60)) if request.args.get("per") else 60
     per  = max(1, min(per, 120))
@@ -2895,7 +2894,7 @@ def api_gallery_photos():
 
     items = list_all_photos(prefix=prefix)
     total = len(items)
-    pages = max(1, ceil(total / per)) if total else 1
+    pages = max(1, math.ceil(total / per)) if total else 1
 
     start = (page - 1) * per
     end   = start + per

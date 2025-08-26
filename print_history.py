@@ -1905,7 +1905,7 @@ def _item_title(entity: str, entity_id: int) -> str:
                 title = row["name"]
     except Exception:
         pass
-
+    logger.debug(title)
     if title and title.strip():
         return title.strip()
     return ("Print #{}".format(entity_id) if entity == "prints" else "Groupe #{}".format(entity_id))
