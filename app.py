@@ -24,7 +24,7 @@ import math
 import subprocess
 import tempfile
 
-from flask_login import LoginManager, login_required
+from flask_login import LoginManager, login_required,current_user
 from flask_cors import CORS
 from auth import auth_bp, User, get_stored_user,_is_guest_token_valid
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
