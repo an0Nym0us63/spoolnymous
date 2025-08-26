@@ -48,10 +48,60 @@
   [data-requires-write] {
     display: none !important;
   }
+  
+  /* Hover open uniquement sur desktop (≥ lg) et souris */
+@media (min-width: 992px) and (hover: hover) and (pointer: fine) {
+  .navbar .dropdown > .dropdown-menu {
+    display: none;           /* par défaut: caché */
+    margin-top: .25rem;      /* petit espace sous le toggle */
+  }
+  .navbar .dropdown:hover > .dropdown-menu {
+    display: block;          /* s’affiche au survol */
+  }
+  /* feedback visuel optionnel sur le lien actif */
+  .navbar .nav-item.dropdown:hover > .nav-link {
+    color: var(--bs-primary);
+  }
+}
 {% endif %}
 </style>
 </head>
+<script>
+/**
+ * Empêche le clic de toggler les dropdowns en mode desktop (≥ lg),
+ * pour que seul le "hover" pilote l’ouverture/fermeture.
+ * Sur mobile, rien n’est bloqué ⇒ comportement Bootstrap normal.
+ */
+(function () {
+  const bpDesktop = '(min-width: 992px)';
+  const hasMouse  = '(hover: hover) and (pointer: fine)';
 
+  function isDesktopHover() {
+    return matchMedia(bpDesktop).matches && matchMedia(hasMouse).matches;
+  }
+
+  function applyClickPolicy() {
+    document.querySelectorAll('.navbar .dropdown [data-bs-toggle="dropdown"]').forEach((toggle) => {
+      // Nettoie ancien handler si présent
+      if (toggle.__hoverClickHandler__) {
+        toggle.removeEventListener('click', toggle.__hoverClickHandler__);
+        toggle.__hoverClickHandler__ = null;
+      }
+      // En desktop hover: on empêche le clic
+      if (isDesktopHover()) {
+        toggle.__hoverClickHandler__ = (e) => e.preventDefault();
+        toggle.addEventListener('click', toggle.__hoverClickHandler__);
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', applyClickPolicy);
+  window.addEventListener('resize', () => {
+    clearTimeout(window.__ddResizeTimer__);
+    window.__ddResizeTimer__ = setTimeout(applyClickPolicy, 100);
+  });
+})();
+</script>
 <body>
 <header class="mb-3 border-bottom sticky-header bg-body shadow-sm">
   <nav class="navbar navbar-expand-lg">
