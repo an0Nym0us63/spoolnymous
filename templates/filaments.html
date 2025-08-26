@@ -777,11 +777,9 @@ if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
     }
   }
 
-  <script>
-document.addEventListener('DOMContentLoaded', function () {
-/* ------------------------------------------------------------------ */
-/* --------------------  BLOC IMPORT  (REMPLACER)  ------------------- */
-/* ------------------------------------------------------------------ */
+  document.addEventListener('DOMContentLoaded', initModal);
+})();
+
 (function(){
   // ---------- Éléments Import ----------
   const btnOpenImport = document.getElementById('btn-open-import-modal');
@@ -1006,7 +1004,6 @@ document.addEventListener('DOMContentLoaded', function () {
 })();
 });
 </script>
-
 {% endblock %}
 
 <div style="height:4rem;"></div>
