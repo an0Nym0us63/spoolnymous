@@ -2955,28 +2955,24 @@ def public_overview():
     if not _is_guest_token_valid(token):
         return abort(403)
 
-    # snapshot actuel (image base64 ou URL ou non inclus si trop lourd)
-    snapshot_url = url_for("camera_snapshot")  # ou None si on n’inclut pas l’image
-
-    # status simplifié
-    status = api_printer_status()
-    filtered_status = {
-        "printName": status.get("printName"),
-        "estimated_end": status.get("estimated_end"),
-        "progress": status.get("progress"),
-        "snapshot_url": snapshot_url  # ou base64 directement (plus lourd)
-    }
-
-    return jsonify(filtered_status)
-    
-@app.route("/api/public/overview", methods=["GET"])
-def local_overview():
-    # Pas de token ici : accès direct car local
-    snapshot_url = url_for("camera_snapshot")
-    status = api_printer_status()
+    status_resp = api_printer_status()
+    status = status_resp.get_json()
 
     return jsonify({
-        "snapshot_url": snapshot_url,
+        "snapshot_url": url_for("camera_snapshot", _external=True),
+        "printName": status.get("printName"),
+        "estimated_end": status.get("estimated_end"),
+        "progress": status.get("progress")
+    })
+
+    
+@app.route("/api/local/overview", methods=["GET"])
+def local_overview():
+    status_resp = api_printer_status()
+    status = status_resp.get_json()
+
+    return jsonify({
+        "snapshot_url": url_for("camera_snapshot", _external=True),
         "printName": status.get("printName"),
         "estimated_end": status.get("estimated_end"),
         "progress": status.get("progress")
