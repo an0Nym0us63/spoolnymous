@@ -2968,10 +2968,9 @@ def installations_overview():
     installations = load_installations()
 
     remote_installations = []
-    logger.debug(str(installations))
     for inst in installations:
-        full_url = inst.get("url", "").rstrip("/")
-        name = inst.get("name", "Sans nom")
+        full_url = inst.get("guest_url", "").rstrip("/")
+        name = inst.get("label", "Sans nom")
 
         # On attend une URL du type https://.../guest/<token>
         if "/guest/" not in full_url:
@@ -2989,7 +2988,6 @@ def installations_overview():
             "snapshot_url": f"{base_url}/api/public/snapshot?token={token}",
             "status_url": f"{base_url}/api/public/status?token={token}"
         })
-    logger.debug(str(remote_installations))
     return render_template(
         "installations_overview.html",
         remote_installations=remote_installations,
