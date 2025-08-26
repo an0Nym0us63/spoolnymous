@@ -282,7 +282,7 @@
   <!-- Badges : prix / poids / profile_id (sans libellé) -->
   <div class="fil-badges pe-2">
 	<span class="badge badge-sx">
-    🧵 {{ fil.active_spools_count or 0 }}/{{ fil.spools_count or 0 }}
+    🧵 {{ fil.spools_count or 0 }}
   </span>
   </div>
 </div>
@@ -360,6 +360,7 @@
                 <li><strong>Créé le :</strong> {% if fil.created_at %}{{ fil.created_at|datetimeformat }}{% else %}—{% endif %}</li>
                 <li><strong>Mis à jour :</strong> {% if fil.updated_at %}{{ fil.updated_at|datetimeformat }}{% else %}—{% endif %}</li>
                 <li><strong>Profil ID :</strong> {{ fil.profile_id or '—' }}</li>
+                <li><strong>Bobines dépendantes :</strong> {{ fil.active_spools_count or 0 }}/{{ fil.spools_count or 0 }}</li>
               </ul>
             </div>
             {% if fil.comment %}
