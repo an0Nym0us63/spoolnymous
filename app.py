@@ -25,8 +25,10 @@ import subprocess
 import tempfile
 
 from flask_login import LoginManager, login_required
+from flask_cors import CORS
 from auth import auth_bp, User, get_stored_user,_is_guest_token_valid
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
+
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
 from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine,attach_spool_counts,remove_filament,update_bobine_tag
@@ -350,6 +352,13 @@ app.config.update(
     SESSION_COOKIE_SECURE=True             # requis avec SameSite=None
 )
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+CORS(
+    app,
+    resources={r"/api/public/*": {"origins": "*"}},   # ou liste d’origines autorisées
+    supports_credentials=False,
+    max_age=600,
+)
 ALLOWED_GUEST_ORIGINS = None
 def _corsify(resp):
     origin = request.headers.get("Origin")
