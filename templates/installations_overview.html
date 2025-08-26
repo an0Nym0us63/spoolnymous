@@ -80,6 +80,14 @@
   border-bottom: 1px solid #eee;
 }
 
+ /* Ligne "thumbnail + infos" */
+  .overview-sub{ display:flex; gap:10px; align-items:flex-start; }
+  .overview-thumb{
+    width:80px; height:80px; object-fit:cover; background:#f5f5f5;
+    border:1px solid #eee; border-radius:6px; flex:0 0 auto;
+  }
+  .overview-info{ font-size:.9rem; flex:1 1 auto; }
+
 /* Petit espace supplémentaire sous chaque tuile (en plus du gap de la grid) */
 .overview-tile { margin-bottom: 8px; }
 </style>
@@ -94,6 +102,12 @@
             font-family="sans-serif" font-size="13" fill="#999">
         Snapshot indisponible
       </text>
+    </svg>`);
+	const FALLBACK_THUMB = 'data:image/svg+xml;utf8,'+encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80">
+      <rect width="100%" height="100%" fill="#f0f0f0"/>
+      <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+            font-family="sans-serif" font-size="11" fill="#999">Thumb</text>
     </svg>`);
 
   function pct(v){
@@ -119,6 +133,16 @@
             img.src = snap;
           } else {
             img.src = FALLBACK_SVG;
+          }
+		  /* Thumbnail mini */
+          if (data.thumbnail_data_url){
+            th.src = data.thumbnail_data_url;
+          } else if (data.thumbnail_url){
+            let t = absUrl(data.thumbnail_url, overviewUrl);
+            t += (t.includes('?')?'&':'?') + '_=' + Date.now();
+            th.src = t;
+          } else {
+            th.src = FALLBACK_THUMB;
           }
           // textes
           tile.querySelector('.printName').textContent = data.printName || '—';
