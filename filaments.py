@@ -628,7 +628,7 @@ def attach_spool_counts(filaments: list[dict]) -> list[dict]:
             SELECT
                 filament_id,
                 COUNT(1) AS spools_count,
-                SUM(CASE WHEN archived = 0 THEN 1 ELSE 0 END) AS active_spools_count
+                SUM(CASE WHEN archived = 1 THEN 1 ELSE 0 END) AS active_spools_count
             FROM bobines
             WHERE filament_id IN ({seq})
             GROUP BY filament_id
