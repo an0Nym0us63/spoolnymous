@@ -1960,7 +1960,7 @@ def list_all_photos(prefix="Photo-"):
                     "entity_id": entity_id,
                     "url": f"/static/uploads/{entity}/{entity_id}/{name}",
                     "name": name,
-                    "base_name": Path(name).stem,      # sans extension
+                    "base_name": entity.name,      # sans extension
                     "seq": _seq_from_name(name),       # pour tri asc
                 })
 
