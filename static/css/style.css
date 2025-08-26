@@ -673,12 +673,31 @@
   opacity: 1;
 }
 
-.caption-badge { 
-  background: rgba(0,0,0,.55);
-  color:#fff;
-  padding:.15rem .5rem;
-  border-radius:.35rem;
-  max-width:65vw;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+.caption-badge {
+  background: rgba(0,0,0,.6);
+  color: #fff;
+  padding: .25rem .75rem;
+  border-radius: .5rem;
+  max-width: 70vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .8rem;
 }
+
+.btn-gallery {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.3);
+  color: #fff;
+  padding: .35rem .5rem;
+  border-radius: 50%;
+  transition: all .2s ease;
+}
+
+.btn-gallery:hover {
+  background: rgba(255,255,255,.25);
+  border-color: rgba(255,255,255,.5);
+  transform: scale(1.1);
+}
+
 .carousel-meta { margin-top:.35rem; }

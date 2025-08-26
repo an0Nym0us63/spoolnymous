@@ -248,13 +248,15 @@
     </div>
   {% endif %}
 </div>
-{# Barre nom + Galerie sous le carrousel #}
+{# Barre nom centré + bouton Galerie à droite #}
 {% if print.images and (print.images|length) > 0 %}
-  <div class="d-flex justify-content-between align-items-center mt-1 px-2 carousel-meta" data-pid="{{ pid }}">
-    <small id="cname-{{ pid }}" class="caption-badge mb-0">3mf</small>
-    <button type="button" class="btn btn-outline-light btn-sm"
-            onclick='openGalleryFromEntry({{ (print.images or [])|tojson }}, {{ (print.file_name or ("Print #" ~ print.id))|tojson }})'>
-      🖼 Galerie
+  <div class="d-flex justify-content-center align-items-center mt-2 position-relative carousel-meta" data-pid="{{ pid }}">
+    <small id="cname-{{ pid }}" class="caption-badge text-center">3mf</small>
+
+    <button type="button" class="btn btn-gallery position-absolute end-0 me-2"
+            onclick='openGalleryFromEntry({{ (print.images or [])|tojson }}, {{ (print.file_name or ("Print #" ~ print.id))|tojson }})'
+            title="Ouvrir la galerie">
+      🖼
     </button>
   </div>
 {% endif %}
