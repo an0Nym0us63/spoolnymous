@@ -2949,4 +2949,48 @@ def api_gallery_photos():
         "has_more": end < total,
     })
 
+@app.route("/api/public/snapshot", methods=["GET"])
+def public_snapshot():
+    token = request.args.get("token", "")
+    if not validate_guest_token(token):
+        return abort(403)
+    return snapshot_handler()  # réutilise la route existante
+
+@app.route("/api/public/status", methods=["GET"])
+def public_status():
+    token = request.args.get("token", "")
+    if not validate_guest_token(token):
+        return abort(403)
+    return jsonify(get_printer_status())
+
+@app.route("/installations")
+def installations_overview():
+    from camera import snapshot_handler  # assure compatibilité
+    from print_status import get_printer_status
+    from installations import load_installations
+
+    installations = load_installations()
+    local_snapshot_url = url_for("snapshot_handler")  # route existante locale
+    local_status_url = url_for("printer_status")      # route locale existante
+
+    remote_installations = []
+    for inst in installations:
+        base = inst.get("url", "").rstrip("/")
+        token = inst.get("token", "")
+        if not base or not token:
+            continue
+        remote_installations.append({
+            "name": inst.get("name", "Sans nom"),
+            "snapshot_url": f"{base}/api/public/snapshot?token={token}",
+            "status_url": f"{base}/api/public/status?token={token}"
+        })
+
+    return render_template(
+        "installations_overview.html",
+        local_snapshot_url=local_snapshot_url,
+        local_status_url=local_status_url,
+        remote_installations=remote_installations,
+        page_title="Installations"
+    )
+
 app.register_blueprint(auth_bp)
