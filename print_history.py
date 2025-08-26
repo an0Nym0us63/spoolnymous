@@ -1866,4 +1866,55 @@ def list_group_images(group_id: str | int | None = None):
 
     return out
 
+
+def list_all_photos(prefix="Photo-"):
+    """
+    Scanne /static/uploads/{prints,groups}/<id> et retourne la liste
+    de toutes les photos dont le nom commence par `prefix` (par défaut Photo-).
+    Retourne des dicts: { entity, entity_id, url, name, mtime }
+    """
+    app = current_app._get_current_object()
+    static_folder = Path(app.static_folder)
+    out = []
+
+    for entity in ("prints", "groups"):
+        base = static_folder / "uploads" / entity
+        if not base.exists():
+            continue
+        for item_dir in base.iterdir():
+            if not item_dir.is_dir():
+                continue
+            try:
+                entity_id = int(item_dir.name)
+            except ValueError:
+                continue
+
+            for f in item_dir.iterdir():
+                if not f.is_file():
+                    continue
+                name = f.name
+                # Filtre "Photo-" (insensible à la casse)
+                if not name.lower().startswith(prefix.lower()):
+                    continue
+                # Exclure 3mf par sécurité
+                if name.lower().endswith(".3mf"):
+                    continue
+
+                rel_url = f"/static/uploads/{entity}/{entity_id}/{name}"
+                try:
+                    mtime = f.stat().st_mtime
+                except Exception:
+                    mtime = 0
+
+                out.append({
+                    "entity": entity,            # "prints" | "groups"
+                    "entity_id": entity_id,      # int
+                    "url": rel_url,              # /static/uploads/...
+                    "name": name,                # Photo-XXX.jpg
+                    "mtime": mtime,              # tri récent -> ancien
+                })
+    # Tri: plus récent d'abord
+    out.sort(key=lambda x: x["mtime"], reverse=True)
+    return out
+
 create_database()

@@ -1926,5 +1926,4 @@ def update_bobine_tag(*, spool_id: int, tray_uuid: Optional[str], tray_info_idx:
         profile_updated = True
     return {"tag_updated": tag_updated, "profile_updated": profile_updated}
 
-
 ensure_schema()
