@@ -433,18 +433,38 @@ document.addEventListener('click', async (e) => {
   } catch (err) {
     console.error('Suppression: erreur', err);
   }
-});
-function openGalleryFromEntry(images, title) {
+});window.openGalleryFromEntry = function(images, title) {
   try {
-    const payload = encodeURIComponent(JSON.stringify(
-      images.map(x => ({ url: x.url, name: x.name || '' }))
-    ));
-    const t = encodeURIComponent(title || '');
-    window.location.href = `/gallery?images=${payload}&title=${t}`;
+    const mapped = (images || [])
+      .filter(Boolean)
+      .map(x => ({ url: x.url || x.href || x.src || '', name: x.name || '' }))
+      .filter(x => x.url);
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/gallery';
+    form.target = '_blank';
+
+    const iImgs = document.createElement('input');
+    iImgs.type = 'hidden';
+    iImgs.name = 'images';
+    iImgs.value = JSON.stringify(mapped);
+
+    const iTitle = document.createElement('input');
+    iTitle.type = 'hidden';
+    iTitle.name = 'title';
+    iTitle.value = title || '';
+
+    form.appendChild(iImgs);
+    form.appendChild(iTitle);
+
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
   } catch (e) {
-    console.error("Erreur openGalleryFromEntry", e);
+    console.error('openGalleryFromEntry failed', e);
   }
-}
+};
 (function(){
   // Initialise la barre "nom + Galerie" pour un carrousel donné
   function setupCarouselMeta(pid){

@@ -111,13 +111,8 @@
 
 {% if images %}
 <script>
-const images =
-  (window.__IMAGES__ && Array.isArray(window.__IMAGES__)) ? window.__IMAGES__ :
-  (parseImagesFromQuery() || []);
-
-const title =
-  (typeof window.__TITLE__ === 'string' && window.__TITLE__) ?
-    window.__TITLE__ : (new URLSearchParams(location.search).get('title') || '');
+const images = (window.__IMAGES__ && Array.isArray(window.__IMAGES__)) ? window.__IMAGES__ : [];
+const title  = (typeof window.__TITLE__ === 'string' && window.__TITLE__) ? window.__TITLE__ : '';
 
 const titleEl = document.getElementById('jsTitle');
 if (titleEl) titleEl.textContent = title ? `— ${title}` : '';

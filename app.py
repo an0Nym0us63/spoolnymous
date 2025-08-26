@@ -2874,34 +2874,43 @@ def remove_filament_route(filament_id):
     return redirect(url_for("filaments_catalog", **params), 303)
 
 
-@app.route('/gallery')
+@app.route('/gallery', methods=['GET', 'POST'])
 def gallery():
-    title = request.args.get('title', '')
+    title = ''
     images = []
 
-    raw = request.args.get('imgs')  # JSON encodé par encodeURIComponent côté client
-    if raw:
-        try:
-            # Flask a déjà décodé le %XX → essaye direct
-            images = json.loads(raw)
-        except Exception:
-            # au cas où c’était double-encodé
+    if request.method == 'POST':
+        # via <form> POST (text inputs)
+        raw = request.form.get('images')
+        title = request.form.get('title', '') or ''
+        if raw:
             try:
-                images = json.loads(urllib.parse.unquote(raw))
+                images = json.loads(raw)
             except Exception:
                 images = []
+    else:
+        # compat GET: ?images=... ou ?imgs=...
+        raw = request.args.get('images') or request.args.get('imgs')
+        title = request.args.get('title', '') or ''
+        if raw:
+            try:
+                images = json.loads(raw)
+            except Exception:
+                try:
+                    images = json.loads(urllib.parse.unquote(raw))
+                except Exception:
+                    images = []
 
-        # Normalisation {url,name}
-        norm = []
-        for it in images if isinstance(images, list) else []:
-            if isinstance(it, dict):
-                url = it.get('url') or it.get('href') or it.get('src')
-                name = it.get('name') or ''
-                if url:
-                    norm.append({'url': url, 'name': name})
-        images = norm
+    # Normalisation {url,name}
+    norm = []
+    for it in images if isinstance(images, list) else []:
+        if isinstance(it, dict):
+            url = it.get('url') or it.get('href') or it.get('src')
+            name = it.get('name') or ''
+            if url:
+                norm.append({'url': url, 'name': name})
 
-    return render_template('gallery.html', title=title, images=images)
+    return render_template('gallery.html', title=title, images=norm)
 
 @app.route("/gallery/all")
 def gallery_all():
