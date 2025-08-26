@@ -1031,7 +1031,7 @@ def _http_get(url: str, headers: Optional[Dict[str, str]] = None) -> Any:
 def _paginate_spoolman(base_url: str, endpoint: str, token: Optional[str]) -> List[Dict[str, Any]]:
     """Récupère toutes les pages d'un endpoint Spoolman.
 
-    Supporte 2 block styles courants:
+    Supporte 2 styles courants:
       - DRF-like: {count, next, previous, results}
       - Classic:  {items, total, page, page_size}
     """

@@ -252,7 +252,7 @@
     padding: 0.2rem 0.4rem;
   }
 }
-* Force block styles Select2 */
+* Force styles Select2 */
 .select2-container--default .select2-selection--multiple {
     background-color: #212529;
     border: 1px solid #495057;
