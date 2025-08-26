@@ -105,7 +105,8 @@ def ensure_schema() -> None:
                 external_filament_id TEXT,                        -- identifiant externe (ex: Spoolman filament.id)
                 reference_id         TEXT,                        -- ref libre interne/externe
                 profile_id           TEXT,                        -- ref libre interne/externe
-                swatch           INTEGER NOT NULL DEFAULT 0                         -- ex: extra.filament_id (profil matériau)
+                swatch           INTEGER NOT NULL DEFAULT 0,                        -- ref libre interne/externe
+                transparent           INTEGER NOT NULL DEFAULT 0                         -- ex: extra.filament_id (profil matériau)
             )
             """
         )
@@ -171,6 +172,7 @@ def ensure_schema() -> None:
         _maybe_add("filaments", "colors_array", "TEXT")
         _maybe_add("filaments", "multicolor_type", "TEXT DEFAULT 'monochrome'")
         _maybe_add("filaments", "swatch", "INTEGER NOT NULL DEFAULT 0")
+        _maybe_add("filaments", "transparent", "INTEGER NOT NULL DEFAULT 0")
 
         _maybe_add("bobines", "external_spool_id", "TEXT")
         _maybe_add("bobines", "foundMode", "TEXT")
@@ -207,6 +209,11 @@ def ensure_schema() -> None:
             SET multicolor_type = 'monochrome'
             WHERE multicolor_type IS NULL
                OR TRIM(multicolor_type) IN ('', 'none', 'undefined','monocouleur')
+        """)
+        cur.execute("""
+            UPDATE filaments
+            SET transparent = 0
+            WHERE transparent IS NULL
         """)
 
 def ensure_filaments_usage_schema() -> None:
@@ -323,6 +330,7 @@ _FILAMENT_ALLOWED_UPDATE = {
     "reference_id",
     "profile_id",
     "swatch",
+    "transparent",
     "created_at",
 }
 
@@ -1529,6 +1537,7 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
         f.spool_weight_g  AS f_spool_weight_g,
         f.colors_array    AS f_colors_array,
         f.swatch AS f_swatch,
+        f.transparent AS f_transparent,
         f.multicolor_type AS f_multicolor_type
       FROM bobines b
       JOIN filaments f ON f.id = b.filament_id
@@ -1599,6 +1608,7 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
                 "material": r["f_material"],
                 "profile_id": r["f_profile_id"],
                 "color_hex": r["f_color"],
+                "transparent": r["f_transparent"],
                 "weight": (float(r["f_filament_weight_g"]) if r["f_filament_weight_g"] is not None else None),
                 "spool_weight": (float(r["f_spool_weight_g"]) if r["f_spool_weight_g"] is not None else None),
                 "price": (float(r["f_price"]) if r["f_price"] is not None else None),
@@ -1653,6 +1663,7 @@ def fetch_spool_by_id(spool_id: int) -> Optional[Dict[str, Any]]:
         f.spool_weight_g  AS f_spool_weight_g,
         f.colors_array    AS f_colors_array,
         f.swatch AS f_swatch,
+        f.transparent AS f_transparent,
         f.multicolor_type AS f_multicolor_type
       FROM bobines b
       JOIN filaments f ON f.id = b.filament_id
@@ -1715,6 +1726,7 @@ def fetch_spool_by_id(spool_id: int) -> Optional[Dict[str, Any]]:
             "material": row["f_material"],
             "profile_id": row["f_profile_id"],
             "color_hex": row["f_color"],
+            "transparent": row["f_transparent"],
             "weight": (float(row["f_filament_weight_g"]) if row["f_filament_weight_g"] is not None else None),
             "spool_weight": (float(row["f_spool_weight_g"]) if row["f_spool_weight_g"] is not None else None),
             "price": (float(row["f_price"]) if row["f_price"] is not None else None),

@@ -1,114 +1,79 @@
-<!DOCTYPE html>
-<html lang="fr" data-bs-theme="dark">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="initial-scale=1.0, width=device-width">
-  <title>Galerie{% if title %} — {{ title }}{% endif %}</title>
+{% extends "base.html" %}
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% block page_styles %}
+<style>
+  /* Taille par défaut des vignettes pour CETTE page */
+  :root { --g-thumb-size: 180px; }
 
-  <style>
-    :root { --thumb-size: 180px; }
-    html, body { height: 100%; }
-    body { margin: 0; overflow-y: auto; background: var(--bs-body-bg); }
-    .gallery-header {
-      position: sticky; top: 0; z-index: 1030;
-      backdrop-filter: blur(6px);
-      background: color-mix(in oklab, var(--bs-body-bg) 85%, transparent);
-      border-bottom: 1px solid rgba(255,255,255,.08);
-    }
-    .gallery-title {
-      font-size: 1rem; margin: 0; line-height: 1;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(var(--thumb-size), 1fr));
-      gap: .75rem;
-    }
-    .thumb {
-      position: relative;
-      border-radius: .75rem;
-      overflow: hidden;
-      background: rgba(255,255,255,.03);
-      border: 1px solid rgba(255,255,255,.06);
-      aspect-ratio: 1 / 1;
-      cursor: zoom-in;
-    }
-    .thumb img {
-      width: 100%; height: 100%;
-      object-fit: cover; object-position: center;
-      display: block;
-    }
-    .thumb .name {
-      position: absolute; left: .5rem; bottom: .5rem;
-      background: rgba(0,0,0,.55); color: #fff;
-      padding: .15rem .5rem; border-radius: .35rem;
-      font-size: .8rem; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-      pointer-events: none;
-    }
-    .thumb .del {
-      position: absolute; top: .35rem; right: .35rem;
-      z-index: 2;
-    }
+  .gallery-header {
+    position: sticky; top: 0; z-index: 1030;
+    backdrop-filter: blur(6px);
+    background: color-mix(in oklab, var(--bs-body-bg) 85%, transparent);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .gallery-title { font-size: 1rem; margin: 0; line-height: 1; }
 
-    /* Lightbox */
-    .lightbox {
-      position: fixed; inset: 0; z-index: 2000; display: none;
-      background: rgba(0,0,0,.92);
-    }
-    .lightbox.open { display: grid; place-items: center; }
-    .lightbox img {
-      max-width: 92vw; max-height: 86vh; object-fit: contain; box-shadow: 0 0 0 1px rgba(255,255,255,.08);
-      border-radius: .5rem;
-    }
-    .lb-toolbar {
-      position: fixed; top: .5rem; left: .5rem; right: .5rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem;
-    }
-    .lb-actions { display: flex; gap: .5rem; }
-    .lb-index { color: #fff; opacity: .8; font-size: .9rem; }
-    .lb-nav {
-      position: fixed; inset: 0; display: flex; align-items: center; justify-content: space-between; pointer-events: none;
-    }
-    .lb-nav .btn {
-      pointer-events: all; border-radius: 999px;
-    }
-    @media (max-width: 576px) {
-      :root { --thumb-size: 140px; }
-      .lb-index { display: none; }
-    }
-  </style>
+  /* === Grille & tuiles (namespaced) === */
+  .g-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--g-thumb-size), 1fr));
+    gap: .75rem;
+  }
+  .g-thumb {
+    position: relative;
+    border-radius: .75rem;
+    overflow: hidden;
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.06);
+    aspect-ratio: 1 / 1;
+    cursor: zoom-in;
+    min-width: var(--g-thumb-size);
+    min-height: var(--g-thumb-size);
+  }
+  .g-thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center;
+    display: block;
+  }
+  .g-thumb .name {
+    position: absolute; left: .5rem; bottom: .5rem;
+    background: rgba(0,0,0,.55); color: #fff;
+    padding: .15rem .5rem; border-radius: .35rem;
+    font-size: .8rem; max-width: 90%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    pointer-events: none;
+  }
+  .g-thumb .del { position: absolute; top: .35rem; right: .35rem; z-index: 2; }
 
-  {% if images %}
-  <script>
-    // Pré-injecte côté serveur si fourni
-    window.__IMAGES__ = {{ images|tojson }};
-    {% if title %}window.__TITLE__ = {{ title|tojson }};{% endif %}
-  </script>
-  {% endif %}
-</head>
-<body>
+  /* Lightbox */
+  .lightbox { position: fixed; inset: 0; z-index: 2000; display: none; background: rgba(0,0,0,.92); }
+  .lightbox.open { display: grid; place-items: center; }
+  .lightbox img { max-width: 92vw; max-height: 86vh; object-fit: contain; box-shadow: 0 0 0 1px rgba(255,255,255,.08); border-radius: .5rem; }
+  .lb-toolbar { position: fixed; top: .5rem; left: .5rem; right: .5rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+  .lb-actions { display: flex; gap: .5rem; }
+  .lb-index { color: #fff; opacity: .8; font-size: .9rem; }
+  .lb-nav { position: fixed; inset: 0; display: flex; align-items: center; justify-content: space-between; pointer-events: none; }
+  .lb-nav .btn { pointer-events: all; border-radius: 999px; }
 
+  @media (max-width: 576px) {
+    :root { --g-thumb-size: 140px; }
+    .lb-index { display: none; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
 <header class="gallery-header py-2 px-2 px-sm-3">
   <div class="d-flex align-items-center justify-content-between gap-2">
-    <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-outline-light btn-sm" onclick="history.back()" title="Fermer (Retour)">
-        <i class="bi bi-x-lg"></i>
-      </button>
-      <h1 class="gallery-title">
-        Galerie <span id="jsTitle" class="text-body-secondary"></span>
-      </h1>
-    </div>
     <div class="text-end small text-body-secondary">
       <span id="jsCount">0</span> photo(s)
     </div>
   </div>
 </header>
 
-<main class="container py-3">
-  <div id="grid" class="grid"></div>
-</main>
+<div class="py-3">
+  <div id="grid" class="g-grid"></div>
+</div>
 
 <!-- Lightbox -->
 <div id="lightbox" class="lightbox" aria-hidden="true">
@@ -126,11 +91,13 @@
     <button id="lbNext" class="btn btn-outline-light"><i class="bi bi-chevron-right"></i></button>
   </div>
 </div>
+{% endblock %}
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}
+{{ super() }}
 <script>
 (function(){
-  // Parse source images: Jinja -> window.__IMAGES__ OU ?imgs=JSON
+  // Source images : injectées côté serveur ou via ?imgs=JSON
   function parseImagesFromQuery() {
     try {
       const p = new URLSearchParams(location.search);
@@ -146,31 +113,32 @@
   const images = (window.__IMAGES__ && Array.isArray(window.__IMAGES__)) ? window.__IMAGES__ : (parseImagesFromQuery() || []);
   const title  = (typeof window.__TITLE__ === 'string' && window.__TITLE__) ? window.__TITLE__ : (new URLSearchParams(location.search).get('title') || '');
 
-  // Hydrate header
+  // Header
   document.getElementById('jsTitle').textContent = title ? `— ${title}` : '';
   document.getElementById('jsCount').textContent = images.length;
 
-  // Build grid
+  // Grille
   const grid = document.getElementById('grid');
   images.forEach((img, i) => {
     const card = document.createElement('div');
-    card.className = 'thumb';
+    card.className = 'g-thumb';
+    card.dataset.url = img.url;
     card.innerHTML = `
-      <button type="button" class="btn btn-sm btn-outline-light del js-del-photo" title="Supprimer" data-url="${img.url}" ${/\.3mf$/i.test(img.url) ? 'style="display:none"' : ''} data-requires-write>
+      <button type="button" class="btn btn-sm btn-outline-light del js-del-photo"
+              title="Supprimer" data-url="${img.url}" ${/\\.3mf$/i.test(img.url) ? 'style="display:none"' : ''} data-requires-write>
         <i class="bi bi-x-lg"></i>
       </button>
       <img src="${img.url}" alt="${(img.name||'').replaceAll('"','&quot;')}">
       <div class="name">${img.name || ''}</div>
     `;
     card.addEventListener('click', (e) => {
-      // Ne pas ouvrir si clic sur le bouton supprimer
       if (e.target.closest('.js-del-photo')) return;
       openLightbox(i);
     });
     grid.appendChild(card);
   });
 
-  // Lightbox state
+  // Lightbox
   const lb     = document.getElementById('lightbox');
   const lbImg  = document.getElementById('lbImg');
   const lbName = document.getElementById('lbName');
@@ -189,7 +157,7 @@
     lbImg.src = it?.url || '';
     lbName.textContent = it?.name || '';
     lbIdx.textContent = String(index + 1);
-    lbDel.style.display = (it && !/\.3mf$/i.test(it.url)) ? '' : 'none';
+    lbDel.style.display = (it && !/\\.3mf$/i.test(it.url)) ? '' : 'none';
   }
 
   function openLightbox(i) {
@@ -212,73 +180,69 @@
   lbClose.addEventListener('click', closeLightbox);
 
   document.addEventListener('keydown', (e) => {
-    if (lb.classList.contains('open')) {
-      if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowLeft') prev();
-      if (e.key === 'ArrowRight') next();
-    }
+    if (!lb.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') prev();
+    if (e.key === 'ArrowRight') next();
   });
 
+  // Suppression (SweetAlert2 est déjà chargé via base.html)
   async function deleteByUrl(fileUrl) {
-  try {
-    const u = new URL(fileUrl, window.location.origin);
-    const parts = u.pathname.split('/').filter(Boolean); // ['static','uploads',entity,id,filename]
-    const upIdx = parts.indexOf('uploads');
-    if (upIdx < 0 || parts.length < upIdx + 4) return false;
+    try {
+      const u = new URL(fileUrl, window.location.origin);
+      const parts = u.pathname.split('/').filter(Boolean); // ['static','uploads',entity,id,filename]
+      const upIdx = parts.indexOf('uploads');
+      if (upIdx < 0 || parts.length < upIdx + 4) return false;
 
-    const entity   = parts[upIdx + 1];
-    const entityId = parts[upIdx + 2];
-    const filename = parts[upIdx + 3];
+      const entity   = parts[upIdx + 1];
+      const entityId = parts[upIdx + 2];
+      const filename = parts[upIdx + 3];
+      if (filename.toLowerCase().endsWith('.3mf')) return false;
 
-    if (filename.toLowerCase().endsWith('.3mf')) return false;
+      const ask = await Swal.fire({
+        title: "Supprimer la photo ?",
+        text: filename,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Oui, supprimer",
+        cancelButtonText: "Annuler",
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#6c757d"
+      });
+      if (!ask.isConfirmed) return false;
 
-    // Confirmation SweetAlert2
-    const ask = await Swal.fire({
-      title: "Supprimer la photo ?",
-      text: filename,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Oui, supprimer",
-      cancelButtonText: "Annuler",
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#6c757d"
-    });
-    if (!ask.isConfirmed) return false;
+      const fd = new FormData();
+      fd.append('filename', filename);
+      const resp = await fetch(`/delete_photo/${encodeURIComponent(entity)}/${encodeURIComponent(entityId)}`, {
+        method: 'POST', body: fd
+      });
+      if (!resp.ok) {
+        Swal.fire("Erreur", "La suppression a échoué.", "error");
+        return false;
+      }
 
-    const fd = new FormData();
-    fd.append('filename', filename);
+      // MAJ locale (tableau + DOM)
+      const idx = images.findIndex(x => x.url === fileUrl);
+      if (idx >= 0) {
+        images.splice(idx, 1);
+        const tile = grid.querySelector(\`.g-thumb[data-url="\${CSS.escape(fileUrl)}"]\`);
+        tile?.remove();
+        document.getElementById('jsCount').textContent = images.length;
+        lbTot.textContent = images.length;
+        if (images.length === 0) closeLightbox();
+        else {
+          if (index >= images.length) index = images.length - 1;
+          render();
+        }
+      }
 
-    const resp = await fetch(`/delete_photo/${encodeURIComponent(entity)}/${encodeURIComponent(entityId)}`, {
-      method: 'POST',
-      body: fd
-    });
-
-    if (!resp.ok) {
-      Swal.fire("Erreur", "La suppression a échoué.", "error");
+      Swal.fire("Supprimé", "La photo a été supprimée.", "success");
+      return true;
+    } catch (err) {
+      Swal.fire("Erreur", "Une erreur est survenue.", "error");
       return false;
     }
-
-    // MAJ locale : retire de images + UI
-    const idx = images.findIndex(x => x.url === fileUrl);
-    if (idx >= 0) {
-      images.splice(idx, 1);
-      document.querySelectorAll('.thumb')[idx]?.remove();
-      document.getElementById('jsCount').textContent = images.length;
-      lbTot.textContent = images.length;
-      if (images.length === 0) closeLightbox();
-      else {
-        if (index >= images.length) index = images.length - 1;
-        render();
-      }
-    }
-
-    Swal.fire("Supprimé", "La photo a été supprimée.", "success");
-    return true;
-  } catch (err) {
-    Swal.fire("Erreur", "Une erreur est survenue.", "error");
-    return false;
   }
-}
 
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('.js-del-photo');
@@ -294,5 +258,4 @@
   });
 })();
 </script>
-</body>
-</html>
+{% endblock %}
