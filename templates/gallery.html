@@ -131,15 +131,18 @@
     } catch { return null; }
   }
 
-  const images = (window.__IMAGES__ && Array.isArray(window.__IMAGES__)) ? window.__IMAGES__ : (parseImagesFromQuery() || []);
-  const title  = (typeof window.__TITLE__ === 'string' && window.__TITLE__) ? window.__TITLE__ : (new URLSearchParams(location.search).get('title') || '');
+  const titleEl = document.getElementById('jsTitle');
+if (titleEl) titleEl.textContent = title ? `— ${title}` : '';
+
+const countEl = document.getElementById('jsCount');
+if (countEl) countEl.textContent = images.length;
 
   // Hydrate header
   document.getElementById('jsTitle').textContent = title ? `— ${title}` : '';
   document.getElementById('jsCount').textContent = images.length;
 
   // Build grid
-  const grid = document.getElementById('g-grid');
+  const grid = document.getElementById('grid');
   images.forEach((img, i) => {
     const card = document.createElement('div');
     card.className = 'g-thumb';
