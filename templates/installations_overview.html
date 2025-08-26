@@ -156,6 +156,7 @@
         })
         .catch(()=>{
           img.src = FALLBACK_SVG;
+          th.src = FALLBACK_THUMB;
           tile.querySelector('.printName').textContent = 'Erreur';
           tile.querySelector('.estimated_end').textContent = '—';
           pbar.style.width = '0%';
