@@ -2873,4 +2873,10 @@ def remove_filament_route(filament_id):
         params["focus_id"] = str(filament_id)
     return redirect(url_for("filaments_catalog", **params), 303)
 
+@app.route('/gallery')
+def gallery():
+    # Optionnel: tu peux décoder ici ?imgs=… si tu préfères côté serveur
+    title = request.args.get('title', '')
+    return render_template('gallery.html', title=title)
+
 app.register_blueprint(auth_bp)
