@@ -2,94 +2,107 @@
 
 {% block page_styles %}
 <style>
-    :root { --thumb-size: 180px; }
-    html, body { height: 100%; }
-    body { margin: 0; overflow-y: auto; background: var(--bs-body-bg); }
-    .gallery-header {
-      position: sticky; top: 0; z-index: 1030;
-      backdrop-filter: blur(6px);
-      background: color-mix(in oklab, var(--bs-body-bg) 85%, transparent);
-      border-bottom: 1px solid rgba(255,255,255,.08);
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(var(--thumb-size), 1fr));
-      gap: .75rem;
-    }
-    .thumb {
-      position: relative;
-      border-radius: .75rem;
-      overflow: hidden;
-      background: rgba(255,255,255,.03);
-      border: 1px solid rgba(255,255,255,.06);
-      aspect-ratio: 1 / 1;
-      cursor: zoom-in;
-    }
-    .thumb img {
-      width: 100%; height: 100%;
-      object-fit: cover; object-position: center; display: block;
-    }
-    .thumb .name {
-      position: absolute; left: .5rem; bottom: .5rem;
-      background: rgba(0,0,0,.55); color: #fff;
-      padding: .15rem .5rem; border-radius: .35rem;
-      font-size: .8rem; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-      pointer-events: none;
-    }
-    .thumb .del {
-      position: absolute; top: .35rem; right: .35rem; z-index: 2;
-    }
-    .group-title {
-      grid-column: 1 / -1;
-      margin-top: 1.25rem;
-      font-size: .9rem;
-      color: var(--bs-secondary-color);
-      display: flex; align-items: center; gap: .5rem;
-    }
-    .group-title .dot {
-      width: .5rem; height: .5rem; border-radius: 50%;
-      background: var(--bs-secondary-color);
-      opacity: .6;
-    }
+  :root { --thumb-size: 180px; }
+  body.gallery-page { overflow-y: auto; background: var(--bs-body-bg); }
 
-    /* Lightbox */
-    .lightbox { position: fixed; inset: 0; z-index: 2000; display: none; background: rgba(0,0,0,.92); }
-    .lightbox.open { display: grid; place-items: center; }
-    .lightbox img { max-width: 92vw; max-height: 86vh; object-fit: contain; box-shadow: 0 0 0 1px rgba(255,255,255,.08); border-radius: .5rem; }
-    .lb-toolbar { position: fixed; top: .5rem; left: .5rem; right: .5rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-    .lb-actions { display: flex; gap: .5rem; }
-    .lb-index { color: #fff; opacity: .8; font-size: .9rem; }
-    .lb-nav { position: fixed; inset: 0; display: flex; align-items: center; justify-content: space-between; pointer-events: none; }
-    .lb-nav .btn { pointer-events: all; border-radius: 999px; }
+  .gallery-header {
+    position: sticky; top: 0; z-index: 1030;
+    backdrop-filter: blur(6px);
+    background: color-mix(in oklab, var(--bs-body-bg) 85%, transparent);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
 
-    @media (max-width: 576px) {
-      :root { --thumb-size: 140px; }
-      .lb-index { display: none; }
-    }
-  </style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--thumb-size), 1fr));
+    gap: .75rem;
+  }
+
+  .thumb {
+    position: relative;
+    border-radius: .75rem;
+    overflow: hidden;
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.06);
+    aspect-ratio: 1 / 1;
+    cursor: zoom-in;
+    min-width: var(--thumb-size);
+    min-height: var(--thumb-size);
+  }
+
+  .thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center;
+    display: block;
+  }
+
+  .thumb .name {
+    position: absolute; left: .5rem; bottom: .5rem;
+    background: rgba(0,0,0,.55); color: #fff;
+    padding: .15rem .5rem; border-radius: .35rem;
+    font-size: .8rem; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .thumb .del {
+    position: absolute; top: .35rem; right: .35rem; z-index: 2;
+  }
+
+  .group-title {
+    grid-column: 1 / -1;
+    margin-top: 1.25rem;
+    font-size: .9rem;
+    color: var(--bs-secondary-color);
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .group-title .dot {
+    width: .5rem; height: .5rem; border-radius: 50%;
+    background: var(--bs-secondary-color);
+    opacity: .6;
+  }
+
+  /* Lightbox */
+  .lightbox { position: fixed; inset: 0; z-index: 2000; display: none; background: rgba(0,0,0,.92); }
+  .lightbox.open { display: grid; place-items: center; }
+  .lightbox img { max-width: 92vw; max-height: 86vh; object-fit: contain; box-shadow: 0 0 0 1px rgba(255,255,255,.08); border-radius: .5rem; }
+  .lb-toolbar { position: fixed; top: .5rem; left: .5rem; right: .5rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+  .lb-actions { display: flex; gap: .5rem; }
+  .lb-index { color: #fff; opacity: .8; font-size: .9rem; }
+  .lb-nav { position: fixed; inset: 0; display: flex; align-items: center; justify-content: space-between; pointer-events: none; }
+  .lb-nav .btn { pointer-events: all; border-radius: 999px; }
+
+  @media (max-width: 576px) {
+    :root { --thumb-size: 140px; }
+    .lb-index { display: none; }
+  }
+</style>
 {% endblock %}
-{% block content %}
 
-<header class="gallery-header py-2 px-2 px-sm-3">
-  <div class="d-flex align-items-center justify-content-between gap-2">
-    <div class="d-flex align-items-center gap-2">
-      <a href="{{ url_for('home') }}" class="btn btn-outline-light btn-sm" title="Retour">
-        <i class="bi bi-arrow-left"></i>
-      </a>
-      <h1 class="h6 mb-0">Galerie — <span class="text-body-secondary">Toutes les photos (Photo-*)</span></h1>
-    </div>
-    <div class="d-flex align-items-center gap-2">
-      <div class="form-check form-switch">
-        <input class="form-check-input" type="checkbox" id="toggleGroup">
-        <label class="form-check-label small" for="toggleGroup">Regrouper par item</label>
+{% block content %}
+<main class="gallery-page">
+
+  <header class="gallery-header py-2 px-2 px-sm-3">
+    <div class="d-flex align-items-center justify-content-between gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <a href="{{ url_for('home') }}" class="btn btn-outline-light btn-sm" title="Retour">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <h1 class="h6 mb-0">Galerie — <span class="text-body-secondary">Toutes les photos (Photo-*)</span></h1>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="toggleGroup">
+          <label class="form-check-label small" for="toggleGroup">Regrouper par item</label>
+        </div>
       </div>
     </div>
-  </div>
-</header>
+  </header>
 
-<main class="container py-3">
-  <div id="grid" class="grid"></div>
-  <div id="sentinel" class="py-4 text-center text-secondary">Chargement…</div>
+  <div class="container py-3">
+    <div id="grid" class="grid"></div>
+    <div id="sentinel" class="py-4 text-center text-secondary">Chargement…</div>
+  </div>
+
 </main>
 
 <!-- Lightbox -->
