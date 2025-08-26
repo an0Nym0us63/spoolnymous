@@ -2908,7 +2908,7 @@ def api_gallery_photos():
 
     items = list_all_photos(prefix=prefix)
     total = len(items)
-    pages = max(1, ceil(total / per)) if total else 1
+    pages = max(1, math.ceil(total / per)) if total else 1
 
     start = (page - 1) * per
     end = start + per
