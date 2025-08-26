@@ -420,7 +420,7 @@ def _normalize_colors_array(colors: list[str] | None):
     norm_sorted = sorted(set(norm))  # ordre ignoré pour les doublons
     return norm_sorted[0], ",".join(norm_sorted)
 
-def _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv, exclude_id=None) -> bool:
+def _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv, transparent, exclude_id=None) -> bool:
     q = """
         SELECT id
           FROM filaments
@@ -428,6 +428,7 @@ def _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_c
            AND lower(coalesce(material,''))       = lower(?)
            AND lower(coalesce(multicolor_type,''))= lower(?)
            AND lower(coalesce(colors_array,''))   = lower(?)
+           AND transparent   = ?
     """
     params = [
         (manufacturer or "").strip(),
@@ -455,9 +456,10 @@ def ui_create_filament(payload: dict) -> int:
     material = (payload.get("material") or "").strip()
     multicolor_type = (payload.get("multicolor_type") or "monochrome").strip().lower()
     colors = payload.get("colors") or []
+    transparent = (payload.get("transparent") or 0)
 
     color, colors_csv = _normalize_colors_array(colors)
-    if _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv):
+    if _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv,transparent):
         raise ValueError("DUPLICATE_FILAMENT")
 
     filament_weight_g = int(payload.get("filament_weight_g") or 1000)
@@ -490,9 +492,10 @@ def ui_update_filament(filament_id: int, payload: dict) -> None:
     material = (payload.get("material") or "").strip()
     multicolor_type = (payload.get("multicolor_type") or "monochrome").strip().lower()
     colors = payload.get("colors") or []
+    transparent = payload.get("transparent") or 0
 
     color, colors_csv = _normalize_colors_array(colors)
-    if _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv, exclude_id=filament_id):
+    if _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv,transparent, exclude_id=filament_id):
         raise ValueError("DUPLICATE_FILAMENT")
 
     filament_weight_g = int(payload.get("filament_weight_g") or 1000)

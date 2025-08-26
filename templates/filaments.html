@@ -715,7 +715,7 @@ if (importBtn) {
         addMultiColor('#ffffff');
       }
     }
-
+	document.getElementById('transparent').value = (filament?.transparent ?? 0);
     // poids
     document.getElementById('filament_weight_g').value = filament?.filament_weight_g ?? 1000;
     document.getElementById('spool_weight_g').value = filament?.spool_weight_g ?? 200;
@@ -741,6 +741,7 @@ if (importBtn) {
       spool_weight_g: document.getElementById('spool_weight_g').value,
       profile_id: document.getElementById('profile_id').value || null,
 	  price: document.getElementById('price').value,
+	  transparent: document.getElementById('transparent').value,
       comment: document.getElementById('comment').value || null,
     };
 
@@ -967,6 +968,7 @@ if (materialTS) {
     document.getElementById('filament_weight_g').value = f.weight ?? 1000;
     document.getElementById('spool_weight_g').value   = f.spool_weight ?? 200;
     document.getElementById('price').value   = f.price ?? 20;
+    document.getElementById('transparent').value   = f.translucent ?? 0;
 
     // optionnel: profile_id/comment si tu veux tracer l’origine
     // document.getElementById('profile_id').value = document.getElementById('profile_id').value || '';
