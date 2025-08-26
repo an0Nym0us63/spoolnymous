@@ -1873,12 +1873,10 @@ def list_all_photos(prefix="Photo-"):
     de toutes les photos dont le nom commence par `prefix` (par défaut Photo-).
     Retourne des dicts: { entity, entity_id, url, name, mtime }
     """
-    app = current_app._get_current_object()
-    static_folder = Path(app.static_folder)
+    base_dir = Path(__file__).resolve().parent
     out = []
-
     for entity in ("prints", "groups"):
-        base = static_folder / "uploads" / entity
+        base = base_dir / "static" / "uploads" / entity
         if not base.exists():
             continue
         for item_dir in base.iterdir():
