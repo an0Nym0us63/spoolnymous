@@ -192,7 +192,12 @@
   <div class="carousel-inner rounded">
 
     {# Slide 0 : miniature (PNG) comme avant #}
-    <div class="carousel-item active">
+    <div class="carousel-item active"><button type="button"
+          class="btn btn-sm btn-outline-light carousel-gallery-btn"
+          title="Ouvrir la galerie"
+          onclick="openGalleryFromEntry({{ print.images|tojson }}, '{{ print.file_name or ('Print #' ~ print.id) }}')">
+    🖼️
+  </button>
       <div class="preview-frame d-flex align-items-center justify-content-center">
         {% if print.image_file %}
           <img
@@ -214,11 +219,10 @@
     {% for img in print.images or [] %}
       <div class="carousel-item" data-name="{{ img.name }}">
 	  <button type="button"
-          class="btn btn-sm btn-outline-light carousel-delete-btn js-del-photo"
-          title="Supprimer cette photo"
-          data-url="{{ img.url }}"
-          {% if '.3mf' in img.url|lower %}style="display:none"{% endif %} data-requires-write>
-    <i class="bi bi-x-lg"></i>
+          class="btn btn-sm btn-outline-light carousel-gallery-btn"
+          title="Ouvrir la galerie"
+          onclick="openGalleryFromEntry({{ print.images|tojson }}, '{{ print.file_name or ('Print #' ~ print.id) }}')">
+    🖼️
   </button>
         <div class="preview-frame d-flex align-items-center justify-content-center">
           <img

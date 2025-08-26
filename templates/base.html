@@ -423,6 +423,17 @@ document.addEventListener('click', async (e) => {
     console.error('Suppression: erreur', err);
   }
 });
+function openGalleryFromEntry(images, title) {
+  try {
+    const payload = encodeURIComponent(JSON.stringify(
+      images.map(x => ({ url: x.url, name: x.name || '' }))
+    ));
+    const t = encodeURIComponent(title || '');
+    window.location.href = `/gallery?imgs=${payload}&title=${t}`;
+  } catch (e) {
+    console.error("Erreur openGalleryFromEntry", e);
+  }
+}
 </script>
 </body>
 </html>
