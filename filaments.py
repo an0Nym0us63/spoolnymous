@@ -518,7 +518,7 @@ def ui_update_filament(filament_id: int, payload: dict) -> None:
         """, (now, name, manufacturer, material,
               multicolor_type, color, colors_csv,
               filament_weight_g, spool_weight_g, profile_id, comment,
-              price,transparent filament_id))
+              price,transparent ,filament_id))
 
 def _validate_non_negative(name: str, value: Optional[float]) -> None:
     if value is None:
