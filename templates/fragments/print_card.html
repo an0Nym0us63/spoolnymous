@@ -192,12 +192,7 @@
   <div class="carousel-inner rounded">
 
     {# Slide 0 : miniature (PNG) comme avant #}
-    <div class="carousel-item active"><button type="button"
-          class="btn btn-sm btn-outline-light carousel-gallery-btn"
-          title="Ouvrir la galerie"
-          onclick="openGalleryFromEntry({{ print.images|tojson }}, '{{ print.file_name or ('Print #' ~ print.id) }}')">
-    🖼️
-  </button>
+    <div class="carousel-item active">
       <div class="preview-frame d-flex align-items-center justify-content-center">
         {% if print.image_file %}
           <img
@@ -218,12 +213,6 @@
     {# Slides suivantes : images disque (si présentes) #}
     {% for img in print.images or [] %}
       <div class="carousel-item" data-name="{{ img.name }}">
-	  <button type="button"
-          class="btn btn-sm btn-outline-light carousel-gallery-btn"
-          title="Ouvrir la galerie"
-          onclick="openGalleryFromEntry({{ print.images|tojson }}, '{{ print.file_name or ('Print #' ~ print.id) }}')">
-    🖼️
-  </button>
         <div class="preview-frame d-flex align-items-center justify-content-center">
           <img
             src="{{ img.url }}"
@@ -234,6 +223,10 @@
         </div>
 <div class="text-center mt-1">
   <small class="caption-badge">{{ img.name }}</small>
+  <button type="button" class="btn btn-outline-light btn-sm"
+            onclick="openGalleryFromEntry({{ print.images|tojson }}, '{{ print.file_name or ('Print #' ~ print.id) }}')">
+      🖼 Galerie
+    </button>
 </div>
       </div>
     {% endfor %}
