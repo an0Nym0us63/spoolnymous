@@ -456,7 +456,7 @@
           </div>
 		<div class="form-check mt-3">
   <input class="form-check-input" type="checkbox" id="transparent" name="transparent" value="1">
-  <label class="form-check-label"> Transparent</label>
+  <label class="form-check-label"> Translucide</label>
 </div>
           <div class="row g-3 mt-3">
             <div class="col-md-6">
@@ -787,8 +787,8 @@ if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
   const importModal = importModalEl ? bootstrap.Modal.getOrCreateInstance(importModalEl) : null;
 
   const selManuEl = document.getElementById('select-manufacturer');
-const selMatEl  = document.getElementById('select-material');
-const selNameEl = document.getElementById('select-name');
+  const selMatEl  = document.getElementById('select-material');
+  const selNameEl = document.getElementById('select-name');
   const btnApply  = document.getElementById('btn-import-apply');
   const previewEl = document.getElementById('import-preview');
 
@@ -823,36 +823,41 @@ const selNameEl = document.getElementById('select-name');
     }
   }
 
-  function ensureTomSelect(id, options){
-  const el = document.getElementById(id);
-  if (window.TomSelect){
-    if (el.tomselect) {
-      // Déjà initialisé → on recharge juste les options
-      el.tomselect.clearOptions();
-      el.tomselect.addOptions(options);
-      return el.tomselect;
+  // *** FIX: accepte id (string) ou élément (HTMLElement), null-safe, et évite double init ***
+  function ensureTomSelect(elOrId, options){
+    const el = (typeof elOrId === 'string') ? document.getElementById(elOrId) : elOrId;
+    if (!el) {
+      console.warn('[ensureTomSelect] element introuvable pour', elOrId);
+      return null;
     }
-    // Première initialisation
-    return new TomSelect(el, {
-      create: true,
-      persist: false,
-      maxItems: 1,
-      searchField: ['text', 'value'],
-      sortField: {field: 'text', direction: 'asc'},
-      options
-    });
-  } else {
-    // Fallback sans TomSelect
-    el.innerHTML = '';
-    options.forEach(o=>{
-      const opt = document.createElement('option');
-      opt.value = o.value;
-      opt.textContent = o.text;
-      el.appendChild(opt);
-    });
-    return null;
+    if (window.TomSelect){
+      if (el.tomselect) {
+        el.tomselect.clearOptions();
+        el.tomselect.addOptions(options || []);
+        return el.tomselect;
+      }
+      return new TomSelect(el, {
+        create: false,
+        persist: false,
+        maxItems: 1,
+        searchField: ['text', 'value'],
+        sortField: {field: 'text', direction: 'asc'},
+        options: options || [],
+        render: {
+          option: function(data, escape) { return `<div>${escape(data.text)}</div>`; }
+        }
+      });
+    } else {
+      el.innerHTML = '';
+      (options || []).forEach(o=>{
+        const opt = document.createElement('option');
+        opt.value = o.value;
+        opt.textContent = o.text;
+        el.appendChild(opt);
+      });
+      return null;
+    }
   }
-}
 
   function toOptions(values){
     return Array.from(new Set(values)).sort((a,b)=>(a||'').localeCompare(b||'')).map(v => ({value: v, text: v || '—'}));
