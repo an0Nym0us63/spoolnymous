@@ -257,7 +257,7 @@
 {% if print.images and (print.images|length) > 0 %}
   <div class="text-center mt-2">
     <button type="button" class="btn btn-outline-light btn-sm"
-         onclick="openGalleryFromEntry({{ (print.images or [])|tojson }}, {{ (print.file_name or ('Print #' ~ print.id))|tojson }})">
+         onclick='openGalleryFromEntry({{ (print.images or [])|tojson }}, {{ (print.file_name or ("Print #" ~ print.id))|tojson }})'>
       🖼 Galerie
     </button>
   </div>
