@@ -7,18 +7,30 @@
   <h1>Vue des installations</h1>
   <div class="grid" id="tiles">
     <!-- Tuile locale -->
-    <div class="tile" data-name="Local" data-snapshot="{{ local_snapshot_url }}" data-status="{{ local_status_url }}">
+    <div class="tile" data-name="Installation locale"
+         data-snapshot="{{ url_for('camera_snapshot') }}"
+         data-status="{{ url_for('printer_status') }}">
       <h2>Installation locale</h2>
-      <img src="{{ local_snapshot_url }}" alt="Snapshot local">
-      <div class="status">Chargement...</div>
+      <img src="{{ url_for('camera_snapshot') }}" alt="Snapshot local">
+      <div class="status">
+        <strong>Nom impression :</strong> <span class="printName">...</span><br>
+        <strong>Fin estimée :</strong> <span class="estimated_end">...</span><br>
+        <strong>Progression :</strong> <span class="progress">...</span>
+      </div>
     </div>
 
     <!-- Tuiles distantes -->
     {% for inst in remote_installations %}
-    <div class="tile" data-name="{{ inst.name }}" data-snapshot="{{ inst.snapshot_url }}" data-status="{{ inst.status_url }}">
+    <div class="tile" data-name="{{ inst.name }}"
+         data-snapshot="{{ inst.snapshot_url }}"
+         data-status="{{ inst.status_url }}">
       <h2>{{ inst.name }}</h2>
       <img src="{{ inst.snapshot_url }}" alt="Snapshot {{ inst.name }}">
-      <div class="status">Chargement...</div>
+      <div class="status">
+        <strong>Nom impression :</strong> <span class="printName">...</span><br>
+        <strong>Fin estimée :</strong> <span class="estimated_end">...</span><br>
+        <strong>Progression :</strong> <span class="progress">...</span>
+      </div>
     </div>
     {% endfor %}
   </div>
@@ -53,10 +65,9 @@
   }
   .status {
     padding: 0.5em;
-    font-family: monospace;
-    white-space: pre-wrap;
+    font-family: sans-serif;
     font-size: 0.9em;
-    background: #f0f0f0;
+    background: #f9f9f9;
     border-top: 1px solid #ccc;
   }
 </style>
@@ -69,17 +80,22 @@
       const snapshot = tile.dataset.snapshot;
       const status = tile.dataset.status;
       const img = tile.querySelector('img');
-      const statusBox = tile.querySelector('.status');
 
-      img.src = snapshot + "&_=" + Date.now();
+      // Snapshot (forcé sans cache)
+      img.src = snapshot + (snapshot.includes("?") ? "&" : "?") + "_=" + Date.now();
 
+      // Status
       fetch(status)
         .then(resp => resp.json())
         .then(data => {
-          statusBox.textContent = JSON.stringify(data, null, 2);
+          tile.querySelector(".printName").textContent = data.printName || "—";
+          tile.querySelector(".estimated_end").textContent = data.estimated_end || "—";
+          tile.querySelector(".progress").textContent = (data.progress !== undefined ? data.progress + "%" : "—");
         })
         .catch(err => {
-          statusBox.textContent = "Erreur de statut";
+          tile.querySelector(".printName").textContent = "Erreur";
+          tile.querySelector(".estimated_end").textContent = "Erreur";
+          tile.querySelector(".progress").textContent = "Erreur";
         });
     });
   }

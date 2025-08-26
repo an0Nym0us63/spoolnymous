@@ -2954,7 +2954,7 @@ def public_snapshot():
     token = request.args.get("token", "")
     if not validate_guest_token(token):
         return abort(403)
-    return serve_snapshot()  # réutilise la route existante
+    return camera_snapshot()  # réutilise la route existante
 
 @app.route("/api/public/status", methods=["GET"])
 def public_status():
