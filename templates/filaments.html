@@ -777,14 +777,16 @@ if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
     }
   }
 
-  document.addEventListener('DOMContentLoaded', initModal);
-})();
-
+  <script>
+document.addEventListener('DOMContentLoaded', function () {
+/* ------------------------------------------------------------------ */
+/* --------------------  BLOC IMPORT  (REMPLACER)  ------------------- */
+/* ------------------------------------------------------------------ */
 (function(){
   // ---------- Éléments Import ----------
   const btnOpenImport = document.getElementById('btn-open-import-modal');
   const importModalEl = document.getElementById('importFilamentModal');
-  const importModal = importModalEl ? bootstrap.Modal.getOrCreateInstance(importModalEl) : null;
+  const importModal   = importModalEl ? bootstrap.Modal.getOrCreateInstance(importModalEl) : null;
 
   const selManuEl = document.getElementById('select-manufacturer');
   const selMatEl  = document.getElementById('select-material');
@@ -823,17 +825,16 @@ if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
     }
   }
 
-  // *** FIX: accepte id (string) ou élément (HTMLElement), null-safe, et évite double init ***
+  // ---- Helpers TomSelect : id/élément accepté, null-safe, pas de double init
   function ensureTomSelect(elOrId, options){
     const el = (typeof elOrId === 'string') ? document.getElementById(elOrId) : elOrId;
-    if (!el) {
-      console.warn('[ensureTomSelect] element introuvable pour', elOrId);
-      return null;
-    }
+    if (!el) { console.warn('[ensureTomSelect] element introuvable pour', elOrId); return null; }
     if (window.TomSelect){
       if (el.tomselect) {
+        // déjà initialisé -> on met à jour les options
         el.tomselect.clearOptions();
         el.tomselect.addOptions(options || []);
+        el.tomselect.refreshOptions(false);
         return el.tomselect;
       }
       return new TomSelect(el, {
@@ -858,27 +859,40 @@ if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
       return null;
     }
   }
-
+  function tsSetOptions(ts, options){
+    if (!ts) return;
+    ts.clear();           // efface la valeur sélectionnée
+    ts.clearOptions();    // efface les options
+    ts.addOptions(options || []);
+    ts.refreshOptions(false);
+  }
+  function tsSetEnabled(ts, enabled){
+    if (!ts) return;
+    if (enabled) ts.enable(); else ts.disable();
+  }
   function toOptions(values){
-    return Array.from(new Set(values)).sort((a,b)=>(a||'').localeCompare(b||'')).map(v => ({value: v, text: v || '—'}));
+    return Array.from(new Set(values))
+      .sort((a,b)=>(a||'').localeCompare(b||''))
+      .map(v => ({value: v, text: v || '—'}));
   }
 
   async function openImportModal(){
     await loadCatalog();
 
-    // manufacturer
-    importManuTS = ensureTomSelect(selManuEl, toOptions(CATALOG.map(f=>f.manufacturer||'')));
+    // 1) Manufacturer
+    const manuOptions = toOptions(CATALOG.map(f=>f.manufacturer||''));
+    importManuTS = ensureTomSelect(selManuEl, manuOptions);
     if (importManuTS) importManuTS.clear(); else selManuEl.value = '';
 
-    // material (dépend du manu)
-    selMatEl.disabled = true;
+    // 2) Material (dépend du manufacturer) -> vide + disabled
     importMatTS = ensureTomSelect(selMatEl, []);
-    if (importMatTS) importMatTS.clear(); else selMatEl.value = '';
+    tsSetOptions(importMatTS, []);
+    tsSetEnabled(importMatTS, false);
 
-    // name (dépend du couple manu/material)
-    selNameEl.disabled = true;
+    // 3) Name (dépend de manufacturer + material) -> vide + disabled
     importNameTS = ensureTomSelect(selNameEl, []);
-    if (importNameTS) importNameTS.clear(); else selNameEl.value = '';
+    tsSetOptions(importNameTS, []);
+    tsSetEnabled(importNameTS, false);
 
     btnApply.disabled = true;
     previewEl.classList.add('d-none'); previewEl.textContent = '';
@@ -889,13 +903,15 @@ if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
   function onManufacturerChanged(){
     const manu = importManuTS ? importManuTS.getValue() : selManuEl.value;
     const materials = idx.manu.has(manu) ? Array.from(idx.manu.get(manu)) : [];
-    selMatEl.disabled = (materials.length === 0);
-    importMatTS = ensureTomSelect(selMatEl, toOptions(materials));
-    if (importMatTS) importMatTS.clear(); else selMatEl.value = '';
-    // reset names
-    selNameEl.disabled = true;
-    importNameTS = ensureTomSelect(selNameEl, []);
-    if (importNameTS) importNameTS.clear(); else selNameEl.value = '';
+
+    // Met à jour le 2e select
+    tsSetOptions(importMatTS, toOptions(materials));
+    tsSetEnabled(importMatTS, materials.length > 0);
+
+    // Reset du 3e select
+    tsSetOptions(importNameTS, []);
+    tsSetEnabled(importNameTS, false);
+
     btnApply.disabled = true;
     previewEl.classList.add('d-none');
   }
@@ -903,10 +919,15 @@ if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
   function onMaterialChanged(){
     const manu = importManuTS ? importManuTS.getValue() : selManuEl.value;
     const mat  = importMatTS  ? importMatTS.getValue()  : selMatEl.value;
-    const names = CATALOG.filter(f => (f.manufacturer||'')===manu && (f.material||'')===mat).map(f => f.name || '');
-    selNameEl.disabled = (names.length === 0);
-    importNameTS = ensureTomSelect(selNameEl, toOptions(names));
-    if (importNameTS) importNameTS.clear(); else selNameEl.value = '';
+
+    const names = CATALOG
+      .filter(f => (f.manufacturer||'')===manu && (f.material||'')===mat)
+      .map(f => f.name || '');
+
+    // Met à jour le 3e select
+    tsSetOptions(importNameTS, toOptions(names));
+    tsSetEnabled(importNameTS, names.length > 0);
+
     btnApply.disabled = true;
     previewEl.classList.add('d-none');
   }
@@ -937,26 +958,21 @@ if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
     const f = idx.key.get(`${manu}|||${mat}|||${name}`);
     if (!f) return;
 
-    // Titre/état de la modale principale est déjà gérée par openFilamentModal().
-    // On remplit les champs existants identifiés dans ton code.
     document.getElementById('name').value = f.name || '';
 
-   
-    if (manufacturerTS) {
-  manufacturerTS.clear();
-  if (f.manufacturer) manufacturerTS.addItem(f.manufacturer, true);
-}
-if (materialTS) {
-  materialTS.clear();
-  if (f.material) materialTS.addItem(f.material, true);
-}
-    document.getElementById('comment').value     = 'Importé depuis catalogue';
+    if (window.manufacturerTS) {
+      window.manufacturerTS.clear();
+      if (f.manufacturer) window.manufacturerTS.addItem(f.manufacturer, true);
+    }
+    if (window.materialTS) {
+      window.materialTS.clear();
+      if (f.material) window.materialTS.addItem(f.material, true);
+    }
+    document.getElementById('comment').value = 'Importé depuis catalogue';
 
-
-    // multicolor + couleurs (respecte tes valeurs 'monochrome' | 'coaxial' | 'gradient')
     const t = Array.isArray(f.color_hexes) && f.color_hexes.length ? (f.multi_color_direction || 'coaxial') : 'monochrome';
-    document.getElementById('multicolor_type').value = ['monochrome','coaxial','gradient'].includes(String(t).toLowerCase()) ? String(t).toLowerCase() : 'monochrome';
-    // déclenche l'affichage mono/multi via ta fonction existante
+    document.getElementById('multicolor_type').value =
+      ['monochrome','coaxial','gradient'].includes(String(t).toLowerCase()) ? String(t).toLowerCase() : 'monochrome';
     if (typeof window.onFilamentTypeChange === 'function') window.onFilamentTypeChange();
 
     if (document.getElementById('multicolor_type').value === 'monochrome'){
@@ -967,30 +983,22 @@ if (materialTS) {
       const wrap = document.getElementById('multiColors');
       wrap.innerHTML = '';
       const arr = (Array.isArray(f.color_hexes) ? f.color_hexes : []).map(h => normalizeHex(h) || '#ffffff');
-      if (arr.length){
-        arr.forEach(h => addMultiColor(h));
-      } else {
-        addMultiColor('#ffffff');
-      }
+      if (arr.length){ arr.forEach(h => addMultiColor(h)); } else { addMultiColor('#ffffff'); }
     }
 
-    // poids / tare / diamètre
     document.getElementById('filament_weight_g').value = f.weight ?? 1000;
     document.getElementById('spool_weight_g').value   = f.spool_weight ?? 200;
-    document.getElementById('price').value   = f.price ?? 20;
-    document.getElementById('transparent').checked = f.translucent == 1;
-
-    // optionnel: profile_id/comment si tu veux tracer l’origine
-    // document.getElementById('profile_id').value = document.getElementById('profile_id').value || '';
-    // document.getElementById('comment').value = (document.getElementById('comment').value || '') + `\nImport catalogue: ${f.id}`;
+    document.getElementById('price').value            = f.price ?? 20;
+    document.getElementById('transparent').checked    = f.translucent == 1;
 
     importModal.hide();
   }
 
-  // ---------- Bindings ----------
+  // ---------- Bindings (une seule fois) ----------
   if (btnOpenImport && importModal){
     btnOpenImport.addEventListener('click', openImportModal);
   }
+  // On écoute le <select> natif : TomSelect relaye bien l’évènement 'change'
   selManuEl.addEventListener('change', onManufacturerChanged);
   selMatEl.addEventListener('change', onMaterialChanged);
   selNameEl.addEventListener('change', onNameChanged);
@@ -998,6 +1006,7 @@ if (materialTS) {
 })();
 });
 </script>
+
 {% endblock %}
 
 <div style="height:4rem;"></div>
