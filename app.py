@@ -2910,13 +2910,13 @@ def gallery():
             if url:
                 norm.append({'url': url, 'name': name})
 
-    return render_template('gallery.html', title=title, images=norm)
+    return render_template('gallery.html', title=title, images=norm,page_title="Gallerie")
 
 @app.route("/gallery/all")
 def gallery_all():
     # Page “galerie globale” – se charge en lazy depuis l’API JSON
     title = "Toutes les photos"
-    return render_template("gallery_all.html", title=title)
+    return render_template("gallery_all.html", title=title,page_title="Gallerie")
 
 @app.route("/api/gallery/photos")
 def api_gallery_photos():
