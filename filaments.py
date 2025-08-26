@@ -476,7 +476,7 @@ def ui_create_filament(payload: dict) -> int:
             (created_at, updated_at, name, manufacturer, material,
              multicolor_type, color, colors_array,
              filament_weight_g, spool_weight_g, profile_id, comment, price, transparent)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (now, now, name, manufacturer, material,
               multicolor_type, color, colors_csv,
               filament_weight_g, spool_weight_g, profile_id, comment, price, transparent))
