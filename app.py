@@ -2972,7 +2972,7 @@ def local_overview():
     status = status_resp.get_json()
 
     return jsonify({
-        "snapshot_url": url_for("camera_snapshot", _external=True),
+        "snapshot_url": url_for("camera_snapshot"),
         "printName": status.get("printName"),
         "estimated_end": status.get("estimated_end"),
         "progress": status.get("progress")
