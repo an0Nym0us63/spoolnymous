@@ -1887,8 +1887,9 @@ def _item_title(entity: str, entity_id: int) -> str:
     logger.debug(entity + ' ' + str(entity_id))
     title = None
     try:
-        db = db_config
-        cur = db.cursor()
+        conn = sqlite3.connect(db_config["db_path"])
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
         if entity == "prints":
             # essaie colonnes probables
             cur.execute("""
