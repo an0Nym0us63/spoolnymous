@@ -424,46 +424,100 @@ document.addEventListener('click', async (e) => {
     console.error('Suppression: erreur', err);
   }
 });
-  // Ouvrir les dropdowns au survol pour les périphériques "desktop" (souris)
-  (function enableHoverDropdowns() {
-    const isHoverable = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+(function setupHoverDropdowns(){
+  const DELAY_HIDE = 180;
+  let cleanup = null;
 
-    if (!isHoverable) return; // Sur mobile/tactile, on garde le comportement au clic
+  function isHoverablePointer(){
+    return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  }
+  function navbarIsExpanded(){
+    // Si le toggler est *non visible*, on est en mode étendu (≥ lg avec .navbar-expand-lg)
+    const toggler = document.querySelector('.navbar .navbar-toggler');
+    if (!toggler) return true;
+    return window.getComputedStyle(toggler).display === 'none';
+  }
 
-    // Petite temporisation pour éviter le "flicker" si la souris sort/rentre vite
-    const DELAY_HIDE = 180;
+  function attach(){
+    if (!isHoverablePointer() || !navbarIsExpanded()) return;
+
     const timers = new WeakMap();
+    const listeners = [];
 
     document.querySelectorAll('.navbar .nav-item.dropdown').forEach((item) => {
       const toggle = item.querySelector('[data-bs-toggle="dropdown"]');
       const menu   = item.querySelector('.dropdown-menu');
       if (!toggle || !menu) return;
 
-      // Empêche le clic d’ouvrir/fermer sur desktop : on pilote uniquement au survol
-      toggle.addEventListener('click', (e) => e.preventDefault());
-
+      // On crée/recup l’instance Bootstrap
       const instance = bootstrap.Dropdown.getOrCreateInstance(toggle, {
-        autoClose: true,             // se referme si on clique ailleurs
-        popperConfig: { strategy: 'fixed' } // évite des décalages dans des layouts complexes
+        autoClose: true,
+        popperConfig: { strategy: 'fixed' }
       });
 
       const show = () => {
         clearTimeout(timers.get(item));
+        // sync aria-expanded pour l’accessibilité
+        toggle.setAttribute('aria-expanded', 'true');
         instance.show();
       };
-
       const hide = () => {
-        const t = setTimeout(() => instance.hide(), DELAY_HIDE);
+        const t = setTimeout(() => {
+          instance.hide();
+          toggle.setAttribute('aria-expanded', 'false');
+        }, DELAY_HIDE);
         timers.set(item, t);
       };
 
-      item.addEventListener('mouseenter', show);
-      item.addEventListener('mouseleave', hide);
-      // Si on rentre/sort du menu lui-même, on garde cohérent l’état
-      menu.addEventListener('mouseenter', show);
-      menu.addEventListener('mouseleave', hide);
+      // En mode étendu, on gère *au survol* et on n’empêche pas le focus clavier
+      const onEnterItem = () => show();
+      const onLeaveItem = () => hide();
+      const onEnterMenu = () => show();
+      const onLeaveMenu = () => hide();
+
+      item.addEventListener('mouseenter', onEnterItem);
+      item.addEventListener('mouseleave', onLeaveItem);
+      menu.addEventListener('mouseenter', onEnterMenu);
+      menu.addEventListener('mouseleave', onLeaveMenu);
+
+      // Empêcher le clic *uniquement* en mode étendu (sinon conflit avec le hover)
+      const onClickToggle = (e) => e.preventDefault();
+      toggle.addEventListener('click', onClickToggle);
+
+      // Mémorise pour cleanup
+      listeners.push([item, 'mouseenter', onEnterItem]);
+      listeners.push([item, 'mouseleave', onLeaveItem]);
+      listeners.push([menu, 'mouseenter', onEnterMenu]);
+      listeners.push([menu, 'mouseleave', onLeaveMenu]);
+      listeners.push([toggle, 'click', onClickToggle]);
     });
-  })();
+
+    cleanup = () => {
+      listeners.forEach(([el, ev, fn]) => el.removeEventListener(ev, fn));
+      cleanup = null;
+    };
+  }
+
+  function detach(){
+    if (typeof cleanup === 'function') cleanup();
+    cleanup = null;
+  }
+
+  function refresh(){
+    detach();
+    // N’attache qu’en mode étendu + pointeur hoverable
+    if (isHoverablePointer() && navbarIsExpanded()) attach();
+  }
+
+  // Premier setup
+  document.addEventListener('DOMContentLoaded', refresh);
+  // Recalcule si on change de breakpoint / rotation / redimensionnement
+  window.addEventListener('resize', () => {
+    // petit debounce
+    clearTimeout(window.__hoverDDResizeTimer__);
+    window.__hoverDDResizeTimer__ = setTimeout(refresh, 150);
+  });
+})();
 </script>
 </body>
 </html>
