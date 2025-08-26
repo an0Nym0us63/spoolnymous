@@ -6,7 +6,7 @@ import uuid
 import math
 from datetime import datetime, timedelta, date, timezone
 import time
-import os
+import os, base64, mimetypes
 import re
 from collections import defaultdict,deque
 from urllib.parse import urlencode, urlparse, urlunparse
@@ -2977,7 +2977,52 @@ def api_gallery_photos():
         "total": total, "pages": pages,
         "has_more": end < total,
     })
+    
+def _thumbnail_payload_from_status(status: dict) -> dict:
+    """
+    Construit (thumbnail_data_url, thumbnail_url) à partir de status['thumbnail'].
+    - Préfère data URL (base64) si fichier local accessible.
+    - Fournit aussi une URL absolue au cas où.
+    """
+    out = {"thumbnail_data_url": None, "thumbnail_url": None}
+    thumb = (status or {}).get("thumbnail")
+    if not thumb:
+        return out
 
+    # Déjà une data URL ?
+    if isinstance(thumb, str) and thumb.startswith("data:"):
+        out["thumbnail_data_url"] = thumb
+        out["thumbnail_url"] = thumb
+        return out
+
+    # Construire une URL absolue (si rel. ou absolue)
+    if isinstance(thumb, str) and thumb.startswith(("http://", "https://")):
+        out["thumbnail_url"] = thumb
+    elif isinstance(thumb, str):
+        # '/static/...' ou 'static/...'
+        if thumb.startswith("/"):
+            out["thumbnail_url"] = request.url_root.rstrip("/") + thumb
+        else:
+            out["thumbnail_url"] = url_for("static", filename=thumb, _external=True)
+
+    # Tenter de lire le fichier local pour faire une data URL
+    try:
+        fs_path = None
+        if isinstance(thumb, str) and thumb.startswith("/static/"):
+            fs_path = os.path.join(current_app.static_folder, thumb[len("/static/"):])
+        elif isinstance(thumb, str) and thumb.startswith("static/"):
+            fs_path = os.path.join(current_app.static_folder, thumb[len("static/"):])
+
+        if fs_path and os.path.isfile(fs_path):
+            mime = mimetypes.guess_type(fs_path)[0] or "image/jpeg"
+            with open(fs_path, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode("ascii")
+            out["thumbnail_data_url"] = f"data:{mime};base64,{b64}"
+    except Exception:
+        pass
+
+    return out
+    
 @app.route("/api/public/overview", methods=["GET"])
 def public_overview():
     token = request.args.get("token", "")
@@ -2986,12 +3031,13 @@ def public_overview():
 
     status_resp = api_printer_status()
     status = status_resp.get_json()
-
+    thumb = _thumbnail_payload_from_status(status)
     return jsonify({
         "snapshot_url": url_for("camera_snapshot", _external=True),
         "printName": status.get("printName"),
         "estimated_end": status.get("estimated_end"),
-        "progress": status.get("progress")
+        "progress": status.get("progress"),
+        **thumb,
     })
 
     
@@ -2999,12 +3045,13 @@ def public_overview():
 def local_overview():
     status_resp = api_printer_status()
     status = status_resp.get_json()
-
+    thumb = _thumbnail_payload_from_status(status)
     return jsonify({
         "snapshot_url": url_for("camera_snapshot"),
         "printName": status.get("printName"),
         "estimated_end": status.get("estimated_end"),
-        "progress": status.get("progress")
+        "progress": status.get("progress"),
+        **thumb,
     })
     
 @app.route("/installations")

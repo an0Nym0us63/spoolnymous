@@ -30,6 +30,8 @@
       </div>
       <div class="overview-body card-body p-2 text-center">
         <img src="" alt="Snapshot {{ inst.name }}" class="overview-img rounded">
+		<div class="overview-sub mt-2">  <!-- 🆕 -->
+          <img src="" alt="Thumbnail {{ inst.name }}" class="overview-thumb rounded">  
         <div class="overview-info mt-2 text-start">
           <div class="small mb-1">📦 <strong>Impression</strong> : <span class="printName">—</span></div>
           <div class="small">🕒 <strong>Fin estimée</strong> : <span class="estimated_end">—</span></div>
@@ -37,6 +39,7 @@
             <div class="progress-bar" style="width:0%">0%</div>
           </div>
         </div>
+        </div> 
       </div>
     </div>
     {% endfor %}
