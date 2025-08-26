@@ -208,7 +208,7 @@
     <div class="carousel-inner rounded">
 	
     {# Slide 0 : miniature (PNG) comme avant #}
-    <div class="carousel-item active">
+    <div class="carousel-item active" data-name="3mf">
       <div class="preview-frame d-flex align-items-center justify-content-center">
           <img
             src="{{ o.thumbnail }}"
@@ -217,25 +217,12 @@
             loading="lazy"
           >
       </div>
-<div class="text-center mt-1">
-  <small class="caption-badge">3mf</small>
-</div>
     </div>
       {% for img in imgs %}
-        <div class="carousel-item {% if loop.first %}active{% endif %}">
-		<button type="button"
-          class="btn btn-sm btn-outline-light carousel-delete-btn js-del-photo"
-          title="Supprimer cette photo"
-          data-url="{{ img.url }}"
-          {% if '.3mf' in img.url|lower %}style="display:none"{% endif %} data-requires-write>
-    <i class="bi bi-x-lg"></i>
-  </button>
+        <div class="carousel-item {% if loop.first %}active{% endif %}" data-name="{{ img.name }}">
           <div class="preview-frame d-flex align-items-center justify-content-center">
             <img src="{{ img.url }}" alt="{{ img.name }}" class="preview-img" loading="lazy">
           </div>
-<div class="text-center mt-1">
-  <small class="caption-badge">{{ img.name }}</small>
-</div>
         </div>
       {% endfor %}
     </div>
@@ -263,6 +250,18 @@
       </div>
     {% endif %}
   </div>
+{# Barre nom centré + bouton Galerie à droite #}
+{% if imgs and (imgs|length) > 0 %}
+  <div class="d-flex justify-content-center align-items-center mt-2 position-relative carousel-meta" data-pid="{{ pid }}">
+    <small id="cname-{{ pid }}" class="caption-badge text-center">3mf</small>
+
+    <button type="button" class="btn btn-gallery position-absolute end-0 me-2"
+            onclick='openGalleryFromEntry({{ (imgs or [])|tojson }}, {{ (o.name or ("Objet #" ~ o.id))|tojson }})'
+            title="Ouvrir la galerie">
+      🖼
+    </button>
+  </div>
+{% endif %}
 {% endif %}
       </div>
       {% endif %}

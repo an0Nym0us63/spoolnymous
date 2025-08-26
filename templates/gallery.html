@@ -218,51 +218,66 @@
     }
   });
 
-  // Suppression (même logique que dans base.html)
   async function deleteByUrl(fileUrl) {
-    try {
-      const u = new URL(fileUrl, window.location.origin);
-      const parts = u.pathname.split('/').filter(Boolean); // ['static','uploads',entity,id,filename]
-      const upIdx = parts.indexOf('uploads');
-      if (upIdx < 0 || parts.length < upIdx + 4) return false;
+  try {
+    const u = new URL(fileUrl, window.location.origin);
+    const parts = u.pathname.split('/').filter(Boolean); // ['static','uploads',entity,id,filename]
+    const upIdx = parts.indexOf('uploads');
+    if (upIdx < 0 || parts.length < upIdx + 4) return false;
 
-      const entity   = parts[upIdx + 1];
-      const entityId = parts[upIdx + 2];
-      const filename = parts[upIdx + 3];
+    const entity   = parts[upIdx + 1];
+    const entityId = parts[upIdx + 2];
+    const filename = parts[upIdx + 3];
 
-      if (filename.toLowerCase().endsWith('.3mf')) return false;
+    if (filename.toLowerCase().endsWith('.3mf')) return false;
 
-      const ask = confirm(`Supprimer la photo ?\n${filename}`);
-      if (!ask) return false;
+    // Confirmation SweetAlert2
+    const ask = await Swal.fire({
+      title: "Supprimer la photo ?",
+      text: filename,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Oui, supprimer",
+      cancelButtonText: "Annuler",
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#6c757d"
+    });
+    if (!ask.isConfirmed) return false;
 
-      const fd = new FormData();
-      fd.append('filename', filename);
+    const fd = new FormData();
+    fd.append('filename', filename);
 
-      const resp = await fetch(`/delete_photo/${encodeURIComponent(entity)}/${encodeURIComponent(entityId)}`, {
-        method: 'POST',
-        body: fd
-      });
+    const resp = await fetch(`/delete_photo/${encodeURIComponent(entity)}/${encodeURIComponent(entityId)}`, {
+      method: 'POST',
+      body: fd
+    });
 
-      if (!resp.ok) return false;
-
-      // MAJ locale : retire de images + UI
-      const idx = images.findIndex(x => x.url === fileUrl);
-      if (idx >= 0) {
-        images.splice(idx, 1);
-        document.querySelectorAll('.thumb')[idx]?.remove();
-        document.getElementById('jsCount').textContent = images.length;
-        lbTot.textContent = images.length;
-        if (images.length === 0) closeLightbox();
-        else {
-          if (index >= images.length) index = images.length - 1;
-          render();
-        }
-      }
-      return true;
-    } catch {
+    if (!resp.ok) {
+      Swal.fire("Erreur", "La suppression a échoué.", "error");
       return false;
     }
+
+    // MAJ locale : retire de images + UI
+    const idx = images.findIndex(x => x.url === fileUrl);
+    if (idx >= 0) {
+      images.splice(idx, 1);
+      document.querySelectorAll('.thumb')[idx]?.remove();
+      document.getElementById('jsCount').textContent = images.length;
+      lbTot.textContent = images.length;
+      if (images.length === 0) closeLightbox();
+      else {
+        if (index >= images.length) index = images.length - 1;
+        render();
+      }
+    }
+
+    Swal.fire("Supprimé", "La photo a été supprimée.", "success");
+    return true;
+  } catch (err) {
+    Swal.fire("Erreur", "Une erreur est survenue.", "error");
+    return false;
   }
+}
 
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('.js-del-photo');
