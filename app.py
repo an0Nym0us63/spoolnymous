@@ -2966,8 +2966,6 @@ def public_status():
 @app.route("/installations")
 def installations_overview():
     installations = load_installations()
-    local_snapshot_url = url_for("camera_snapshot")  # route existante locale
-    local_status_url = url_for("api_printer_status")      # route locale existante
 
     remote_installations = []
     for inst in installations:
@@ -2983,8 +2981,6 @@ def installations_overview():
 
     return render_template(
         "installations_overview.html",
-        local_snapshot_url=local_snapshot_url,
-        local_status_url=local_status_url,
         remote_installations=remote_installations,
         page_title="Installations"
     )
