@@ -424,6 +424,46 @@ document.addEventListener('click', async (e) => {
     console.error('Suppression: erreur', err);
   }
 });
+  // Ouvrir les dropdowns au survol pour les périphériques "desktop" (souris)
+  (function enableHoverDropdowns() {
+    const isHoverable = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    if (!isHoverable) return; // Sur mobile/tactile, on garde le comportement au clic
+
+    // Petite temporisation pour éviter le "flicker" si la souris sort/rentre vite
+    const DELAY_HIDE = 180;
+    const timers = new WeakMap();
+
+    document.querySelectorAll('.navbar .nav-item.dropdown').forEach((item) => {
+      const toggle = item.querySelector('[data-bs-toggle="dropdown"]');
+      const menu   = item.querySelector('.dropdown-menu');
+      if (!toggle || !menu) return;
+
+      // Empêche le clic d’ouvrir/fermer sur desktop : on pilote uniquement au survol
+      toggle.addEventListener('click', (e) => e.preventDefault());
+
+      const instance = bootstrap.Dropdown.getOrCreateInstance(toggle, {
+        autoClose: true,             // se referme si on clique ailleurs
+        popperConfig: { strategy: 'fixed' } // évite des décalages dans des layouts complexes
+      });
+
+      const show = () => {
+        clearTimeout(timers.get(item));
+        instance.show();
+      };
+
+      const hide = () => {
+        const t = setTimeout(() => instance.hide(), DELAY_HIDE);
+        timers.set(item, t);
+      };
+
+      item.addEventListener('mouseenter', show);
+      item.addEventListener('mouseleave', hide);
+      // Si on rentre/sort du menu lui-même, on garde cohérent l’état
+      menu.addEventListener('mouseenter', show);
+      menu.addEventListener('mouseleave', hide);
+    });
+  })();
 </script>
 </body>
 </html>
