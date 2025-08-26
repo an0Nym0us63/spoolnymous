@@ -111,41 +111,52 @@
 
 {% if images %}
 <script>
-  // Injection serveur si fournie par la route Flask
-  window.__IMAGES__ = {{ images|tojson }};
-  {% if title %}window.__TITLE__ = {{ title|tojson }};{% endif %}
+const images =
+  (window.__IMAGES__ && Array.isArray(window.__IMAGES__)) ? window.__IMAGES__ :
+  (parseImagesFromQuery() || []);
+
+const title =
+  (typeof window.__TITLE__ === 'string' && window.__TITLE__) ?
+    window.__TITLE__ : (new URLSearchParams(location.search).get('title') || '');
+
+const titleEl = document.getElementById('jsTitle');
+if (titleEl) titleEl.textContent = title ? `— ${title}` : '';
+
+const countEl = document.getElementById('jsCount');
+if (countEl) countEl.textContent = images.length;
+
+const grid = document.getElementById('grid'); // ID correct !
+if (!grid) return;
 </script>
 {% endif %}
 
 <script>
 (function(){
   // 1) Récup images/titre depuis window.__IMAGES__ (Jinja) ou ?imgs=JSON
-  function parseImagesFromQuery() {
+ function parseImagesFromQuery() {
+  const p = new URLSearchParams(location.search);
+  let raw = p.get('images') || p.get('imgs');   // ← accepte images OU imgs
+  if (!raw) return null;
+
+  let arr = null;
+  // URLSearchParams.get() renvoie normalement DÉJÀ décodé.
+  try {
+    arr = JSON.parse(raw);
+  } catch (e1) {
+    // si jamais c'est encore encodé (double-encode côté appelant)
     try {
-      const p = new URLSearchParams(location.search);
-      const raw = p.get('images');
-      if (!raw) return null;
-      const arr = JSON.parse(decodeURIComponent(raw));
-      if (!Array.isArray(arr)) return null;
-      return arr.filter(x => x && typeof x.url === 'string')
-                .map(x => ({ url: x.url, name: x.name || '' }));
-    } catch { return null; }
+      arr = JSON.parse(decodeURIComponent(raw));
+    } catch (e2) {
+      console.error('parseImagesFromQuery failed', { raw, e1, e2 });
+      return null;
+    }
   }
 
-  const images =
-    (window.__IMAGES__ && Array.isArray(window.__IMAGES__)) ? window.__IMAGES__ :
-    (parseImagesFromQuery() || []);
-
-  const title =
-    (typeof window.__TITLE__ === 'string' && window.__TITLE__) ? window.__TITLE__ :
-    (new URLSearchParams(location.search).get('title') || '');
-
-  // 2) Header (protégé si l’élément n’existe pas)
-  const titleEl = document.getElementById('jsTitle');
-  if (titleEl) titleEl.textContent = title ? `— ${title}` : '';
-
-  const countEl = document.getElementById('jsCount');
-  if (countEl) countEl.textContent = images.length;
+  if (!Array.isArray(arr)) return null;
+  return arr
+    .filter(x => x && typeof x.url === 'string')
+    .map(x => ({ url: x.url, name: x.name || '' }));
+}
 
   // 3) Grille
   const grid = document.getElementById('grid');
