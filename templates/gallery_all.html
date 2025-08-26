@@ -161,7 +161,9 @@
   function renderLightbox() {
     const it = state.items[index];
     lbImg.src = it?.url || '';
-    lbName.textContent = it?.name || '';
+    const name = (it?.item_title ? it.item_title : '') +
+               (it?.base_name ? (' — ' + it.base_name) : '');
+  lbName.textContent = name || '';
     lbIdx.textContent = String(index + 1);
     lbTot.textContent = state.items.length;
     lbDel.style.display = (it && !/\.3mf$/i.test(it.url)) ? '' : 'none';
@@ -245,12 +247,15 @@
     card.dataset.url = it.url;
     card.dataset.groupKey = `${it.entity}:${it.entity_id}`;
     card.innerHTML = `
-      <button type="button" class="btn btn-sm btn-outline-light del js-del-photo" title="Supprimer" data-url="${it.url}" data-requires-write>
-        <i class="bi bi-x-lg"></i>
-      </button>
-      <img src="${it.url}" alt="${(it.name||'').replaceAll('"','&quot;')}">
-      <div class="name">${it.name || ''}</div>
-    `;
+  <button type="button" class="btn btn-sm btn-outline-light del js-del-photo"
+          title="Supprimer" data-url="${it.url}" data-requires-write>
+    <i class="bi bi-x-lg"></i>
+  </button>
+  <img src="${it.url}" alt="${(it.item_title || '').replaceAll('"','&quot;')} — ${(it.base_name || '').replaceAll('"','&quot;')}">
+  <div class="name">
+    ${(it.item_title || '')} — ${(it.base_name || '')}
+  </div>
+`;
     card.addEventListener('click', (e) => {
       if (e.target.closest('.js-del-photo')) return;
       const idx = state.items.findIndex(x => x.url === it.url);
@@ -260,38 +265,34 @@
   }
 
   // Ajoute un titre de groupe (prints:123)
-  function renderGroupHeader(key) {
-    const div = document.createElement('div');
-    div.className = 'group-title';
-    div.dataset.groupTitle = key;
-    const [entity, id] = key.split(':');
-    const nice = (entity === 'prints' ? 'Print' : 'Groupe') + ' #' + id;
-    div.innerHTML = `<span class="dot"></span><span>${nice}</span>`;
-    return div;
-  }
+  function renderGroupHeader(key, title) {
+  const div = document.createElement('div');
+  div.className = 'group-title';
+  div.dataset.groupTitle = key;
+  div.innerHTML = `<span class="dot"></span><span>${title}</span>`;
+  return div;
+}
 
   // Append d’un batch au grid (respect du grouping si activé)
   function appendItems(batch) {
-    const frag = document.createDocumentFragment();
+  const frag = document.createDocumentFragment();
 
-    if (!state.grouped) {
-      for (const it of batch) frag.appendChild(renderTile(it));
-    } else {
-      // insère des headers quand on change de groupKey
-      let lastKey = grid.querySelector('.group-title:last-of-type')?.dataset.groupTitle || null;
-      for (const it of batch) {
-        const key = `${it.entity}:${it.entity_id}`;
-        if (key !== lastKey && (state.groupOrder.at(-1) !== key)) {
-          frag.appendChild(renderGroupHeader(key));
-          state.groupOrder.push(key);
-          lastKey = key;
-        }
-        frag.appendChild(renderTile(it));
+  if (!state.grouped) {
+    for (const it of batch) frag.appendChild(renderTile(it));
+  } else {
+    let lastKey = grid.querySelector('.group-title:last-of-type')?.dataset.groupTitle || null;
+    for (const it of batch) {
+      const key = `${it.entity}:${it.entity_id}`;
+      if (key !== lastKey && (state.groupOrder.at(-1) !== key)) {
+        frag.appendChild(renderGroupHeader(key, it.item_title || key));
+        state.groupOrder.push(key);
+        lastKey = key;
       }
+      frag.appendChild(renderTile(it));
     }
-
-    grid.appendChild(frag);
   }
+  grid.appendChild(frag);
+}
 
   async function loadNext() {
     if (state.loading || state.done) return;

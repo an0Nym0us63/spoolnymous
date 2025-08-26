@@ -2887,50 +2887,33 @@ def gallery_all():
 
 @app.route("/api/gallery/photos")
 def api_gallery_photos():
-    """
-    API paginée pour toutes les photos (prints + groups).
-    Params:
-      - page (1..n), per (<= 120), prefix (par défaut 'Photo-')
-    Réponse:
-      { items: [{url,name,entity,entity_id}], page, per, total, pages, has_more }
-    """
-    try:
-        page = max(1, int(request.args.get("page", 1)))
-    except Exception:
-        page = 1
-    try:
-        per = int(request.args.get("per", 60))
-    except Exception:
-        per = 60
-    per = max(1, min(per, 120))
-
+    from math import ceil
+    page = max(1, int(request.args.get("page", 1)) if request.args.get("page") else 1)
+    per  = int(request.args.get("per", 60)) if request.args.get("per") else 60
+    per  = max(1, min(per, 120))
     prefix = request.args.get("prefix", "Photo-")
 
     items = list_all_photos(prefix=prefix)
     total = len(items)
-    pages = max(1, math.ceil(total / per)) if total else 1
+    pages = max(1, ceil(total / per)) if total else 1
 
     start = (page - 1) * per
-    end = start + per
+    end   = start + per
     chunk = items[start:end]
 
-    # on ne retourne que le nécessaire côté client
-    resp_items = [
-        {
-            "url": it["url"],
-            "name": it["name"],
-            "entity": it["entity"],
-            "entity_id": it["entity_id"],
-        }
-        for it in chunk
-    ]
-
     return jsonify({
-        "items": resp_items,
-        "page": page,
-        "per": per,
-        "total": total,
-        "pages": pages,
+        "items": [
+            {
+                "url": it["url"],
+                "name": it["name"],               # ex: Photo-12.jpg
+                "base_name": it["base_name"],     # ex: Photo-12
+                "item_title": it["item_title"],   # ex: Mon Vase
+                "entity": it["entity"],
+                "entity_id": it["entity_id"],
+            } for it in chunk
+        ],
+        "page": page, "per": per,
+        "total": total, "pages": pages,
         "has_more": end < total,
     })
 

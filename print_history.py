@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 db_config = {"db_path": os.path.join(os.getcwd(), 'data', "3d_printer_logs.db")}
 
+PHOTO_SEQ_RE = re.compile(r'photo-(\d+)', re.IGNORECASE)
+
 MAIN_COLOR_FAMILIES = {
     'Noir': (0, 0, 0),
     'Blanc': (255, 255, 255),
@@ -1866,15 +1868,63 @@ def list_group_images(group_id: str | int | None = None):
 
     return out
 
+def _seq_from_name(name: str) -> int:
+    """
+    Extrait le numéro à partir de 'Photo-<N>.*'.
+    Retourne un grand nombre si pas de numéro (pour être trié en dernier).
+    """
+    m = PHOTO_SEQ_RE.search(name or '')
+    return int(m.group(1)) if m else 10**9
+
+def _item_title(entity: str, entity_id: int) -> str:
+    """
+    Récupère un titre humain pour l’item :
+    - print  : file_name ou 'Print #<id>'
+    - group  : label/nom du groupe ou 'Groupe #<id>'
+    Robuste : tente plusieurs tables, fallback si manquantes.
+    """
+    title = None
+    try:
+        db = db_config
+        cur = db.cursor()
+        if entity == "prints":
+            # essaie colonnes probables
+            cur.execute("""
+                SELECT COALESCE(file_name, original_name, '') as name
+                FROM prints
+                WHERE id = ?
+            """, (entity_id,))
+            row = cur.fetchone()
+            if row and row["name"]:
+                title = row["name"]
+        elif entity == "groups":
+            # essaie print_groups d’abord, puis groups
+            cur.execute("SELECT COALESCE(label, name, '') as name FROM print_groups WHERE id = ?", (entity_id,))
+            row = cur.fetchone()
+            if not (row and row["name"]):
+                cur.execute("SELECT COALESCE(label, name, '') as name FROM groups WHERE id = ?", (entity_id,))
+                row = cur.fetchone()
+            if row and row["name"]:
+                title = row["name"]
+    except Exception:
+        pass
+
+    if title and title.strip():
+        return title.strip()
+    return ("Print #{}".format(entity_id) if entity == "prints" else "Groupe #{}".format(entity_id))
 
 def list_all_photos(prefix="Photo-"):
     """
     Scanne /static/uploads/{prints,groups}/<id> et retourne la liste
     de toutes les photos dont le nom commence par `prefix` (par défaut Photo-).
-    Retourne des dicts: { entity, entity_id, url, name, mtime }
+    Tri par item : Photo-<N> ascendant.
+    Renvoie une liste aplatie triée par groupe (ordre: récence de l’item).
     """
     base_dir = Path(__file__).resolve().parent
-    out = []
+
+    groups = defaultdict(list)  # key -> photos
+    meta   = {}                 # key -> {'entity','entity_id','item_title','latest_mtime'}
+
     for entity in ("prints", "groups"):
         base = base_dir / "static" / "uploads" / entity
         if not base.exists():
@@ -1887,32 +1937,62 @@ def list_all_photos(prefix="Photo-"):
             except ValueError:
                 continue
 
+            key = f"{entity}:{entity_id}"
+            latest_mtime = meta.get(key, {}).get("latest_mtime", 0)
+
             for f in item_dir.iterdir():
                 if not f.is_file():
                     continue
                 name = f.name
-                # Filtre "Photo-" (insensible à la casse)
                 if not name.lower().startswith(prefix.lower()):
                     continue
-                # Exclure 3mf par sécurité
                 if name.lower().endswith(".3mf"):
                     continue
 
-                rel_url = f"/static/uploads/{entity}/{entity_id}/{name}"
                 try:
                     mtime = f.stat().st_mtime
                 except Exception:
                     mtime = 0
+                latest_mtime = max(latest_mtime, mtime)
 
-                out.append({
-                    "entity": entity,            # "prints" | "groups"
-                    "entity_id": entity_id,      # int
-                    "url": rel_url,              # /static/uploads/...
-                    "name": name,                # Photo-XXX.jpg
-                    "mtime": mtime,              # tri récent -> ancien
+                groups[key].append({
+                    "entity": entity,
+                    "entity_id": entity_id,
+                    "url": f"/static/uploads/{entity}/{entity_id}/{name}",
+                    "name": name,
+                    "base_name": Path(name).stem,      # sans extension
+                    "seq": _seq_from_name(name),       # pour tri asc
                 })
-    # Tri: plus récent d'abord
-    out.sort(key=lambda x: x["mtime"], reverse=True)
+
+            meta[key] = {
+                "entity": entity,
+                "entity_id": entity_id,
+                "item_title": _item_title(entity, entity_id),
+                "latest_mtime": latest_mtime,
+            }
+
+    # Tri intra-groupe par seq asc, puis nom
+    for key, photos in groups.items():
+        photos.sort(key=lambda x: (x["seq"], x["name"]))
+
+    # Ordre des groupes : plus récents d’abord
+    ordered_keys = sorted(meta.keys(), key=lambda k: meta[k]["latest_mtime"], reverse=True)
+
+    # Aplatir avec champs enrichis
+    out = []
+    for key in ordered_keys:
+        title = meta[key]["item_title"]
+        for ph in groups.get(key, []):
+            ph_out = {
+                "entity": ph["entity"],
+                "entity_id": ph["entity_id"],
+                "url": ph["url"],
+                "name": ph["name"],
+                "base_name": ph["base_name"],
+                "item_title": title,
+            }
+            out.append(ph_out)
+
     return out
 
 create_database()
