@@ -350,6 +350,10 @@
                   {% else %} — {% endif %}
                 </li>
 				<li><strong>Type couleur :</strong>{{ (fil.multicolor_type or 'monochrome')|capitalize }}</li>
+				
+			{% if fil.transparent == 1  %}
+            <li><strong>Transparent :</strong> Oui</li>
+              {% endif %}
               </ul>
             </div>
             <div class="col-md-6">
@@ -819,35 +823,36 @@ const selNameEl = document.getElementById('select-name');
     }
   }
 
-  function ensureTomSelect(el, options){
-    if (window.TomSelect){
-      // détruire TS existant s'il existe (pour recharger options)
-      if (el.tomselect) el.tomselect.destroy();
-      return new TomSelect(el, {
-        create: false,
-        persist: false,
-        maxItems: 1,
-        searchField: ['text', 'value'],
-        sortField: {field: 'text', direction: 'asc'},
-        options,
-		render: {
-    option: function(data, escape) {
-      return `<div>${escape(data.text)}</div>`;
+  function ensureTomSelect(id, options){
+  const el = document.getElementById(id);
+  if (window.TomSelect){
+    if (el.tomselect) {
+      // Déjà initialisé → on recharge juste les options
+      el.tomselect.clearOptions();
+      el.tomselect.addOptions(options);
+      return el.tomselect;
     }
+    // Première initialisation
+    return new TomSelect(el, {
+      create: true,
+      persist: false,
+      maxItems: 1,
+      searchField: ['text', 'value'],
+      sortField: {field: 'text', direction: 'asc'},
+      options
+    });
+  } else {
+    // Fallback sans TomSelect
+    el.innerHTML = '';
+    options.forEach(o=>{
+      const opt = document.createElement('option');
+      opt.value = o.value;
+      opt.textContent = o.text;
+      el.appendChild(opt);
+    });
+    return null;
   }
-      });
-    } else {
-      // Fallback natif : on remplit juste les <option>
-      el.innerHTML = '';
-      for (const o of options) {
-        const opt = document.createElement('option');
-        opt.value = o.value;
-        opt.textContent = o.text;
-        el.appendChild(opt);
-      }
-      return null;
-    }
-  }
+}
 
   function toOptions(values){
     return Array.from(new Set(values)).sort((a,b)=>(a||'').localeCompare(b||'')).map(v => ({value: v, text: v || '—'}));

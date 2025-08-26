@@ -274,14 +274,14 @@
           </div>
           
           <ul class="list-unstyled mb-0" style="font-size: 0.85rem; color: #cbd5e1;">
-            <li><strong>Fournisseur :</strong> {{ spool.filament.vendor.name }}</li>
-            <li><strong>Matière :</strong> {{ spool.filament.material }}</li>
-            <li><strong>Nom :</strong> {{ spool.filament.name }}</li>
-            <li><strong>Filament ID :</strong> <span class="badge bg-secondary">{{ spool.filament.extra.filament_id|replace('"','') or "—" }}</span></li>
+            <li><strong>Fournisseur :</strong> {{ spool.filament.vendor.name }}</li>
+            <li><strong>Matière :</strong> {{ spool.filament.material }}</li>
+            <li><strong>Nom :</strong> {{ spool.filament.name }}</li>
+            <li><strong>Filament ID :</strong> <span class="badge bg-secondary">{{ spool.filament.extra.filament_id|replace('"','') or "—" }}</span></li>
             {% if spool.extra.tag %}
-              <li><strong>Tag :</strong> <span class="badge bg-info text-dark">{{ spool.extra.tag|replace('"','') }}</span></li>
+              <li><strong>Tag :</strong> <span class="badge bg-info text-dark">{{ spool.extra.tag|replace('"','') }}</span></li>
             {% endif %}
-            <li><strong>Première utilisation :</strong>
+            <li><strong>Première utilisation :</strong>
               {% if spool.first_used %}
                 {% set date_parts = spool.first_used[:10].split('-') %}
                 {{ date_parts[2] }}/{{ date_parts[1] }}/{{ date_parts[0] }} {{ spool.first_used[11:16] }}
@@ -289,7 +289,7 @@
                 —
               {% endif %}
             </li>
-            <li><strong>Dernière utilisation :</strong>
+            <li><strong>Dernière utilisation :</strong>
               {% if spool.last_used %}
                 {% set date_parts = spool.last_used[:10].split('-') %}
                 {{ date_parts[2] }}/{{ date_parts[1] }}/{{ date_parts[0] }} {{ spool.last_used[11:16] }}
@@ -297,11 +297,11 @@
                 —
               {% endif %}
             </li>
-            <li><strong>Poids initial :</strong> {{ spool.initial_weight|round|int }} g</li>
-            <li data-requires-write><strong>Prix :</strong> {{ spool.price|default("—") }} €</li>
-            <li><strong>Stock restant :</strong> {{ spool.remaining_weight|round|int }} g</li>
-            <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
-            <li><strong>Couleur :</strong>
+            <li><strong>Poids initial :</strong> {{ spool.initial_weight|round|int }} g</li>
+            <li data-requires-write><strong>Prix :</strong> {{ spool.price|default("—") }} €</li>
+            <li><strong>Stock restant :</strong> {{ spool.remaining_weight|round|int }} g</li>
+            <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
+            <li><strong>Couleur :</strong>
               {% if spool.filament.multi_color_hexes %}
                 {% set colors =
                     spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
@@ -320,7 +320,7 @@
               {% endif %}
             </li>
 			{% if spool.filament.transparent == 1  %}
-            <li><strong>Transparent :</strong> Oui</li>
+            <li><strong>Transparent :</strong> Oui</li>
 			
               {% endif %}
           </ul>
