@@ -36,7 +36,7 @@ from filament import generate_filament_brand_code, generate_filament_temperature
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel,insert_manual_print
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print,get_all_tray_spool_mappings,set_tray_spool_map,delete_all_tray_spool_mappings, get_tags_for_prints, get_tags_for_group, add_tag_to_group, remove_tag_from_group,list_print_images,list_group_images
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print,get_all_tray_spool_mappings,set_tray_spool_map,delete_all_tray_spool_mappings, get_tags_for_prints, get_tags_for_group, add_tag_to_group, remove_tag_from_group,list_print_images,list_group_images,list_all_photos
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
@@ -2878,5 +2878,60 @@ def gallery():
     # Optionnel: tu peux décoder ici ?imgs=… si tu préfères côté serveur
     title = request.args.get('title', '')
     return render_template('gallery.html', title=title)
+
+@app.route("/gallery/all")
+def gallery_all():
+    # Page “galerie globale” – se charge en lazy depuis l’API JSON
+    title = "Toutes les photos"
+    return render_template("gallery_all.html", title=title)
+
+@app.route("/api/gallery/photos")
+def api_gallery_photos():
+    """
+    API paginée pour toutes les photos (prints + groups).
+    Params:
+      - page (1..n), per (<= 120), prefix (par défaut 'Photo-')
+    Réponse:
+      { items: [{url,name,entity,entity_id}], page, per, total, pages, has_more }
+    """
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+    except Exception:
+        page = 1
+    try:
+        per = int(request.args.get("per", 60))
+    except Exception:
+        per = 60
+    per = max(1, min(per, 120))
+
+    prefix = request.args.get("prefix", "Photo-")
+
+    items = list_all_photos(prefix=prefix)
+    total = len(items)
+    pages = max(1, ceil(total / per)) if total else 1
+
+    start = (page - 1) * per
+    end = start + per
+    chunk = items[start:end]
+
+    # on ne retourne que le nécessaire côté client
+    resp_items = [
+        {
+            "url": it["url"],
+            "name": it["name"],
+            "entity": it["entity"],
+            "entity_id": it["entity_id"],
+        }
+        for it in chunk
+    ]
+
+    return jsonify({
+        "items": resp_items,
+        "page": page,
+        "per": per,
+        "total": total,
+        "pages": pages,
+        "has_more": end < total,
+    })
 
 app.register_blueprint(auth_bp)

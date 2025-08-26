@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1.0, width=device-width">
+  <title>Galerie — {{ title or 'Toutes les photos' }}</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    :root { --thumb-size: 180px; }
+    html, body { height: 100%; }
+    body { margin: 0; overflow-y: auto; background: var(--bs-body-bg); }
+    .gallery-header {
+      position: sticky; top: 0; z-index: 1030;
+      backdrop-filter: blur(6px);
+      background: color-mix(in oklab, var(--bs-body-bg) 85%, transparent);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(var(--thumb-size), 1fr));
+      gap: .75rem;
+    }
+    .thumb {
+      position: relative;
+      border-radius: .75rem;
+      overflow: hidden;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.06);
+      aspect-ratio: 1 / 1;
+      cursor: zoom-in;
+    }
+    .thumb img {
+      width: 100%; height: 100%;
+      object-fit: cover; object-position: center; display: block;
+    }
+    .thumb .name {
+      position: absolute; left: .5rem; bottom: .5rem;
+      background: rgba(0,0,0,.55); color: #fff;
+      padding: .15rem .5rem; border-radius: .35rem;
+      font-size: .8rem; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      pointer-events: none;
+    }
+    .thumb .del {
+      position: absolute; top: .35rem; right: .35rem; z-index: 2;
+    }
+    .group-title {
+      grid-column: 1 / -1;
+      margin-top: 1.25rem;
+      font-size: .9rem;
+      color: var(--bs-secondary-color);
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .group-title .dot {
+      width: .5rem; height: .5rem; border-radius: 50%;
+      background: var(--bs-secondary-color);
+      opacity: .6;
+    }
+
+    /* Lightbox */
+    .lightbox { position: fixed; inset: 0; z-index: 2000; display: none; background: rgba(0,0,0,.92); }
+    .lightbox.open { display: grid; place-items: center; }
+    .lightbox img { max-width: 92vw; max-height: 86vh; object-fit: contain; box-shadow: 0 0 0 1px rgba(255,255,255,.08); border-radius: .5rem; }
+    .lb-toolbar { position: fixed; top: .5rem; left: .5rem; right: .5rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+    .lb-actions { display: flex; gap: .5rem; }
+    .lb-index { color: #fff; opacity: .8; font-size: .9rem; }
+    .lb-nav { position: fixed; inset: 0; display: flex; align-items: center; justify-content: space-between; pointer-events: none; }
+    .lb-nav .btn { pointer-events: all; border-radius: 999px; }
+
+    @media (max-width: 576px) {
+      :root { --thumb-size: 140px; }
+      .lb-index { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="gallery-header py-2 px-2 px-sm-3">
+  <div class="d-flex align-items-center justify-content-between gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <a href="{{ url_for('home') }}" class="btn btn-outline-light btn-sm" title="Retour">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <h1 class="h6 mb-0">Galerie — <span class="text-body-secondary">Toutes les photos (Photo-*)</span></h1>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="toggleGroup">
+        <label class="form-check-label small" for="toggleGroup">Regrouper par item</label>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="container py-3">
+  <div id="grid" class="grid"></div>
+  <div id="sentinel" class="py-4 text-center text-secondary">Chargement…</div>
+</main>
+
+<!-- Lightbox -->
+<div id="lightbox" class="lightbox" aria-hidden="true">
+  <div class="lb-toolbar">
+    <div class="lb-actions">
+      <button id="lbClose" class="btn btn-light btn-sm" title="Fermer (Esc)"><i class="bi bi-x-lg"></i></button>
+      <button id="lbDelete" class="btn btn-danger btn-sm" title="Supprimer" data-requires-write><i class="bi bi-trash3"></i></button>
+      <span id="lbName" class="badge text-bg-dark"></span>
+    </div>
+    <div class="lb-index"><span id="lbIdx">1</span> / <span id="lbTotal">1</span></div>
+  </div>
+  <img id="lbImg" alt="">
+  <div class="lb-nav px-2">
+    <button id="lbPrev" class="btn btn-outline-light"><i class="bi bi-chevron-left"></i></button>
+    <button id="lbNext" class="btn btn-outline-light"><i class="bi bi-chevron-right"></i></button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function(){
+  const grid = document.getElementById('grid');
+  const sentinel = document.getElementById('sentinel');
+  const state = {
+    page: 1,
+    per: 60,
+    loading: false,
+    done: false,
+    items: [],        // {url,name,entity,entity_id}
+    grouped: false,
+    groupOrder: [],   // ['prints:12','groups:7',...]
+  };
+
+  // Lightbox
+  const lb     = document.getElementById('lightbox');
+  const lbImg  = document.getElementById('lbImg');
+  const lbName = document.getElementById('lbName');
+  const lbIdx  = document.getElementById('lbIdx');
+  const lbTot  = document.getElementById('lbTotal');
+  const lbPrev = document.getElementById('lbPrev');
+  const lbNext = document.getElementById('lbNext');
+  const lbDel  = document.getElementById('lbDelete');
+  const lbClose= document.getElementById('lbClose');
+  let index = 0;
+
+  function openLightbox(i) {
+    index = i;
+    renderLightbox();
+    lb.classList.add('open');
+    lb.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLightbox() {
+    lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+  function prev() { index = (index - 1 + state.items.length) % state.items.length; renderLightbox(); }
+  function next() { index = (index + 1) % state.items.length; renderLightbox(); }
+  function renderLightbox() {
+    const it = state.items[index];
+    lbImg.src = it?.url || '';
+    lbName.textContent = it?.name || '';
+    lbIdx.textContent = String(index + 1);
+    lbTot.textContent = state.items.length;
+    lbDel.style.display = (it && !/\.3mf$/i.test(it.url)) ? '' : 'none';
+  }
+  lbPrev.addEventListener('click', prev);
+  lbNext.addEventListener('click', next);
+  lbClose.addEventListener('click', closeLightbox);
+  document.addEventListener('keydown', (e) => {
+    if (!lb.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') prev();
+    if (e.key === 'ArrowRight') next();
+  });
+
+  // Suppression SweetAlert2
+  async function deleteByUrl(fileUrl) {
+    try {
+      const u = new URL(fileUrl, window.location.origin);
+      const parts = u.pathname.split('/').filter(Boolean);
+      const upIdx = parts.indexOf('uploads');
+      if (upIdx < 0 || parts.length < upIdx + 4) return false;
+
+      const entity   = parts[upIdx + 1];
+      const entityId = parts[upIdx + 2];
+      const filename = parts[upIdx + 3];
+
+      if (filename.toLowerCase().endsWith('.3mf')) return false;
+
+      const ask = await Swal.fire({
+        title: "Supprimer la photo ?",
+        text: filename,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Oui, supprimer",
+        cancelButtonText: "Annuler",
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#6c757d"
+      });
+      if (!ask.isConfirmed) return false;
+
+      const fd = new FormData();
+      fd.append('filename', filename);
+      const resp = await fetch(`/delete_photo/${encodeURIComponent(entity)}/${encodeURIComponent(entityId)}`, {
+        method: 'POST',
+        body: fd
+      });
+      if (!resp.ok) {
+        Swal.fire("Erreur", "La suppression a échoué.", "error");
+        return false;
+      }
+
+      // MAJ locale (items + DOM)
+      const idx = state.items.findIndex(x => x.url === fileUrl);
+      if (idx >= 0) {
+        state.items.splice(idx, 1);
+        // Re-render minimal: retire la vignette
+        const tile = grid.querySelector(`.thumb[data-url="${CSS.escape(fileUrl)}"]`);
+        tile?.remove();
+        if (index >= state.items.length) index = Math.max(0, state.items.length - 1);
+        renderLightbox();
+      }
+      Swal.fire("Supprimé", "La photo a été supprimée.", "success");
+      return true;
+    } catch (err) {
+      Swal.fire("Erreur", "Une erreur est survenue.", "error");
+      return false;
+    }
+  }
+  document.addEventListener('click', (e) => {
+    const del = e.target.closest('.js-del-photo');
+    if (!del) return;
+    const url = del.dataset.url || '';
+    deleteByUrl(url);
+    e.stopPropagation();
+  });
+
+  // Rendu d'une tuile
+  function renderTile(it) {
+    const card = document.createElement('div');
+    card.className = 'thumb';
+    card.dataset.url = it.url;
+    card.dataset.groupKey = `${it.entity}:${it.entity_id}`;
+    card.innerHTML = `
+      <button type="button" class="btn btn-sm btn-outline-light del js-del-photo" title="Supprimer" data-url="${it.url}" data-requires-write>
+        <i class="bi bi-x-lg"></i>
+      </button>
+      <img src="${it.url}" alt="${(it.name||'').replaceAll('"','&quot;')}">
+      <div class="name">${it.name || ''}</div>
+    `;
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.js-del-photo')) return;
+      const idx = state.items.findIndex(x => x.url === it.url);
+      if (idx >= 0) openLightbox(idx);
+    });
+    return card;
+  }
+
+  // Ajoute un titre de groupe (prints:123)
+  function renderGroupHeader(key) {
+    const div = document.createElement('div');
+    div.className = 'group-title';
+    div.dataset.groupTitle = key;
+    const [entity, id] = key.split(':');
+    const nice = (entity === 'prints' ? 'Print' : 'Groupe') + ' #' + id;
+    div.innerHTML = `<span class="dot"></span><span>${nice}</span>`;
+    return div;
+  }
+
+  // Append d’un batch au grid (respect du grouping si activé)
+  function appendItems(batch) {
+    const frag = document.createDocumentFragment();
+
+    if (!state.grouped) {
+      for (const it of batch) frag.appendChild(renderTile(it));
+    } else {
+      // insère des headers quand on change de groupKey
+      let lastKey = grid.querySelector('.group-title:last-of-type')?.dataset.groupTitle || null;
+      for (const it of batch) {
+        const key = `${it.entity}:${it.entity_id}`;
+        if (key !== lastKey && (state.groupOrder.at(-1) !== key)) {
+          frag.appendChild(renderGroupHeader(key));
+          state.groupOrder.push(key);
+          lastKey = key;
+        }
+        frag.appendChild(renderTile(it));
+      }
+    }
+
+    grid.appendChild(frag);
+  }
+
+  async function loadNext() {
+    if (state.loading || state.done) return;
+    state.loading = true;
+    sentinel.textContent = "Chargement…";
+
+    try {
+      const url = new URL(`/api/gallery/photos?page=${state.page}&per=${state.per}`, window.location.origin);
+      const resp = await fetch(url);
+      const data = await resp.json();
+
+      const batch = Array.isArray(data.items) ? data.items : [];
+      if (batch.length === 0) {
+        state.done = true;
+        sentinel.textContent = "Fin de la galerie";
+        return;
+      }
+
+      // concat au modèle
+      state.items = state.items.concat(batch);
+      appendItems(batch);
+
+      state.page += 1;
+      if (data.has_more === false) {
+        state.done = true;
+        sentinel.textContent = "Fin de la galerie";
+      } else {
+        sentinel.textContent = "Descends pour charger la suite…";
+      }
+    } catch (e) {
+      sentinel.textContent = "Erreur de chargement";
+    } finally {
+      state.loading = false;
+    }
+  }
+
+  // IntersectionObserver pour lazy-load
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) loadNext();
+    });
+  }, { rootMargin: '600px 0px' });
+  io.observe(sentinel);
+
+  // Toggle group
+  document.getElementById('toggleGroup').addEventListener('change', (e) => {
+    state.grouped = !!e.target.checked;
+    state.groupOrder = [];
+    // Re-render simple: on vide et on rejoue items
+    grid.innerHTML = '';
+    appendItems(state.items);
+  });
+
+})();
+</script>
+</body>
+</html>

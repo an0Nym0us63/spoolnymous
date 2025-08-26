@@ -162,7 +162,7 @@
     <small id="cname-{{ pid }}" class="caption-badge text-center">3mf</small>
 
     <button type="button" class="btn btn-gallery position-absolute end-0 me-2"
-            onclick='openGalleryFromEntry({{ (entry.images or [])|tojson }}, {{ (entry.file_name or ("Grope #" ~ entry.id))|tojson }})'
+            onclick='openGalleryFromEntry({{ (entry.images or [])|tojson }}, {{ (entry.name or ("Groupe #" ~ entry.id))|tojson }})'
             title="Ouvrir la galerie">
       🖼
     </button>
