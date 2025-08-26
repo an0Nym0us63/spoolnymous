@@ -1890,7 +1890,7 @@ def _item_title(entity: str, entity_id: int) -> str:
         if entity == "prints":
             # essaie colonnes probables
             cur.execute("""
-                SELECT COALESCE(file_name, original_name, '') as name
+                SELECT file_name as name
                 FROM prints
                 WHERE id = ?
             """, (entity_id,))
@@ -1899,11 +1899,8 @@ def _item_title(entity: str, entity_id: int) -> str:
                 title = row["name"]
         elif entity == "groups":
             # essaie print_groups d’abord, puis groups
-            cur.execute("SELECT COALESCE(label, name, '') as name FROM print_groups WHERE id = ?", (entity_id,))
+            cur.execute("SELECT name as name FROM print_groups WHERE id = ?", (entity_id,))
             row = cur.fetchone()
-            if not (row and row["name"]):
-                cur.execute("SELECT COALESCE(label, name, '') as name FROM groups WHERE id = ?", (entity_id,))
-                row = cur.fetchone()
             if row and row["name"]:
                 title = row["name"]
     except Exception:
