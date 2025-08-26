@@ -540,38 +540,55 @@
 document.addEventListener('DOMContentLoaded', function () {
 (function(){
   let filamentModal, manufacturerTS, materialTS;
+  // ✅ empêche de ré-attacher/initialiser à chaque open
+  let modalInitDone = false;
 
   function initModal(){
     const el = document.getElementById('filamentModal');
     if (!el) return;
     filamentModal = filamentModal || new bootstrap.Modal(el);
 
+    // ✅ si déjà initialisée, on ne refait pas TomSelect ni les listeners
+    if (modalInitDone) return;
+
     // Options pour selects => construits depuis les sets backend
     const manufacturers = [{% for m in (all_manufacturers or [])|sort %}{value: "{{ m|e }}", text: "{{ m|e }}"},{% endfor %}];
-    const materials = [{% for m in (all_materials or [])|sort %}{value: "{{ m|e }}", text: "{{ m|e }}"},{% endfor %}];
+    const materials    = [{% for m in (all_materials or [])|sort %}{value: "{{ m|e }}", text: "{{ m|e }}"},{% endfor %}];
 
-    function ensureTomSelect(id, options){
+    // ⬇⬇⬇ REPLACE ensureTomSelect PAR CETTE VERSION
+    function ensureTomSelect(idOrEl, options){
+      const el = (typeof idOrEl === 'string') ? document.getElementById(idOrEl) : idOrEl;
+      if (!el) return null;
+
       if (window.TomSelect){
-        return new TomSelect('#'+id, {
+        // déjà TomSelect ? → on met à jour les options, pas de re-init
+        if (el.tomselect){
+          el.tomselect.clearOptions();
+          el.tomselect.addOptions(options || []);
+          el.tomselect.refreshOptions(false);
+          return el.tomselect;
+        }
+        // première init
+        return new TomSelect(el, {
           create: true,
           persist: false,
           maxItems: 1,
-          searchField: ['text', 'value'],
-          sortField: {field: 'text', direction: 'asc'},
-          options
+          searchField: ['text','value'],
+          sortField: { field:'text', direction:'asc' },
+          options: options || []
         });
       } else {
-        const sel = document.getElementById(id);
-        sel.innerHTML = '';
-        options.forEach(o=>{
+        // fallback natif
+        el.innerHTML = '';
+        (options || []).forEach(o=>{
           const opt = document.createElement('option');
-          opt.value = o.value;
-          opt.textContent = o.text;
-          sel.appendChild(opt);
+          opt.value = o.value; opt.textContent = o.text;
+          el.appendChild(opt);
         });
-        return null; // fallback simple
+        return null;
       }
     }
+    // ⬆⬆⬆ FIN REMPLACEMENT
 
 manufacturerTS = ensureTomSelect('manufacturer', manufacturers);
 materialTS = ensureTomSelect('material', materials);
