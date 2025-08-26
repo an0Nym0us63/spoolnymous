@@ -94,9 +94,19 @@
   </li>
   <!-- <li class="nav-item">
     <a href="{{ url_for('assign_tag') }}" class="nav-link">📛 Assign NFC Tag</a>
-  </li>-->
+  </li>-->  <li class="nav-item dropdown">
+    <a class="nav-link dropdown-toggle" href="#" id="filamentsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+      🖨️ Impressions
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filamentsDropdown">
+      
   <li class="nav-item">
-    <a href="{{ url_for('print_history') }}" class="nav-link">🖨️ Impressions</a>
+    <a href="{{ url_for('print_history') }}" class="nav-link">🖨️ Historique</a>
+  </li>
+<li class="nav-item">
+  <a href="{{ url_for('gallery_all') }}" class="nav-link">🖼️ Galerie</a>
+</li>
+    </ul>
   </li>
   {# --- MENU FILAMENTS : Catalogue + Bobines --- #}
   <li class="nav-item dropdown">
@@ -163,9 +173,6 @@
     <a href="#" class="nav-link" onclick="openNativeSettings()">📱 Mobile</a>
   </li>
 {% endif %}
-<li class="nav-item">
-  <a href="{{ url_for('gallery_all') }}" class="nav-link">🖼️ Galerie</a>
-</li>
 </ul>
 
       </div>
