@@ -635,7 +635,7 @@ def attach_spool_counts(filaments: list[dict]) -> list[dict]:
         """.format(seq=", ".join(["?"] * len(ids)))
         cur.execute(query, ids)
 
-        counts = {row["filament_id"]: row for row in cur.fetchall()}
+        counts = {row["filament_id"]: dict(row) for row in cur.fetchall()}
 
     for f in filaments:
         fid = int(f.get("id")) if isinstance(f, dict) else int(getattr(f, "id"))
