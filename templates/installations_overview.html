@@ -46,43 +46,33 @@
 
 {% block styles %}
 <style>
-  .overview-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3 colonnes par défaut */
-    gap: 16px;
-  }
-  @media (max-width: 1200px) {
-    .overview-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 768px) {
-    .overview-grid { grid-template-columns: 1fr; }
-  }
+.overview-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important; /* 3 colonnes égales */
+  gap: 16px;
+}
 
-  .overview-tile {
-    border-radius: 12px;
-    background: #fff;
-    box-shadow: 0 2px 6px rgba(0,0,0,.08);
-    overflow: hidden;
-  }
+@media (max-width: 1200px) {
+  .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
 
-  .overview-title {
-    font-weight: 600;
-    font-size: .95rem;
-    max-width: 70%;
-  }
+@media (max-width: 768px) {
+  .overview-grid { grid-template-columns: 1fr !important; }
+}
 
-  .overview-img {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    display: block;
-    background: #f5f5f5;
-    border-bottom: 1px solid #eee;
-  }
+/* Contraindre les tuiles */
+.overview-tile {
+  width: auto !important;   /* on écrase width:100% de .card */
+  margin-bottom: 16px;      /* 👉 espacement sous chaque tuile */
+}
 
-  .overview-info {
-    font-size: .9rem;
-  }
+/* Image contrainte */
+.overview-img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
 </style>
 {% endblock %}
 
