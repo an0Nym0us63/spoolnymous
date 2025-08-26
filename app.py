@@ -25,7 +25,7 @@ import subprocess
 import tempfile
 
 from flask_login import LoginManager, login_required
-from auth import auth_bp, User, get_stored_user
+from auth import auth_bp, User, get_stored_user,_is_guest_token_valid
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -2949,20 +2949,39 @@ def api_gallery_photos():
         "has_more": end < total,
     })
 
-@app.route("/api/public/snapshot", methods=["GET"])
-def public_snapshot():
+@app.route("/api/public/overview", methods=["GET"])
+def public_overview():
     token = request.args.get("token", "")
-    if not validate_guest_token(token):
+    if not _is_guest_token_valid(token):
         return abort(403)
-    return camera_snapshot()  # réutilise la route existante
 
-@app.route("/api/public/status", methods=["GET"])
-def public_status():
-    token = request.args.get("token", "")
-    if not validate_guest_token(token):
-        return abort(403)
-    return jsonify(api_printer_status())
+    # snapshot actuel (image base64 ou URL ou non inclus si trop lourd)
+    snapshot_url = url_for("camera_snapshot")  # ou None si on n’inclut pas l’image
 
+    # status simplifié
+    status = api_printer_status()
+    filtered_status = {
+        "printName": status.get("printName"),
+        "estimated_end": status.get("estimated_end"),
+        "progress": status.get("progress"),
+        "snapshot_url": snapshot_url  # ou base64 directement (plus lourd)
+    }
+
+    return jsonify(filtered_status)
+    
+@app.route("/api/public/overview", methods=["GET"])
+def local_overview():
+    # Pas de token ici : accès direct car local
+    snapshot_url = url_for("camera_snapshot")
+    status = api_printer_status()
+
+    return jsonify({
+        "snapshot_url": snapshot_url,
+        "printName": status.get("printName"),
+        "estimated_end": status.get("estimated_end"),
+        "progress": status.get("progress")
+    })
+    
 @app.route("/installations")
 def installations_overview():
     installations = load_installations()
@@ -2972,7 +2991,7 @@ def installations_overview():
         full_url = inst.get("guest_url", "").rstrip("/")
         name = inst.get("label", "Sans nom")
 
-        # On attend une URL du type https://.../guest/<token>
+        # URL attendue : https://.../guest/<token>
         if "/guest/" not in full_url:
             continue
 
@@ -2981,17 +3000,18 @@ def installations_overview():
             base_url = base_url.rstrip("/")
             token = token.strip()
         except ValueError:
-            continue  # format invalide
+            continue
 
         remote_installations.append({
             "name": name,
-            "snapshot_url": f"{base_url}/api/public/snapshot?token={token}",
-            "status_url": f"{base_url}/api/public/status?token={token}"
+            "overview_url": f"{base_url}/api/public/overview?token={token}"
         })
+
     return render_template(
         "installations_overview.html",
         remote_installations=remote_installations,
-        page_title="Installations"
+        page_title="Installations",
+        local_overview_url=url_for("local_overview") 
     )
 
 app.register_blueprint(auth_bp)

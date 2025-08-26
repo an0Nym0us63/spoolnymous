@@ -2,31 +2,33 @@
 
 {% block content %}
 <div class="container">
-  <div class="grid" id="tiles">
+  <div class="tile-grid" id="tiles">
     <!-- Tuile locale -->
-    <div class="tile" data-name="Installation locale"
-         data-snapshot="{{ url_for('camera_snapshot') }}"
-         data-status="{{ url_for('api_printer_status') }}">
-      <h2>Installation locale</h2>
-      <img src="{{ url_for('camera_snapshot') }}" alt="Snapshot local">
-      <div class="status">
-        <strong>Nom impression :</strong> <span class="printName">...</span><br>
-        <strong>Fin estimée :</strong> <span class="estimated_end">...</span><br>
-        <strong>Progression :</strong> <span class="progress">...</span>
+    <div class="tile" data-overview="{{ local_overview_url }}">
+      <div class="tile-header">Locale</div>
+      <img src="" alt="Snapshot local" class="tile-img">
+      <div class="tile-info">
+        <div><strong>Impression :</strong> <span class="printName">—</span></div>
+        <div><strong>Fin estimée :</strong> <span class="estimated_end">—</span></div>
+        <div class="progress-container">
+          <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+          <span class="progress-label">0%</span>
+        </div>
       </div>
     </div>
 
     <!-- Tuiles distantes -->
     {% for inst in remote_installations %}
-    <div class="tile" data-name="{{ inst.name }}"
-         data-snapshot="{{ inst.snapshot_url }}"
-         data-status="{{ inst.status_url }}">
-      <h2>{{ inst.name }}</h2>
-      <img src="{{ inst.snapshot_url }}" alt="Snapshot {{ inst.name }}">
-      <div class="status">
-        <strong>Nom impression :</strong> <span class="printName">...</span><br>
-        <strong>Fin estimée :</strong> <span class="estimated_end">...</span><br>
-        <strong>Progression :</strong> <span class="progress">...</span>
+    <div class="tile" data-overview="{{ inst.overview_url }}">
+      <div class="tile-header">{{ inst.name }}</div>
+      <img src="" alt="Snapshot {{ inst.name }}" class="tile-img">
+      <div class="tile-info">
+        <div><strong>Impression :</strong> <span class="printName">—</span></div>
+        <div><strong>Fin estimée :</strong> <span class="estimated_end">—</span></div>
+        <div class="progress-container">
+          <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+          <span class="progress-label">0%</span>
+        </div>
       </div>
     </div>
     {% endfor %}
@@ -36,48 +38,67 @@
 
 {% block styles %}
 <style>
-  .grid {
+  .tile-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1em;
-    align-items: start;
   }
 
   .tile {
     background: white;
     border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     overflow: hidden;
     display: flex;
     flex-direction: column;
     text-align: center;
-  }
-
-  .tile h2 {
-    margin: 0;
-    padding: 0.4em;
-    font-size: 1rem;
-    background: #007BFF;
-    color: white;
-  }
-
-  .tile img {
-    width: 100%;
-    max-width: 240px;
-    height: auto;
-    display: block;
-    margin: 0 auto;
-    object-fit: contain;
-  }
-
-  .status {
     padding: 0.5em;
-    font-family: sans-serif;
+  }
+
+  .tile-header {
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 0.3em;
+    color: #007BFF;
+  }
+
+  .tile-img {
+    max-width: 100%;
+    max-height: 160px;
+    object-fit: contain;
+    margin: 0 auto 0.5em;
+    border: 1px solid #eee;
+    border-radius: 4px;
+  }
+
+  .tile-info {
     font-size: 0.85em;
-    background: #f9f9f9;
-    border-top: 1px solid #ddd;
-    line-height: 1.4;
     text-align: left;
+  }
+
+  .progress-container {
+    margin-top: 0.5em;
+  }
+
+  .progress-bar {
+    height: 10px;
+    background: #e0e0e0;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #28a745;
+    width: 0%;
+  }
+
+  .progress-label {
+    display: block;
+    text-align: right;
+    font-size: 0.75em;
+    color: #444;
+    margin-top: 0.2em;
   }
 </style>
 {% endblock %}
@@ -86,25 +107,25 @@
 <script>
   function refreshTiles() {
     document.querySelectorAll('.tile').forEach(tile => {
-      const snapshot = tile.dataset.snapshot;
-      const status = tile.dataset.status;
+      const url = tile.dataset.overview;
       const img = tile.querySelector('img');
 
-      // Snapshot (forcé sans cache)
-      img.src = snapshot + (snapshot.includes("?") ? "&" : "?") + "_=" + Date.now();
-
-      // Status
-      fetch(status)
+      fetch(url)
         .then(resp => resp.json())
         .then(data => {
+          img.src = data.snapshot_url + "&_=" + Date.now();
           tile.querySelector(".printName").textContent = data.printName || "—";
           tile.querySelector(".estimated_end").textContent = data.estimated_end || "—";
-          tile.querySelector(".progress").textContent = (data.progress !== undefined ? data.progress + "%" : "—");
+
+          const percent = data.progress || 0;
+          tile.querySelector(".progress-fill").style.width = percent + "%";
+          tile.querySelector(".progress-label").textContent = percent + "%";
         })
         .catch(err => {
           tile.querySelector(".printName").textContent = "Erreur";
           tile.querySelector(".estimated_end").textContent = "Erreur";
-          tile.querySelector(".progress").textContent = "Erreur";
+          tile.querySelector(".progress-fill").style.width = "0%";
+          tile.querySelector(".progress-label").textContent = "Erreur";
         });
     });
   }
