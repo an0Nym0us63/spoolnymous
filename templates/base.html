@@ -433,7 +433,8 @@ document.addEventListener('click', async (e) => {
   } catch (err) {
     console.error('Suppression: erreur', err);
   }
-});window.openGalleryFromEntry = function(images, title) {
+});
+window.openGalleryFromEntry = function(images, title) {
   try {
     const mapped = (images || [])
       .filter(Boolean)
