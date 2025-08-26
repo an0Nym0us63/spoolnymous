@@ -48,22 +48,24 @@
 <style>
 .overview-grid {
   display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important; /* 3 colonnes égales */
+  grid-template-columns: repeat(3, 1fr) !important; /* 3 colonnes */
   gap: 16px;
 }
 
 @media (max-width: 1200px) {
-  .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .overview-grid { grid-template-columns: repeat(2, 1fr) !important; }
 }
 
 @media (max-width: 768px) {
   .overview-grid { grid-template-columns: 1fr !important; }
 }
 
-/* Contraindre les tuiles */
 .overview-tile {
-  width: auto !important;   /* on écrase width:100% de .card */
-  margin-bottom: 16px;      /* 👉 espacement sous chaque tuile */
+  width: auto !important;      /* 👉 on casse le width:100% de .card */
+  max-width: 100% !important;  /* 👉 évite que ça dépasse */
+  margin-bottom: 16px;         /* 👉 espace entre les lignes */
+  display: flex;
+  flex-direction: column;
 }
 
 /* Image contrainte */
