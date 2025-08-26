@@ -123,7 +123,7 @@
   function parseImagesFromQuery() {
     try {
       const p = new URLSearchParams(location.search);
-      const raw = p.get('imgs');
+      const raw = p.get('images');
       if (!raw) return null;
       const arr = JSON.parse(decodeURIComponent(raw));
       if (!Array.isArray(arr)) return null;
