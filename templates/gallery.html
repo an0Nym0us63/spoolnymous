@@ -77,13 +77,6 @@
   </style>
 {% endblock %}
 
-  {% if images %}
-  <script>
-    // Pré-injecte côté serveur si fourni
-    window.__IMAGES__ = {{ images|tojson }};
-    {% if title %}window.__TITLE__ = {{ title|tojson }};{% endif %}
-  </script>
-  {% endif %}
 {% block content %}
 
 
@@ -115,6 +108,14 @@
 
 {% block scripts %}
 {{ super() }}
+
+  {% if images %}
+  <script>
+    // Pré-injecte côté serveur si fourni
+    window.__IMAGES__ = {{ images|tojson }};
+    {% if title %}window.__TITLE__ = {{ title|tojson }};{% endif %}
+  </script>
+  {% endif %}
 <script>
 (function(){
   // Parse source images: Jinja -> window.__IMAGES__ OU ?imgs=JSON
