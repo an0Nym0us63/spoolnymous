@@ -513,7 +513,7 @@ def ui_update_filament(filament_id: int, payload: dict) -> None:
                    name = ?, manufacturer = ?, material = ?,
                    multicolor_type = ?, color = ?, colors_array = ?,
                    filament_weight_g = ?, spool_weight_g = ?, profile_id = ?, comment = ?,
-                   price = ?, transparent
+                   price = ?, transparent =?
              WHERE id = ?
         """, (now, name, manufacturer, material,
               multicolor_type, color, colors_csv,
