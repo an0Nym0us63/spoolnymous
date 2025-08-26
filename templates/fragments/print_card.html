@@ -221,13 +221,13 @@
             loading="lazy"
           >
         </div>
-<div class="text-center mt-1">
-  <small class="caption-badge">{{ img.name }}</small>
-  <button type="button" class="btn btn-outline-light btn-sm"
+  <div class="text-center mt-1 d-flex flex-column align-items-center gap-1">
+    <small class="caption-badge">{{ img.name }}</small>
+    <button type="button" class="btn btn-outline-light btn-sm"
             onclick="openGalleryFromEntry({{ print.images|tojson }}, '{{ print.file_name or ('Print #' ~ print.id) }}')">
       🖼 Galerie
     </button>
-</div>
+  </div>
       </div>
     {% endfor %}
 
