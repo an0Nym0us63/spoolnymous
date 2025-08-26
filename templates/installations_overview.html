@@ -1,11 +1,15 @@
 {% extends "base.html" %}
 
+{% block title %}Installations{% endblock %}
+
 {% block content %}
 <div class="container">
+  <h1 class="my-3">Vue des installations</h1>
+
   <div class="tile-grid" id="tiles">
     <!-- Tuile locale -->
     <div class="tile" data-overview="{{ local_overview_url }}">
-      <div class="tile-header">Locale</div>
+      <div class="tile-header">Installation locale</div>
       <img src="" alt="Snapshot local" class="tile-img">
       <div class="tile-info">
         <div><strong>Impression :</strong> <span class="printName">—</span></div>
@@ -41,96 +45,126 @@
   .tile-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1em;
+    gap: 12px;
+    align-items: start;
   }
-
   .tile {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    text-align: center;
-    padding: 0.5em;
+    padding: 8px;
   }
-
   .tile-header {
-    font-weight: bold;
-    font-size: 1rem;
-    margin-bottom: 0.3em;
-    color: #007BFF;
+    font-weight: 600;
+    font-size: .95rem;
+    color: #0d6efd;
+    text-align: center;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-
   .tile-img {
-    max-width: 100%;
+    width: 100%;
     max-height: 160px;
     object-fit: contain;
-    margin: 0 auto 0.5em;
     border: 1px solid #eee;
-    border-radius: 4px;
+    border-radius: 6px;
+    background: #fafafa;
   }
-
   .tile-info {
-    font-size: 0.85em;
-    text-align: left;
+    font-size: .85rem;
+    margin-top: 8px;
   }
-
   .progress-container {
-    margin-top: 0.5em;
+    margin-top: 6px;
   }
-
   .progress-bar {
     height: 10px;
-    background: #e0e0e0;
-    border-radius: 5px;
+    background: #e9ecef;
+    border-radius: 6px;
     overflow: hidden;
   }
-
   .progress-fill {
     height: 100%;
-    background: #28a745;
     width: 0%;
+    background: #28a745;
+    transition: width .25s ease;
   }
-
   .progress-label {
     display: block;
     text-align: right;
-    font-size: 0.75em;
-    color: #444;
-    margin-top: 0.2em;
+    font-size: .75rem;
+    color: #555;
+    margin-top: 3px;
   }
 </style>
 {% endblock %}
 
 {% block scripts %}
 <script>
+  const FALLBACK_SVG =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="320" height="180">
+        <rect width="100%" height="100%" fill="#f0f0f0"/>
+        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+              font-family="sans-serif" font-size="14" fill="#888">
+          Snapshot indisponible
+        </text>
+      </svg>`);
+
+  function clamp01to100(v) {
+    // accepte 0..1 ou 0..100 et renvoie 0..100
+    if (v == null || isNaN(v)) return 0;
+    const n = Number(v);
+    if (n <= 1 && n >= 0) return Math.round(n * 100);
+    return Math.max(0, Math.min(100, Math.round(n)));
+  }
+
+  function resolveUrl(possiblyRelative, base) {
+    try { return new URL(possiblyRelative, base).toString(); }
+    catch { return possiblyRelative; }
+  }
+
   function refreshTiles() {
     document.querySelectorAll('.tile').forEach(tile => {
-      const url = tile.dataset.overview;
-      const img = tile.querySelector('img');
+      const overviewUrl = tile.dataset.overview;
+      const img = tile.querySelector('.tile-img');
 
-      fetch(url)
-        .then(resp => resp.json())
+      fetch(overviewUrl, { cache: 'no-store' })
+        .then(r => r.json())
         .then(data => {
-          img.src = data.snapshot_url + "&_=" + Date.now();
-          tile.querySelector(".printName").textContent = data.printName || "—";
-          tile.querySelector(".estimated_end").textContent = data.estimated_end || "—";
+          // Résoudre snapshot_url relatif si besoin, puis anticache
+          if (data.snapshot_url) {
+            let snap = resolveUrl(data.snapshot_url, overviewUrl);
+            snap += (snap.includes('?') ? '&' : '?') + '_=' + Date.now();
+            img.src = snap;
+          } else {
+            img.src = FALLBACK_SVG;
+          }
 
-          const percent = data.progress || 0;
-          tile.querySelector(".progress-fill").style.width = percent + "%";
-          tile.querySelector(".progress-label").textContent = percent + "%";
+          tile.querySelector('.printName').textContent = data.printName || '—';
+          tile.querySelector('.estimated_end').textContent = data.estimated_end || '—';
+
+          const p = clamp01to100(data.progress);
+          tile.querySelector('.progress-fill').style.width = p + '%';
+          tile.querySelector('.progress-label').textContent = p + '%';
         })
-        .catch(err => {
-          tile.querySelector(".printName").textContent = "Erreur";
-          tile.querySelector(".estimated_end").textContent = "Erreur";
-          tile.querySelector(".progress-fill").style.width = "0%";
-          tile.querySelector(".progress-label").textContent = "Erreur";
+        .catch(() => {
+          img.src = FALLBACK_SVG;
+          tile.querySelector('.printName').textContent = 'Erreur';
+          tile.querySelector('.estimated_end').textContent = 'Erreur';
+          tile.querySelector('.progress-fill').style.width = '0%';
+          tile.querySelector('.progress-label').textContent = '—';
         });
     });
   }
 
-  setInterval(refreshTiles, 5000);
   refreshTiles();
+  setInterval(refreshTiles, 5000);
 </script>
 {% endblock %}
