@@ -44,9 +44,9 @@
 </div>
 {% endblock %}
 
-{% block page_styles %}
+{% block page_block styles %}
 <style>
-/* Forcer le parent en GRID malgré les styles globaux */
+/* Forcer le parent en GRID malgré les block styles globaux */
 #tiles.overview-grid {
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important; /* 3 tuiles par ligne */
