@@ -350,7 +350,33 @@ app.config.update(
     SESSION_COOKIE_SECURE=True             # requis avec SameSite=None
 )
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+ALLOWED_GUEST_ORIGINS = None
+def _corsify(resp):
+    origin = request.headers.get("Origin")
+    if ALLOWED_GUEST_ORIGINS is None:
+        # renvoie l'origin appelant (ou * si absent)
+        resp.headers["Access-Control-Allow-Origin"] = origin or "*"
+        resp.headers["Vary"] = "Origin"
+    else:
+        if origin in ALLOWED_GUEST_ORIGINS:
+            resp.headers["Access-Control-Allow-Origin"] = origin
+            resp.headers["Vary"] = "Origin"
+    resp.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    return resp
 
+@app.after_request
+def _add_cors_headers(resp):
+    # N’applique le CORS que sur les endpoints publics
+    if request.path.startswith("/api/public/"):
+        resp = _corsify(resp)
+    return resp
+
+# Gérer les pré-vols (OPTIONS) pour les endpoints publics
+@app.route("/api/public/<path:subpath>", methods=["OPTIONS"])
+def _public_options(subpath):
+    return _corsify(make_response("", 204))
+    
 def _static_asset_url(filename: str) -> str:
     """Retourne url_for('static', filename=..., v=<hash court>) basé sur le contenu du fichier."""
     static_folder = Path(app.static_folder or "static")
