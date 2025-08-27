@@ -62,15 +62,36 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 .lb-nav{ position:fixed; inset:0; display:flex; align-items:center; justify-content:space-between; pointer-events:none; }
 .lb-nav .btn{ pointer-events:all; border-radius:999px; }
 
-/* Grille mobile : 3 colonnes */
+/* === Mobile : 2 colonnes propres (≤ 576px) ================================ */
 @media (max-width: 576px){
+  /* Grille : 2 colonnes fixes, gouttière compacte */
   .g-grid{
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: .6rem;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: .75rem !important;
   }
-  .meta-line{ min-height:22px; }
-  .album-title{ font-size:.78rem; }
-  .album-count{ font-size:.68rem; padding:.1rem .35rem; }
+
+  /* Tuile : carré, coins identiques, pas d’overflow */
+  .patchwork{
+    aspect-ratio: 1 / 1;
+    border-radius: .65rem;
+  }
+
+  /* Ligne méta compacte et monoligne */
+  .meta-line{ min-height: 22px; }
+  .album-title{
+    font-size: .85rem;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .album-count{
+    font-size: .7rem;
+    padding: .1rem .35rem;
+  }
+
+  /* Petit “lift” au survol : inutile en mobile → on neutralise */
+  .album-card:hover .patchwork{ transform: none; }
 }
 </style>
 {% endblock %}
