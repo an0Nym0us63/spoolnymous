@@ -25,46 +25,47 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 .album-card{ cursor:pointer; }
 .meta-line{ min-height:28px; }
 
-/* Patchwork (jusqu’à 4 vignettes) */
+/* --- PATCHWORK: version blindée --- */
 .patchwork{
-  position:relative; width:100%; padding-top:100%;
-  background:#f5f5f5; border-radius:.75rem; overflow:hidden;
-  box-shadow:0 1px 3px rgba(0,0,0,.08);
+  position: relative;
+  width: 100%;
+  padding-top: 100%;          /* carré */
+  background: #f5f5f5;
+  border-radius: .75rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
 }
 
-/* Patchwork (jusqu’à 4 vignettes) */
-.patchwork{
-  position:relative;
-  width:100%; padding-top:100%;
-  background:#f5f5f5; border-radius:.75rem; overflow:hidden;
-  box-shadow:0 1px 3px rgba(0,0,0,.08);
-}
+/* reset agressif (si une vieille règle traîne encore) */
+.patchwork img{ all: unset; display: block; }
 
-/* Reset agressif pour neutraliser d’anciens styles éventuels */
-.patchwork img{ all:unset; display:block; }
+/* base obligatoire + !important pour écraser tout */
 .patchwork .pw-i{
-  position:absolute; top:0; left:0;
-  width:100%; height:100%;
-  object-fit:cover;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
 }
 
-/* 1 image (plein cadre) */
-.pw-1-1{ /* full, hérite de .pw-i */ }
+/* 1 image = plein cadre */
+.patchwork .pw-1-1 { /* hérite de .pw-i */ }
 
-/* 2 images : split vertical */
-.pw-2-1{ width:50%; height:100%; left:0; top:0; }
-.pw-2-2{ width:50%; height:100%; left:auto; right:0; top:0; }
+/* 2 images = split vertical 50/50 */
+.patchwork .pw-2-1 { left: 0 !important;      top: 0 !important; width: 50% !important; height: 100% !important; }
+.patchwork .pw-2-2 { left: 50% !important;    top: 0 !important; width: 50% !important; height: 100% !important; }
 
-/* 3 images : 2 en haut, 1 en bas */
-.pw-3-1{ width:50%; height:50%; left:0; top:0; }
-.pw-3-2{ width:50%; height:50%; left:auto; right:0; top:0; }
-.pw-3-3{ width:100%; height:50%; left:0; top:auto; bottom:0; }
+/* 3 images = 2 en haut, 1 en bas */
+.patchwork .pw-3-1 { left: 0 !important;      top: 0 !important; width: 50% !important; height: 50% !important; }
+.patchwork .pw-3-2 { left: 50% !important;    top: 0 !important; width: 50% !important; height: 50% !important; }
+.patchwork .pw-3-3 { left: 0 !important;      top: 50% !important; width: 100% !important; height: 50% !important; }
 
-/* 4 images : quadrillage 2x2 */
-.pw-4-1{ width:50%; height:50%; left:0; top:0; }
-.pw-4-2{ width:50%; height:50%; left:auto; right:0; top:0; }
-.pw-4-3{ width:50%; height:50%; left:0; top:auto; bottom:0; }
-.pw-4-4{ width:50%; height:50%; left:auto; right:0; top:auto; bottom:0; }
+/* 4 images = quadrillage 2x2 */
+.patchwork .pw-4-1 { left: 0 !important;      top: 0 !important; width: 50% !important; height: 50% !important; }
+.patchwork .pw-4-2 { left: 50% !important;    top: 0 !important; width: 50% !important; height: 50% !important; }
+.patchwork .pw-4-3 { left: 0 !important;      top: 50% !important; width: 50% !important; height: 50% !important; }
+.patchwork .pw-4-4 { left: 50% !important;    top: 50% !important; width: 50% !important; height: 50% !important; }
 
 /* Lightbox custom */
 .lightbox{ position:fixed; inset:0; z-index:2000; display:none; background:rgba(0,0,0,.92); }
