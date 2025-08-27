@@ -191,25 +191,21 @@ sentinel.empty{ color:var(--bs-secondary-color); }
 
 {% block content %}
 <main class="gallery-page">
-  <div class="container py-3">
-
-    <!-- BARRE DE RECHERCHE STICKY -->
-    <div class="search-stick">
-  <div class="search-inner">
-    <div class="input-group search-input">
-      <span class="input-group-text"><i class="bi bi-search"></i></span>
+  <!-- Search bar sticky -->
+  <div id="searchBar" class="search-bar">
+    <div class="input-group">
+      <span class="input-group-text bg-dark-subtle"><i class="bi bi-search"></i></span>
       <input id="q" type="search" class="form-control" placeholder="Rechercher un print, un groupe, un tag…">
       <button id="qClear" class="btn btn-outline-secondary" type="button" title="Effacer">
         <i class="bi bi-x-lg"></i>
       </button>
     </div>
   </div>
-</div>
 
-    <!-- GALERIE -->
+  <!-- Gallery -->
+  <div class="container py-3">
     <div id="grid" class="g-grid"></div>
     <div id="sentinel" class="py-4 text-center text-secondary">Chargement…</div>
-
   </div>
 </main>
 
