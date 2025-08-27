@@ -799,7 +799,7 @@ def home():
         status_copy["thumbnail"] = None
         status_copy["printName"] = None
     # Nouveau : si ?webview=1 → on met le cookie
-    logger.debug(str(ams_data))
+    logger.debug(json.dumps(ams_data))
     resp = make_response(render_template(
         'index.html',
         success_message=success_message,
