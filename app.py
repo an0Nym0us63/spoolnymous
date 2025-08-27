@@ -761,6 +761,7 @@ def home():
     spool_list = fetch_spools()
     success_message = request.args.get("success_message")
     
+    logger.debug(json.dumps(ams_data))
     issue = False
     #TODO: Fix issue when external spool info is reset via bambulab interface
     augmentTrayData(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID))
@@ -799,7 +800,6 @@ def home():
         status_copy["thumbnail"] = None
         status_copy["printName"] = None
     # Nouveau : si ?webview=1 → on met le cookie
-    logger.debug(json.dumps(ams_data))
     resp = make_response(render_template(
         'index.html',
         success_message=success_message,
