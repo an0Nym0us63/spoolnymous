@@ -735,7 +735,6 @@ def safe_update_status(data):
                 layer = int(layer_raw)
 
         st = _state(job_id)
-        logger.debug(f"[milestones] job={job_id} parsed prog={prog} layer={layer} state_init={st}")
         # Nouveau run ?
         _maybe_reset_state_for_new_print(job_id, st, fields)
 
@@ -753,7 +752,6 @@ def safe_update_status(data):
         )
         if is_mid_print_attach and not st.get("_skip_below_done"):
             _mark_skip_below_current(job_id, st, prog, layer)
-        logger.debug(f"[milestones] job={job_id} after reset/skip st={st}")
         # 1) Milestones % : 50 / 99 / 100
         if prog is not None and 0.0 <= prog <= 100.0:
             # Calcul des paliers à tirer (en évitant ceux déjà marqués true)
