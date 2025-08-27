@@ -154,6 +154,47 @@ sentinel.empty{ color:var(--bs-secondary-color); }
   backdrop-filter: blur(6px);
   border-bottom: 1px solid rgba(255,255,255,.1);
 }
+/* Sticky propre sous la navbar */
+.search-stick{
+  position: sticky;
+  top: calc(var(--navbar-h, 56px) + .5rem); /* offset dynamique */
+  z-index: 1020;                            /* sous la navbar (1030) */
+  /* aucun fond plein => pas de gros rectangle gris */
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--bs-body-bg) 90%, transparent) 0%,
+    transparent 100%
+  );
+  backdrop-filter: blur(4px);
+  margin-bottom: .5rem;
+}
+
+/* centrage et largeur contrôlée */
+.search-inner{
+  display: flex;
+  justify-content: center;
+}
+.search-input{
+  width: min(720px, 100%); /* max 720px, sinon prend toute la largeur dispo */
+}
+
+/* look de l’input group (sobriété, pas de gros aplat) */
+.search-input .input-group-text{
+  background: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
+}
+.search-input .form-control{
+  background: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
+}
+.search-input .btn{
+  border-color: var(--bs-border-color);
+}
+
+/* Mobile : pleine largeur */
+@media (max-width: 576px){
+  .search-input{ width: 100%; }
+}
 </style>
 {% endblock %}
 
@@ -162,15 +203,17 @@ sentinel.empty{ color:var(--bs-secondary-color); }
   <div class="container py-3">
 
     <!-- BARRE DE RECHERCHE STICKY -->
-    <div class="search-bar sticky-top bg-body py-2 mb-3">
-      <div class="d-flex justify-content-center">
-        <div class="input-group" style="max-width: 480px;">
-          <span class="input-group-text bg-dark-subtle"><i class="bi bi-search"></i></span>
-          <input id="q" type="search" class="form-control" placeholder="Rechercher un print, un groupe, un tag…">
-          <button id="qClear" class="btn btn-outline-secondary" type="button" title="Effacer"><i class="bi bi-x-lg"></i></button>
-        </div>
-      </div>
+    <div class="search-stick">
+  <div class="search-inner">
+    <div class="input-group search-input">
+      <span class="input-group-text"><i class="bi bi-search"></i></span>
+      <input id="q" type="search" class="form-control" placeholder="Rechercher un print, un groupe, un tag…">
+      <button id="qClear" class="btn btn-outline-secondary" type="button" title="Effacer">
+        <i class="bi bi-x-lg"></i>
+      </button>
     </div>
+  </div>
+</div>
 
     <!-- GALERIE -->
     <div id="grid" class="g-grid"></div>
@@ -200,6 +243,15 @@ sentinel.empty{ color:var(--bs-secondary-color); }
 {% block scripts %}
 {{ super() }}
 <script>
+(function setNavbarOffset(){
+  const nav = document.querySelector('.navbar');
+  const apply = () => {
+    const h = nav ? nav.offsetHeight : 56;
+    document.documentElement.style.setProperty('--navbar-h', `${h}px`);
+  };
+  apply();
+  window.addEventListener('resize', apply, { passive: true });
+})();
 // === ÉTAT & DOM ==============================================================
 const grid = document.getElementById('grid');
 const sentinel = document.getElementById('sentinel');
