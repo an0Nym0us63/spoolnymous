@@ -64,6 +64,13 @@
     :root { --thumb-size: 140px; }
     .lb-index { display: none; }
   }
+.album-card{ width:220px; cursor:pointer; }
+.album-photos{ display:none; }
+.album-photos.show{ display:block; }
+.album-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:.5rem; }
+.album-grid .thumb{ display:block; border-radius:.5rem; overflow:hidden; }
+.album-grid img{ width:100%; height:100%; object-fit:cover; display:block; }
+#grid{ display:flex; flex-wrap:wrap; gap:1rem; }
 </style>
 {% endblock %}
 
@@ -104,234 +111,166 @@
 {% block scripts %}
 {{ super() }}
 <script>
-(function(){
-  const grid = document.getElementById('grid');
-  const sentinel = document.getElementById('sentinel');
-  const state = {
-    page: 1,
-    per: 60,
-    loading: false,
-    done: false,
-    items: [],        // {url,name,entity,entity_id}
-    grouped: false,
-    groupOrder: [],   // ['prints:12','groups:7',...]
-  };
+// Conteneurs existants
+const grid = document.getElementById('grid');
+const sentinel = document.getElementById('sentinel');
 
-  // Lightbox
-  const lb     = document.getElementById('lightbox');
-  const lbImg  = document.getElementById('lbImg');
-  const lbName = document.getElementById('lbName');
-  const lbIdx  = document.getElementById('lbIdx');
-  const lbTot  = document.getElementById('lbTotal');
-  const lbPrev = document.getElementById('lbPrev');
-  const lbNext = document.getElementById('lbNext');
-  const lbDel  = document.getElementById('lbDelete');
-  const lbClose= document.getElementById('lbClose');
-  let index = 0;
+// État actuel (garde tes filtres/tri si tu en as)
+const state = { page: 1, per: 60, loading: false, done: false };
 
-  function openLightbox(i) {
-    index = i;
-    renderLightbox();
-    lb.classList.add('open');
-    lb.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
-  }
-  function closeLightbox() {
-    lb.classList.remove('open');
-    lb.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
-  }
-  function prev() { index = (index - 1 + state.items.length) % state.items.length; renderLightbox(); }
-  function next() { index = (index + 1) % state.items.length; renderLightbox(); }
-  function renderLightbox() {
-    const it = state.items[index];
-    lbImg.src = it?.url || '';
-    const name = (it?.item_title ? it.item_title : '') +
-               (it?.base_name ? (' — ' + it.base_name) : '');
-  lbName.textContent = name || '';
-    lbIdx.textContent = String(index + 1);
-    lbTot.textContent = state.items.length;
-    lbDel.style.display = (it && !/\.3mf$/i.test(it.url)) ? '' : 'none';
-  }
-  lbPrev.addEventListener('click', prev);
-  lbNext.addEventListener('click', next);
-  lbClose.addEventListener('click', closeLightbox);
-  document.addEventListener('keydown', (e) => {
-    if (!lb.classList.contains('open')) return;
-    if (e.key === 'Escape') closeLightbox();
-    if (e.key === 'ArrowLeft') prev();
-    if (e.key === 'ArrowRight') next();
-  });
+// Index d'albums en pur front
+// key = `${entity}:${id}` -> { cardEl, coverSet, count, photos: [{url,name,base}] , title }
+const albums = new Map();
 
-  // Suppression SweetAlert2
-  async function deleteByUrl(fileUrl) {
-    try {
-      const u = new URL(fileUrl, window.location.origin);
-      const parts = u.pathname.split('/').filter(Boolean);
-      const upIdx = parts.indexOf('uploads');
-      if (upIdx < 0 || parts.length < upIdx + 4) return false;
-
-      const entity   = parts[upIdx + 1];
-      const entityId = parts[upIdx + 2];
-      const filename = parts[upIdx + 3];
-
-      if (filename.toLowerCase().endsWith('.3mf')) return false;
-
-      const ask = await Swal.fire({
-        title: "Supprimer la photo ?",
-        text: filename,
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Oui, supprimer",
-        cancelButtonText: "Annuler",
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#6c757d"
-      });
-      if (!ask.isConfirmed) return false;
-
-      const fd = new FormData();
-      fd.append('filename', filename);
-      const resp = await fetch(`/delete_photo/${encodeURIComponent(entity)}/${encodeURIComponent(entityId)}`, {
-        method: 'POST',
-        body: fd
-      });
-      if (!resp.ok) {
-        Swal.fire("Erreur", "La suppression a échoué.", "error");
-        return false;
-      }
-
-      // MAJ locale (items + DOM)
-      const idx = state.items.findIndex(x => x.url === fileUrl);
-      if (idx >= 0) {
-        state.items.splice(idx, 1);
-        // Re-render minimal: retire la vignette
-        const tile = grid.querySelector(`.g-thumb[data-url="${CSS.escape(fileUrl)}"]`);
-        tile?.remove();
-        if (index >= state.items.length) index = Math.max(0, state.items.length - 1);
-        renderLightbox();
-      }
-      Swal.fire("Supprimé", "La photo a été supprimée.", "success");
-      return true;
-    } catch (err) {
-      Swal.fire("Erreur", "Une erreur est survenue.", "error");
-      return false;
-    }
-  }
-  document.addEventListener('click', (e) => {
-    const del = e.target.closest('.js-del-photo');
-    if (!del) return;
-    const url = del.dataset.url || '';
-    deleteByUrl(url);
-    e.stopPropagation();
-  });
-
-  // Rendu d'une tuile
-  function renderTile(it) {
-    const card = document.createElement('div');
-    card.className = 'g-thumb';
-    card.dataset.url = it.url;
-    card.dataset.groupKey = `${it.entity}:${it.entity_id}`;
-    card.innerHTML = `
-  <button type="button" class="btn btn-sm btn-outline-light del js-del-photo"
-          title="Supprimer" data-url="${it.url}" data-requires-write>
-    <i class="bi bi-x-lg"></i>
-  </button>
-  <img src="${it.url}" alt="${(it.item_title || '').replaceAll('"','&quot;')} — ${(it.base_name || '').replaceAll('"','&quot;')}">
-  <div class="name">
-    ${(it.item_title || '')} — ${(it.base_name || '')}
-  </div>
-`;
-    card.addEventListener('click', (e) => {
-      if (e.target.closest('.js-del-photo')) return;
-      const idx = state.items.findIndex(x => x.url === it.url);
-      if (idx >= 0) openLightbox(idx);
-    });
-    return card;
-  }
-
-  // Ajoute un titre de groupe (prints:123)
-  function renderGroupHeader(key, title) {
-  const div = document.createElement('div');
-  div.className = 'group-title';
-  div.dataset.groupTitle = key;
-  div.innerHTML = `<span class="dot"></span><span>${title}</span>`;
-  return div;
+// Utilitaire: extrait entity/id depuis l'URL
+function parseAlbumKeyFromUrl(url) {
+  // /static/uploads/<entity>/<id>/<filename>
+  try {
+    const parts = new URL(url, window.location.origin).pathname.split('/');
+    const entity = parts[3]; // prints | groups
+    const id = parseInt(parts[4], 10);
+    if (!entity || isNaN(id)) return null;
+    return { key: `${entity}:${id}`, entity, id };
+  } catch { return null; }
 }
 
-  // Append d’un batch au grid (respect du grouping si activé)
-  function appendItems(batch) {
-  const frag = document.createDocumentFragment();
+// Titre d'album (fallback lisible)
+function albumTitle(entity, id) {
+  return `${entity === 'prints' ? 'Print' : 'Group'} #${id}`;
+}
 
-  if (!state.grouped) {
-    for (const it of batch) frag.appendChild(renderTile(it));
+// Crée une carte album (une seule par album)
+function createAlbumCard(entity, id, title) {
+  const card = document.createElement('div');
+  card.className = 'album-card position-relative';
+  card.innerHTML = `
+    <div class="ratio ratio-1x1 rounded overflow-hidden shadow-sm bg-light">
+      <img class="album-cover w-100 h-100 object-fit-cover" alt="${title}" />
+    </div>
+    <div class="mt-2 d-flex align-items-center gap-2">
+      <i class="bi bi-folder2"></i>
+      <span class="text-truncate album-title" title="${title}">${title}</span>
+      <span class="badge text-bg-secondary ms-auto album-count">0</span>
+    </div>
+    <div class="album-photos collapse mt-2"></div>
+  `;
+
+  // Toggle expansion
+  card.addEventListener('click', (ev) => {
+    if (ev.target.closest('.album-photos')) return; // clic à l’intérieur, ne rien faire
+    const body = card.querySelector('.album-photos');
+    const open = body.classList.contains('show');
+    document.querySelectorAll('.album-photos.show').forEach(el => el.classList.remove('show'));
+    if (open) { body.classList.remove('show'); return; }
+    body.classList.add('show');
+  });
+
+  grid.appendChild(card);
+  return card;
+}
+
+// Met à jour la cover, le compteur, et la grille interne
+function updateAlbumUI(key) {
+  const a = albums.get(key);
+  if (!a) return;
+  const coverEl = a.cardEl.querySelector('.album-cover');
+  const countEl = a.cardEl.querySelector('.album-count');
+  const body = a.cardEl.querySelector('.album-photos');
+
+  // Cover: première photo vue (ou garde celle déjà posée)
+  if (!a.coverSet && a.photos.length) {
+    coverEl.src = a.photos[0].url;
+    a.coverSet = true;
+  }
+
+  // Compteur
+  countEl.textContent = a.count.toString();
+
+  // Corps (vignettes autres que la cover)
+  const others = a.photos.slice(1); // évite la cover
+  if (!others.length) {
+    body.innerHTML = '<div class="text-muted small">Aucune autre photo</div>';
   } else {
-    let lastKey = grid.querySelector('.group-title:last-of-type')?.dataset.groupTitle || null;
-    for (const it of batch) {
-      const key = `${it.entity}:${it.entity_id}`;
-      if (key !== lastKey && (state.groupOrder.at(-1) !== key)) {
-        frag.appendChild(renderGroupHeader(key, it.item_title || key));
-        state.groupOrder.push(key);
-        lastKey = key;
-      }
-      frag.appendChild(renderTile(it));
-    }
+    body.innerHTML = `
+      <div class="album-grid">
+        ${others.map(p => `
+          <a href="${p.url}" class="thumb" target="_blank" title="${a.title}">
+            <img src="${p.url}" alt="${p.name}">
+          </a>
+        `).join('')}
+      </div>
+    `;
   }
-  grid.appendChild(frag);
 }
 
-  async function loadNext() {
-    if (state.loading || state.done) return;
-    state.loading = true;
-    sentinel.textContent = "Chargement…";
+// Ajoute une photo dans l’album correspondant (création si besoin)
+function addPhotoToAlbum(item) {
+  const parsed = parseAlbumKeyFromUrl(item.url || item.path || item.src);
+  if (!parsed) return;
 
-    try {
-      const url = new URL(`/api/gallery/photos?page=${state.page}&per=${state.per}`, window.location.origin);
-      const resp = await fetch(url);
-      const data = await resp.json();
-
-      const batch = Array.isArray(data.items) ? data.items : [];
-      if (batch.length === 0) {
-        state.done = true;
-        sentinel.textContent = "Fin de la galerie";
-        return;
-      }
-
-      // concat au modèle
-      state.items = state.items.concat(batch);
-      appendItems(batch);
-
-      state.page += 1;
-      if (data.has_more === false) {
-        state.done = true;
-        sentinel.textContent = "Fin de la galerie";
-      } else {
-        sentinel.textContent = "Descends pour charger la suite…";
-      }
-    } catch (e) {
-      sentinel.textContent = "Erreur de chargement";
-    } finally {
-      state.loading = false;
-    }
+  const { key, entity, id } = parsed;
+  if (!albums.has(key)) {
+    const title = item.item_title || albumTitle(entity, id);
+    const cardEl = createAlbumCard(entity, id, title);
+    albums.set(key, { entity, id, title, cardEl, coverSet: false, count: 0, photos: [] });
   }
+  const a = albums.get(key);
 
-  // IntersectionObserver pour lazy-load
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) loadNext();
-    });
-  }, { rootMargin: '600px 0px' });
-  io.observe(sentinel);
+  // Dédup (au cas où la pagination renverrait une photo déjà vue)
+  if (!a.photos.some(p => p.url === item.url)) {
+    a.photos.push({ url: item.url, name: item.name, base: item.base_name });
+    a.count++;
+    updateAlbumUI(key);
+  }
+}
 
-  // Toggle group
-  document.getElementById('toggleGroup').addEventListener('change', (e) => {
-    state.grouped = !!e.target.checked;
-    state.groupOrder = [];
-    // Re-render simple: on vide et on rejoue items
-    grid.innerHTML = '';
-    appendItems(state.items);
-  });
+// Construit l’URL existante (tu gardes ta façon actuelle)
+function buildUrl() {
+  const url = new URL(`/api/gallery/photos`, window.location.origin);
+  url.searchParams.set('page', state.page);
+  url.searchParams.set('per', state.per);
+  // si tu as déjà q/sort/entity, ajoute-les ici
+  return url;
+}
 
-})();
+async function loadNext() {
+  if (state.loading || state.done) return;
+  state.loading = true;
+  sentinel.textContent = 'Chargement…';
+  try {
+    const res = await fetch(buildUrl());
+    const data = await res.json();
+
+    // data.items = [{url,name,base_name,item_title,entity,entity_id}, ...]
+    (data.items || []).forEach(addPhotoToAlbum);
+
+    state.page++;
+    state.done = !data.has_more;
+    sentinel.textContent = state.done ? '— fin —' : 'Descendez pour charger la suite…';
+  } catch (e) {
+    console.error(e);
+    sentinel.textContent = 'Erreur de chargement';
+  } finally {
+    state.loading = false;
+  }
+}
+
+// Infinite scroll
+const io = new IntersectionObserver((entries) => {
+  if (entries.some(e => e.isIntersecting)) loadNext();
+});
+io.observe(sentinel);
+
+// Si tu as des filtres/tri/recherche existants, appelle reset() puis loadNext() sur changement
+function reset() {
+  state.page = 1; state.done = false;
+  grid.innerHTML = '';
+  albums.clear();
+  loadNext();
+}
+
+// Premier chargement
+loadNext();
 </script>
 
 {% endblock %}
