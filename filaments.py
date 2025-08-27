@@ -1820,7 +1820,7 @@ def augmentTrayData(spool_list, tray_data, tray_id):
     # S'il y a une config (type) mais qu'on n'a rien trouvé: flag issue
     tray_data["issue"] = bool(tray_data.get("tray_type")) and not tray_data["matched"]
 
-    # Si non matché -> purger l'affichage pour éviter les reliquats
+    # Si non matché -> purger l'affichage pour éviter les reliquat
     #if not tray_data["matched"]:
     #    tray_data["name"] = ""
     #    tray_data["vendor"] = ""
