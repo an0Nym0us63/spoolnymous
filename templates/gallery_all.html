@@ -33,37 +33,40 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 .patchwork{
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1;              /* carré responsive */
+  aspect-ratio: 1 / 1;
   border-radius: .75rem;
   overflow: hidden;
-  background: var(--tile-bg);
+  background: var(--tile-bg, #111);
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
 }
 
-/* Pile de 1 à 3 images superposées */
+/* Mode pile */
 .patchwork.stack img{
   position:absolute; inset:0;
   width:100%; height:100%;
   object-fit:cover; object-position:center;
   border-radius: .75rem;
-  box-shadow: 0 0 0 1px rgba(0,0,0,.08);
   transition: transform .2s ease;
 }
 
-/* 1 = fond, 2 = milieu, 3 = au-dessus (visible) */
+/* Fond (le plus petit) */
 .patchwork.stack .layer-1{
   z-index:1;
-  transform: translateY(12px) scale(.984);
-  filter: brightness(.96);
+  transform: translate(-10px, 10px) scale(.95);
+  filter: brightness(.9);
 }
+
+/* Milieu */
 .patchwork.stack .layer-2{
   z-index:2;
-  transform: translateY(6px) scale(.992);
-  filter: brightness(.98);
+  transform: translate(-5px, 5px) scale(.975);
+  filter: brightness(.95);
 }
+
+/* Dessus = photo principale */
 .patchwork.stack .layer-3{
   z-index:3;
-  transform: translateY(0);
+  transform: translate(0,0) scale(1);
   filter: none;
 }
 
