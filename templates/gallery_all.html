@@ -148,22 +148,6 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 */
 q::placeholder{ opacity:.7; }
 sentinel.empty{ color:var(--bs-secondary-color); }
-.search-bar {
-  top: 0;                 /* reste collée en haut */
-  z-index: 1050;          /* au-dessus de la galerie */
-  backdrop-filter: blur(6px);
-  border-bottom: 1px solid rgba(255,255,255,.1);
-}
-/* remplace .search-stick existant */
-.search-stick{
-  position: sticky;
-  top: calc(var(--navbar-h, 56px) + .5rem);
-  z-index: 1040;                      /* > contenu, < navbar si 1050 */
-  background: var(--bs-body-bg);      /* ✅ fond opaque => plus rien ne “passe derrière” */
-  border-bottom: 1px solid var(--bs-border-color);
-  box-shadow: 0 4px 12px rgba(0,0,0,.12);
-  margin-bottom: .75rem;
-}
 .search-inner{
   display:flex; justify-content:center;
 }
@@ -186,24 +170,25 @@ sentinel.empty{ color:var(--bs-secondary-color); }
 @media (max-width: 576px){
   .search-input{ width: 100%; }
 }
+.swal2-container { z-index: 3000 !important; }
 </style>
 {% endblock %}
 
 {% block content %}
 <main class="gallery-page">
-  <!-- Search bar sticky -->
-  <div id="searchBar" class="search-bar">
-    <div class="input-group">
-      <span class="input-group-text bg-dark-subtle"><i class="bi bi-search"></i></span>
-      <input id="q" type="search" class="form-control" placeholder="Rechercher un print, un groupe, un tag…">
-      <button id="qClear" class="btn btn-outline-secondary" type="button" title="Effacer">
-        <i class="bi bi-x-lg"></i>
-      </button>
-    </div>
-  </div>
-
-  <!-- Gallery -->
   <div class="container py-3">
+    <!-- Search bar -->
+    <div id="searchBar" class="mb-3">
+      <div class="input-group">
+        <span class="input-group-text bg-dark-subtle"><i class="bi bi-search"></i></span>
+        <input id="q" type="search" class="form-control" placeholder="Rechercher un print, un groupe, un tag…">
+        <button id="qClear" class="btn btn-outline-secondary" type="button" title="Effacer">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Gallery -->
     <div id="grid" class="g-grid"></div>
     <div id="sentinel" class="py-4 text-center text-secondary">Chargement…</div>
   </div>
