@@ -12,22 +12,21 @@ from tools_3mf import getMetaDataFrom3mf
 import time
 import copy
 import math
-from typing import Dict
+from typing import Dict, Any
 from collections.abc import Mapping
 from logger import append_to_rotating_file
 from print_history import  insert_print, insert_filament_usage, update_filament_spool,update_print_field_with_job_id,get_tray_spool_map,delete_tray_spool_map_by_id,snapshot_milestone
 from filaments import fetch_spools,clearActiveTray,setActiveTray,spendFilaments
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK, PROCESSED_JOBS, PENDING_JOBS
 import logging
+from pathlib import Path
+from contextlib import suppress
 
 logger = logging.getLogger(__name__)
 
 
 
 # État mémoire par job_id (évite doublons durant le run)
-_MILESTONE_STATE: Dict[str, dict] = {}  # { job_id: {"last": float, "m50": bool, "m99": bool, "m100": bool} }
-
-
 MQTT_CLIENT = {}  # Global variable storing MQTT Client
 MQTT_CLIENT_CONNECTED = False
 MQTT_KEEPALIVE = 60
@@ -41,12 +40,6 @@ PENDING_PRINT_METADATA = {}
 # --- Async helper pour ne pas bloquer le thread MQTT ---
 PROCESSMSG_LOCK = Lock()  # empêche les exécutions concurrentes de processMessage
 
-def _state(job_id: str) -> dict:
-    st = _MILESTONE_STATE.get(job_id)
-    if not st:
-        st = {"last": -1.0, "m50": False, "m99": False, "m100": False}
-        _MILESTONE_STATE[job_id] = st
-    return st
 
 def _milestones_to_fire(prev: float, curr: float, done_50: bool, done_99: bool, done_100: bool):
     """
@@ -65,7 +58,12 @@ def _milestones_to_fire(prev: float, curr: float, done_50: bool, done_99: bool, 
         fire.append(100)
     return fire
 
-def fire_and_forget(fn, *args, name=None, **kwargs):
+def fire_and_forget(fn, *args, name=None, release_lock=False, **kwargs):
+    """
+    Lance une fonction en thread séparé, sans bloquer.
+    - log start/done/crash
+    - option release_lock=True pour libérer PROCESSMSG_LOCK en fin de tâche
+    """
     def _runner():
         t0 = time.time()
         try:
@@ -76,12 +74,15 @@ def fire_and_forget(fn, *args, name=None, **kwargs):
         except Exception:
             logger.exception(f"[async] {fn.__name__} crashed")
         finally:
-            # Libère le verrou si on l'avait pris
-            try:
-                PROCESSMSG_LOCK.release()
-            except RuntimeError:
-                pass
-    Thread(target=_runner, name=name or fn.__name__, daemon=True).start()
+            if release_lock:
+                try:
+                    PROCESSMSG_LOCK.release()
+                except RuntimeError:
+                    pass
+
+    t = Thread(target=_runner, name=name or fn.__name__, daemon=True)
+    t.start()
+    return t
 
 def update_status(new_data):
     with PRINTER_STATUS_LOCK:
@@ -367,6 +368,147 @@ def color_distance(hex1: str, hex2: str) -> float:
     lab1 = rgb_to_lab(*rgb1)
     lab2 = rgb_to_lab(*rgb2)
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(lab1, lab2)))
+    
+_DATA_DIR = Path("data")
+_DATA_DIR.mkdir(parents=True, exist_ok=True)
+_MILESTONES_JSON = _DATA_DIR / "milestones_state.json"
+
+# Verrous
+_STORE_LOCK = Lock()
+
+def _read_store() -> Dict[str, Any]:
+    with _STORE_LOCK:
+        if not _MILESTONES_JSON.exists():
+            return {}
+        try:
+            return json.loads(_MILESTONES_JSON.read_text(encoding="utf-8"))
+        except Exception:
+            # JSON corrompu ? On repart proprement.
+            return {}
+
+def _write_store(store: Dict[str, Any]) -> None:
+    with _STORE_LOCK:
+        tmp = _MILESTONES_JSON.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(store, ensure_ascii=False, indent=2), encoding="utf-8")
+        tmp.replace(_MILESTONES_JSON)  # rename atomique
+
+def _get_job_state_from_store(job_id: str) -> Dict[str, Any]:
+    store = _read_store()
+    return store.get(job_id) or {}
+
+def _set_job_state_in_store(job_id: str, state: Dict[str, Any]) -> None:
+    store = _read_store()
+    store[job_id] = state
+    _write_store(store)
+
+def _delete_job_state_from_store(job_id: str) -> None:
+    store = _read_store()
+    if job_id in store:
+        del store[job_id]
+        _write_store(store)
+
+_MILESTONE_STATE: Dict[str, dict] = {}
+
+def _state(job_id: str) -> dict:
+    st = _MILESTONE_STATE.get(job_id)
+    if st is None:
+        # Fabrique par défaut
+        st = {
+            "last": -1.0,
+            "m50": False, "m99": False, "m100": False,
+            "l2": False, "l3": False,
+            "last_layer": None,
+            "hydrated": False,
+            "_print_file": None,
+        }
+        # Hydrate à partir du JSON si présent
+        persisted = _get_job_state_from_store(job_id)
+        if persisted:
+            st.update(persisted)
+            st["hydrated"] = True
+        _MILESTONE_STATE[job_id] = st
+    return st
+
+def _persist(job_id: str) -> None:
+    st = _MILESTONE_STATE.get(job_id)
+    if st is None: 
+        return
+    # On n’écrit pas des clés purement volatiles si besoin, mais ici on garde tout (ça simplifie la reprise)
+    _set_job_state_in_store(job_id, st)
+
+def _mark_skip_below_current(job_id: str, st: dict, progress: float|None, layer: int|None) -> None:
+    """
+    À la première observation d’un job en cours (après reboot ou (re)connexion),
+    on marque comme déjà passés TOUS les milestones STRICTEMENT inférieurs à l’état courant.
+    => ainsi on ne déclenche rien 'en dessous' de l’état actuel.
+    """
+    if st.get("_skip_below_done"):
+        return
+
+    # Pourcentages
+    if isinstance(progress, (int, float)):
+        if progress >= 50 and not st["m50"]:
+            st["m50"] = True
+        if progress >= 99 and not st["m99"]:
+            st["m99"] = True
+        # m100 ne doit être marqué qu’à 100 réel.
+        # On met aussi à jour le 'last' pour ne pas re-déclencher en arrière.
+        st["last"] = max(st.get("last", -1.0), float(progress))
+
+    # Couches (fin couche 1 => layer>=2 ; fin couche 2 => layer>=3)
+    if isinstance(layer, int):
+        if layer >= 2 and not st["l2"]:
+            st["l2"] = True
+        if layer >= 3 and not st["l3"]:
+            st["l3"] = True
+        st["last_layer"] = layer
+
+    st["_skip_below_done"] = True  # ne le fait qu’une fois
+    _persist(job_id)
+    
+def _maybe_reset_state_for_new_print(job_id: str, st: dict, fields: dict):
+    prog = fields.get("progress")
+    status = (fields.get("status") or "").upper()
+    print_file = fields.get("print_file")
+
+    def _do_reset():
+        st.clear()
+        st.update({
+            "last": -1.0,
+            "m50": False, "m99": False, "m100": False,
+            "l2": False, "l3": False,
+            "last_layer": None,
+            "hydrated": False,
+            "_print_file": None,
+            "_skip_below_done": False,
+        })
+        _persist(job_id)
+
+    # Régression forte → nouveau run
+    try:
+        if isinstance(prog, (int, float)) and isinstance(st.get("last"), (int, float)):
+            if st["last"] >= 5.0 and float(prog) <= 1.0:
+                _do_reset()
+                return
+    except Exception:
+        pass
+
+    # PREPARE/RUNNING à faible % alors qu’on avait avancé
+    try:
+        if status in {"PREPARE", "RUNNING"} and isinstance(prog, (int, float)) and prog <= 1.0 and st.get("last", -1.0) > 5.0:
+            _do_reset()
+            return
+    except Exception:
+        pass
+
+    # Changement de fichier (si dispo)
+    if print_file and st.get("_print_file") and st["_print_file"] != print_file:
+        _do_reset()
+        return
+
+    if print_file:
+        st["_print_file"] = print_file
+        _persist(job_id)
 
 def safe_update_status(data):
     # ---------- Utils ----------
@@ -573,34 +715,90 @@ def safe_update_status(data):
     ####----snapshot-----
     try:
         job_id = data.get("job_id")
+        if job_id is None:
+            raise ValueError("job_id manquant")
+        job_id = str(job_id)
+
         prog_raw = fields.get("progress")
-        if job_id is not None and prog_raw is not None:
-            job_id = str(job_id)
-            try:
-                prog = float(prog_raw)
-            except Exception:
-                prog = None
+        layer_raw = fields.get("print_layer")
 
-            if prog is not None and 0.0 <= prog <= 100.0:
-                st = _state(job_id)
-                to_fire = _milestones_to_fire(st["last"], prog, st["m50"], st["m99"], st["m100"])
+        # Parsing robustes
+        try:
+            prog = float(prog_raw) if prog_raw is not None else None
+        except Exception:
+            prog = None
 
-                for pct in to_fire:
-                    try:
-                        # DÉLÉGUÉ À print_history : il résout job_id -> print_id et déclenche la capture.
-                        # Il gère aussi la vérif disque pour reboot.
-                        snapshot_milestone(job_id, pct, basename=f"Impression-{pct}")
-                        # Si ça n’a pas levé, on marque ce palier comme atteint
-                        if pct == 50:  st["m50"]  = True
-                        if pct == 99:  st["m99"]  = True
-                        if pct == 100: st["m100"] = True
-                    except Exception as e:
-                        logger.warning("Snapshot milestone %s%% échoué (job=%s): %s", pct, job_id, e)
+        layer = None
+        if layer_raw is not None:
+            with suppress(Exception):
+                layer = int(layer_raw)
 
-                # on met à jour le last après traitement
-                st["last"] = prog
-    except Exception as e:
-        logger.debug("Milestones snapshot: ignore erreur non bloquante: %s", e)
+        st = _state(job_id)
+
+        # Nouveau run ?
+        _maybe_reset_state_for_new_print(job_id, st, fields)
+
+        # À la première observation d’un job en cours (ex: reboot), on fige l'état bas
+        # => ne jamais déclencher en dessous de l'état courant
+        _mark_skip_below_current(job_id, st, prog, layer)
+
+        # 1) Milestones % : 50 / 99 / 100
+        if prog is not None and 0.0 <= prog <= 100.0:
+            # Calcul des paliers à tirer (en évitant ceux déjà marqués true)
+            to_fire = []
+            prev = st.get("last", -1.0)
+            # On déclenche lors d’un passage 'vers le haut'
+            def _cross(prev_v, cur_v, th):
+                return prev_v < th <= cur_v
+
+            if not st["m50"] and _cross(prev, prog, 50.0):
+                to_fire.append(50)
+            if not st["m99"] and _cross(prev, prog, 99.0):
+                to_fire.append(99)
+            if not st["m100"] and _cross(prev, prog, 100.0):
+                to_fire.append(100)
+
+            for pct in to_fire:
+                fire_and_forget(
+                    snapshot_milestone, job_id, pct,
+                    basename=f"Impression-{pct}",
+                    name=f"snapshot-{job_id}-{pct}"
+                )
+                if pct == 50:  st["m50"]  = True
+                if pct == 99:  st["m99"]  = True
+                if pct == 100: st["m100"] = True
+
+            # Mémorise dernier %
+            st["last"] = max(prev, prog)
+            _persist(job_id)
+
+        # 2) Milestones fin couche 1 & 2 :
+        #    - fin couche 1  => quand layer atteint pour la 1ère fois 2
+        #    - fin couche 2  => quand layer atteint pour la 1ère fois 3
+        if layer is not None:
+            prev_layer = st.get("last_layer") or 0
+
+            if not st["l2"] and prev_layer < 2 <= layer:
+                fire_and_forget(
+                    snapshot_milestone, job_id, 0,
+                    basename="Impression-couche-1",
+                    name=f"snapshot-{job_id}-L1"
+                )
+                st["l2"] = True
+
+            if not st["l3"] and prev_layer < 3 <= layer:
+                fire_and_forget(
+                    snapshot_milestone, job_id, 0,
+                    basename="Impression-couche-2",
+                    name=f"snapshot-{job_id}-L2"
+                )
+                st["l3"] = True
+
+            st["last_layer"] = max(prev_layer, layer)
+            _persist(job_id)
+
+    except Exception:
+        logger.debug("Milestones snapshot: erreur non bloquante", exc_info=True)
     # ---------- Détection fin/échec (antirebond) ----------
     job_id = data.get("job_id")
     status = (fields.get("status") or "").upper()
@@ -620,6 +818,9 @@ def safe_update_status(data):
                         update_print_field_with_job_id(job_id, "status", final_status)
                         PROCESSED_JOBS.add(job_id)
                         PENDING_JOBS.pop(job_id, None)
+                        with suppress(Exception):
+                            _MILESTONE_STATE.pop(str(job_id), None)
+                            _delete_job_state_from_store(str(job_id))
                 else:
                     PENDING_JOBS[job_id] = (status, now)
 
@@ -646,7 +847,7 @@ def on_message(client, userdata, msg):
           if ("command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]) or (( "print_type" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["print_type"] == "local" and "print" in PRINTER_STATE_LAST)):
           # Lance processMessage en thread si pas déjà en cours
             if PROCESSMSG_LOCK.acquire(blocking=False):
-                fire_and_forget(processMessage, data, name="processMessage")
+                fire_and_forget(processMessage, data, name="processMessage", release_lock=True)
             else:
                 logger.debug("[async] processMessage déjà en cours — skip")
           PRINTER_STATE_LAST = copy.deepcopy(PRINTER_STATE)
