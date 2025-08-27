@@ -2,87 +2,72 @@
 
 {% block styles %}
 <style>
-  :root { --thumb-size: 180px; }
-  body.gallery-page { overflow-y: auto; background: var(--bs-body-bg); }
+:root { --thumb-size: 180px; }
 
-  .gallery-header {
-    position: sticky; top: 0; z-index: 1030;
-    backdrop-filter: blur(6px);
-    background: color-mix(in oklab, var(--bs-body-bg) 85%, transparent);
-    border-bottom: 1px solid rgba(255,255,255,.08);
-  }
+body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 
-  /* au lieu de .grid / .thumb */
-.g-grid {
-  --g-thumb-size: 180px;
-  display: grid;
+.gallery-header{
+  position:sticky; top:0; z-index:1030;
+  backdrop-filter:blur(6px);
+  background: color-mix(in oklab, var(--bs-body-bg) 85%, transparent);
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+/* Grille principale (cards album) */
+.g-grid{
+  --g-thumb-size: 220px;
+  display:grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--g-thumb-size), 1fr));
-  gap: .75rem;
+  gap:1rem;
 }
 
-.g-thumb {
-  position: relative;
-  border-radius: .75rem;
-  overflow: hidden;
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.06);
-  aspect-ratio: 1 / 1;
-  cursor: zoom-in;
-  min-width: var(--g-thumb-size);
-  min-height: var(--g-thumb-size);
+/* Carte d’album */
+.album-card{ cursor:pointer; }
+.meta-line{ min-height:28px; }
+
+/* Patchwork (jusqu’à 4 vignettes) */
+.patchwork{ position:relative; width:100%; padding-top:100%; background:#f5f5f5; border-radius:.75rem; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+.patchwork img{ position:absolute; inset:auto; width:100%; height:100%; object-fit:cover; }
+
+/* 1 image */
+.pw-1-1{ left:0; top:0; }
+/* 2 images : split vertical */
+.pw-2-1{ left:0; top:0; width:50%; }
+.pw-2-2{ right:0; top:0; width:50%; }
+/* 3 images : 2 en haut, 1 en bas plein */
+.pw-3-1{ left:0; top:0; width:50%; height:50%; }
+.pw-3-2{ right:0; top:0; width:50%; height:50%; }
+.pw-3-3{ left:0; bottom:0; width:100%; height:50%; }
+/* 4 images : quadrillage 2x2 */
+.pw-4-1{ left:0; top:0; width:50%; height:50%; }
+.pw-4-2{ right:0; top:0; width:50%; height:50%; }
+.pw-4-3{ left:0; bottom:0; width:50%; height:50%; }
+.pw-4-4{ right:0; bottom:0; width:50%; height:50%; }
+
+/* Lightbox custom */
+.lightbox{ position:fixed; inset:0; z-index:2000; display:none; background:rgba(0,0,0,.92); }
+.lightbox.open{ display:grid; place-items:center; }
+.lightbox img{ max-width:92vw; max-height:86vh; object-fit:contain; box-shadow:0 0 0 1px rgba(255,255,255,.08); border-radius:.5rem; }
+
+.lb-toolbar{
+  position:fixed; top:.5rem; left:.5rem; right:.5rem;
+  display:flex; align-items:center; justify-content:space-between; gap:.5rem;
 }
+.lb-actions{ display:flex; gap:.5rem; }
+.lb-index{ color:#fff; opacity:.8; font-size:.9rem; }
 
-.g-thumb img {
-  width: 100%; height: 100%;
-  object-fit: cover; object-position: center; display: block;
+.lb-nav{ position:fixed; inset:0; display:flex; align-items:center; justify-content:space-between; pointer-events:none; }
+.lb-nav .btn{ pointer-events:all; border-radius:999px; }
+
+@media (max-width: 576px){
+  :root { --thumb-size: 140px; }
+  .lb-index{ display:none; }
 }
-
-.g-thumb .name {
-  position: absolute; left: .5rem; bottom: .5rem;
-  background: rgba(0,0,0,.55); color: #fff;
-  padding: .15rem .5rem; border-radius: .35rem;
-  font-size: .8rem; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  pointer-events: none;
-}
-
-.g-thumb .del { position: absolute; top: .35rem; right: .35rem; z-index: 2; }
-
-.group-title { grid-column: 1 / -1; margin-top: 1.25rem; font-size: .9rem; color: var(--bs-secondary-color); display:flex; align-items:center; gap:.5rem; }
-.group-title .dot { width:.5rem; height:.5rem; border-radius:50%; background:var(--bs-secondary-color); opacity:.6; }
-
-  /* Lightbox */
-  .lightbox { position: fixed; inset: 0; z-index: 2000; display: none; background: rgba(0,0,0,.92); }
-  .lightbox.open { display: grid; place-items: center; }
-  .lightbox img { max-width: 92vw; max-height: 86vh; object-fit: contain; box-shadow: 0 0 0 1px rgba(255,255,255,.08); border-radius: .5rem; }
-  .lb-toolbar { position: fixed; top: .5rem; left: .5rem; right: .5rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-  .lb-actions { display: flex; gap: .5rem; }
-  .lb-index { color: #fff; opacity: .8; font-size: .9rem; }
-  .lb-nav { position: fixed; inset: 0; display: flex; align-items: center; justify-content: space-between; pointer-events: none; }
-  .lb-nav .btn { pointer-events: all; border-radius: 999px; }
-
-  @media (max-width: 576px) {
-    :root { --thumb-size: 140px; }
-    .lb-index { display: none; }
-  }
-.album-card{ width:220px; cursor:pointer; }
-.album-photos{ display:none; }
-.album-photos.show{ display:block; }
-.album-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:.5rem; }
-.album-grid .thumb{ display:block; border-radius:.5rem; overflow:hidden; }
-.album-grid img{ width:100%; height:100%; object-fit:cover; display:block; }
-#grid{ display:flex; flex-wrap:wrap; gap:1rem; }
 </style>
 {% endblock %}
 
 {% block content %}
 <main class="gallery-page">
-   <div class="d-flex align-items-center gap-2">
-        <div class="form-check form-switch">
-          <input class="form-check-input" type="checkbox" id="toggleGroup">
-          <label class="form-check-label small" for="toggleGroup">Regrouper par item</label>
-        </div>
-      </div>
-
   <div class="container py-3">
     <div id="grid" class="g-grid"></div>
     <div id="sentinel" class="py-4 text-center text-secondary">Chargement…</div>
@@ -111,166 +96,205 @@
 {% block scripts %}
 {{ super() }}
 <script>
-// Conteneurs existants
+// === ÉTAT & DOM ==============================================================
 const grid = document.getElementById('grid');
 const sentinel = document.getElementById('sentinel');
+const state = { page:1, per:60, loading:false, done:false };
 
-// État actuel (garde tes filtres/tri si tu en as)
-const state = { page: 1, per: 60, loading: false, done: false };
-
-// Index d'albums en pur front
-// key = `${entity}:${id}` -> { cardEl, coverSet, count, photos: [{url,name,base}] , title }
+// Index d'albums (front) : key = "entity:id" → { entity,id,title,cardEl,photos:[{url,name,base}] }
 const albums = new Map();
 
-// Utilitaire: extrait entity/id depuis l'URL
-function parseAlbumKeyFromUrl(url) {
-  // /static/uploads/<entity>/<id>/<filename>
-  try {
+// Lightbox custom (ids fournis par ton HTML)
+const LB = {
+  root: document.getElementById('lightbox'),
+  img:  document.getElementById('lbImg'),
+  name: document.getElementById('lbName'),
+  idx:  document.getElementById('lbIdx'),
+  total:document.getElementById('lbTotal'),
+  btnPrev: document.getElementById('lbPrev'),
+  btnNext: document.getElementById('lbNext'),
+  btnClose: document.getElementById('lbClose'),
+  btnDelete: document.getElementById('lbDelete'),
+  albumKey: null,
+  index: 0,
+};
+
+function parseAlbumKeyFromUrl(url){
+  try{
     const parts = new URL(url, window.location.origin).pathname.split('/');
     const entity = parts[3]; // prints | groups
     const id = parseInt(parts[4], 10);
-    if (!entity || isNaN(id)) return null;
-    return { key: `${entity}:${id}`, entity, id };
-  } catch { return null; }
+    if(!entity || Number.isNaN(id)) return null;
+    return { key:`${entity}:${id}`, entity, id };
+  }catch{ return null; }
 }
 
-// Titre d'album (fallback lisible)
-function albumTitle(entity, id) {
-  return `${entity === 'prints' ? 'Print' : 'Group'} #${id}`;
+function albumTitle(entity, id, itemTitle){
+  return itemTitle || (entity === 'prints' ? `Print #${id}` : `Group #${id}`);
 }
 
-// Crée une carte album (une seule par album)
-function createAlbumCard(entity, id, title) {
+function buildUrl(){
+  const u = new URL('/api/gallery/photos', window.location.origin);
+  u.searchParams.set('page', state.page);
+  u.searchParams.set('per', state.per);
+  return u;
+}
+
+// === LIGHTBOX ================================================================
+function lbOpen(albumKey, startIndex=0){
+  const a = albums.get(albumKey);
+  if(!a || !a.photos.length) return;
+  LB.albumKey = albumKey;
+  LB.index    = Math.min(Math.max(0, startIndex), a.photos.length-1);
+  lbRender();
+  LB.root.classList.add('open');
+}
+
+function lbClose(){ LB.root.classList.remove('open'); }
+
+function lbMove(delta){
+  const a = albums.get(LB.albumKey);
+  if(!a) return;
+  LB.index = (LB.index + delta + a.photos.length) % a.photos.length;
+  lbRender();
+}
+
+function lbRender(){
+  const a = albums.get(LB.albumKey);
+  const p = a.photos[LB.index];
+  LB.img.src = p.url;
+  LB.img.alt = p.name || p.base || '';
+  LB.name.textContent = p.base || p.name || a.title;
+  LB.idx.textContent = String(LB.index + 1);
+  LB.total.textContent = String(a.photos.length);
+}
+
+// Brancher les boutons + clavier
+LB.btnPrev.addEventListener('click', ()=> lbMove(-1));
+LB.btnNext.addEventListener('click', ()=> lbMove(+1));
+LB.btnClose.addEventListener('click', lbClose);
+LB.btnDelete.addEventListener('click', async ()=>{
+  const a = albums.get(LB.albumKey);
+  const p = a?.photos?.[LB.index];
+  if(!p) return;
+  if(!confirm('Supprimer cette photo ?')) return;
+  // TODO: Appelle ton endpoint de suppression ici si besoin.
+  a.photos.splice(LB.index, 1);
+  if(!a.photos.length){
+    // retire la carte
+    a.cardEl.remove();
+    albums.delete(LB.albumKey);
+    lbClose();
+    return;
+  }
+  updateAlbumUI(LB.albumKey);
+  LB.index = Math.min(LB.index, a.photos.length - 1);
+  lbRender();
+});
+
+document.addEventListener('keydown', (e)=>{
+  if(!LB.root.classList.contains('open')) return;
+  if(e.key === 'ArrowLeft') lbMove(-1);
+  if(e.key === 'ArrowRight') lbMove(+1);
+  if(e.key === 'Escape') lbClose();
+});
+
+// === RENDU ALBUMS ============================================================
+function createAlbumCard(entity, id, title){
   const card = document.createElement('div');
-  card.className = 'album-card position-relative';
+  card.className = 'album-card';
+
   card.innerHTML = `
-    <div class="ratio ratio-1x1 rounded overflow-hidden shadow-sm bg-light">
-      <img class="album-cover w-100 h-100 object-fit-cover" alt="${title}" />
-    </div>
-    <div class="mt-2 d-flex align-items-center gap-2">
-      <i class="bi bi-folder2"></i>
+    <div class="patchwork"><!-- thumbs injectées --></div>
+    <div class="mt-2 d-flex align-items-center gap-2 meta-line">
+      <i class="bi bi-folder2 d-none album-icon"></i>
       <span class="text-truncate album-title" title="${title}">${title}</span>
-      <span class="badge text-bg-secondary ms-auto album-count">0</span>
+      <span class="badge text-bg-secondary ms-auto d-none album-count">0</span>
     </div>
-    <div class="album-photos collapse mt-2"></div>
   `;
 
-  // Toggle expansion
-  card.addEventListener('click', (ev) => {
-    if (ev.target.closest('.album-photos')) return; // clic à l’intérieur, ne rien faire
-    const body = card.querySelector('.album-photos');
-    const open = body.classList.contains('show');
-    document.querySelectorAll('.album-photos.show').forEach(el => el.classList.remove('show'));
-    if (open) { body.classList.remove('show'); return; }
-    body.classList.add('show');
+  // Clic = ouvrir le diaporama (index 0 par défaut)
+  card.addEventListener('click', ()=>{
+    const key = card.dataset.key;
+    const a = albums.get(key);
+    if(!a) return;
+    lbOpen(key, 0);
   });
 
   grid.appendChild(card);
   return card;
 }
 
-// Met à jour la cover, le compteur, et la grille interne
-function updateAlbumUI(key) {
+function renderPatchwork(card, photos){
+  const box = card.querySelector('.patchwork');
+  const k = Math.min(photos.length, 4);
+  const imgs = photos.slice(0, k);
+  box.innerHTML = imgs.map((p, i)=> `<img src="${p.url}" class="pw-i pw-${k}-${i+1}" alt="">`).join('');
+}
+
+function updateAlbumUI(key){
   const a = albums.get(key);
-  if (!a) return;
-  const coverEl = a.cardEl.querySelector('.album-cover');
+  if(!a) return;
+  const icon = a.cardEl.querySelector('.album-icon');
   const countEl = a.cardEl.querySelector('.album-count');
-  const body = a.cardEl.querySelector('.album-photos');
 
-  // Cover: première photo vue (ou garde celle déjà posée)
-  if (!a.coverSet && a.photos.length) {
-    coverEl.src = a.photos[0].url;
-    a.coverSet = true;
-  }
+  renderPatchwork(a.cardEl, a.photos);
 
-  // Compteur
-  countEl.textContent = a.count.toString();
-
-  // Corps (vignettes autres que la cover)
-  const others = a.photos.slice(1); // évite la cover
-  if (!others.length) {
-    body.innerHTML = '<div class="text-muted small">Aucune autre photo</div>';
-  } else {
-    body.innerHTML = `
-      <div class="album-grid">
-        ${others.map(p => `
-          <a href="${p.url}" class="thumb" target="_blank" title="${a.title}">
-            <img src="${p.url}" alt="${p.name}">
-          </a>
-        `).join('')}
-      </div>
-    `;
+  if(a.photos.length > 1){
+    icon.classList.remove('d-none');
+    countEl.classList.remove('d-none');
+    countEl.textContent = String(a.photos.length);
+  }else{
+    icon.classList.add('d-none');
+    countEl.classList.add('d-none');
   }
 }
 
-// Ajoute une photo dans l’album correspondant (création si besoin)
-function addPhotoToAlbum(item) {
+function addPhotoToAlbum(item){
   const parsed = parseAlbumKeyFromUrl(item.url || item.path || item.src);
-  if (!parsed) return;
-
+  if(!parsed) return;
   const { key, entity, id } = parsed;
-  if (!albums.has(key)) {
-    const title = item.item_title || albumTitle(entity, id);
+
+  if(!albums.has(key)){
+    const title = albumTitle(entity, id, item.item_title);
     const cardEl = createAlbumCard(entity, id, title);
-    albums.set(key, { entity, id, title, cardEl, coverSet: false, count: 0, photos: [] });
+    cardEl.dataset.key = key;
+    albums.set(key, { entity, id, title, cardEl, photos: [] });
   }
   const a = albums.get(key);
 
-  // Dédup (au cas où la pagination renverrait une photo déjà vue)
-  if (!a.photos.some(p => p.url === item.url)) {
-    a.photos.push({ url: item.url, name: item.name, base: item.base_name });
-    a.count++;
+  if(!a.photos.some(p => p.url === item.url)){
+    a.photos.push({ url:item.url, name:item.name, base:item.base_name });
     updateAlbumUI(key);
   }
 }
 
-// Construit l’URL existante (tu gardes ta façon actuelle)
-function buildUrl() {
-  const url = new URL(`/api/gallery/photos`, window.location.origin);
-  url.searchParams.set('page', state.page);
-  url.searchParams.set('per', state.per);
-  // si tu as déjà q/sort/entity, ajoute-les ici
-  return url;
-}
-
-async function loadNext() {
-  if (state.loading || state.done) return;
+// === DATA LOADING ============================================================
+async function loadNext(){
+  if(state.loading || state.done) return;
   state.loading = true;
   sentinel.textContent = 'Chargement…';
-  try {
+  try{
     const res = await fetch(buildUrl());
     const data = await res.json();
-
-    // data.items = [{url,name,base_name,item_title,entity,entity_id}, ...]
     (data.items || []).forEach(addPhotoToAlbum);
-
     state.page++;
     state.done = !data.has_more;
     sentinel.textContent = state.done ? '— fin —' : 'Descendez pour charger la suite…';
-  } catch (e) {
+  }catch(e){
     console.error(e);
     sentinel.textContent = 'Erreur de chargement';
-  } finally {
+  }finally{
     state.loading = false;
   }
 }
 
-// Infinite scroll
-const io = new IntersectionObserver((entries) => {
-  if (entries.some(e => e.isIntersecting)) loadNext();
+const io = new IntersectionObserver((entries)=>{
+  if(entries.some(e=>e.isIntersecting)) loadNext();
 });
 io.observe(sentinel);
 
-// Si tu as des filtres/tri/recherche existants, appelle reset() puis loadNext() sur changement
-function reset() {
-  state.page = 1; state.done = false;
-  grid.innerHTML = '';
-  albums.clear();
-  loadNext();
-}
-
-// Premier chargement
+// Boot
 loadNext();
 </script>
-
 {% endblock %}
