@@ -455,14 +455,6 @@ def _mark_skip_below_current(job_id: str, st: dict, progress: float|None, layer:
         # On met aussi à jour le 'last' pour ne pas re-déclencher en arrière.
         st["last"] = max(st.get("last", -1.0), float(progress))
 
-    # Couches (fin couche 1 => layer>=2 ; fin couche 2 => layer>=3)
-    if isinstance(layer, int):
-        if layer >= 2 and not st["l2"]:
-            st["l2"] = True
-        if layer >= 3 and not st["l3"]:
-            st["l3"] = True
-        st["last_layer"] = layer
-
     st["_skip_below_done"] = True  # ne le fait qu’une fois
     _persist(job_id)
     
@@ -789,7 +781,7 @@ def safe_update_status(data):
         if layer is not None:
             prev_layer = st.get("last_layer") or 0
 
-            if not st["l2"] and prev_layer < 2 <= layer:
+            if not st["l2"] and layer == 2:
                 fire_and_forget(
                     snapshot_milestone, job_id, 0,
                     basename="Impression-couche-1",
@@ -798,7 +790,7 @@ def safe_update_status(data):
                 logger.debug(f"[milestones] FIRE layer1 (layer={layer}) for job={job_id}")
                 st["l2"] = True
 
-            if not st["l3"] and prev_layer < 3 <= layer:
+            if not st["l3"] and layer == 3:
                 fire_and_forget(
                     snapshot_milestone, job_id, 0,
                     basename="Impression-couche-2",
