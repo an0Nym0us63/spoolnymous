@@ -32,30 +32,39 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
   box-shadow:0 1px 3px rgba(0,0,0,.08);
 }
 
-/* BASE: chaque image remplit le conteneur (sera surchargée par les variantes) */
+/* Patchwork (jusqu’à 4 vignettes) */
+.patchwork{
+  position:relative;
+  width:100%; padding-top:100%;
+  background:#f5f5f5; border-radius:.75rem; overflow:hidden;
+  box-shadow:0 1px 3px rgba(0,0,0,.08);
+}
+
+/* Reset agressif pour neutraliser d’anciens styles éventuels */
+.patchwork img{ all:unset; display:block; }
 .patchwork .pw-i{
   position:absolute; top:0; left:0;
   width:100%; height:100%;
   object-fit:cover;
 }
 
-/* 1 image */
-.pw-1-1{ /* inherits base full-size */ }
+/* 1 image (plein cadre) */
+.pw-1-1{ /* full, hérite de .pw-i */ }
 
 /* 2 images : split vertical */
 .pw-2-1{ width:50%; height:100%; left:0; top:0; }
-.pw-2-2{ width:50%; height:100%; right:0; top:0; left:auto; }
+.pw-2-2{ width:50%; height:100%; left:auto; right:0; top:0; }
 
-/* 3 images : 2 en haut, 1 en bas plein */
+/* 3 images : 2 en haut, 1 en bas */
 .pw-3-1{ width:50%; height:50%; left:0; top:0; }
-.pw-3-2{ width:50%; height:50%; right:0; top:0; left:auto; }
-.pw-3-3{ width:100%; height:50%; left:0; bottom:0; top:auto; }
+.pw-3-2{ width:50%; height:50%; left:auto; right:0; top:0; }
+.pw-3-3{ width:100%; height:50%; left:0; top:auto; bottom:0; }
 
 /* 4 images : quadrillage 2x2 */
 .pw-4-1{ width:50%; height:50%; left:0; top:0; }
-.pw-4-2{ width:50%; height:50%; right:0; top:0; left:auto; }
-.pw-4-3{ width:50%; height:50%; left:0; bottom:0; top:auto; }
-.pw-4-4{ width:50%; height:50%; right:0; bottom:0; left:auto; top:auto; }
+.pw-4-2{ width:50%; height:50%; left:auto; right:0; top:0; }
+.pw-4-3{ width:50%; height:50%; left:0; top:auto; bottom:0; }
+.pw-4-4{ width:50%; height:50%; left:auto; right:0; top:auto; bottom:0; }
 
 /* Lightbox custom */
 .lightbox{ position:fixed; inset:0; z-index:2000; display:none; background:rgba(0,0,0,.92); }
@@ -176,7 +185,6 @@ function lbRender(){
   const a = albums.get(LB.albumKey);
   const p = a.photos[LB.index];
   const specific = p.base || p.name || '';
-  // Titre complet : Nom principal (album) - Nom spécifique (photo)
   LB.name.textContent = specific ? `${a.title} - ${specific}` : a.title;
   LB.img.src = p.url;
   LB.img.alt = specific || a.title || '';
@@ -242,9 +250,20 @@ function createAlbumCard(entity, id, title){
 
 function renderPatchwork(card, photos){
   const box = card.querySelector('.patchwork');
+
+  // 1) on ordonne les photos pour favoriser "les premières"
+  //    -> par défaut : ordre d’arrivée (déjà le cas)
+  //    -> si tu veux forcer un ordre par nom (ex. Impression-001, -050, -100), décommente :
+  // photos = [...photos].sort((a,b) => (a.base||a.name||'').localeCompare(b.base||b.name||'', undefined, {numeric:true}));
+
+  // 2) on prend les 4 premières (priorité aux premières)
   const k = Math.min(photos.length, 4);
   const imgs = photos.slice(0, k);
-  box.innerHTML = imgs.map((p, i)=> `<img src="${p.url}" class="pw-i pw-${k}-${i+1}" alt="">`).join('');
+
+  // 3) HTML (chaque image a la classe pw-i et sa position pw-k-i)
+  box.innerHTML = imgs
+    .map((p, i) => `<img loading="lazy" src="${p.url}" class="pw-i pw-${k}-${i+1}" alt="">`)
+    .join('');
 }
 
 function updateAlbumUI(key){
