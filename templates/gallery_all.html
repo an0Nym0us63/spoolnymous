@@ -33,42 +33,24 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 .patchwork{
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 1 / 1;          /* carré responsive */
   border-radius: .75rem;
   overflow: hidden;
   background: var(--tile-bg, #111);
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
 }
 
-/* Mode pile */
-.patchwork.stack img{
+/* Une seule image, pleine tuile */
+.patchwork.single img{
   position:absolute; inset:0;
   width:100%; height:100%;
   object-fit:cover; object-position:center;
-  border-radius: .75rem;
-  transition: transform .2s ease;
+  display:block;
 }
 
-/* Fond (le plus petit) */
-.patchwork.stack .layer-1{
-  z-index:1;
-  transform: translate(-10px, 10px) scale(.95);
-  filter: brightness(.9);
-}
-
-/* Milieu */
-.patchwork.stack .layer-2{
-  z-index:2;
-  transform: translate(-5px, 5px) scale(.975);
-  filter: brightness(.95);
-}
-
-/* Dessus = photo principale */
-.patchwork.stack .layer-3{
-  z-index:3;
-  transform: translate(0,0) scale(1);
-  filter: none;
-}
+/* (Optionnel) micro-hover pour un peu de relief */
+.album-card .patchwork{ transition: transform .12s ease; }
+.album-card:hover .patchwork{ transform: translateY(-2px); }
 
 /* Lightbox */
 .lightbox{ position:fixed; inset:0; z-index:2000; display:none; background:rgba(0,0,0,.92); }
@@ -80,7 +62,7 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 .lb-nav{ position:fixed; inset:0; display:flex; align-items:center; justify-content:space-between; pointer-events:none; }
 .lb-nav .btn{ pointer-events:all; border-radius:999px; }
 
-/* Mobile : 3 colonnes + pile plus compacte */
+/* Grille mobile : 3 colonnes */
 @media (max-width: 576px){
   .g-grid{
     grid-template-columns: repeat(3, 1fr) !important;
@@ -89,10 +71,6 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
   .meta-line{ min-height:22px; }
   .album-title{ font-size:.78rem; }
   .album-count{ font-size:.68rem; padding:.1rem .35rem; }
-  .lb-index{ display:none; }
-
-  .patchwork.stack .layer-1{ transform: translateY(8px)  scale(.988); }
-  .patchwork.stack .layer-2{ transform: translateY(4px)  scale(.994); }
 }
 </style>
 {% endblock %}
@@ -259,23 +237,13 @@ function createAlbumCard(entity, id, title){
 
 function renderPatchwork(card, photos){
   const box = card.querySelector('.patchwork');
-  box.className = 'patchwork stack';
+  box.className = 'patchwork single';   // force le mode single
 
   if (!photos.length) { box.innerHTML = ''; return; }
 
-  // On prend jusqu'à 3 photos ; top = la 1ʳᵉ, dessous = 2ᵉ puis 3ᵉ
-  const n = Math.min(3, photos.length);
-
-  // indices du bas vers le haut : [2,1,0] (ou [1,0], [0])
-  const indices = Array.from({length:n}, (_,i) => n - 1 - i);
-
-  box.innerHTML = indices
-    .map((idx, layerIdx) => {
-      const p = photos[idx];
-      const alt = p.base || p.name || '';
-      return `<img loading="lazy" src="${p.url}" class="layer-${layerIdx+1}" alt="${alt}">`;
-    })
-    .join('');
+  const cover = photos[0];
+  const alt = cover.base || cover.name || '';
+  box.innerHTML = `<img loading="lazy" src="${cover.url}" alt="${alt}">`;
 }
 
 function updateAlbumUI(key){
