@@ -148,24 +148,35 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 */
 q::placeholder{ opacity:.7; }
 sentinel.empty{ color:var(--bs-secondary-color); }
+.search-bar.sticky-top {
+  top: 0;                 /* reste collée en haut */
+  z-index: 1050;          /* au-dessus de la galerie */
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
 </style>
 {% endblock %}
 
 {% block content %}
 <main class="gallery-page">
   <div class="container py-3">
-  <div class="row align-items-center gy-2 mb-3">
-  <div class="col-12 col-sm-8">
-    <div class="input-group">
-      <span class="input-group-text bg-dark-subtle"><i class="bi bi-search"></i></span>
-      <input id="q" type="search" class="form-control" placeholder="Rechercher un print, un groupe, un nom de photo…">
-      <button id="qClear" class="btn btn-outline-secondary" type="button" title="Effacer"><i class="bi bi-x-lg"></i></button>
+
+    <!-- BARRE DE RECHERCHE STICKY -->
+    <div class="search-bar sticky-top bg-body py-2 mb-3">
+      <div class="d-flex justify-content-center">
+        <div class="input-group" style="max-width: 480px;">
+          <span class="input-group-text bg-dark-subtle"><i class="bi bi-search"></i></span>
+          <input id="q" type="search" class="form-control" placeholder="Rechercher un print, un groupe, un tag…">
+          <button id="qClear" class="btn btn-outline-secondary" type="button" title="Effacer"><i class="bi bi-x-lg"></i></button>
+        </div>
+      </div>
     </div>
-  </div>
+
+    <!-- GALERIE -->
     <div id="grid" class="g-grid"></div>
     <div id="sentinel" class="py-4 text-center text-secondary">Chargement…</div>
-  </div>
 
+  </div>
 </main>
 
 <!-- Lightbox -->
