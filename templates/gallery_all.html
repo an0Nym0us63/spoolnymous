@@ -30,56 +30,44 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 .album-title{ font-size:.95rem; line-height:1.2; }
 .album-count{ font-size:.75rem; }
 
-/* Tuile carrée */
+* Tuile carrée */
 .patchwork{
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1;      /* ✔ carré moderne */
+  aspect-ratio: 1 / 1;
   border-radius: .75rem;
   overflow: hidden;
-  background: var(--tile-bg);   /* ✔ paramétrable */
+  background: var(--tile-bg, #f5f5f5);
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
 }
 
-/* Cover unique */
-.patchwork.single img{
+/* Mode pile */
+.patchwork.stack img{
   position:absolute; inset:0;
   width:100%; height:100%;
-  object-fit:cover; object-position:center; /* ✔ centré */
+  object-fit:cover; object-position:center;
+  border-radius: .75rem;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.08);
+  transition: transform .2s ease;
 }
 
-/* Feuille retournée réaliste (unique définition) */
-.patchwork.single::before{
-  content:"";
-  position:absolute; right:0; bottom:0;
-  width:72px; height:72px; pointer-events:none;
-  background:
-    radial-gradient(120px 120px at 100% 100%,
-      rgba(0,0,0,.35) 0%,
-      rgba(0,0,0,.25) 35%,
-      rgba(0,0,0,.10) 60%,
-      rgba(0,0,0,0) 70%);
-  transform: translate(8px,8px);
-  filter: blur(6px);
+/* 1 = fond, 2 = milieu, 3 = au-dessus (visible) */
+.patchwork.stack .layer-1{
+  z-index:1;
+  transform: translateY(12px) scale(.984);
+  filter: brightness(.96);
 }
-.patchwork.single::after{
-  content:"";
-  position:absolute; right:0; bottom:0;
-  width:0; height:0; border-style:solid;
-  border-width:0 0 48px 48px;
-  /* si fond clair : papier clair, sinon teinte foncée */
-  border-color: transparent transparent
-    /* calcule auto clair/sombre en fonction de --tile-bg serait overkill, choisis l'un : */
-    rgba(255,255,255,.85)
-    transparent;
-  box-shadow: -1px -1px 0 rgba(0,0,0,.10), -2px -2px 0 rgba(0,0,0,.06);
+.patchwork.stack .layer-2{
+  z-index:2;
+  transform: translateY(6px) scale(.992);
+  filter: brightness(.98);
+}
+.patchwork.stack .layer-3{
+  z-index:3; /* top */
+  transform: translateY(0);
+  filter: none;
 }
 
-/* Variante sombre : décommente ces 2 lignes si tu passes en sombre global */
-/*
-:root{ --tile-bg:#111; }
-.patchwork.single::after{ border-color:transparent transparent #1b1b1b transparent; }
-*/
 
 /* Lightbox custom */
 .lightbox{ position:fixed; inset:0; z-index:2000; display:none; background:rgba(0,0,0,.92); }
@@ -92,19 +80,16 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 .lb-nav .btn{ pointer-events:all; border-radius:999px; }
 
 /* —— Mobile : 3 colonnes ————————————————————————— */
+
+/* Mobile : pile plus compacte + grille 3 colonnes */
 @media (max-width: 576px){
   .g-grid{
     grid-template-columns: repeat(3, 1fr) !important;
     gap: .6rem;
   }
-  .album-card{ width:auto; }
-  .meta-line{ min-height: 22px; }
-  .album-title{ font-size:.78rem; }
-  .album-count{ font-size:.68rem; padding:.1rem .35rem; }
-  .lb-index{ display:none; }
-
-  .patchwork.single::after{ border-width:0 0 32px 32px; }
-  .patchwork.single::before{ width:56px; height:56px; transform: translate(6px,6px); }
+  .patchwork.stack .layer-1{ transform: translateY(8px)  scale(.988); }
+  .patchwork.stack .layer-2{ transform: translateY(4px)  scale(.994); }
+}tchwork.single::before{ width:56px; height:56px; transform: translate(6px,6px); }
 }
 </style>
 {% endblock %}	
@@ -271,17 +256,23 @@ function createAlbumCard(entity, id, title){
 
 function renderPatchwork(card, photos){
   const box = card.querySelector('.patchwork');
-  // S’assure qu’on est bien en mode "cover unique" à chaque rendu
-  box.className = 'patchwork single';
+  box.className = 'patchwork stack';
 
-  if (!photos.length) {
-    box.innerHTML = '';
-    return;
-  }
+  if (!photos.length) { box.innerHTML = ''; return; }
 
-  const cover = photos[0];
-  const alt = cover.base || cover.name || '';
-  box.innerHTML = `<img loading="lazy" src="${cover.url}" alt="${alt}">`;
+  // On prend jusqu'à 3 photos ; top = la 1ʳᵉ, dessous = 2ᵉ puis 3ᵉ
+  const n = Math.min(3, photos.length);
+
+  // indices du bas vers le haut : [2,1,0] (ou [1,0], [0])
+  const indices = Array.from({length:n}, (_,i) => n - 1 - i);
+
+  box.innerHTML = indices
+    .map((idx, layerIdx) => {
+      const p = photos[idx];
+      const alt = p.base || p.name || '';
+      return `<img loading="lazy" src="${p.url}" class="layer-${layerIdx+1}" alt="${alt}">`;
+    })
+    .join('');
 }
 
 function updateAlbumUI(key){
