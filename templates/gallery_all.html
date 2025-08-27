@@ -61,7 +61,41 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 .lb-index{ color:#fff; opacity:.8; font-size:.9rem; }
 .lb-nav{ position:fixed; inset:0; display:flex; align-items:center; justify-content:space-between; pointer-events:none; }
 .lb-nav .btn{ pointer-events:all; border-radius:999px; }
+/* Lightbox : titre adaptatif */
+.lb-toolbar{
+  flex-wrap: nowrap; /* desktop : une ligne */
+}
 
+#lbName{
+  max-width: 70vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-index{
+  flex-shrink: 0; /* évite que le compteur se comprime trop */
+}
+
+/* En mobile : stack vertical */
+@media (max-width: 576px){
+  .lb-toolbar{
+    flex-wrap: wrap;          /* permet le retour à la ligne */
+    gap: .25rem;
+  }
+  #lbName{
+    max-width: 100%;
+    white-space: normal;
+    text-overflow: clip;
+    line-height: 1.2;
+  }
+  .lb-index{
+    width: 100%;
+    text-align: left;        /* ou center si tu veux */
+    font-size: .8rem;
+    opacity: .7;
+  }
+}
 /* ===== Mobile : 2 colonnes fixes qui s'adaptent à la largeur ===== */
 @media (max-width: 576px){
   /* Bordures du container plus fines pour gagner de la place */
