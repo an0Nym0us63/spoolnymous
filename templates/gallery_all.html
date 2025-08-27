@@ -247,17 +247,24 @@ function buildUrl(){
 }
 
 function resetAndReload(){
-  // Reset pagination + UI
-  state.page = 1; state.done = false;
+  // reset pagination + UI
+  state.page = 1;
+  state.done = false;
+  state.loading = false;
+
   albums.clear();
   grid.innerHTML = '';
   sentinel.classList.remove('empty');
   sentinel.textContent = 'Chargement…';
-  loadNext();
-  // Pousser l’état dans l’URL
+
+  // push état dans l’URL
   const usp = new URLSearchParams(location.search);
-  state.q ? usp.set('q', state.q) : usp.delete('q');
+  if (state.q && state.q.trim()) usp.set('q', state.q.trim());
+  else usp.delete('q');
   history.replaceState(null, '', `${location.pathname}?${usp.toString()}`);
+
+  // relance le chargement
+  loadNext();
 }
 
 function debounce(fn, ms=250){
@@ -412,32 +419,42 @@ function addPhotoToAlbum(item){
 }
 
 // === DATA LOADING ============================================================
+
+
 async function loadNext(){
-  if(state.loading || state.done) return;
+  if (state.loading || state.done) return;
   state.loading = true;
   sentinel.textContent = 'Chargement…';
-  try{
-    const data = await res.json();
-const before = albums.size;
-(data.items || []).forEach(addPhotoToAlbum);
-state.page++;
-state.done = !data.has_more;
 
-if (albums.size === 0 && state.done){
-  sentinel.classList.add('empty');
-  sentinel.textContent = state.q ? `Aucun résultat pour « ${state.q} »` : 'Aucun élément';
-} else {
-  sentinel.classList.remove('empty');
-  sentinel.textContent = state.done ? '— fin —' : 'Descendez pour charger la suite…';
-}
-  }catch(e){
-    console.error(e);
+  try {
+    const response = await fetch(buildUrl(), { credentials: 'same-origin' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const data = await response.json();
+
+    (data.items || []).forEach(addPhotoToAlbum);
+    state.page += 1;
+    state.done = !data.has_more;
+
+    if (albums.size === 0 && state.done){
+      sentinel.classList.add('empty');
+      sentinel.textContent = state.q
+        ? `Aucun résultat pour « ${state.q} »`
+        : 'Aucun élément';
+    } else {
+      sentinel.classList.remove('empty');
+      sentinel.textContent = state.done
+        ? '— fin —'
+        : 'Descendez pour charger la suite…';
+    }
+  } catch (err) {
+    console.error('[gallery] loadNext failed:', err);
+    sentinel.classList.add('empty');
     sentinel.textContent = 'Erreur de chargement';
-  }finally{
+  } finally {
     state.loading = false;
   }
 }
-
 const io = new IntersectionObserver((entries)=>{
   if(entries.some(e=>e.isIntersecting)) loadNext();
 });
