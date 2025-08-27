@@ -148,11 +148,13 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 */
 q::placeholder{ opacity:.7; }
 sentinel.empty{ color:var(--bs-secondary-color); }
-.search-bar.sticky-top {
-  top: 0;                 /* reste collée en haut */
-  z-index: 1050;          /* au-dessus de la galerie */
-  backdrop-filter: blur(6px);
-  border-bottom: 1px solid rgba(255,255,255,.1);
+.search-bar {
+  position: sticky;
+  top: 56px; /* hauteur de ta navbar */
+  z-index: 1029; /* juste sous la navbar */
+  background: var(--bs-body-bg); /* fond identique au body */
+  padding: .5rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,.08);
 }
 /* remplace .search-stick existant */
 .search-stick{
