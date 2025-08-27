@@ -25,47 +25,14 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 .album-card{ cursor:pointer; }
 .meta-line{ min-height:28px; }
 
-/* --- PATCHWORK: version blindée --- */
-.patchwork{
-  position: relative;
-  width: 100%;
-  padding-top: 100%;          /* carré */
-  background: #f5f5f5;
-  border-radius: .75rem;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+/* Patchwork dynamique : conteneur carré et images absolues centrées */
+.patchwork{ position:relative; width:100%; padding-top:100%; border-radius:.75rem; overflow:hidden; background:#f5f5f5; }
+.patchwork img{
+  position:absolute; top:0; left:0;
+  width:100%; height:100%;
+  object-fit:cover; object-position:center;
+  border:0;
 }
-
-/* reset agressif (si une vieille règle traîne encore) */
-.patchwork img{ all: unset; display: block; }
-
-/* base obligatoire + !important pour écraser tout */
-.patchwork .pw-i{
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-}
-
-/* 1 image = plein cadre */
-.patchwork .pw-1-1 { /* hérite de .pw-i */ }
-
-/* 2 images = split vertical 50/50 */
-.patchwork .pw-2-1 { left: 0 !important;      top: 0 !important; width: 50% !important; height: 100% !important; }
-.patchwork .pw-2-2 { left: 50% !important;    top: 0 !important; width: 50% !important; height: 100% !important; }
-
-/* 3 images = 2 en haut, 1 en bas */
-.patchwork .pw-3-1 { left: 0 !important;      top: 0 !important; width: 50% !important; height: 50% !important; }
-.patchwork .pw-3-2 { left: 50% !important;    top: 0 !important; width: 50% !important; height: 50% !important; }
-.patchwork .pw-3-3 { left: 0 !important;      top: 50% !important; width: 100% !important; height: 50% !important; }
-
-/* 4 images = quadrillage 2x2 */
-.patchwork .pw-4-1 { left: 0 !important;      top: 0 !important; width: 50% !important; height: 50% !important; }
-.patchwork .pw-4-2 { left: 50% !important;    top: 0 !important; width: 50% !important; height: 50% !important; }
-.patchwork .pw-4-3 { left: 0 !important;      top: 50% !important; width: 50% !important; height: 50% !important; }
-.patchwork .pw-4-4 { left: 50% !important;    top: 50% !important; width: 50% !important; height: 50% !important; }
 
 /* Lightbox custom */
 .lightbox{ position:fixed; inset:0; z-index:2000; display:none; background:rgba(0,0,0,.92); }
@@ -249,24 +216,97 @@ function createAlbumCard(entity, id, title){
   return card;
 }
 
-function renderPatchwork(card, photos){
-  const box = card.querySelector('.patchwork');
+function layoutRects(ratios) {
+  const sum = ratios.reduce((a,b)=>a+b, 0) || 1;
+  const rects = [];
+  const W = 100, H = 100;
 
-  // 1) on ordonne les photos pour favoriser "les premières"
-  //    -> par défaut : ordre d’arrivée (déjà le cas)
-  //    -> si tu veux forcer un ordre par nom (ex. Impression-001, -050, -100), décommente :
-  // photos = [...photos].sort((a,b) => (a.base||a.name||'').localeCompare(b.base||b.name||'', undefined, {numeric:true}));
+  if (ratios.length === 1) {
+    rects.push({ left:0, top:0, width:W, height:H });
+    return rects;
+  }
 
-  // 2) on prend les 4 premières (priorité aux premières)
-  const k = Math.min(photos.length, 4);
-  const imgs = photos.slice(0, k);
+  if (ratios.length === 2) {
+    // Split vertical si ensemble "plutôt paysage", sinon horizontal
+    const r1 = ratios[0], r2 = ratios[1];
+    const totalR = r1 + r2;
+    // aire proportionnelle -> largeur proportionnelle au ratio si vertical
+    const preferVertical = (r1 >= 1 || r2 >= 1);
+    if (preferVertical) {
+      const w1 = (r1 / totalR) * W;
+      const w2 = W - w1;
+      rects.push({ left:0,   top:0, width:w1, height:H });
+      rects.push({ left:w1,  top:0, width:w2, height:H });
+    } else {
+      // horizontal
+      const h1 = (r1 / totalR) * H;
+      const h2 = H - h1;
+      rects.push({ left:0, top:0,  width:W, height:h1 });
+      rects.push({ left:0, top:h1, width:W, height:h2 });
+    }
+    return rects;
+  }
 
-  // 3) HTML (chaque image a la classe pw-i et sa position pw-k-i)
-  box.innerHTML = imgs
-    .map((p, i) => `<img loading="lazy" src="${p.url}" class="pw-i pw-${k}-${i+1}" alt="">`)
-    .join('');
+  if (ratios.length === 3) {
+    // 2 en haut, 1 en bas pleine largeur, hauteurs proportionnelles aux "poids"
+    const rTop1 = ratios[0], rTop2 = ratios[1], rBot = ratios[2];
+    const topWeight = rTop1 + rTop2;
+    const hTop = (topWeight / (topWeight + rBot)) * H;     // aire top proportionnelle
+    const hBot = H - hTop;
+
+    // Répartition horizontale en haut proportionnelle aux ratios
+    const w1 = (rTop1 / (rTop1 + rTop2)) * W;
+    const w2 = W - w1;
+
+    rects.push({ left:0,  top:0,    width:w1, height:hTop });
+    rects.push({ left:w1, top:0,    width:w2, height:hTop });
+    rects.push({ left:0,  top:hTop, width:W,  height:hBot });
+    return rects;
+  }
+
+  // ratios.length === 4
+  // 2 en haut, 2 en bas ; hauteur de chaque rang proportionnelle à la somme des ratios de la rangée
+  const r1 = ratios[0], r2 = ratios[1], r3 = ratios[2], r4 = ratios[3];
+  const topWeight = r1 + r2, botWeight = r3 + r4;
+  const hTop = (topWeight / (topWeight + botWeight)) * H;
+  const hBot = H - hTop;
+
+  const w1 = (r1 / (r1 + r2)) * W, w2 = W - w1;
+  const w3 = (r3 / (r3 + r4)) * W, w4 = W - w3;
+
+  rects.push({ left:0,  top:0,     width:w1, height:hTop });
+  rects.push({ left:w1, top:0,     width:w2, height:hTop });
+  rects.push({ left:0,  top:hTop,  width:w3, height:hBot });
+  rects.push({ left:w3, top:hTop,  width:w4, height:hBot });
+  return rects;
 }
 
+// Précharge dimensions des 1..4 premières photos et calcule un patchwork adapté
+function renderPatchwork(card, photos) {
+  const box = card.querySelector('.patchwork');
+  // On prend les 4 premières photos (priorité aux premières)
+  const pick = photos.slice(0, Math.min(photos.length, 4));
+
+  if (!pick.length) { box.innerHTML = ''; return; }
+
+  // Précharge dimensions pour ratios W/H
+  Promise.all(pick.map(p => new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => resolve({ url: p.url, w: img.naturalWidth || 1, h: img.naturalHeight || 1, name: p.name, base: p.base });
+    img.onerror = () => resolve({ url: p.url, w: 1, h: 1, name: p.name, base: p.base });
+    img.src = p.url;
+  }))).then(items => {
+    const ratios = items.map(it => (it.w / it.h) || 1);
+    const rects = layoutRects(ratios);
+
+    // Rendu absolu avec styles en pourcentage (évite tout conflit CSS)
+    box.innerHTML = items.map((it, i) => {
+      const r = rects[i];
+      const style = `left:${r.left.toFixed(3)}%; top:${r.top.toFixed(3)}%; width:${r.width.toFixed(3)}%; height:${r.height.toFixed(3)}%;`;
+      return `<img loading="lazy" src="${it.url}" style="${style}" alt="">`;
+    }).join('');
+  });
+}
 function updateAlbumUI(key){
   const a = albums.get(key);
   if(!a) return;
