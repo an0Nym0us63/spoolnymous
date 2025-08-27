@@ -1,8 +1,10 @@
 {% extends "base.html" %}
-
 {% block styles %}
 <style>
-:root { --thumb-size: 180px; }
+:root{
+  --thumb-size: 180px;
+  --tile-bg: #111;        /* change en #111 pour fond sombre si tu veux */
+}
 
 body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 
@@ -25,60 +27,87 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 .album-card{ cursor:pointer; }
 .meta-line{ min-height:28px; }
 
-/* Conteneur carré */
+.album-title{ font-size:.95rem; line-height:1.2; }
+.album-count{ font-size:.75rem; }
+
+/* Tuile carrée */
 .patchwork{
   position: relative;
   width: 100%;
-  padding-top: 100%;      /* carré responsive */
+  aspect-ratio: 1 / 1;      /* ✔ carré moderne */
   border-radius: .75rem;
   overflow: hidden;
-  background: #f5f5f5;
+  background: var(--tile-bg);   /* ✔ paramétrable */
   box-shadow: 0 1px 3px rgba(0,0,0,.08);
 }
 
-/* (Tu peux garder le reset si tu veux)
-.patchwork img{ all: unset; display:block; }
-*/
+/* Cover unique */
+.patchwork.single img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover; object-position:center; /* ✔ centré */
+}
 
-/* --- MODE COVER UNIQUE --- */
+/* Feuille retournée réaliste (unique définition) */
+.patchwork.single::before{
+  content:"";
+  position:absolute; right:0; bottom:0;
+  width:72px; height:72px; pointer-events:none;
+  background:
+    radial-gradient(120px 120px at 100% 100%,
+      rgba(0,0,0,.35) 0%,
+      rgba(0,0,0,.25) 35%,
+      rgba(0,0,0,.10) 60%,
+      rgba(0,0,0,0) 70%);
+  transform: translate(8px,8px);
+  filter: blur(6px);
+}
 .patchwork.single::after{
   content:"";
-  position:absolute; bottom:0; right:0;
-  border-width:0 0 24px 24px;
-  border-style:solid;
-  border-color:transparent transparent rgba(0,0,0,.4) transparent;
+  position:absolute; right:0; bottom:0;
+  width:0; height:0; border-style:solid;
+  border-width:0 0 48px 48px;
+  /* si fond clair : papier clair, sinon teinte foncée */
+  border-color: transparent transparent
+    /* calcule auto clair/sombre en fonction de --tile-bg serait overkill, choisis l'un : */
+    rgba(255,255,255,.85)
+    transparent;
+  box-shadow: -1px -1px 0 rgba(0,0,0,.10), -2px -2px 0 rgba(0,0,0,.06);
 }
 
-/* ⚠️ C’est ça qui manquait : l’image doit ABSOLUMENT couvrir le carré */
-.patchwork.single img{
-  position:absolute;
-  top:0; left:0;
-  width:100%; height:100%;
-  object-fit:cover;
-  object-position:center;
-}
+/* Variante sombre : décommente ces 2 lignes si tu passes en sombre global */
+/*
+:root{ --tile-bg:#111; }
+.patchwork.single::after{ border-color:transparent transparent #1b1b1b transparent; }
+*/
 
 /* Lightbox custom */
 .lightbox{ position:fixed; inset:0; z-index:2000; display:none; background:rgba(0,0,0,.92); }
 .lightbox.open{ display:grid; place-items:center; }
 .lightbox img{ max-width:92vw; max-height:86vh; object-fit:contain; box-shadow:0 0 0 1px rgba(255,255,255,.08); border-radius:.5rem; }
-
-.lb-toolbar{
-  position:fixed; top:.5rem; left:.5rem; right:.5rem;
-  display:flex; align-items:center; justify-content:space-between; gap:.5rem;
-}
+.lb-toolbar{ position:fixed; top:.5rem; left:.5rem; right:.5rem; display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
 .lb-actions{ display:flex; gap:.5rem; }
 .lb-index{ color:#fff; opacity:.8; font-size:.9rem; }
-
 .lb-nav{ position:fixed; inset:0; display:flex; align-items:center; justify-content:space-between; pointer-events:none; }
 .lb-nav .btn{ pointer-events:all; border-radius:999px; }
 
+/* —— Mobile : 3 colonnes ————————————————————————— */
 @media (max-width: 576px){
-  :root { --thumb-size: 140px; }
+  .g-grid{
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: .6rem;
+  }
+  .album-card{ width:auto; }
+  .meta-line{ min-height: 22px; }
+  .album-title{ font-size:.78rem; }
+  .album-count{ font-size:.68rem; padding:.1rem .35rem; }
   .lb-index{ display:none; }
+
+  .patchwork.single::after{ border-width:0 0 32px 32px; }
+  .patchwork.single::before{ width:56px; height:56px; transform: translate(6px,6px); }
 }
 </style>
-{% endblock %}
+{% endblock %}	
 
 {% block content %}
 <main class="gallery-page">
