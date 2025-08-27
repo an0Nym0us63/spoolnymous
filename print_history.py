@@ -175,6 +175,14 @@ def create_database() -> None:
                 spool_id INTEGER NOT NULL
             )
         ''')
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prints_file_name       ON prints(file_name)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prints_translated_name ON prints(translated_name)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prints_original_name   ON prints(original_name)")
+
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_print_tags_print_id    ON print_tags(print_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_print_tags_tag         ON print_tags(tag)")
+
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_print_groups_name      ON print_groups(name)")
 
         conn.commit()
         conn.close()
@@ -373,7 +381,14 @@ def create_database() -> None:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN full_normal_cost_by_item REAL DEFAULT 0.0")
         if "margin" not in group_columns:
             cursor.execute("ALTER TABLE print_groups ADD COLUMN margin REAL DEFAULT 0.0")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prints_file_name       ON prints(file_name)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prints_translated_name ON prints(translated_name)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prints_original_name   ON prints(original_name)")
 
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_print_tags_print_id    ON print_tags(print_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_print_tags_tag         ON print_tags(tag)")
+
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_print_groups_name      ON print_groups(name)")
         conn.commit()
         conn.close()
 
@@ -1913,22 +1928,29 @@ def _item_title(entity: str, entity_id: int) -> str:
         return title.strip()
     return ("Print #{}".format(entity_id) if entity == "prints" else "Groupe #{}".format(entity_id))
 
-def list_all_photos(prefix="Photo-"):
+def list_all_photos(prefix="Photo-", q: str | None = None):
     """
     Scanne /static/uploads/{prints,groups}/<id> et retourne la liste
     de toutes les photos dont le nom commence par `prefix` (par défaut Photo-).
     Tri par item : Photo-<N> ascendant.
     Renvoie une liste aplatie triée par groupe (ordre: récence de l’item).
+
+    Si `q` est fourni (texte libre, case-insensitive) :
+      - PRINTS  retenus si q ∈ file_name OR translated_name OR original_name OR tag
+      - GROUPS  retenus si q ∈ name (print_groups.name puis fallback groups.name)
+      - On ne renvoie que les photos des items retenus.
     """
     base_dir = Path(__file__).resolve().parent
 
-    groups = defaultdict(list)  # key -> photos
+    groups = defaultdict(list)  # key -> photos: { "prints:12": [ {...}, ... ], "groups:3": [...] }
     meta   = {}                 # key -> {'entity','entity_id','item_title','latest_mtime'}
 
+    # 1) Scan FS et collecte des clés (prints/groups ayant au moins une photo)
     for entity in ("prints", "groups"):
         base = base_dir / "static" / "uploads" / entity
         if not base.exists():
             continue
+
         for item_dir in base.iterdir():
             if not item_dir.is_dir():
                 continue
@@ -1946,6 +1968,7 @@ def list_all_photos(prefix="Photo-"):
                 name = f.name
                 if not name.lower().startswith(prefix.lower()):
                     continue
+                # sécurité simple
                 if name.lower().endswith(".3mf"):
                     continue
 
@@ -1960,38 +1983,129 @@ def list_all_photos(prefix="Photo-"):
                     "entity_id": entity_id,
                     "url": f"/static/uploads/{entity}/{entity_id}/{name}",
                     "name": name,
-                    "base_name": Path(name).stem,      # sans extension
-                    "seq": _seq_from_name(name),       # pour tri asc
+                    "base_name": Path(name).stem,  # sans extension
+                    "seq": _seq_from_name(name),   # pour tri asc
                 })
 
-            meta[key] = {
-                "entity": entity,
-                "entity_id": entity_id,
-                "item_title": _item_title(entity, entity_id),
-                "latest_mtime": latest_mtime,
-            }
+            # Si aucune photo retenue, ne crée pas de meta pour cette clé
+            if groups.get(key):
+                meta[key] = {
+                    "entity": entity,
+                    "entity_id": entity_id,
+                    "item_title": _item_title(entity, entity_id),  # existant
+                    "latest_mtime": latest_mtime,
+                }
 
-    # Tri intra-groupe par seq asc, puis nom
+    # 2) Filtrage optionnel par q (texte libre, case-insensitive)
+    if q:
+        q_norm = q.casefold()
+        print_ids  = [m["entity_id"] for k, m in meta.items() if m["entity"] == "prints"]
+        group_ids  = [m["entity_id"] for k, m in meta.items() if m["entity"] == "groups"]
+
+        prints_meta = {}
+        groups_meta = {}
+
+        try:
+            conn = sqlite3.connect(db_config["db_path"])
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+
+            # PRINTS: file_name / translated_name / original_name
+            if print_ids:
+                q_marks = ",".join("?" for _ in print_ids)
+                cur.execute(f"""
+                    SELECT id, file_name, translated_name, original_name
+                    FROM prints
+                    WHERE id IN ({q_marks})
+                """, tuple(print_ids))
+                for r in cur.fetchall():
+                    prints_meta[r["id"]] = {
+                        "file_name":       (r["file_name"]       or ""),
+                        "translated_name": (r["translated_name"] or ""),
+                        "original_name":   (r["original_name"]   or ""),
+                        "tags": [],  # complété juste après
+                    }
+
+                # Tags associés (bulk)
+                from collections import defaultdict as _dd
+                if print_ids:
+                    q_marks = ",".join("?" for _ in print_ids)
+                    cur.execute(f"""
+                        SELECT print_id, tag
+                        FROM print_tags
+                        WHERE print_id IN ({q_marks})
+                    """, tuple(print_ids))
+                    for pid, tag in cur.fetchall():
+                        prints_meta.setdefault(pid, {"file_name":"", "translated_name":"", "original_name":"", "tags":[]})
+                        if tag:
+                            prints_meta[pid]["tags"].append(str(tag))
+
+            # GROUPS: name (print_groups en priorité, puis groups)
+            if group_ids:
+                q_marks = ",".join("?" for _ in group_ids)
+                cur.execute(f"SELECT id, name FROM print_groups WHERE id IN ({q_marks})", tuple(group_ids))
+                tmp = {r["id"]: (r["name"] or "") for r in cur.fetchall()}
+                missing = [gid for gid in group_ids if gid not in tmp]
+                if missing:
+                    q2 = ",".join("?" for _ in missing)
+                    cur.execute(f"SELECT id, name FROM groups WHERE id IN ({q2})", tuple(missing))
+                    for r in cur.fetchall():
+                        tmp[r["id"]] = (r["name"] or "")
+                groups_meta = tmp
+
+        except Exception:
+            # En cas de pépin DB, on ne filtre pas (comportement grâce)
+            pass
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+        # Applique le filtre q sur les clés
+        keep_keys = []
+        for key, m in meta.items():
+            if m["entity"] == "prints":
+                pid = m["entity_id"]
+                pm  = prints_meta.get(pid, {})
+                hay = " ".join([
+                    pm.get("file_name", ""),
+                    pm.get("translated_name", ""),
+                    pm.get("original_name", ""),
+                    *pm.get("tags", []),
+                ]).casefold()
+                if q_norm in hay:
+                    keep_keys.append(key)
+            else:
+                gid = m["entity_id"]
+                name = (groups_meta.get(gid) or "").casefold()
+                if q_norm in name:
+                    keep_keys.append(key)
+
+        # Filtre les groupes/métadonnées aux seules clés retenues
+        groups = {k: groups[k] for k in keep_keys if k in groups}
+        meta   = {k: meta[k]   for k in keep_keys if k in meta}
+
+    # 3) Tri intra-groupe par seq asc, puis nom
     for key, photos in groups.items():
         photos.sort(key=lambda x: (x["seq"], x["name"]))
 
-    # Ordre des groupes : plus récents d’abord
+    # 4) Ordre des groupes : plus récents d’abord
     ordered_keys = sorted(meta.keys(), key=lambda k: meta[k]["latest_mtime"], reverse=True)
 
-    # Aplatir avec champs enrichis
+    # 5) Aplatit avec champs enrichis (schema inchangé)
     out = []
     for key in ordered_keys:
         title = meta[key]["item_title"]
         for ph in groups.get(key, []):
-            ph_out = {
+            out.append({
                 "entity": ph["entity"],
                 "entity_id": ph["entity_id"],
                 "url": ph["url"],
-                "name": ph["name"],
-                "base_name": ph["base_name"],
-                "item_title": title,
-            }
-            out.append(ph_out)
+                "name": ph["name"],             # ex: Photo-12.jpg
+                "base_name": ph["base_name"],   # ex: Photo-12
+                "item_title": title,            # ex: Mon Vase ou Groupe Foo
+            })
 
     return out
 

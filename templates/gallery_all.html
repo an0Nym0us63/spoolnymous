@@ -146,12 +146,22 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
   }
 }
 */
+q::placeholder{ opacity:.7; }
+sentinel.empty{ color:var(--bs-secondary-color); }
 </style>
 {% endblock %}
 
 {% block content %}
 <main class="gallery-page">
   <div class="container py-3">
+  <div class="row align-items-center gy-2 mb-3">
+  <div class="col-12 col-sm-8">
+    <div class="input-group">
+      <span class="input-group-text bg-dark-subtle"><i class="bi bi-search"></i></span>
+      <input id="q" type="search" class="form-control" placeholder="Rechercher un print, un groupe, un nom de photo…">
+      <button id="qClear" class="btn btn-outline-secondary" type="button" title="Effacer"><i class="bi bi-x-lg"></i></button>
+    </div>
+  </div>
     <div id="grid" class="g-grid"></div>
     <div id="sentinel" class="py-4 text-center text-secondary">Chargement…</div>
   </div>
@@ -182,7 +192,19 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 // === ÉTAT & DOM ==============================================================
 const grid = document.getElementById('grid');
 const sentinel = document.getElementById('sentinel');
-const state = { page:1, per:60, loading:false, done:false };
+const state = {
+  page: 1, per: 60, loading: false, done: false,
+  q: ''   // 👈 ajoutés
+};
+const params = new URLSearchParams(location.search);
+const qInput = document.getElementById('q');
+const qClear = document.getElementById('qClear');
+const entRadios = { all: document.getElementById('entAll'),
+                    prints: document.getElementById('entPrints'),
+                    groups: document.getElementById('entGroups') };
+
+state.q = params.get('q') || '';
+qInput.value = state.q;
 
 // Index d'albums (front) : key = "entity:id" → { entity,id,title,cardEl,photos:[{url,name,base}] }
 const albums = new Map();
@@ -220,7 +242,27 @@ function buildUrl(){
   const u = new URL('/api/gallery/photos', window.location.origin);
   u.searchParams.set('page', state.page);
   u.searchParams.set('per', state.per);
+  if (state.q) u.searchParams.set('q', state.q);
   return u;
+}
+
+function resetAndReload(){
+  // Reset pagination + UI
+  state.page = 1; state.done = false;
+  albums.clear();
+  grid.innerHTML = '';
+  sentinel.classList.remove('empty');
+  sentinel.textContent = 'Chargement…';
+  loadNext();
+  // Pousser l’état dans l’URL
+  const usp = new URLSearchParams(location.search);
+  state.q ? usp.set('q', state.q) : usp.delete('q');
+  history.replaceState(null, '', `${location.pathname}?${usp.toString()}`);
+}
+
+function debounce(fn, ms=250){
+  let t;
+  return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); };
 }
 
 // === LIGHTBOX ================================================================
@@ -252,6 +294,18 @@ function lbRender(){
   LB.idx.textContent = String(LB.index + 1);
   LB.total.textContent = String(a.photos.length);
 }
+
+qInput.addEventListener('input', debounce(()=>{
+  state.q = qInput.value.trim();
+  resetAndReload();
+}, 250));
+
+qClear.addEventListener('click', ()=>{
+  if (!qInput.value) return;
+  qInput.value = '';
+  state.q = '';
+  resetAndReload();
+});
 
 // Brancher les boutons + clavier
 LB.btnPrev.addEventListener('click', ()=> lbMove(-1));
@@ -363,12 +417,19 @@ async function loadNext(){
   state.loading = true;
   sentinel.textContent = 'Chargement…';
   try{
-    const res = await fetch(buildUrl());
     const data = await res.json();
-    (data.items || []).forEach(addPhotoToAlbum);
-    state.page++;
-    state.done = !data.has_more;
-    sentinel.textContent = state.done ? '— fin —' : 'Descendez pour charger la suite…';
+const before = albums.size;
+(data.items || []).forEach(addPhotoToAlbum);
+state.page++;
+state.done = !data.has_more;
+
+if (albums.size === 0 && state.done){
+  sentinel.classList.add('empty');
+  sentinel.textContent = state.q ? `Aucun résultat pour « ${state.q} »` : 'Aucun élément';
+} else {
+  sentinel.classList.remove('empty');
+  sentinel.textContent = state.done ? '— fin —' : 'Descendez pour charger la suite…';
+}
   }catch(e){
     console.error(e);
     sentinel.textContent = 'Erreur de chargement';

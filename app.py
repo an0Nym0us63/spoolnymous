@@ -2949,12 +2949,13 @@ def gallery_all():
 
 @app.route("/api/gallery/photos")
 def api_gallery_photos():
-    page = max(1, int(request.args.get("page", 1)) if request.args.get("page") else 1)
-    per  = int(request.args.get("per", 60)) if request.args.get("per") else 60
-    per  = max(1, min(per, 120))
+    page   = max(1, int(request.args.get("page", 1)) if request.args.get("page") else 1)
+    per    = int(request.args.get("per", 60)) if request.args.get("per") else 60
+    per    = max(1, min(per, 120))
     prefix = request.args.get("prefix", "Photo-")
+    q      = (request.args.get("q") or "").strip() or None
 
-    items = list_all_photos(prefix=prefix)
+    items = list_all_photos(prefix=prefix, q=q)   # 👈 passe le filtre
     total = len(items)
     pages = max(1, math.ceil(total / per)) if total else 1
 
@@ -2966,9 +2967,9 @@ def api_gallery_photos():
         "items": [
             {
                 "url": it["url"],
-                "name": it["name"],               # ex: Photo-12.jpg
-                "base_name": it["base_name"],     # ex: Photo-12
-                "item_title": it["item_title"],   # ex: Mon Vase
+                "name": it["name"],
+                "base_name": it["base_name"],
+                "item_title": it["item_title"],
                 "entity": it["entity"],
                 "entity_id": it["entity_id"],
             } for it in chunk
