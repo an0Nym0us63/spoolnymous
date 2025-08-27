@@ -25,6 +25,7 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 .album-card{ cursor:pointer; }
 .meta-line{ min-height:28px; }
 
+
 .patchwork.single{
   position:relative;
   width:100%; padding-top:100%;
@@ -37,6 +38,48 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
   border-style:solid;
   border-color:transparent transparent rgba(0,0,0,.4) transparent;
 }
+
+/* --- PATCHWORK: version blindée --- */
+.patchwork{
+  position: relative;
+  width: 100%;
+  padding-top: 100%;          /* carré */
+  background: #f5f5f5;
+  border-radius: .75rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+
+/* reset agressif (si une vieille règle traîne encore) */
+.patchwork img{ all: unset; display: block; }
+
+/* base obligatoire + !important pour écraser tout */
+.patchwork .pw-i{
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* 1 image = plein cadre */
+.patchwork .pw-1-1 { /* hérite de .pw-i */ }
+
+/* 2 images = split vertical 50/50 */
+.patchwork .pw-2-1 { left: 0 !important;      top: 0 !important; width: 50% !important; height: 100% !important; }
+.patchwork .pw-2-2 { left: 50% !important;    top: 0 !important; width: 50% !important; height: 100% !important; }
+
+/* 3 images = 2 en haut, 1 en bas */
+.patchwork .pw-3-1 { left: 0 !important;      top: 0 !important; width: 50% !important; height: 50% !important; }
+.patchwork .pw-3-2 { left: 50% !important;    top: 0 !important; width: 50% !important; height: 50% !important; }
+.patchwork .pw-3-3 { left: 0 !important;      top: 50% !important; width: 100% !important; height: 50% !important; }
+
+/* 4 images = quadrillage 2x2 */
+.patchwork .pw-4-1 { left: 0 !important;      top: 0 !important; width: 50% !important; height: 50% !important; }
+.patchwork .pw-4-2 { left: 50% !important;    top: 0 !important; width: 50% !important; height: 50% !important; }
+.patchwork .pw-4-3 { left: 0 !important;      top: 50% !important; width: 50% !important; height: 50% !important; }
+.patchwork .pw-4-4 { left: 50% !important;    top: 50% !important; width: 50% !important; height: 50% !important; }
 
 /* Lightbox custom */
 .lightbox{ position:fixed; inset:0; z-index:2000; display:none; background:rgba(0,0,0,.92); }
@@ -234,6 +277,7 @@ function renderPatchwork(card, photos){
     // le badge compteur est déjà géré par updateAlbumUI
   }
 }
+
 function updateAlbumUI(key){
   const a = albums.get(key);
   if(!a) return;
