@@ -735,7 +735,7 @@ def safe_update_status(data):
                 layer = int(layer_raw)
 
         st = _state(job_id)
-
+        logger.debug(f"[milestones] job={job_id} parsed prog={prog} layer={layer} state_init={st}")
         # Nouveau run ?
         _maybe_reset_state_for_new_print(job_id, st, fields)
 
@@ -753,7 +753,7 @@ def safe_update_status(data):
         )
         if is_mid_print_attach and not st.get("_skip_below_done"):
             _mark_skip_below_current(job_id, st, prog, layer)
-
+        logger.debug(f"[milestones] job={job_id} after reset/skip st={st}")
         # 1) Milestones % : 50 / 99 / 100
         if prog is not None and 0.0 <= prog <= 100.0:
             # Calcul des paliers à tirer (en évitant ceux déjà marqués true)
@@ -776,6 +776,7 @@ def safe_update_status(data):
                     basename=f"Impression-{pct}",
                     name=f"snapshot-{job_id}-{pct}"
                 )
+                logger.debug(f"[milestones] FIRE% {pct} for job={job_id} (prog={prog}, prev={prev})")
                 if pct == 50:  st["m50"]  = True
                 if pct == 99:  st["m99"]  = True
                 if pct == 100: st["m100"] = True
@@ -796,6 +797,7 @@ def safe_update_status(data):
                     basename="Impression-couche-1",
                     name=f"snapshot-{job_id}-L1"
                 )
+                logger.debug(f"[milestones] FIRE layer1 (layer={layer}) for job={job_id}")
                 st["l2"] = True
 
             if not st["l3"] and prev_layer < 3 <= layer:
@@ -804,6 +806,7 @@ def safe_update_status(data):
                     basename="Impression-couche-2",
                     name=f"snapshot-{job_id}-L2"
                 )
+                logger.debug(f"[milestones] FIRE layer2 (layer={layer}) for job={job_id}")
                 st["l3"] = True
 
             st["last_layer"] = max(prev_layer, layer)
