@@ -715,8 +715,9 @@ def safe_update_status(data):
     ####----snapshot-----
     try:
         job_id = data.get("job_id")
-        if job_id is None:
-            raise ValueError("job_id manquant")
+        if not job_id:
+            # Certaines trames n’ont pas de job_id : on ignore silencieusement
+            return
         job_id = str(job_id)
 
         prog_raw = fields.get("progress")
@@ -740,7 +741,18 @@ def safe_update_status(data):
 
         # À la première observation d’un job en cours (ex: reboot), on fige l'état bas
         # => ne jamais déclencher en dessous de l'état courant
-        _mark_skip_below_current(job_id, st, prog, layer)
+        _maybe_reset_state_for_new_print(job_id, st, fields)
+
+        # Seulement si l’on accroche un job déjà entamé (reboot/reconnect),
+        # on marque les milestones <= état courant comme "déjà passés".
+        is_mid_print_attach = (
+            (st.get("last", -1.0) <= 0) and (
+                (isinstance(prog, (int, float)) and prog >= 1.0) or
+                (isinstance(layer, int) and layer >= 2)
+            )
+        )
+        if is_mid_print_attach and not st.get("_skip_below_done"):
+            _mark_skip_below_current(job_id, st, prog, layer)
 
         # 1) Milestones % : 50 / 99 / 100
         if prog is not None and 0.0 <= prog <= 100.0:
