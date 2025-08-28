@@ -2089,7 +2089,7 @@ def get_filaments_for_gallery(args: Dict[str, Any]) -> Dict[str, Any]:
         SELECT filament_id,
                COUNT(*) AS total,
                SUM(CASE WHEN COALESCE(archived,0)=0 THEN 1 ELSE 0 END) AS active
-        FROM spools
+        FROM bobines
         GROUP BY filament_id
       ) sp ON sp.filament_id = f.id
       {where_sql}
