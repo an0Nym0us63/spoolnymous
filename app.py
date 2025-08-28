@@ -73,41 +73,100 @@ def _next_photo_index(upload_dir: Path) -> int:
                     pass
     return max_idx + 1
 
+def __probe_rotation_degrees(src: Path) -> int:
+    """
+    Retourne 0/90/180/270 si ffprobe trouve une orientation.
+    On inspecte side_data_list et le tag 'rotate', en fallback.
+    """
+    try:
+        # 1) side_data_list (le plus fiable)
+        p = subprocess.run(
+            [
+                "ffprobe", "-v", "error", "-select_streams", "v:0",
+                "-show_entries", "stream=side_data_list:stream_tags=rotate",
+                "-print_format", "json", str(src),
+            ],
+            capture_output=True, text=True, check=True
+        )
+        data = json.loads(p.stdout or "{}")
+        deg = 0
+
+        # side_data_list.rotation
+        streams = data.get("streams") or []
+        if streams:
+            s0 = streams[0]
+            sdl = s0.get("side_data_list") or []
+            for sd in sdl:
+                # ex: {"side_data_type":"Display Matrix", "rotation":90}
+                if isinstance(sd, dict) and "rotation" in sd:
+                    r = sd.get("rotation")
+                    if isinstance(r, (int, float)):
+                        deg = int(round(r)) % 360
+                        break
+
+            # fallback: stream_tags.rotate
+            if deg == 0:
+                tags = s0.get("tags") or {}
+                r = tags.get("rotate")
+                if isinstance(r, str) and r.strip().lstrip("-").isdigit():
+                    deg = int(r) % 360
+
+        if deg in (0, 90, 180, 270):
+            return deg
+        return 0
+    except Exception:
+        return 0
+
+
 def _ffmpeg_compress(in_path: Path, out_path: Path, to_webp: bool = True,
                      max_w: int = 1600, max_h: int = 1600, quality: int = 80) -> None:
     """
     Compresse l'image via ffmpeg sans dépendances Python.
-    - Applique l'orientation EXIF (-autorotate 1) au décodage.
-    - Redimensionne à max_w×max_h (ratio conservé) + SAR neutre (setsar=1).
-    - Force 1 frame (évite les WebP animés si source HEIC/Live Photo).
+    - Applique l’orientation EXIF détectée (via ffprobe) avec transpose/flips.
+    - Redimensionne à max_w×max_h (ratio conservé) + SAR neutre.
+    - Force 1 frame (évite webp animés).
     - Supprime les métadonnées.
     - to_webp=True : encode libwebp (alpha OK), sinon JPEG.
     """
-    vf = (
-        f"scale='min(iw,{max_w})':'min(ih,{max_h})':force_original_aspect_ratio=decrease,"
-        "setsar=1"
-    )
+    # 1) Détecter l’orientation
+    rot = __probe_rotation_degrees(in_path)
+
+    # 2) Construire le filtre de rotation explicite
+    #    IMPORTANT: on applique la rotation AVANT le scale pour garder la bonne limite max_w/max_h.
+    rot_filter = ""
+    if rot == 90:
+        rot_filter = "transpose=1"   # 90° clockwise
+    elif rot == 180:
+        # 180° = 2 transposes ou flips; on fait 2 transposes (plus simple)
+        rot_filter = "transpose=1,transpose=1"
+    elif rot == 270:
+        rot_filter = "transpose=2"   # 90° anti-clockwise
+
+    scale = f"scale='min(iw,{max_w})':'min(ih,{max_h})':force_original_aspect_ratio=decrease"
+    vf_parts = []
+    if rot_filter:
+        vf_parts.append(rot_filter)
+    vf_parts.append(scale)
+    vf_parts.append("setsar=1")
+    vf = ",".join(vf_parts)
 
     common = [
         "ffmpeg",
         "-y", "-hide_banner", "-loglevel", "error",
         "-nostdin",
 
-        # ⬇️ CLÉ : appliquer l’orientation EXIF (doit être AVANT -i)
-        "-autorotate", "1",
-
+        # ⚠️ On ne dépend PAS de -autorotate ici, pour éviter les doubles rotations
         "-i", str(in_path),
+
         "-vf", vf,
-        "-frames:v", "1",         # une seule image de sortie
-        "-map_metadata", "-1",    # strip EXIF
-        "-an",                    # no audio
+        "-frames:v", "1",
+        "-map_metadata", "-1",
+        "-an",
     ]
 
     if to_webp:
-        # WebP : qualité 0..100
         cmd = common + ["-c:v", "libwebp", "-q:v", str(quality), "-compression_level", "4", str(out_path)]
     else:
-        # JPEG : -q:v ~ 2..5 = haute qualité. yuvj420p reste compatible large.
         cmd = common + ["-c:v", "mjpeg", "-q:v", "3", "-pix_fmt", "yuvj420p", str(out_path)]
 
     subprocess.run(cmd, check=True)
