@@ -903,18 +903,34 @@ def on_message(client, userdata, msg):
                         foundMode='Tag'
                         break
                     else:
-                        if spool.get("filament", {}).get("extra",{}).get("filament_id"):
-                            color_dist = color_distance(spool["filament"]["color_hex"],tray['tray_color'])
-                            spool['color_dist']=color_dist
-                            #logger.info(filament_id + ' ' +spool["filament"]["color_hex"] + ' : ' + str(color_dist)) 
-                            if foundspool == None:
-                                if color_dist<50:
-                                    foundMode='Profile'
-                                    foundspool= spool
-                            else:
-                                if color_dist<foundspool['color_dist']:
-                                    foundMode='Profile'
-                                    foundspool= spool
+                        filament = spool.get("filament", {})
+                        if filament.get("extra", {}).get("filament_id"):
+                            tray_color = tray['tray_color']
+                            color_hexes = []
+                    
+                            # Priorité : multi_color_hexes > color_hex
+                            if isinstance(filament.get("multi_color_hexes"), list) and filament["multi_color_hexes"]:
+                                color_hexes = filament["multi_color_hexes"]
+                            elif "color_hex" in filament:
+                                color_hexes = [filament["color_hex"]]
+                    
+                            # Calcul de la distance minimale
+                            min_dist = None
+                            for hex_color in color_hexes:
+                                dist = color_distance(hex_color, tray_color)
+                                if min_dist is None or dist < min_dist:
+                                    min_dist = dist
+                    
+                            if min_dist is not None:
+                                spool['color_dist'] = min_dist
+                                if foundspool is None:
+                                    if min_dist < 50:
+                                        foundMode = 'Profile'
+                                        foundspool = spool
+                                else:
+                                    if min_dist < foundspool['color_dist']:
+                                        foundMode = 'Profile'
+                                        foundspool = spool
             if foundspool == None:
               logger.info("      - Not found. Update spool tag or filament_id and color!")
               clearActiveTray(ams['id'], tray["id"])
