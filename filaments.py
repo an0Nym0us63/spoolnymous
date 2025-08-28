@@ -2083,7 +2083,7 @@ def get_filaments_for_gallery(args: Dict[str, Any]) -> Dict[str, Any]:
         all_items = _rows_to_dicts(cur, rows)
 
     # --- swatch_url + filtre strict "fichier présent"
-    static_root = Path(current_app.static_folder).resolve()
+    static_root = Path(__file__).resolve().parent
     swatch_dir  = static_root / "uploads" / "filaments"
 
     filtered: List[Dict[str, Any]] = []
