@@ -309,9 +309,9 @@
                 <li>
                   <button class="dropdown-item"
         onclick='openSpoolModal(null, {
-          filament_id: {{ fil.id }},
-          filament_price: {{ fil.price|default("null") }},
-          filament_weight_g: {{ fil.filament_weight_g|default("null") }}
+          filament_id: {{ fil.id|tojson }},
+          filament_price: {{ fil.price|tojson }},
+          filament_weight_g: {{ fil.filament_weight_g|tojson }}
         })'>
   ➕ Créer une bobine
 </button>
