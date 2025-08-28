@@ -878,11 +878,13 @@ def on_message(client, userdata, msg):
             tray_color = tray["tray_color"]
             tag='n/a'
             filament_id='n/a'
+            
             mapped_spool_id = get_tray_spool_map(tray_uuid, tray_info_idx, tray_color)
 
             if mapped_spool_id:
                 spool_match = next((s for s in spools if s["id"] == mapped_spool_id), None)
                 if spool_match:
+                    logger.debug("found manual")
                     foundMode='Manual'
                     foundspool = spool_match
                 else:

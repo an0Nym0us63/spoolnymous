@@ -1651,6 +1651,9 @@ def load_tray_spool_map_cache(force_reload=False):
 
 def get_tray_spool_map(tray_uuid: str, tray_info_idx: str, color: str) -> int | None:
     load_tray_spool_map_cache()
+    logger.debug(tray_info_idx)
+    logger.debug(tray_uuid)
+    logger.debug(color)
     for row in tray_spool_map_cache:
         _, uuid, info_idx, col, spool_id = row
         if uuid == tray_uuid and info_idx == tray_info_idx and col == color:
