@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 from config import EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID,get_app_setting
-
+from pathlib import Path
 from zoneinfo import ZoneInfo
 import json
 import urllib.parse
@@ -2110,7 +2110,7 @@ def get_filaments_for_gallery(args: Dict[str, Any]) -> Dict[str, Any]:
         items = _rows_to_dicts(cur, rows)
 
     # Optionnel : swatch_url (détection .webp seulement, ou multi-ext si tu veux)
-    static_root = Path(current_app.static_folder).resolve()
+    static_root = Path(__file__).resolve().parent
     swatch_dir = static_root / "uploads" / "filaments"
     for d in items:
         if d.get("swatch") == 1:
