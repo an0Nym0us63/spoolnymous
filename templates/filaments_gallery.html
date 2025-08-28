@@ -317,6 +317,7 @@ function collectTileData(tile){
   const data = {
     id: tile.dataset.id,
     name: tile.dataset.name,
+    translated_name: tile.dataset.translated_name,
     manufacturer: tile.dataset.manufacturer,
     material: tile.dataset.material,
     price: tile.dataset.price,
@@ -463,7 +464,7 @@ function escapeHtml(s){
   let tiles = Array.from($grid.querySelectorAll('.tile'));
 
   const COLOR_ORDER = [
-    "Noir","Blanc","Gris","Rouge","Orange","Jaune","Vert","Bleu","Violet","Marron",""
+    "Noir","Blanc","Gris","Rouge","Rose","Orange","Jaune","Beige","Vert","Turquoise","Bleu","Violet","Marron",""
   ];
   const COLOR_RANK = Object.fromEntries(COLOR_ORDER.map((n,i)=>[n.toLowerCase(), i]));
 
@@ -473,6 +474,7 @@ function escapeHtml(s){
     if (!tokens.length) return true;
     const hay = [
       tile.dataset.name,
+      tile.dataset.translated_name,
       tile.dataset.manufacturer,
       tile.dataset.material,
       tile.dataset.colors,   // ex: "vert-rouge"

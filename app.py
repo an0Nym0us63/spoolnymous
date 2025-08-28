@@ -812,7 +812,7 @@ def tray_load():
   try:
     # Update Spoolman with the selected tray
     spool_data = fetch_spool_by_id(spool_id)
-    setActiveTray(spool_id, ams_id, tray_id)
+    setActiveTray(spool_id, ams_id, tray_id,"Manual")
 
     return redirect(url_for('home', success_message=f"Updated Spool ID {spool_id} with TAG id {tag_id} to AMS {ams_id}, Tray {tray_id}."))
   except Exception as e:

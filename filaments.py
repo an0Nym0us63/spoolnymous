@@ -13,15 +13,97 @@ from math import sqrt, atan2, cos, sin, exp, pi
 
 # On réutilise la config DB telle qu'elle existe déjà dans le projet
 from print_history import db_config, update_filament_spool
+from deep_translator import GoogleTranslator
 
 import logging
 logger = logging.getLogger(__name__)
 # ----------------------------------------------------------------------------
 # Connexion & transactions
 # ----------------------------------------------------------------------------
+import threading
 
+def translate_name(name: str) -> str:
+    if not name.strip():
+        return ""
+
+    # Traduction mot à mot
+    forced_input = '\n'.join(name.split())
+    mot_a_mot = GoogleTranslator(source='auto', target='fr').translate(forced_input)
+    mot_a_mot = ' '.join(mot_a_mot.split('\n')).strip()
+
+    # Traduction contextuelle
+    contextuel = GoogleTranslator(source='auto', target='fr').translate(name.strip()).strip()
+
+    if contextuel.lower() == name.lower():
+        return contextuel
+
+    # Dédoublonnage insensible à la casse
+    seen = set()
+    dedup_words = []
+    for word in (mot_a_mot + ' ' + contextuel).split():
+        key = word.lower()
+        if key not in seen:
+            seen.add(key)
+            dedup_words.append(word)
+
+    return ' '.join(dedup_words)
+
+def _translate_and_store_async(filament_id: int, name: str):
+    """Thread worker: traduit puis stocke translated_name."""
+    try:
+        translated = (translate_name(name) or "").strip()
+        if translated:
+            # on stocke en base
+            update_filament(filament_id, translated_name=translated)
+    except Exception as e:
+        logger.warning("Background translation failed for filament %s: %s", filament_id, e)
+
+def _launch_background_translation(filament_id: int, name: str):
+    """Fire-and-forget."""
+    t = threading.Thread(target=_translate_and_store_async, args=(filament_id, name), daemon=True)
+    t.start()
+
+
+def _backfill_translated_names_async() -> None:
+    """Parcourt en tâche de fond les filaments sans translated_name et les remplit."""
+    def _runner():
+        try:
+            with _tx() as cur:
+                cur.execute("""
+                    SELECT id, COALESCE(name, '') AS name
+                    FROM filaments
+                    WHERE translated_name IS NULL OR TRIM(translated_name) = ''
+                """)
+                rows = cur.fetchall()
+            for r in rows:
+                _enqueue_translate_name(int(r["id"]), r["name"])
+        except Exception as e:
+            logger.warning("backfill translated_name failed: %s", e)
+
+    threading.Thread(target=_runner, daemon=True).start()
+
+def _enqueue_translate_name(filament_id: int, name: str) -> None:
+    """Déclenche la traduction en arrière-plan et persiste translated_name."""
+    name = (name or "").strip()
+    if not name:
+        return
+
+    def _worker(fid: int, txt: str):
+        try:
+            tn = (translate_name(txt) or "").strip()
+            if tn:
+                with _tx() as cur:
+                    cur.execute(
+                        "UPDATE filaments SET translated_name = ? WHERE id = ?",
+                        (tn, fid),
+                    )
+        except Exception as e:
+            logger.warning("translate_name failed for filament %s: %s", fid, e)
+
+    threading.Thread(target=_worker, args=(filament_id, name), daemon=True).start()
+    
 def trayUid(ams_id, tray_id):
-  return f"{get_app_setting("PRINTER_ID","")}_{ams_id}_{tray_id}"
+    return f"{get_app_setting("PRINTER_ID","")}_{ams_id}_{tray_id}"
 
 def _connect() -> sqlite3.Connection:
     """Retourne une connexion SQLite avec row_factory et clés étrangères actives."""
@@ -174,6 +256,7 @@ def ensure_schema() -> None:
         _maybe_add("filaments", "multicolor_type", "TEXT DEFAULT 'monochrome'")
         _maybe_add("filaments", "swatch", "INTEGER NOT NULL DEFAULT 0")
         _maybe_add("filaments", "transparent", "INTEGER NOT NULL DEFAULT 0")
+        added_translated = _maybe_add("filaments", "translated_name", "TEXT")
 
         _maybe_add("bobines", "external_spool_id", "TEXT")
         _maybe_add("bobines", "foundMode", "TEXT")
@@ -216,6 +299,8 @@ def ensure_schema() -> None:
             SET transparent = 0
             WHERE transparent IS NULL
         """)
+        if added_translated:
+            _backfill_translated_names_async()
 
 def ensure_filaments_usage_schema() -> None:
     """
@@ -318,6 +403,7 @@ def migrate_usage_spool_ids_from_external() -> Dict[str, int]:
 
 _FILAMENT_ALLOWED_UPDATE = {
     "name",
+    "translated_name",
     "manufacturer",
     "color",
     "multicolor_type",
@@ -356,7 +442,6 @@ _FAMILY_RGB_REFS = {
     "Noir":   [(0, 0, 0), (30, 30, 30)],
     "Blanc":  [(255, 255, 255), (245, 245, 245)],
     "Gris":   [(128, 128, 128), (160, 160, 160), (96, 96, 96), (200, 200, 200)],
-    "Argent": [(192, 192, 192), (210, 210, 210)],
 
     # Chauds
     "Rouge":  [(220, 20, 60), (200, 30, 30), (255, 80, 80)],
@@ -372,13 +457,9 @@ _FAMILY_RGB_REFS = {
     # Bleus & violets
     "Bleu":   [(60, 120, 255), (100, 150, 255), (40, 90, 200)],
     "Violet": [(160, 32, 240), (120, 70, 170), (190, 110, 255)],
-    "Indigo": [(75, 0, 130), (90, 60, 150)],
 
     # Marrons & métalliques
     "Marron": [(150, 75, 0), (120, 70, 30), (170, 100, 50)],
-    "Or":     [(212, 175, 55), (218, 165, 32)],
-    "Cuivre": [(184, 115, 51), (205, 127, 50)],
-    "Bronze": [(136, 84, 11), (150, 90, 40)],
 }
 
 # Convertit sRGB 0..255 -> lin -> XYZ (D65) -> Lab
@@ -664,7 +745,9 @@ def ui_create_filament(payload: dict) -> int:
         """, (now, now, name, manufacturer, material,
               multicolor_type, color, colors_csv,
               filament_weight_g, spool_weight_g, profile_id, comment, price, transparent, swatch))
-        return cur.lastrowid
+        new_id = cur.lastrowid
+        _launch_background_translation(int(new_id), name)
+        return new_id
 
 
 def ui_update_filament(filament_id: int, payload: dict) -> None:
@@ -678,7 +761,7 @@ def ui_update_filament(filament_id: int, payload: dict) -> None:
     colors = payload.get("colors") or []
     transparent = payload.get("transparent") or 0
     swatch = payload.get("swatch") or 0
-
+    
     color, colors_csv = _normalize_colors_array(colors)
     if _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv,transparent, exclude_id=filament_id):
         raise ValueError("DUPLICATE_FILAMENT")
@@ -690,7 +773,8 @@ def ui_update_filament(filament_id: int, payload: dict) -> None:
     price = _to_price(payload.get("price"))
 
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-
+    old_row = get_filament(filament_id)
+    old_name = (old_row["name"] if old_row is not None else None) or ""
     with _tx() as cur:
         cur.execute("""
             UPDATE filaments
@@ -704,6 +788,8 @@ def ui_update_filament(filament_id: int, payload: dict) -> None:
               multicolor_type, color, colors_csv,
               filament_weight_g, spool_weight_g, profile_id, comment,
               price,transparent, swatch ,filament_id))
+    if (name or "") != (old_name or ""):
+        _launch_background_translation(int(filament_id), name or "")
 
 def _validate_non_negative(name: str, value: Optional[float]) -> None:
     if value is None:
@@ -769,7 +855,9 @@ def add_filament(
                     external_filament_id, reference_id, profile_id,
                 ),
             )
-        return int(cur.lastrowid)
+        new_id = cur.lastrowid
+        _launch_background_translation(int(new_id), name)
+        return int(new_id)
 
 
 def update_filament(filament_id: int, **fields: Any) -> None:
@@ -794,6 +882,8 @@ def update_filament(filament_id: int, **fields: Any) -> None:
         cur.execute(f"UPDATE filaments SET {sets} WHERE id = ?", values)
         if cur.rowcount == 0:
             raise ValueError(f"Filament introuvable id={filament_id}")
+    if (name in sets):
+        _launch_background_translation(int(filament_id), get_filament(filament_id)["name"])
 
 
 def remove_filament(filament_id: int) -> None:
@@ -2231,6 +2321,7 @@ def get_filaments_for_gallery(args: Dict[str, Any]) -> Dict[str, Any]:
       SELECT
         f.id,
         f.name,
+        f.translated_name,
         f.manufacturer,
         f.material,
         f.multicolor_type,
