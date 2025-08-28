@@ -105,16 +105,31 @@
       </div>
 
       <div class="meta">
-        <div class="line1">
-          <span class="badge-s">{{ f.material or '—' }}</span>
-          <strong class="text-truncate">{{ f.name or '—' }}</strong>
-          {% if f.swatch == 1 %}<span title="Swatch dispo">🎨</span>{% endif %}
-        </div>
-        <div class="line2">
-          {{ f.manufacturer or '—' }}
-          {% if f.price is not none %} · {{ '%.2f'|format(f.price) }} €{% endif %}
-        </div>
-      </div>
+  {# LIGNE 1 : Type (matériau) + Marque #}
+  <div class="line1">
+    <span class="badge-s">{{ f.material or '—' }}</span>
+    <strong class="text-truncate">{{ f.manufacturer or '—' }}</strong>
+  </div>
+
+  {# LIGNE 2 : Couleur(s) #}
+  <div class="line2 d-flex align-items-center gap-1">
+    {% if f.colors_array %}
+      {% set colors = f.colors_array.split(',') if f.colors_array is string else f.colors_array %}
+      <span class="d-inline-block" style="width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,.25);
+        background: linear-gradient(90deg,{% for c in colors %}#{{ c|trim|replace('#','') }}{% if not loop.last %}, {% endif %}{% endfor %});">
+      </span>
+      <span class="text-truncate">
+        {% for c in colors %}#{{ c|trim|replace('#','') }}{% if not loop.last %} / {% endif %}{% endfor %}
+      </span>
+    {% elif f.color %}
+      <span class="d-inline-block" style="width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,.25);
+        background:#{{ f.color|replace('#','') }}"></span>
+      <span class="text-truncate">#{{ f.color|replace('#','') }}</span>
+    {% else %}
+      —
+    {% endif %}
+  </div>
+</div>
     </div>
   {% endfor %}
 </div>
