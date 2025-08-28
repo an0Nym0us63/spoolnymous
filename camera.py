@@ -105,7 +105,7 @@ def serve_snapshot() -> Response:
         if not isMqttClientConnected():
             offline_path = Path(__file__).resolve().parent / "static" / "offline.png"
             if offline_path.exists():
-                r = send_file(str(offline_path), mimetype="image/png")
+                r = Response(str(offline_path), mimetype="image/png")
                 r.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
                 r.headers["X-Camera-Status"] = "offline"
                 return r
