@@ -1325,6 +1325,11 @@ def filaments():
         tray_uuid = request.args.get("tray_uuid")
         tray_info_idx = request.args.get("tray_info_idx")
         tray_color = request.args.get("tray_color")
+        
+        logger.debug(tray_uuid)
+        logger.debug(tray_info_idx)
+        logger.debug(str(tray_color))
+        logger.debug(spool_id)
         if tray_uuid and tray_info_idx and tray_color:
             set_tray_spool_map(tray_uuid, tray_info_idx, str(tray_color), spool_id)
         setActiveTray(spool_id, ams_id, tray_id, "Manual")
