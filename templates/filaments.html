@@ -322,12 +322,9 @@
 </button>
                 </li>
 				<li>
-  <a class="dropdown-item"
-     href="{{ url_for('upload_entity_photo', entity='filaments', entity_id=fil.id) }}"
-     data-photo-upload
-     data-photo-title="Uploader un swatch"
-     data-photo-multiple="false">
-    📷 Uploader swatch
+  <a class="dropdown-item text-success" href="#"
+     onclick="triggerPhotoUnified({type: 'filaments', id: {{ fil.id }} }); return false;">
+    📸 Uploader swatch
   </a>
 </li>
 {% if (fil.spools_count or 0) > 0 %}
