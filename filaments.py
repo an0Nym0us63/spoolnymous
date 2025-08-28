@@ -62,45 +62,6 @@ def _launch_background_translation(filament_id: int, name: str):
     """Fire-and-forget."""
     t = threading.Thread(target=_translate_and_store_async, args=(filament_id, name), daemon=True)
     t.start()
-
-
-def _backfill_translated_names_async() -> None:
-    """Parcourt en tâche de fond les filaments sans translated_name et les remplit."""
-    def _runner():
-        try:
-            with _tx() as cur:
-                cur.execute("""
-                    SELECT id, COALESCE(name, '') AS name
-                    FROM filaments
-                    WHERE translated_name IS NULL OR TRIM(translated_name) = ''
-                """)
-                rows = cur.fetchall()
-            for r in rows:
-                _enqueue_translate_name(int(r["id"]), r["name"])
-        except Exception as e:
-            logger.warning("backfill translated_name failed: %s", e)
-
-    threading.Thread(target=_runner, daemon=True).start()
-
-def _enqueue_translate_name(filament_id: int, name: str) -> None:
-    """Déclenche la traduction en arrière-plan et persiste translated_name."""
-    name = (name or "").strip()
-    if not name:
-        return
-
-    def _worker(fid: int, txt: str):
-        try:
-            tn = (translate_name(txt) or "").strip()
-            if tn:
-                with _tx() as cur:
-                    cur.execute(
-                        "UPDATE filaments SET translated_name = ? WHERE id = ?",
-                        (tn, fid),
-                    )
-        except Exception as e:
-            logger.warning("translate_name failed for filament %s: %s", fid, e)
-
-    threading.Thread(target=_worker, args=(filament_id, name), daemon=True).start()
     
 def trayUid(ams_id, tray_id):
     return f"{get_app_setting("PRINTER_ID","")}_{ams_id}_{tray_id}"
@@ -299,8 +260,6 @@ def ensure_schema() -> None:
             SET transparent = 0
             WHERE transparent IS NULL
         """)
-        if added_translated:
-            _backfill_translated_names_async()
 
 def ensure_filaments_usage_schema() -> None:
     """
@@ -882,7 +841,7 @@ def update_filament(filament_id: int, **fields: Any) -> None:
         cur.execute(f"UPDATE filaments SET {sets} WHERE id = ?", values)
         if cur.rowcount == 0:
             raise ValueError(f"Filament introuvable id={filament_id}")
-    if (name in sets):
+    if ('name' in sets):
         _launch_background_translation(int(filament_id), get_filament(filament_id)["name"])
 
 
