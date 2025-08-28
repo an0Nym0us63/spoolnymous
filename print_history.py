@@ -1650,6 +1650,7 @@ def load_tray_spool_map_cache(force_reload=False):
         conn.close()
 
 def get_tray_spool_map(tray_uuid: str, tray_info_idx: str, color: str) -> int | None:
+    load_tray_spool_map_cache()
     base_color = color[:7].lower()
     for row in tray_spool_map_cache:
         _, uuid, info_idx, col, spool_id = row
