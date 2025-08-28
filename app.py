@@ -2663,6 +2663,25 @@ def filaments_catalog():
         args=_merge_context_args(),
     )
 
+@app.route("/gallery/filaments")
+def filaments_gallery():
+    """
+    Galerie visuelle des filaments (swatch unique par filament).
+    Reprend l’UX de gallery_all (tuiles + lightbox).
+    """
+    # ⬇️ remplace par la fonction que tu utilises dans /filaments_catalog
+    # par ex. fil_svc.list_filaments_catalog() / fil_svc.get_all()
+    fil_list = fil_svc.get_all_filaments()  # <--- À ADAPTER si nécessaire
+
+    # Option: ne garder que ceux qui ont un swatch
+    # fil_list = [f for f in fil_list if (f.get('swatch') == 1)]
+
+    return render_template(
+        "filaments_gallery.html",
+        filaments=fil_list,
+        page_title="Galerie filaments",
+    )
+
 @app.post("/api/filaments")
 def api_ui_create_filament():
     data = request.get_json(force=True, silent=True) or {}

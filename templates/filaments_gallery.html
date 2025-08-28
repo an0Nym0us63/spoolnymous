@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 1400px) { .gallery-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (max-width: 1200px) { .gallery-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 992px)  { .gallery-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 768px)  { .gallery-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px)  { .gallery-grid { grid-template-columns: 1fr; } }
+
+.tile {
+  position: relative;
+  border-radius: .75rem;
+  overflow: hidden;
+  background: #0f172a;
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 4px 12px rgba(0,0,0,.2);
+  cursor: pointer;
+}
+.tile .thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background: #111827;
+  display: block;
+}
+.tile .meta {
+  padding: .5rem .6rem;
+  font-size: .85rem;
+}
+.meta .line1 {
+  display: flex; align-items:center; gap:.35rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.meta .line2 {
+  color: #9ca3af; font-size: .78rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.badge-s {
+  font-size: .70rem; padding: .1rem .35rem;
+  background: rgba(255,255,255,.08); border-radius: .5rem;
+}
+.chk-compare {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(0,0,0,.5);
+  border-radius: .5rem; padding: 2px 6px;
+}
+.compare-tray {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(15, 23, 42, .95);
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  border-radius: 1rem; padding: .5rem .75rem;
+  display: none; gap: .5rem; align-items: center; z-index: 1050;
+}
+.compare-tray.show { display: flex; }
+.compare-pill {
+  display: inline-flex; align-items:center; gap:.35rem;
+  background: rgba(255,255,255,.08); border-radius: .75rem;
+  padding: .2rem .5rem; font-size: .8rem;
+}
+.compare-pill img {
+  width: 22px; height: 22px; border-radius: .25rem; object-fit: cover;
+}
+.compare-btn { margin-left: .5rem; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h4 class="mb-0">🎨 Galerie des filaments</h4>
+  <div class="text-muted small">Clique une tuile pour ouvrir en grand. Coche pour comparer.</div>
+</div>
+
+<div class="gallery-grid">
+  {% for f in filaments %}
+    {# URL du swatch — par défaut .webp ; si tu as des .jpg/.png possibles, on peut tester côté JS #}
+    {% set swatch_url = '/static/uploads/filaments/' ~ f.id ~ '.webp' %}
+    <div class="tile"
+         data-id="{{ f.id }}"
+         data-name="{{ f.name or '' }}"
+         data-manufacturer="{{ f.manufacturer or '' }}"
+         data-material="{{ f.material or '' }}"
+         data-price="{{ f.price if f.price is not none else '' }}"
+         data-weight="{{ f.filament_weight_g or '' }}"
+         data-spoolw="{{ f.spool_weight_g or '' }}"
+         data-profile="{{ f.profile_id or '' }}"
+         data-transparent="{{ 1 if f.transparent == 1 else 0 }}"
+         data-active="{{ f.active_spools_count or 0 }}"
+         data-total="{{ f.spools_count or 0 }}"
+         data-comment="{{ (f.comment or '')|e }}"
+         data-swatch="{{ 1 if f.swatch == 1 else 0 }}"
+         data-swatch-url="{{ swatch_url }}"
+         onclick="if(event.target.type!=='checkbox'){ openFilamentLightbox(this); }">
+
+      <img class="thumb"
+           src="{{ swatch_url }}"
+           alt="Swatch {{ f.name or '' }}"
+           onerror="this.src='{{ asset_url('img/placeholder_swatch.png') }}'">
+
+      <div class="chk-compare form-check form-check-inline">
+        <input class="form-check-input js-compare" type="checkbox" onchange="onCompareToggle(this, {{ f.id }})">
+      </div>
+
+      <div class="meta">
+        <div class="line1">
+          <span class="badge-s">{{ f.material or '—' }}</span>
+          <strong class="text-truncate">{{ f.name or '—' }}</strong>
+          {% if f.swatch == 1 %}<span title="Swatch dispo">🎨</span>{% endif %}
+        </div>
+        <div class="line2">
+          {{ f.manufacturer or '—' }}
+          {% if f.price is not none %} · {{ '%.2f'|format(f.price) }} €{% endif %}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Panneau flottant de comparaison -->
+<div id="compareTray" class="compare-tray">
+  <div id="compareList" class="d-inline-flex flex-wrap gap-1"></div>
+  <button class="btn btn-sm btn-primary compare-btn" onclick="openCompareModal()">Comparer</button>
+  <button class="btn btn-sm btn-outline-secondary ms-1" onclick="clearCompare()">Vider</button>
+</div>
+
+<!-- Modal comparaison -->
+<div class="modal fade" id="compareModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h5 class="modal-title">Comparer les filaments</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <div id="compareTableWrap" class="table-responsive"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// ---------- Lightbox : réutilise openGalleryFromEntry de base.html ----------
+function openFilamentLightbox(tile){
+  const url = tile.getAttribute('data-swatch-url');
+  const name = tile.getAttribute('data-name') || '';
+  if (!url) return;
+  const images = [{ url, name }];
+  openGalleryFromEntry(images, name || 'Swatch');
+}
+
+// ---------- Sélection & comparaison ----------
+const MAX_COMPARE = 4;
+const compareSet  = new Map(); // id -> data
+
+function onCompareToggle(checkbox, id){
+  const tile = checkbox.closest('.tile');
+  if (!tile) return;
+
+  if (checkbox.checked){
+    if (compareSet.size >= MAX_COMPARE){
+      checkbox.checked = false;
+      Swal.fire("Comparaison", `Tu peux sélectionner au max ${MAX_COMPARE} filaments.`, "info");
+      return;
+    }
+    compareSet.set(String(id), collectTileData(tile));
+  } else {
+    compareSet.delete(String(id));
+  }
+  renderCompareTray();
+}
+
+function collectTileData(tile){
+  const data = {
+    id: tile.dataset.id,
+    name: tile.dataset.name,
+    manufacturer: tile.dataset.manufacturer,
+    material: tile.dataset.material,
+    price: tile.dataset.price,
+    weight: tile.dataset.weight,
+    spoolw: tile.dataset.spoolw,
+    profile: tile.dataset.profile,
+    transparent: tile.dataset.transparent === '1',
+    active: tile.dataset.active,
+    total: tile.dataset.total,
+    comment: tile.dataset.comment || '',
+    swatch: tile.dataset.swatch === '1',
+    swatch_url: tile.dataset.swatchUrl || tile.dataset.swatch_url || ''
+  };
+  return data;
+}
+
+function renderCompareTray(){
+  const tray = document.getElementById('compareTray');
+  const list = document.getElementById('compareList');
+  if (!tray || !list) return;
+
+  list.innerHTML = '';
+  compareSet.forEach((d,id)=>{
+    const pill = document.createElement('span');
+    pill.className = 'compare-pill';
+    pill.innerHTML = `
+      <img src="${d.swatch_url}" onerror="this.style.display='none'">
+      <span class="text-truncate" style="max-width:160px">${d.material||'—'} · ${d.name||'—'}</span>
+      <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1" onclick="removeFromCompare('${id}')">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    `;
+    list.appendChild(pill);
+  });
+
+  tray.classList.toggle('show', compareSet.size > 0);
+}
+
+function removeFromCompare(id){
+  compareSet.delete(String(id));
+  // décocher la case si visible
+  const tile = document.querySelector(`.tile[data-id="${CSS.escape(id)}"]`);
+  if (tile){
+    const chk = tile.querySelector('.js-compare');
+    if (chk) chk.checked = false;
+  }
+  renderCompareTray();
+}
+
+function clearCompare(){
+  compareSet.clear();
+  document.querySelectorAll('.js-compare:checked').forEach(chk=> chk.checked = false);
+  renderCompareTray();
+}
+
+function openCompareModal(){
+  if (compareSet.size < 2){
+    Swal.fire("Comparaison", "Sélectionne au moins 2 filaments.", "info");
+    return;
+  }
+  // Construire un tableau comparatif
+  const items = Array.from(compareSet.values());
+
+  const rows = [
+    { label: 'Aperçu',    key: '__swatch__', render: d => `<img src="${d.swatch_url}" class="img-fluid rounded border" style="max-height:120px" onerror="this.style.display='none'">` },
+    { label: 'Nom',       key: 'name' },
+    { label: 'Fabricant', key: 'manufacturer' },
+    { label: 'Matériau',  key: 'material' },
+    { label: 'Transparent', key: 'transparent', render: d => d.transparent ? 'Oui' : 'Non' },
+    { label: 'Prix',      key: 'price', render: d => (d.price ? (Number(d.price).toFixed(2) + ' €') : '—') },
+    { label: 'Poids filament (g)', key: 'weight' },
+    { label: 'Tare bobine (g)',    key: 'spoolw' },
+    { label: 'Profil ID', key: 'profile' },
+    { label: 'Bobines actives/total', key: '__spools__', render: d => `${d.active||0}/${d.total||0}` },
+    { label: 'Commentaire', key: 'comment' },
+  ];
+
+  let html = `<table class="table table-sm align-middle table-striped">
+    <thead><tr><th style="width: 220px;">Caractéristique</th>${items.map(d=>`<th>${escapeHtml(d.material||'—')} · <strong>${escapeHtml(d.name||'—')}</strong></th>`).join('')}</tr></thead>
+    <tbody>`;
+
+  for (const r of rows){
+    html += `<tr><th>${r.label}</th>`;
+    html += items.map(d=>{
+      const val = r.render ? r.render(d) : escapeHtml(d[r.key] ?? '—');
+      return `<td>${val || '—'}</td>`;
+    }).join('');
+    html += `</tr>`;
+  }
+  html += `</tbody></table>`;
+
+  const wrap = document.getElementById('compareTableWrap');
+  if (wrap) wrap.innerHTML = html;
+
+  const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('compareModal'));
+  modal.show();
+}
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+</script>
+{% endblock %}

@@ -1944,4 +1944,196 @@ def update_bobine_tag(*, spool_id: int, tray_uuid: Optional[str], tray_info_idx:
         profile_updated = True
     return {"tag_updated": tag_updated, "profile_updated": profile_updated}
 
+def _rows_to_dicts(cur, rows) -> List[Dict[str, Any]]:
+    """Convertit des rows sqlite en dicts en s'appuyant sur cur.description."""
+    cols = [c[0] for c in cur.description]
+    out: List[Dict[str, Any]] = []
+    for r in rows:
+        d = {cols[i]: r[i] for i in range(len(cols))}
+        out.append(d)
+    return out
+
+def _build_where_and_params(args: Dict[str, Any]) -> Tuple[str, List[Any]]:
+    """Construit dynamiquement le WHERE et les params selon args."""
+    where: List[str] = []
+    params: List[Any] = []
+
+    # Recherche texte (nom, fabricant, matériau, couleurs)
+    q = (args.get("search") or "").strip()
+    if q:
+        like = f"%{q.lower()}%"
+        where.append("""(
+            LOWER(COALESCE(f.name,'')) LIKE ?
+         OR LOWER(COALESCE(f.manufacturer,'')) LIKE ?
+         OR LOWER(COALESCE(f.material,'')) LIKE ?
+         OR LOWER(COALESCE(f.colors_array,'')) LIKE ?
+         OR LOWER(COALESCE(f.color,'')) LIKE ?
+        )""")
+        params += [like, like, like, like, like]
+
+    # Filtres directs
+    material = (args.get("material") or "").strip()
+    if material:
+        where.append("LOWER(COALESCE(f.material,'')) = ?")
+        params.append(material.lower())
+
+    manufacturer = (args.get("manufacturer") or "").strip()
+    if manufacturer:
+        where.append("LOWER(COALESCE(f.manufacturer,'')) = ?")
+        params.append(manufacturer.lower())
+
+    # Filtrage swatch seulement (utile pour la galerie)
+    swatch_only = args.get("swatch_only")
+    if swatch_only in (True, "1", 1, "true", "True"):
+        where.append("COALESCE(f.swatch,0) = 1")
+
+    # Si tu as une colonne de famille de couleur (ex: color_family), active ce bloc :
+    color_family = (args.get("color") or "").strip()
+    if color_family:
+        # Décommente si la colonne existe en DB:
+        # where.append("LOWER(COALESCE(f.color_family,'')) = ?")
+        # params.append(color_family.lower())
+        # Sinon, on ignore silencieusement pour ne rien casser
+        pass
+
+    if where:
+        return "WHERE " + " AND ".join(where), params
+    return "", params
+
+def _build_order_by(args: Dict[str, Any]) -> str:
+    sort = (args.get("sort") or "default").lower()
+    if sort == "name":
+        return "ORDER BY LOWER(COALESCE(f.name,''))"
+    elif sort == "price":
+        # NULLS LAST approx: NULL → très grand via COALESCE
+        return "ORDER BY (CASE WHEN f.price IS NULL THEN 1 ELSE 0 END), f.price"
+    elif sort == "weight":
+        return "ORDER BY COALESCE(f.filament_weight_g, 0)"
+    # défaut : Matériau / Fabricant / Nom
+    return """
+    ORDER BY
+      LOWER(COALESCE(f.material,'')),
+      LOWER(COALESCE(f.manufacturer,'')),
+      LOWER(COALESCE(f.name,''))
+    """
+
+def get_filaments_for_gallery(args: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Retourne une structure paginée pour la galerie des filaments.
+
+    Args attendus (tous optionnels) :
+      - search: str
+      - material: str
+      - manufacturer: str
+      - color: str (famille; ignoré si la colonne n'existe pas)
+      - sort: 'default' | 'name' | 'price' | 'weight'
+      - page: int (>=1)
+      - page_size: int (<= 120)
+      - swatch_only: bool/str/int → 1 seul si True
+
+    Retour:
+      {
+        'items': [ { ... champs filament + comptes + swatch_url }, ... ],
+        'total': int,
+        'page': int,
+        'pages': int,
+        'page_size': int
+      }
+    """
+    # Pagination sûre
+    try:
+        page = int(args.get("page", 1))
+    except Exception:
+        page = 1
+    page = max(1, page)
+
+    try:
+        page_size = int(args.get("page_size", 60))
+    except Exception:
+        page_size = 60
+    page_size = max(1, min(120, page_size))
+
+    where_sql, params = _build_where_and_params(args)
+    order_sql = _build_order_by(args)
+
+    # Compte total
+    count_sql = f"""
+      SELECT COUNT(*)
+      FROM filaments f
+      {where_sql}
+    """
+
+    # Requête principale
+    select_sql = f"""
+      SELECT
+        f.id,
+        f.name,
+        f.manufacturer,
+        f.material,
+        f.multicolor_type,
+        f.color,
+        f.colors_array,
+        COALESCE(f.transparent,0) AS transparent,
+        f.filament_weight_g,
+        f.spool_weight_g,
+        f.price,
+        f.profile_id,
+        f.comment,
+        f.created_at,
+        f.updated_at,
+        COALESCE(f.swatch,0) AS swatch,
+        COALESCE(sp.total,0)  AS spools_count,
+        COALESCE(sp.active,0) AS active_spools_count
+      FROM filaments f
+      LEFT JOIN (
+        SELECT filament_id,
+               COUNT(*) AS total,
+               SUM(CASE WHEN COALESCE(archived,0)=0 THEN 1 ELSE 0 END) AS active
+        FROM spools
+        GROUP BY filament_id
+      ) sp ON sp.filament_id = f.id
+      {where_sql}
+      {order_sql}
+      LIMIT ? OFFSET ?
+    """
+
+    limit_params = params + [page_size, (page - 1) * page_size]
+
+    with _tx() as cur:
+        # total
+        cur.execute(count_sql, params)
+        total = int(cur.fetchone()[0])
+
+        # page
+        cur.execute(select_sql, limit_params)
+        rows = cur.fetchall()
+        items = _rows_to_dicts(cur, rows)
+
+    # Optionnel : swatch_url (détection .webp seulement, ou multi-ext si tu veux)
+    static_root = Path(current_app.static_folder).resolve()
+    swatch_dir = static_root / "uploads" / "filaments"
+    for d in items:
+        if d.get("swatch") == 1:
+            # Si tu veux supporter plusieurs extensions, décommente et parcours :
+            # for ext in (".webp", ".jpg", ".jpeg", ".png"):
+            #     p = swatch_dir / f"{d['id']}{ext}"
+            #     if p.exists():
+            #         d["swatch_url"] = f"/static/uploads/filaments/{d['id']}{ext}?x={int(p.stat().st_mtime)}"
+            #         break
+            # else:
+            #     d["swatch_url"] = None
+            p = swatch_dir / f"{d['id']}.webp"
+            d["swatch_url"] = f"/static/uploads/filaments/{d['id']}.webp?x={int(p.stat().st_mtime)}" if p.exists() else None
+        else:
+            d["swatch_url"] = None
+
+    pages = (total + page_size - 1) // page_size if page_size else 1
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "pages": max(1, pages),
+        "page_size": page_size,
+    }
+
 ensure_schema()
