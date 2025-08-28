@@ -146,9 +146,19 @@
   cursor: pointer;
   accent-color: #0d6efd; /* la couleur bootstrap primary */
 }
-.tile.no-active {
-  opacity: 0.9;
-  filter: grayscale(20%);
+.thumb-wrap {
+  position: relative;
+}
+.badge-overlay {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  font-size: .9rem;
+  background: rgba(0,0,0,0.6);
+  color: #ffc107; /* couleur warning bootstrap */
+  border-radius: .5rem;
+  padding: .15rem .45rem;
+  pointer-events: none;
 }
 </style>
 <div class="d-flex gap-2 align-items-center mb-2">
@@ -169,7 +179,7 @@
   {% for f in filaments %}
     {# URL du swatch — par défaut .webp ; si tu as des .jpg/.png possibles, on peut tester côté JS #}
     {% set swatch_url = '/static/uploads/filaments/' ~ f.id ~ '.webp' %}
-    <div class="tile  {% if (f.active_spools_count or 0) == 0 %}no-active{% endif %}"
+    <div class="tile"
      data-id="{{ f.id }}"
      data-name="{{ f.name or '' }}"
      data-translated_name="{{ f.translated_name or '' }}"
@@ -189,10 +199,15 @@
      data-swatch-url="{{ f.swatch_url }}"
      onclick="if(event.target.type!=='checkbox'){ openFilamentLightbox(this); }">
 
-      <img class="thumb"
-           src="{{ swatch_url }}"
-           alt="Swatch {{ f.name or '' }}"
-           onerror="this.src='{{ asset_url('img/placeholder_swatch.png') }}'">
+      <div class="thumb-wrap">
+  <img class="thumb"
+       src="{{ swatch_url }}"
+       alt="Swatch {{ f.name or '' }}"
+       onerror="this.src='{{ asset_url('img/placeholder_swatch.png') }}'">
+  {% if (f.active_spools_count or 0) == 0 %}
+    <span class="badge-overlay" title="Aucune bobine active">💤</span>
+  {% endif %}
+</div>
 
       <div class="chk-compare">
   <input class="js-compare" type="checkbox" onchange="onCompareToggle(this, {{ f.id }})">
@@ -205,9 +220,6 @@
         </div>
         <div class="line2">
           {{ f.manufacturer or '—' }}
-		    {% if (f.active_spools_count or 0) == 0 %}
-      <span class="badge-s text-warning ms-1" title="Aucune bobine active">💤</span>
-    {% endif %}
         </div>
       </div>
     </div>
