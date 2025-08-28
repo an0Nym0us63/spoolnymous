@@ -282,7 +282,7 @@
   <!-- Badges : prix / poids / profile_id (sans libellé) -->
   <div class="fil-badges pe-2">
 	<span class="badge badge-sx">
-    🧵 {{ fil.spools_count or 0 }}
+    🧵 {{ fil.active_spools_count or 0 }}/{{ fil.spools_count or 0 }}
   </span>
   </div>
 </div>
