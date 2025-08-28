@@ -271,9 +271,14 @@
   <!-- Titre : Material · Name / Manufacturer -->
   <div class="fil-title ps-2">
     <div class="line1">
-      <span class="text-muted">{{ fil.material or '—' }}</span> ·
-      <span class="fw-semibold">{{ fil.name or '—' }}</span>
-    </div>
+  <span class="text-muted">{{ fil.material or '—' }}</span> ·
+  <span class="fw-semibold">
+    {{ fil.name or '—' }}
+    {% if fil.swatch == 1 %}
+      <span class="ms-1" title="Swatch disponible" aria-label="Swatch disponible">🎨</span>
+    {% endif %}
+  </span>
+</div>
     <div class="line2 small fst-italic text-muted">
       {{ fil.manufacturer or '—' }}
     </div>
@@ -354,6 +359,7 @@
 			{% if fil.transparent == 1  %}
             <li><strong>Transparent :</strong> Oui</li>
               {% endif %}
+			  <li><strong>Swatch :</strong> {{ 'Oui' if fil.swatch == 1 else 'Non' }}</li>
               </ul>
             </div>
             <div class="col-md-6">
@@ -457,6 +463,10 @@
 		<div class="form-check mt-3">
   <input class="form-check-input" type="checkbox" id="transparent" name="transparent" value="1">
   <label class="form-check-label"> Translucide</label>
+</div>
+<div class="form-check mt-2">
+  <input class="form-check-input" type="checkbox" id="swatch" name="swatch" value="1">
+  <label class="form-check-label" for="swatch"> Swatch (échantillon) disponible</label>
 </div>
           <div class="row g-3 mt-3">
             <div class="col-md-6">
@@ -737,6 +747,8 @@ if (importBtn) {
       }
     }
 	document.getElementById('transparent').checked = filament?.transparent == 1;
+	
+document.getElementById('swatch').checked      = filament?.swatch == 1;
     // poids
     document.getElementById('filament_weight_g').value = filament?.filament_weight_g ?? 1000;
     document.getElementById('spool_weight_g').value = filament?.spool_weight_g ?? 200;
@@ -762,6 +774,7 @@ if (importBtn) {
       spool_weight_g: document.getElementById('spool_weight_g').value,
       profile_id: document.getElementById('profile_id').value || null,
 	  price: document.getElementById('price').value,
+		swatch: document.getElementById('swatch').checked ? 1 : 0,
 	  transparent: document.getElementById('transparent').checked ? 1 : 0,
       comment: document.getElementById('comment').value || null,
     };
