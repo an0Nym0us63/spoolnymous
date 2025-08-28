@@ -2671,10 +2671,10 @@ def filaments_gallery():
     """
     # ⬇️ remplace par la fonction que tu utilises dans /filaments_catalog
     # par ex. fil_svc.list_filaments_catalog() / fil_svc.get_all()
-    fil_list = get_filaments_for_gallery(args={})  # <--- À ADAPTER si nécessaire
+    data = get_filaments_for_gallery(args={})  # <--- À ADAPTER si nécessaire
 
     # Option: ne garder que ceux qui ont un swatch
-    # fil_list = [f for f in fil_list if (f.get('swatch') == 1)]
+    data = [f for f in data if (f.get('swatch_url'))]
 
     return render_template(
         "filaments_gallery.html",
