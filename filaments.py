@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 import json
 import urllib.parse
 import urllib.request
+from math import sqrt, atan2, cos, sin, exp, pi
 
 
 # On réutilise la config DB telle qu'elle existe déjà dans le projet
@@ -350,40 +351,186 @@ _BOBINE_ALLOWED_UPDATE = {
     "created_at",
 }
 
-MAIN_COLOR_FAMILIES = {
-    "Noir":   (0, 0, 0),
-    "Blanc":  (255, 255, 255),
-    "Gris":   (160, 160, 160),
-    "Rouge":  (220, 20, 60),
-    "Orange": (255, 140, 0),
-    "Jaune":  (255, 220, 0),
-    "Vert":   (80, 200, 120),
-    "Bleu":   (100, 150, 255),
-    "Violet": (160, 32, 240),
-    "Marron": (150, 75, 0),
+_FAMILY_RGB_REFS = {
+    # Neutres
+    "Noir":   [(0, 0, 0), (30, 30, 30)],
+    "Blanc":  [(255, 255, 255), (245, 245, 245)],
+    "Gris":   [(128, 128, 128), (160, 160, 160), (96, 96, 96), (200, 200, 200)],
+    "Argent": [(192, 192, 192), (210, 210, 210)],
+
+    # Chauds
+    "Rouge":  [(220, 20, 60), (200, 30, 30), (255, 80, 80)],
+    "Rose":   [(255, 182, 193), (255, 105, 180)],
+    "Orange": [(255, 140, 0), (255, 120, 40)],
+    "Jaune":  [(255, 220, 0), (255, 210, 60)],
+    "Beige":  [(245, 245, 220), (222, 184, 135)],
+
+    # Verts
+    "Vert":   [(80, 200, 120), (50, 160, 70), (120, 220, 120)],
+    "Turquoise": [(64, 224, 208), (0, 200, 180)],
+
+    # Bleus & violets
+    "Bleu":   [(60, 120, 255), (100, 150, 255), (40, 90, 200)],
+    "Violet": [(160, 32, 240), (120, 70, 170), (190, 110, 255)],
+    "Indigo": [(75, 0, 130), (90, 60, 150)],
+
+    # Marrons & métalliques
+    "Marron": [(150, 75, 0), (120, 70, 30), (170, 100, 50)],
+    "Or":     [(212, 175, 55), (218, 165, 32)],
+    "Cuivre": [(184, 115, 51), (205, 127, 50)],
+    "Bronze": [(136, 84, 11), (150, 90, 40)],
 }
 
+# Convertit sRGB 0..255 -> lin -> XYZ (D65) -> Lab
 def _hex_to_rgb(h: str) -> tuple[int, int, int] | None:
     if not h: return None
     s = str(h).strip().lstrip("#")
-    if len(s) == 3:
-        s = "".join(c*2 for c in s)
-    if len(s) != 6:
-        return None
+    if len(s) == 3: s = "".join(c*2 for c in s)
+    if len(s) != 6: return None
     try:
-        return (int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16))
+        return (int(s[0:2],16), int(s[2:4],16), int(s[4:6],16))
     except Exception:
         return None
 
-def _nearest_family_name(rgb: tuple[int,int,int]) -> str:
-    # Euclidienne simple vs familles principales FR
-    rr, gg, bb = rgb
-    best = ("Autre", 10**9)
-    for name, (r,g,b) in MAIN_COLOR_FAMILIES.items():
-        d = (rr - r)**2 + (gg - g)**2 + (bb - b)**2
-        if d < best[1]:
-            best = (name, d)
-    return best[0]
+def _srgb_to_lin(v: float) -> float:
+    v = v / 255.0
+    return v / 12.92 if v <= 0.04045 else ((v + 0.055)/1.055) ** 2.4
+
+def _rgb_to_xyz(r: int, g: int, b: int) -> tuple[float,float,float]:
+    rl, gl, bl = _srgb_to_lin(r), _srgb_to_lin(g), _srgb_to_lin(b)
+    # matrice sRGB -> XYZ (D65)
+    X = rl*0.4124564 + gl*0.3575761 + bl*0.1804375
+    Y = rl*0.2126729 + gl*0.7151522 + bl*0.0721750
+    Z = rl*0.0193339 + gl*0.1191920 + bl*0.9503041
+    return (X, Y, Z)
+
+def _xyz_to_lab(X: float, Y: float, Z: float) -> tuple[float,float,float]:
+    # D65
+    Xn, Yn, Zn = 0.95047, 1.00000, 1.08883
+    def f(t): return t ** (1/3) if t > 0.008856 else (7.787 * t + 16/116)
+    fx, fy, fz = f(X/Xn), f(Y/Yn), f(Z/Zn)
+    L = 116*fy - 16
+    a = 500*(fx - fy)
+    b = 200*(fy - fz)
+    return (L, a, b)
+
+def _rgb_to_lab(rgb: tuple[int,int,int]) -> tuple[float,float,float]:
+    X, Y, Z = _rgb_to_xyz(*rgb)
+    return _xyz_to_lab(X, Y, Z)
+
+# ΔE2000 (implémentation compacte)
+def _delta_e2000(lab1, lab2) -> float:
+    L1, a1, b1 = lab1; L2, a2, b2 = lab2
+    avg_L = (L1 + L2) / 2.0
+    C1 = sqrt(a1*a1 + b1*b1); C2 = sqrt(a2*a2 + b2*b2)
+    avg_C = (C1 + C2) / 2.0
+    G = 0.5 * (1 - sqrt((avg_C**7) / (avg_C**7 + 25**7)))
+    a1p = (1 + G) * a1; a2p = (1 + G) * a2
+    C1p = sqrt(a1p*a1p + b1*b1); C2p = sqrt(a2p*a2p + b2*b2)
+    avg_Cp = (C1p + C2p) / 2.0
+
+    def hp(ap, b):
+        if ap == 0 and b == 0: return 0.0
+        h = atan2(b, ap)
+        return h + (2*pi if h < 0 else 0)
+    h1p = hp(a1p, b1); h2p = hp(a2p, b2)
+
+    dLp = L2 - L1
+    dCp = C2p - C1p
+
+    dhp = h2p - h1p
+    if C1p*C2p == 0:
+        dhp = 0.0
+    else:
+        if dhp > pi:   dhp -= 2*pi
+        elif dhp < -pi: dhp += 2*pi
+    dHp = 2*sqrt(C1p*C2p) * sin(dhp/2)
+
+    avg_hp = h1p + h2p
+    if C1p*C2p == 0:
+        avg_hp = h1p + h2p
+    else:
+        if abs(h1p - h2p) > pi:
+            avg_hp += 2*pi if (h1p + h2p) < 2*pi else 0
+        avg_hp /= 2
+
+    T = (1
+         - 0.17*cos(avg_hp - pi/6)
+         + 0.24*cos(2*avg_hp)
+         + 0.32*cos(3*avg_hp + pi/30)
+         - 0.20*cos(4*avg_hp - 63*pi/180))
+    Sl = 1 + (0.015 * (avg_L - 50)**2) / sqrt(20 + (avg_L - 50)**2)
+    Sc = 1 + 0.045 * avg_Cp
+    Sh = 1 + 0.015 * avg_Cp * T
+    Rt = -2 * sqrt((avg_Cp**7) / (avg_Cp**7 + 25**7)) * sin((60*pi/180) * exp(- ((avg_hp*180/pi - 275)/25)**2))
+
+    dE = sqrt((dLp/Sl)**2 + (dCp/Sc)**2 + (dHp/Sh)**2 + Rt*(dCp/Sc)*(dHp/Sh))
+    return dE
+
+# Pré-calcul Lab des références pour perf
+_FAMILY_LAB_REFS: dict[str, list[tuple[float,float,float]]] = {
+    fam: [_rgb_to_lab(rgb) for rgb in rgbs]
+    for fam, rgbs in _FAMILY_RGB_REFS.items()
+}
+
+# Seuils “achromatiques”
+_L_WHITE = 92.0     # au-dessus => Blanc
+_L_BLACK = 20.0     # en-dessous => Noir
+_C_NEUTRAL = 8.0    # chroma faible => Gris/Noir/Blanc selon L*
+
+def _family_for_rgb(rgb: tuple[int,int,int]) -> tuple[str, float, float]:
+    """Retourne (famille, L*, C*) la plus proche selon ΔE2000, avec achromatique d'abord."""
+    L, a, b = _rgb_to_lab(rgb)
+    C = sqrt(a*a + b*b)
+
+    # Achromatiques
+    if C < _C_NEUTRAL:
+        if L >= _L_WHITE: return ("Blanc", L, C)
+        if L <= _L_BLACK: return ("Noir", L, C)
+        return ("Gris", L, C)
+
+    # Sinon: comparer ΔE2000 à toutes les références
+    best_name, best_de = "Autre", 1e9
+    for fam, labs in _FAMILY_LAB_REFS.items():
+        for lab_ref in labs:
+            de = _delta_e2000((L,a,b), lab_ref)
+            if de < best_de:
+                best_de = de
+                best_name = fam
+    return (best_name, L, C)
+
+def guess_color_families(hexes: list[str]) -> list[str]:
+    """Retourne 1–2 familles FR, avec suffixe Clair/Foncé facultatif."""
+    fams: list[tuple[str, float]] = []  # (nom_famille, L*)
+    seen = set()
+    for hx in hexes:
+        rgb = _hex_to_rgb(hx)
+        if not rgb: continue
+        fam, L, _C = _family_for_rgb(rgb)
+        key = (fam, round(L,1))
+        if fam not in seen:
+            fams.append((fam, L))
+            seen.add(fam)
+
+    # Ordonner par “importance” approximative: non-neutres d’abord, puis par L* médian
+    priority = {"Noir":3, "Blanc":3, "Gris":3}
+    fams.sort(key=lambda t: (priority.get(t[0], 0), abs(t[1]-50)))  # centre de L* ~50 en premier
+
+    # Garde 1 ou 2
+    top = [f for f,_ in fams[:2]] if fams else []
+
+    # Suffixe clair/foncé si pertinent (optionnel)
+    def tag(L):
+        if L <= 30: return " foncé"
+        if L >= 80: return " clair"
+        return ""
+    labeled = []
+    for fam, L in fams[:2]:
+        if fam in ("Noir","Blanc","Gris"):
+            labeled.append(fam)      # pas de suffixe
+        else:
+            labeled.append(fam + tag(L))
+    return labeled or []
 
 def _to_local_dt_string(raw):
     """Convertit divers formats datetime vers une chaîne locale 'dd.mm.YYYY HH:MM:SS'.
@@ -2124,28 +2271,18 @@ def get_filaments_for_gallery(args: Dict[str, Any]) -> Dict[str, Any]:
     filtered: List[Dict[str, Any]] = []
     for d in all_items:
         # 2) Familles de couleur (mono ou multi)
-        fams: list[str] = []
+        # Calcul familles à partir des hex
         if d.get("colors_array"):
-            raw = d["colors_array"]
-            hexes = [x.strip() for x in (raw.split(",") if isinstance(raw, str) else (raw or [])) if x]
+            hexes = [x.strip() for x in (d["colors_array"].split(",") if isinstance(d["colors_array"], str) else (d["colors_array"] or [])) if x]
         elif d.get("color"):
             hexes = [str(d["color"])]
         else:
             hexes = []
-    
-        seen = set()
-        for hx in hexes:
-            rgb = _hex_to_rgb(hx)
-            if not rgb:
-                continue
-            fam = _nearest_family_name(rgb)
-            if fam not in seen:
-                fams.append(fam)
-                seen.add(fam)
-    
-        d["color_families"] = fams               # ex: ["Vert","Rouge"]
-        d["color_key"] = fams[0] if fams else ""  # pour le tri "Couleur"
-        d["color_families_str"] = "-".join(fams).lower()  # ex: "vert-rouge" (pour la recherche)
+        
+        families = guess_color_families(hexes)
+        d["color_families"]      = families                         # ex: ["Bleu foncé","Violet"]
+        d["color_key"]           = (families[0] if families else "")# pour tri
+        d["color_families_str"]  = "-".join(families).lower()       # pour recherche
         swatch_url = None
         if d.get("swatch") == 1:
             p = swatch_dir / f"{d['id']}.webp"
