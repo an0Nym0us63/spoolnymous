@@ -101,15 +101,20 @@ def serve_snapshot() -> Response:
     """
     from mqtt_bambulab import isMqttClientConnected
      # 0) Si l'imprimante est hors ligne (MQTT déconnecté), servir un fallback immédiatement.
-    try:
+     try:
         if not isMqttClientConnected():
-            r = svg_fallback("Imprimante hors ligne")
-            # Override du statut par défaut pour rendre l'état explicite
-            r.headers["X-Camera-Status"] = "offline"
-            r.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
-            return r
+            offline_path = Path(__file__).resolve().parent / "static" / "offline.png"
+            if offline_path.exists():
+                r = send_file(str(offline_path), mimetype="image/png")
+                r.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
+                r.headers["X-Camera-Status"] = "offline"
+                return r
+            else:
+                # fallback ultime si l’image n’existe pas
+                r = svg_fallback("Imprimante hors ligne")
+                r.headers["X-Camera-Status"] = "offline"
+                return r
     except Exception as e:
-        # En cas d'erreur inattendue sur la vérif MQTT, on log et on continue le flux normal
         logger.warning("Impossible de vérifier l'état MQTT: %s", e)
     urls, err = get_camera_urls()
     if err:
