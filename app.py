@@ -1327,7 +1327,7 @@ def filaments():
         tray_color = request.args.get("tray_color")
         if tray_uuid and tray_info_idx and tray_color:
             set_tray_spool_map(tray_uuid, tray_info_idx, tray_color, spool_id)
-        setActiveTray(spool_id, ams_id, tray_id)
+        setActiveTray(spool_id, ams_id, tray_id, "Manual")
         return redirect(url_for('home', success_message=f"La bobine {spool_id} a été assigné à l'emplacement {tray_id} de l'AMS {ams_id}."))
 
     # 🔁 Sinon, affichage des bobines filtrées/paginées
