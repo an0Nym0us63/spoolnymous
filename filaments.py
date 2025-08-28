@@ -458,6 +458,7 @@ def ui_create_filament(payload: dict) -> int:
     multicolor_type = (payload.get("multicolor_type") or "monochrome").strip().lower()
     colors = payload.get("colors") or []
     transparent = (payload.get("transparent") or 0)
+    swatch = (payload.get("swatch") or 0)
 
     color, colors_csv = _normalize_colors_array(colors)
     if _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv,transparent):
@@ -476,11 +477,11 @@ def ui_create_filament(payload: dict) -> int:
             INSERT INTO filaments
             (created_at, updated_at, name, manufacturer, material,
              multicolor_type, color, colors_array,
-             filament_weight_g, spool_weight_g, profile_id, comment, price, transparent)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             filament_weight_g, spool_weight_g, profile_id, comment, price, transparent, swatch)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (now, now, name, manufacturer, material,
               multicolor_type, color, colors_csv,
-              filament_weight_g, spool_weight_g, profile_id, comment, price, transparent))
+              filament_weight_g, spool_weight_g, profile_id, comment, price, transparent, swatch))
         return cur.lastrowid
 
 
@@ -494,6 +495,7 @@ def ui_update_filament(filament_id: int, payload: dict) -> None:
     multicolor_type = (payload.get("multicolor_type") or "monochrome").strip().lower()
     colors = payload.get("colors") or []
     transparent = payload.get("transparent") or 0
+    swatch = payload.get("swatch") or 0
 
     color, colors_csv = _normalize_colors_array(colors)
     if _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv,transparent, exclude_id=filament_id):
@@ -514,12 +516,12 @@ def ui_update_filament(filament_id: int, payload: dict) -> None:
                    name = ?, manufacturer = ?, material = ?,
                    multicolor_type = ?, color = ?, colors_array = ?,
                    filament_weight_g = ?, spool_weight_g = ?, profile_id = ?, comment = ?,
-                   price = ?, transparent =?
+                   price = ?, transparent =?, swatch=?
              WHERE id = ?
         """, (now, name, manufacturer, material,
               multicolor_type, color, colors_csv,
               filament_weight_g, spool_weight_g, profile_id, comment,
-              price,transparent ,filament_id))
+              price,transparent, swatch ,filament_id))
 
 def _validate_non_negative(name: str, value: Optional[float]) -> None:
     if value is None:
