@@ -2677,6 +2677,7 @@ def filaments_gallery():
     #data = [f for f in data if (f.get('swatch_url'))]
 
     return render_template(
+        page_title="Echantillons",
         "filaments_gallery.html",
         filaments=data["items"],          # 👈 passe la LISTE ici
         total=data["total"],

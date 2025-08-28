@@ -2019,28 +2019,11 @@ def _build_order_by(args: Dict[str, Any]) -> str:
 
 def get_filaments_for_gallery(args: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Retourne une structure paginée pour la galerie des filaments.
-
-    Args attendus (tous optionnels) :
-      - search: str
-      - material: str
-      - manufacturer: str
-      - color: str (famille; ignoré si la colonne n'existe pas)
-      - sort: 'default' | 'name' | 'price' | 'weight'
-      - page: int (>=1)
-      - page_size: int (<= 120)
-      - swatch_only: bool/str/int → 1 seul si True
-
-    Retour:
-      {
-        'items': [ { ... champs filament + comptes + swatch_url }, ... ],
-        'total': int,
-        'page': int,
-        'pages': int,
-        'page_size': int
-      }
+    Galerie filaments — retourne uniquement les filaments qui ont un swatch
+    *fichier présent* sur disque. Pagination effectuée APRÈS filtrage pour que
+    total/pages reflètent les éléments réellement affichables.
     """
-    # Pagination sûre
+    # --- Pagination sûre
     try:
         page = int(args.get("page", 1))
     except Exception:
@@ -2053,18 +2036,16 @@ def get_filaments_for_gallery(args: Dict[str, Any]) -> Dict[str, Any]:
         page_size = 60
     page_size = max(1, min(120, page_size))
 
+    # --- WHERE / ORDER existants
     where_sql, params = _build_where_and_params(args)
+    # Force logiquement le swatch à 1 dans le SQL (réduit le volume)
+    if "COALESCE(f.swatch,0) = 1" not in where_sql:
+        where_sql = (where_sql + (" AND " if where_sql else "WHERE ") + "COALESCE(f.swatch,0) = 1")
     order_sql = _build_order_by(args)
 
-    # Compte total
-    count_sql = f"""
-      SELECT COUNT(*)
-      FROM filaments f
-      {where_sql}
-    """
-
-    # Requête principale
-    select_sql = f"""
+    # --- On récupère *tous* les candidats (sans LIMIT/OFFSET),
+    # puis on filtrera par fichier présent et paginera en Python.
+    select_all_sql = f"""
       SELECT
         f.id,
         f.name,
@@ -2094,45 +2075,40 @@ def get_filaments_for_gallery(args: Dict[str, Any]) -> Dict[str, Any]:
       ) sp ON sp.filament_id = f.id
       {where_sql}
       {order_sql}
-      LIMIT ? OFFSET ?
     """
 
-    limit_params = params + [page_size, (page - 1) * page_size]
-
     with _tx() as cur:
-        # total
-        cur.execute(count_sql, params)
-        total = int(cur.fetchone()[0])
-
-        # page
-        cur.execute(select_sql, limit_params)
+        cur.execute(select_all_sql, params)
         rows = cur.fetchall()
-        items = _rows_to_dicts(cur, rows)
+        all_items = _rows_to_dicts(cur, rows)
 
-    # Optionnel : swatch_url (détection .webp seulement, ou multi-ext si tu veux)
-    static_root = Path(__file__).resolve().parent
-    swatch_dir = static_root / "uploads" / "filaments"
-    for d in items:
+    # --- swatch_url + filtre strict "fichier présent"
+    static_root = Path(current_app.static_folder).resolve()
+    swatch_dir  = static_root / "uploads" / "filaments"
+
+    filtered: List[Dict[str, Any]] = []
+    for d in all_items:
+        swatch_url = None
         if d.get("swatch") == 1:
-            # Si tu veux supporter plusieurs extensions, décommente et parcours :
-            # for ext in (".webp", ".jpg", ".jpeg", ".png"):
-            #     p = swatch_dir / f"{d['id']}{ext}"
-            #     if p.exists():
-            #         d["swatch_url"] = f"/static/uploads/filaments/{d['id']}{ext}?x={int(p.stat().st_mtime)}"
-            #         break
-            # else:
-            #     d["swatch_url"] = None
             p = swatch_dir / f"{d['id']}.webp"
-            d["swatch_url"] = f"/static/uploads/filaments/{d['id']}.webp?x={int(p.stat().st_mtime)}" if p.exists() else None
-        else:
-            d["swatch_url"] = None
+            if p.exists():
+                swatch_url = f"/static/uploads/filaments/{d['id']}.webp?x={int(p.stat().st_mtime)}"
+        d["swatch_url"] = swatch_url
+        if swatch_url is not None:   # 👈 filtre strict demandé
+            filtered.append(d)
 
-    pages = (total + page_size - 1) // page_size if page_size else 1
+    # --- Pagination après filtrage
+    total = len(filtered)
+    pages = max(1, (total + page_size - 1) // page_size)
+    start = (page - 1) * page_size
+    end   = start + page_size
+    items = filtered[start:end]
+
     return {
         "items": items,
         "total": total,
-        "page": page,
-        "pages": max(1, pages),
+        "page": min(page, pages),
+        "pages": pages,
         "page_size": page_size,
     }
 
