@@ -172,7 +172,7 @@
   </select>
   <div class="form-check form-switch ms-2">
     <input class="form-check-input" type="checkbox" id="toggleInactive" checked>
-    <label class="form-check-label small" for="toggleInactive">Afficher inactifs</label>
+    <label class="form-check-label small" for="toggleInactive"></label>
   </div>
 </div>
 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -477,8 +477,6 @@ document.addEventListener('keydown', (e) => {
 function escapeHtml(s){
   return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
-document.getElementById('toggleInactive')
-  .addEventListener('change', apply);
 (function(){
   const $q   = document.getElementById('galSearch');
   const $ord = document.getElementById('galSort');
@@ -581,6 +579,8 @@ document.getElementById('toggleInactive')
   sortTiles($ord.value);
 }
 
+document.getElementById('toggleInactive')
+  .addEventListener('change', apply);
   // init
   sortTiles($ord.value || 'manufacturer');
 
