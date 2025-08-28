@@ -560,6 +560,9 @@
 {% set pages = total_pages %}
 {% include 'components/pagination.html' %}
 <div style="height: 4rem;"></div>
+
+{% endblock %}
+
 {% block scripts %}
 {{ super() }}
 <script>
@@ -1050,7 +1053,4 @@ if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
 })();
 });
 </script>
-{% endblock %}
-
-<div style="height:4rem;"></div>
 {% endblock %}
