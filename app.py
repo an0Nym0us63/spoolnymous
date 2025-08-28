@@ -31,7 +31,7 @@ from flask import flash,Flask, request, render_template, redirect, url_for,jsoni
 
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine,attach_spool_counts,remove_filament,update_bobine_tag
+from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine,attach_spool_counts,remove_filament,update_bobine_tag,update_filament
 
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
@@ -2700,13 +2700,15 @@ def upload_print_photo(print_id):
 @app.route("/upload_photo/<entity>/<int:entity_id>", methods=["POST"])
 def upload_entity_photo(entity, entity_id):
     """
-    Upload photo(s) pour une entité ('prints' ou 'groups').
-    Sauvegarde en: static/uploads/<entity>/<entity_id>/Photo-XX.webp
+    Upload photo(s) pour une entité ('prints', 'groups', 'objects', 'filaments').
+    - prints/groups/objects : comme avant → static/uploads/<entity>/<id>/Photo-XX.webp
+    - filaments (swatch)    : un seul fichier → static/uploads/filaments/<id>.webp (écrasement)
     """
     entity = (entity or "").strip().lower()
-    if entity not in {"prints", "groups", "objects"}:
+    if entity not in {"prints", "groups", "objects", "filaments"}:   # <-- ajouté 'filaments'
         abort(404)
 
+    # Récup des fichiers comme avant
     files = request.files.getlist("photos")
     if not files:
         one = request.files.get("photo")
@@ -2716,6 +2718,60 @@ def upload_entity_photo(entity, entity_id):
         flash("Aucun fichier fourni", "danger")
         return redirect(request.referrer or url_for("print_history"))
 
+    # --- CAS SWATCH FILAMENTS : un seul fichier, nom plat <id>.webp ---
+    if entity == "filaments":
+        storage = files[0]
+        if not storage or not storage.filename:
+            flash("Fichier invalide", "danger")
+            return redirect(request.referrer or url_for("print_history"))
+
+        ext = os.path.splitext(storage.filename)[1].lower()
+        if ext not in ALLOWED_EXTS:
+            flash("Extension non supportée (JPG, PNG, WEBP, HEIC).", "warning")
+            return redirect(request.referrer or url_for("print_history"))
+
+        upload_dir = Path(app.static_folder) / "uploads" / "filaments"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+
+        # Écrire en tmp puis compresser comme pour les prints
+        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
+            storage.save(tmp.name)
+            tmp_path = Path(tmp.name)
+
+        try:
+            # On supprime d’éventuels anciens fichiers de ce filament (un seul swatch)
+            for old in upload_dir.glob(f"{entity_id}.*"):
+                try:
+                    old.unlink()
+                except Exception:
+                    pass
+
+            to_webp = True
+            out_ext = ".webp" if to_webp else ".jpg"
+            out_path = upload_dir / f"{entity_id}{out_ext}"
+
+            # Taille & qualité : tu peux reprendre exactement les mêmes valeurs que pour prints
+            _ffmpeg_compress(tmp_path, out_path, to_webp=to_webp, max_w=800, max_h=800, quality=80)
+
+            # Marquer en base : swatch = 1
+            try:
+                update_filament(entity_id, swatch=1)
+            except Exception as e:
+                app.logger.warning("Impossible de marquer swatch=1 pour filament %s : %s", entity_id, e)
+
+            flash("Swatch mis à jour.", "success")
+        except subprocess.CalledProcessError as e:
+            app.logger.warning("ffmpeg compress error (swatch filaments): %s", e)
+            flash("Erreur de conversion/optimisation de l'image.", "danger")
+        finally:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+        return redirect(request.referrer or url_for("print_history"))
+
+    # --- CAS HISTORIQUES (prints/groups/objects) : inchangé ---
     upload_dir = Path(app.static_folder) / "uploads" / entity / str(entity_id)
     upload_dir.mkdir(parents=True, exist_ok=True)
 

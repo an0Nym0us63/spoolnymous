@@ -321,6 +321,15 @@
   ➕ Créer une bobine
 </button>
                 </li>
+				<li>
+  <a class="dropdown-item"
+     href="{{ url_for('upload_entity_photo', entity='filaments', entity_id=fil.id) }}"
+     data-photo-upload
+     data-photo-title="Uploader un swatch"
+     data-photo-multiple="false">
+    📷 Uploader swatch
+  </a>
+</li>
 {% if (fil.spools_count or 0) > 0 %}
     <li>
       <button class="dropdown-item disabled text-muted" title="Impossible : des bobines sont rattachées" type="button">
@@ -340,6 +349,16 @@
 </div>
 </div>
           <div class="row g-3">
+		  <div class="col-12 mt-3" id="swatchWrap-{{ fil.id }}">
+  {% if fil.swatch == 1 %}
+    <div class="small text-muted mb-1">Swatch</div>
+    <img
+      src="/static/uploads/filaments/{{ fil.id }}.webp"
+      alt="Swatch {{ fil.name }}"
+      class="img-fluid rounded border"
+      onerror="this.classList.add('d-none')">
+  {% endif %}
+</div>
             <div class="col-md-6">
               <ul class="list-unstyled mb-0">
                 <li><strong>Nom :</strong> {{ fil.name or '—' }}</li>
