@@ -276,7 +276,7 @@ document.addEventListener("DOMContentLoaded", function () {
   function normalizeTarget(arg) {
     if (typeof arg === 'number') return { type: 'prints', id: arg };
     if (arg && typeof arg === 'object' &&
-        (arg.type === 'prints' || arg.type === 'groups' || arg.type === 'objects') &&  // ⬅️ + objects
+        (arg.type === 'prints' || arg.type === 'groups' || arg.type === 'objects' || arg.type === 'filaments') &&  // ⬅️ + objects
         Number.isFinite(arg.id)) {
       return { type: arg.type, id: arg.id };
     }
@@ -341,7 +341,8 @@ window.triggerPhotoUnified = function (target) {
     try {
       window.__isUploading__ = true;
       const fd = new FormData();
-      for (const f of files) fd.append('photos', f);
+	  const toSend = (target.type === 'filaments') ? [files[0]] : files;
+      for (const f of toSend) fd.append('photos', f);
       let resp = await fetch(`/upload_photo/${encodeURIComponent(target.type)}/${encodeURIComponent(target.id)}`, {
         method: 'POST',
         body: fd

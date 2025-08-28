@@ -96,7 +96,7 @@
   function pct(v){
     if(v==null || isNaN(v)) return 0;
     const n = Number(v);
-    if(n<=1 && n>=0) return Math.round(n*100);  // accepte 0..1
+    if(n<1 && n>=0) return 1;  // accepte 0..1
     return Math.max(0, Math.min(100, Math.round(n)));
   }
   function absUrl(u, base){ try{ return new URL(u, base).toString(); }catch{ return u; } }
