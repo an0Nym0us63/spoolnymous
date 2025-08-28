@@ -31,7 +31,7 @@ from flask import flash,Flask, request, render_template, redirect, url_for,jsoni
 
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine,attach_spool_counts,remove_filament,update_bobine_tag,update_filament
+from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine,attach_spool_counts,remove_filament,update_bobine_tag,update_filament,get_filaments_for_gallery
 
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
@@ -2671,7 +2671,7 @@ def filaments_gallery():
     """
     # ⬇️ remplace par la fonction que tu utilises dans /filaments_catalog
     # par ex. fil_svc.list_filaments_catalog() / fil_svc.get_all()
-    fil_list = fil_svc.get_all_filaments()  # <--- À ADAPTER si nécessaire
+    fil_list = get_filaments_for_gallery()  # <--- À ADAPTER si nécessaire
 
     # Option: ne garder que ceux qui ont un swatch
     # fil_list = [f for f in fil_list if (f.get('swatch') == 1)]
