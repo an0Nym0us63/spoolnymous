@@ -921,7 +921,8 @@ def list_filaments(
     *,
     manufacturer: Optional[str] = None,
     material: Optional[str] = None,
-    search: Optional[str] = None,  # recherchera sur name/manufacturer/material/color
+    search: Optional[str] = None,
+    swatch: Optional[str] = None,  # recherchera sur name/manufacturer/material/color
     limit: Optional[int] = None,
     offset: int = 0,
     order_by: str = "created_at DESC",
@@ -933,6 +934,9 @@ def list_filaments(
     if manufacturer:
         where.append("manufacturer = ?")
         params.append(manufacturer)
+    if swatch:
+        where.append("swatch = ?")
+        params.append(int(swatch))
     if material:
         where.append("material = ?")
         params.append(material)

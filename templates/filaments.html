@@ -104,12 +104,12 @@
   </div>
   <div class="offcanvas-body">
     <form method="get" class="row g-2 align-items-end">
-      {{ macros.render_filtered_args(args, ['search','color','sort','page','manufacturer','material']) }}
+      {{ macros.render_filtered_args(args, ['search','color','sort','page','manufacturer','material','swatch']) }}
 
       <div class="col-md-4">
         <input type="text" name="search" class="form-control"
                placeholder="Recherche nom, matériau, fabricant ou couleur"
-               value="{{ search }}">
+               value="{{ search or '' }}">
       </div>
 
       <input type="hidden" name="page" value="1">
@@ -148,6 +148,13 @@
           <input type="text" name="manufacturer" class="form-control" placeholder="Fabricant" value="{{ manufacturer or '' }}">
         {% endif %}
       </div>
+	  <div class="col-md-2">
+  <select name="swatch" class="form-select">
+    <option value=""  {% if (swatch is not defined) or (swatch is string and swatch == '') %}selected{% endif %}>Tous</option>
+    <option value="1" {% if swatch|string == '1' %}selected{% endif %}>Avec Swatch</option>
+    <option value="0" {% if swatch|string == '0' %}selected{% endif %}>Sans Swatch</option>
+  </select>
+</div>
 
       <div class="col-md-3">
         <select name="sort" class="form-select">
