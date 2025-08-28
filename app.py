@@ -2674,7 +2674,7 @@ def filaments_gallery():
     data = get_filaments_for_gallery(args={})  # <--- À ADAPTER si nécessaire
 
     # Option: ne garder que ceux qui ont un swatch
-    data = [f for f in data if (f.get('swatch_url'))]
+    #data = [f for f in data if (f.get('swatch_url'))]
 
     return render_template(
         "filaments_gallery.html",
