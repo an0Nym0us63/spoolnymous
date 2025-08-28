@@ -2678,8 +2678,12 @@ def filaments_gallery():
 
     return render_template(
         "filaments_gallery.html",
-        filaments=fil_list,
-        page_title="Galerie filaments",
+        filaments=data["items"],          # 👈 passe la LISTE ici
+        total=data["total"],
+        page=data["page"],
+        total_pages=data["pages"],
+        page_size=data["page_size"],
+        args=request.args,
     )
 
 @app.post("/api/filaments")
