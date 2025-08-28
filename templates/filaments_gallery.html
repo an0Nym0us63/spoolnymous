@@ -170,6 +170,10 @@
     <option value="name">Trier par Nom</option>
     <option value="color">Trier par Couleur</option>
   </select>
+  <div class="form-check form-switch ms-2">
+    <input class="form-check-input" type="checkbox" id="toggleInactive" checked>
+    <label class="form-check-label small" for="toggleInactive">Afficher inactifs</label>
+  </div>
 </div>
 <div class="d-flex justify-content-between align-items-center mb-2">
   <div class="text-muted small">Clique une tuile pour ouvrir en grand. Coche pour comparer.</div>
@@ -473,7 +477,8 @@ document.addEventListener('keydown', (e) => {
 function escapeHtml(s){
   return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
-
+document.getElementById('toggleInactive')
+  .addEventListener('change', apply);
 (function(){
   const $q   = document.getElementById('galSearch');
   const $ord = document.getElementById('galSort');
@@ -558,12 +563,23 @@ function escapeHtml(s){
   }
 
   function apply(){
-    const tokens = normalize($q.value).split(/\s+/).filter(Boolean);
-    tiles.forEach(t => {
-      t.style.display = matches(t, tokens) ? '' : 'none';
-    });
-    sortTiles($ord.value);
-  }
+  const tokens = normalize($q.value).split(/\s+/).filter(Boolean);
+  const showInactive = document.getElementById('toggleInactive').checked;
+
+  tiles.forEach(t => {
+    const isInactive = (t.dataset.active === "0");
+    const matchesSearch = matches(t, tokens);
+
+    if (!matchesSearch) {
+      t.style.display = 'none';
+    } else if (!showInactive && isInactive) {
+      t.style.display = 'none';
+    } else {
+      t.style.display = '';
+    }
+  });
+  sortTiles($ord.value);
+}
 
   // init
   sortTiles($ord.value || 'manufacturer');
