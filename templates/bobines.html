@@ -236,10 +236,16 @@
   </div>
   {% elif ams_id and tray_id %}
   <div class="ms-2 me-3 d-flex align-items-center" style="min-width: 40px;" data-requires-write>
-    <a href="{{ url_for('filaments', spool_id=spool.id, ams=ams_id, tray=tray_id, tray_uuid={{ request.args.get('tray_uuid') }}, tray_info_idx={{ request.args.get('tray_info_idx') }}, tray_color={{ request.args.get('tray_color') }}) }}"
-       class="btn btn-sm btn-primary rounded-circle"
-       title="Remplir"><i class="bi bi-plus"></i></a>
-  </div>
+  <a href="{{ url_for('filaments', spool_id=spool.id, ams=ams_id,
+                      tray=tray_id,
+                      tray_uuid=request.args.get('tray_uuid'),
+                      tray_info_idx=request.args.get('tray_info_idx'),
+                      tray_color=request.args.get('tray_color')) }}"
+     class="btn btn-sm btn-primary rounded-circle"
+     title="Remplir">
+    <i class="bi bi-plus"></i>
+  </a>
+</div>
   {% endif %}
 </h2>
 
