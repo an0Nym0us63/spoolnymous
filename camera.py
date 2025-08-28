@@ -165,16 +165,16 @@ def serve_snapshot() -> Response:
 
         except subprocess.TimeoutExpired as e:
             last_exc = e
-            logger.warning("snapshot camera timeout on %s: %s", u, e)
+            logger.warning("snapshot camera timeout on : %s", e)
 
         except subprocess.CalledProcessError as e:
             stderr = (e.stderr.decode("utf-8", "ignore") if e.stderr else "").strip()
             last_exc = RuntimeError(stderr or str(e))
-            logger.warning("snapshot camera ffmpeg error on %s: %s", u, stderr or e)
+            logger.warning("snapshot camera ffmpeg error on : %s", stderr or e)
 
         except Exception as e:
             last_exc = e
-            logger.warning("snapshot camera unexpected error on %s: %s", u, e)
+            logger.warning("snapshot camera unexpected error on: %s", e)
 
     # 5) Tous les essais ont échoué → backoff + servir fallback
     with _SNAP_LOCK:
