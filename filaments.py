@@ -2116,35 +2116,36 @@ def get_filaments_for_gallery(args: Dict[str, Any]) -> Dict[str, Any]:
         cur.execute(select_all_sql, params)
         rows = cur.fetchall()
         all_items = _rows_to_dicts(cur, rows)
-    # 2) Familles de couleur (mono ou multi)
-    fams: list[str] = []
-    if d.get("colors_array"):
-        raw = d["colors_array"]
-        hexes = [x.strip() for x in (raw.split(",") if isinstance(raw, str) else (raw or [])) if x]
-    elif d.get("color"):
-        hexes = [str(d["color"])]
-    else:
-        hexes = []
-
-    seen = set()
-    for hx in hexes:
-        rgb = _hex_to_rgb(hx)
-        if not rgb:
-            continue
-        fam = _nearest_family_name(rgb)
-        if fam not in seen:
-            fams.append(fam)
-            seen.add(fam)
-
-    d["color_families"] = fams               # ex: ["Vert","Rouge"]
-    d["color_key"] = fams[0] if fams else ""  # pour le tri "Couleur"
-    d["color_families_str"] = "-".join(fams).lower()  # ex: "vert-rouge" (pour la recherche)
+    
     # --- swatch_url + filtre strict "fichier présent"
     static_root = Path(__file__).resolve().parent / "static"
     swatch_dir  = static_root / "uploads" / "filaments"
 
     filtered: List[Dict[str, Any]] = []
     for d in all_items:
+        # 2) Familles de couleur (mono ou multi)
+        fams: list[str] = []
+        if d.get("colors_array"):
+            raw = d["colors_array"]
+            hexes = [x.strip() for x in (raw.split(",") if isinstance(raw, str) else (raw or [])) if x]
+        elif d.get("color"):
+            hexes = [str(d["color"])]
+        else:
+            hexes = []
+    
+        seen = set()
+        for hx in hexes:
+            rgb = _hex_to_rgb(hx)
+            if not rgb:
+                continue
+            fam = _nearest_family_name(rgb)
+            if fam not in seen:
+                fams.append(fam)
+                seen.add(fam)
+    
+        d["color_families"] = fams               # ex: ["Vert","Rouge"]
+        d["color_key"] = fams[0] if fams else ""  # pour le tri "Couleur"
+        d["color_families_str"] = "-".join(fams).lower()  # ex: "vert-rouge" (pour la recherche)
         swatch_url = None
         if d.get("swatch") == 1:
             p = swatch_dir / f"{d['id']}.webp"
