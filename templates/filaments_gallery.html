@@ -146,6 +146,10 @@
   cursor: pointer;
   accent-color: #0d6efd; /* la couleur bootstrap primary */
 }
+.tile.no-active {
+  opacity: 0.7;
+  filter: grayscale(20%);
+}
 </style>
 <div class="d-flex gap-2 align-items-center mb-2">
   <input id="galSearch" class="form-control form-control-sm" type="search"
@@ -165,7 +169,7 @@
   {% for f in filaments %}
     {# URL du swatch — par défaut .webp ; si tu as des .jpg/.png possibles, on peut tester côté JS #}
     {% set swatch_url = '/static/uploads/filaments/' ~ f.id ~ '.webp' %}
-    <div class="tile"
+    <div class="tile  {% if (f.active_spools_count or 0) == 0 %}no-active{% endif %}"
      data-id="{{ f.id }}"
      data-name="{{ f.name or '' }}"
      data-translated_name="{{ f.translated_name or '' }}"
@@ -201,6 +205,9 @@
         </div>
         <div class="line2">
           {{ f.manufacturer or '—' }}
+		    {% if (f.active_spools_count or 0) == 0 %}
+      <span class="badge-s text-warning ms-1" title="Aucune bobine active">💤</span>
+    {% endif %}
         </div>
       </div>
     </div>
