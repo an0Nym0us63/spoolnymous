@@ -346,16 +346,17 @@
 </div>
 </div>
           <div class="row g-3">
-		  <div class="col-12 mt-3" id="swatchWrap-{{ fil.id }}">
-  {% if fil.swatch == 1 %}
-    <div class="small text-muted mb-1">Swatch</div>
-    <img
-      src="/static/uploads/filaments/{{ fil.id }}.webp"
-      alt="Swatch {{ fil.name }}"
-      class="img-fluid rounded border"
-      onerror="this.classList.add('d-none')">
-  {% endif %}
-</div>
+		  <div class="col-12 mt-3 text-center" id="swatchWrap-{{ fil.id }}">
+    {% if fil.swatch == 1 %}
+      <div class="small text-muted mb-1">Swatch</div>
+      <img
+        src="/static/uploads/filaments/{{ fil.id }}.webp"
+        alt="Swatch {{ fil.name }}"
+        class="img-thumbnail d-block mx-auto"
+        style="max-width:120px; height:auto;"
+        onerror="this.classList.add('d-none')">
+    {% endif %}
+  </div>
             <div class="col-md-6">
               <ul class="list-unstyled mb-0">
                 <li><strong>Nom :</strong> {{ fil.name or '—' }}</li>
