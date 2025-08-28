@@ -8,6 +8,7 @@ from flask import Response
 from pathlib import Path
 import re
 import os
+from mqtt_bambulab import isMqttClientConnected
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +100,17 @@ def serve_snapshot() -> Response:
     - Backoff échec : évite les tentatives trop fréquentes.
     - Lock global : garantit au plus 1 ffmpeg à la fois (multi-threads).
     """
+     # 0) Si l'imprimante est hors ligne (MQTT déconnecté), servir un fallback immédiatement.
+    try:
+        if not isMqttClientConnected():
+            r = svg_fallback("Imprimante hors ligne")
+            # Override du statut par défaut pour rendre l'état explicite
+            r.headers["X-Camera-Status"] = "offline"
+            r.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
+            return r
+    except Exception as e:
+        # En cas d'erreur inattendue sur la vérif MQTT, on log et on continue le flux normal
+        logger.warning("Impossible de vérifier l'état MQTT: %s", e)
     urls, err = get_camera_urls()
     if err:
         return svg_fallback(err)
