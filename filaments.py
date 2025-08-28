@@ -350,6 +350,41 @@ _BOBINE_ALLOWED_UPDATE = {
     "created_at",
 }
 
+MAIN_COLOR_FAMILIES = {
+    "Noir":   (0, 0, 0),
+    "Blanc":  (255, 255, 255),
+    "Gris":   (160, 160, 160),
+    "Rouge":  (220, 20, 60),
+    "Orange": (255, 140, 0),
+    "Jaune":  (255, 220, 0),
+    "Vert":   (80, 200, 120),
+    "Bleu":   (100, 150, 255),
+    "Violet": (160, 32, 240),
+    "Marron": (150, 75, 0),
+}
+
+def _hex_to_rgb(h: str) -> tuple[int, int, int] | None:
+    if not h: return None
+    s = str(h).strip().lstrip("#")
+    if len(s) == 3:
+        s = "".join(c*2 for c in s)
+    if len(s) != 6:
+        return None
+    try:
+        return (int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16))
+    except Exception:
+        return None
+
+def _nearest_family_name(rgb: tuple[int,int,int]) -> str:
+    # Euclidienne simple vs familles principales FR
+    rr, gg, bb = rgb
+    best = ("Autre", 10**9)
+    for name, (r,g,b) in MAIN_COLOR_FAMILIES.items():
+        d = (rr - r)**2 + (gg - g)**2 + (bb - b)**2
+        if d < best[1]:
+            best = (name, d)
+    return best[0]
+
 def _to_local_dt_string(raw):
     """Convertit divers formats datetime vers une chaîne locale 'dd.mm.YYYY HH:MM:SS'.
        Retourne '-' si vide/invalide."""
@@ -2081,7 +2116,29 @@ def get_filaments_for_gallery(args: Dict[str, Any]) -> Dict[str, Any]:
         cur.execute(select_all_sql, params)
         rows = cur.fetchall()
         all_items = _rows_to_dicts(cur, rows)
+    # 2) Familles de couleur (mono ou multi)
+    fams: list[str] = []
+    if d.get("colors_array"):
+        raw = d["colors_array"]
+        hexes = [x.strip() for x in (raw.split(",") if isinstance(raw, str) else (raw or [])) if x]
+    elif d.get("color"):
+        hexes = [str(d["color"])]
+    else:
+        hexes = []
 
+    seen = set()
+    for hx in hexes:
+        rgb = _hex_to_rgb(hx)
+        if not rgb:
+            continue
+        fam = _nearest_family_name(rgb)
+        if fam not in seen:
+            fams.append(fam)
+            seen.add(fam)
+
+    d["color_families"] = fams               # ex: ["Vert","Rouge"]
+    d["color_key"] = fams[0] if fams else ""  # pour le tri "Couleur"
+    d["color_families_str"] = "-".join(fams).lower()  # ex: "vert-rouge" (pour la recherche)
     # --- swatch_url + filtre strict "fichier présent"
     static_root = Path(__file__).resolve().parent / "static"
     swatch_dir  = static_root / "uploads" / "filaments"

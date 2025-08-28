@@ -147,7 +147,16 @@
   accent-color: #0d6efd; /* la couleur bootstrap primary */
 }
 </style>
-
+<div class="d-flex gap-2 align-items-center mb-2">
+  <input id="galSearch" class="form-control form-control-sm" type="search"
+         placeholder="Recherche (nom, matériau, marque, couleur…)" style="max-width: 360px;">
+  <select id="galSort" class="form-select form-select-sm" style="max-width: 220px;">
+    <option value="manufacturer">Trier par Marque</option>
+    <option value="material">Trier par Matériau</option>
+    <option value="name">Trier par Nom</option>
+    <option value="color">Trier par Couleur</option>
+  </select>
+</div>
 <div class="d-flex justify-content-between align-items-center mb-2">
   <div class="text-muted small">Clique une tuile pour ouvrir en grand. Coche pour comparer.</div>
 </div>
@@ -157,21 +166,23 @@
     {# URL du swatch — par défaut .webp ; si tu as des .jpg/.png possibles, on peut tester côté JS #}
     {% set swatch_url = '/static/uploads/filaments/' ~ f.id ~ '.webp' %}
     <div class="tile"
-         data-id="{{ f.id }}"
-         data-name="{{ f.name or '' }}"
-         data-manufacturer="{{ f.manufacturer or '' }}"
-         data-material="{{ f.material or '' }}"
-         data-price="{{ f.price if f.price is not none else '' }}"
-         data-weight="{{ f.filament_weight_g or '' }}"
-         data-spoolw="{{ f.spool_weight_g or '' }}"
-         data-profile="{{ f.profile_id or '' }}"
-         data-transparent="{{ 1 if f.transparent == 1 else 0 }}"
-         data-active="{{ f.active_spools_count or 0 }}"
-         data-total="{{ f.spools_count or 0 }}"
-         data-comment="{{ (f.comment or '')|e }}"
-         data-swatch="{{ 1 if f.swatch == 1 else 0 }}"
-         data-swatch-url="{{ swatch_url }}"
-         onclick="if(event.target.type!=='checkbox'){ openFilamentLightbox(this); }">
+     data-id="{{ f.id }}"
+     data-name="{{ f.name or '' }}"
+     data-manufacturer="{{ f.manufacturer or '' }}"
+     data-material="{{ f.material or '' }}"
+     data-colors="{{ f.color_families_str or '' }}"
+     data-color-key="{{ f.color_key or '' }}"
+     data-price="{{ f.price if f.price is not none else '' }}"
+     data-weight="{{ f.filament_weight_g or '' }}"
+     data-spoolw="{{ f.spool_weight_g or '' }}"
+     data-profile="{{ f.profile_id or '' }}"
+     data-transparent="{{ 1 if f.transparent == 1 else 0 }}"
+     data-active="{{ f.active_spools_count or 0 }}"
+     data-total="{{ f.spools_count or 0 }}"
+     data-comment="{{ (f.comment or '')|e }}"
+     data-swatch="{{ 1 if f.swatch == 1 else 0 }}"
+     data-swatch-url="{{ f.swatch_url }}"
+     onclick="if(event.target.type!=='checkbox'){ openFilamentLightbox(this); }">
 
       <img class="thumb"
            src="{{ swatch_url }}"
@@ -441,5 +452,106 @@ document.addEventListener('keydown', (e) => {
 function escapeHtml(s){
   return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
+
+(function(){
+  const $q   = document.getElementById('galSearch');
+  const $ord = document.getElementById('galSort');
+  const $grid = document.querySelector('.gallery-grid');
+
+  if (!$grid) return;
+
+  let tiles = Array.from($grid.querySelectorAll('.tile'));
+
+  const COLOR_ORDER = [
+    "Noir","Blanc","Gris","Rouge","Orange","Jaune","Vert","Bleu","Violet","Marron",""
+  ];
+  const COLOR_RANK = Object.fromEntries(COLOR_ORDER.map((n,i)=>[n.toLowerCase(), i]));
+
+  function normalize(s){ return (s||'').toString().toLowerCase(); }
+
+  function matches(tile, tokens){
+    if (!tokens.length) return true;
+    const hay = [
+      tile.dataset.name,
+      tile.dataset.manufacturer,
+      tile.dataset.material,
+      tile.dataset.colors,   // ex: "vert-rouge"
+    ].map(normalize).join(' ');
+    return tokens.every(t => hay.includes(t));
+  }
+
+  function cmpLocale(a, b){
+    return a.localeCompare(b, undefined, {sensitivity:'base'});
+  }
+
+  function sortTiles(mode){
+    const by = (a,b) => 0;
+    switch (mode){
+      case 'manufacturer':
+        tiles.sort((a,b)=>{
+          const am = normalize(a.dataset.manufacturer), bm = normalize(b.dataset.manufacturer);
+          if (am !== bm) return cmpLocale(am,bm);
+          const an = normalize(a.dataset.name), bn = normalize(b.dataset.name);
+          return cmpLocale(an,bn);
+        });
+        break;
+
+      case 'material':
+        tiles.sort((a,b)=>{
+          const am = normalize(a.dataset.material), bm = normalize(b.dataset.material);
+          if (am !== bm) return cmpLocale(am,bm);
+          const an = normalize(a.dataset.name), bn = normalize(b.dataset.name);
+          return cmpLocale(an,bn);
+        });
+        break;
+
+      case 'name':
+        tiles.sort((a,b)=>{
+          const an = normalize(a.dataset.name), bn = normalize(b.dataset.name);
+          if (an !== bn) return cmpLocale(an,bn);
+          return cmpLocale(normalize(a.dataset.manufacturer), normalize(b.dataset.manufacturer));
+        });
+        break;
+
+      case 'color':
+        tiles.sort((a,b)=>{
+          const ak = normalize(a.dataset.colorKey), bk = normalize(b.dataset.colorKey);
+          const ra = COLOR_RANK.hasOwnProperty(ak) ? COLOR_RANK[ak] : COLOR_RANK[""];
+          const rb = COLOR_RANK.hasOwnProperty(bk) ? COLOR_RANK[bk] : COLOR_RANK[""];
+          if (ra !== rb) return ra - rb;
+          // fallback: nom
+          return cmpLocale(normalize(a.dataset.name), normalize(b.dataset.name));
+        });
+        break;
+
+      default:
+        // défaut = manufacturer
+        return sortTiles('manufacturer');
+    }
+
+    // réinjecte l’ordre dans le DOM
+    const frag = document.createDocumentFragment();
+    tiles.forEach(t => frag.appendChild(t));
+    $grid.appendChild(frag);
+  }
+
+  function apply(){
+    const tokens = normalize($q.value).split(/\s+/).filter(Boolean);
+    tiles.forEach(t => {
+      t.style.display = matches(t, tokens) ? '' : 'none';
+    });
+    sortTiles($ord.value);
+  }
+
+  // init
+  sortTiles($ord.value || 'manufacturer');
+
+  // events (avec petit debounce côté input)
+  let tId = null;
+  $q && $q.addEventListener('input', () => {
+    clearTimeout(tId); tId = setTimeout(apply, 120);
+  });
+  $ord && $ord.addEventListener('change', apply);
+})();
 </script>
 {% endblock %}
