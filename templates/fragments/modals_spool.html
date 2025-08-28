@@ -201,35 +201,39 @@ window.openSpoolModal = async function(spool, opts){
 };
 
 // Appelé quand on clique "Créer une bobine" depuis un filament
-window.openSpoolModalForFilament = function(filament){
-  // Ouvre la modale de bobine (ta fonction existante)
-  if (typeof openSpoolModal === 'function') {
-    openSpoolModal(); // en "création" (pas d'id spool passé)
+window.openSpoolModalForFilament = function (filament) {
+  try {
+    // Tolère qu’on te passe une string JSON
+    if (typeof filament === 'string') {
+      try { filament = JSON.parse(filament); } catch (_) {}
+    }
+  } catch(_) {}
+
+  // Ouverture création
+  if (typeof openSpoolModal === 'function') openSpoolModal();
+
+  // Pré-remplissages (seulement si objet)
+  if (filament && typeof filament === 'object') {
+    const p = filament.price ?? null;
+    if (document.getElementById('spool_price') && p != null) {
+      document.getElementById('spool_price').value = p;
+    }
+
+    const w = filament.filament_weight_g ?? null;
+    const elInit = document.getElementById('spool_initial_weight');
+    if (elInit && w != null) elInit.value = w;
   }
 
-  // --- Pré-remplissages (uniquement si valeurs connues) ---
-  // Prix = prix du filament
-  if (document.getElementById('spool_price') && filament && filament.price != null) {
-    document.getElementById('spool_price').value = filament.price;
-  }
-  // Poids initial = poids filament (pas la tare)
-  if (document.getElementById('spool_initial_weight') && filament && filament.filament_weight_g != null) {
-    document.getElementById('spool_initial_weight').value = filament.filament_weight_g;
-  }
-  // Localisation par défaut = "Tiroirs"
-  if (document.getElementById('spool_location')) {
-    document.getElementById('spool_location').value = 'Tiroirs';
-  }
-  // Archivé -> décoché par défaut
-  if (document.getElementById('spool_archived')) {
-    document.getElementById('spool_archived').checked = false;
-  }
+  // Defaults
+  const loc = document.getElementById('spool_location');
+  if (loc) loc.value = 'Tiroirs';
+  const arch = document.getElementById('spool_archived');
+  if (arch) arch.checked = false;
 
-  // --- Masquages en mode création ---
-  hideBlock('spool_field_ams_tray', true);    // AMS / Tray caché
-  hideBlock('spool_field_location', true);    // Location caché (reste envoyé car input visible dans le DOM)
-  hideBlock('spool_field_archived', true);    // Archivé caché 
-  hideBlock('spool_field_initial_weight', true); 
+  hideBlock('spool_field_ams_tray', true);
+  hideBlock('spool_field_location', true);
+  hideBlock('spool_field_archived', true);
+  hideBlock('spool_field_initial_weight', true);
 };
 
   function numOrNull(raw){

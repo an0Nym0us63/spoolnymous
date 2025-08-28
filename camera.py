@@ -164,17 +164,17 @@ def serve_snapshot() -> Response:
                 return r
 
         except subprocess.TimeoutExpired as e:
-            last_exc = e
-            logger.warning("snapshot camera timeout on : %s", e)
+            last_exc = "Timeout"
+            logger.warning("snapshot camera timeout on %s: %s", u, e)
 
         except subprocess.CalledProcessError as e:
             stderr = (e.stderr.decode("utf-8", "ignore") if e.stderr else "").strip()
-            last_exc = RuntimeError(stderr or str(e))
-            logger.warning("snapshot camera ffmpeg error on : %s", stderr or e)
+            last_exc = "Camera ffmpeg error"
+            logger.warning("snapshot camera ffmpeg error on %s: %s", u, stderr or e)
 
         except Exception as e:
-            last_exc = e
-            logger.warning("snapshot camera unexpected error on: %s", e)
+            last_exc = "Unexpected"
+            logger.warning("snapshot camera unexpected error on %s: %s", u, e)
 
     # 5) Tous les essais ont échoué → backoff + servir fallback
     with _SNAP_LOCK:
@@ -184,7 +184,7 @@ def serve_snapshot() -> Response:
         jitter = base * _FAIL_JITTER * (2 * random.random() - 1.0)  # ±jitter
         wait_s = max(1.0, base + jitter)
         _SNAP["retry_at"] = time.monotonic() + wait_s
-        _SNAP["last_err"] = str(last_exc) if last_exc else "unknown error"
+        _SNAP["last_err"] = "error"
 
     msg = _SNAP["last_err"] or "Erreur snapshot"
     r = svg_fallback(msg)
