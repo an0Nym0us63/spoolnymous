@@ -8,7 +8,6 @@ from flask import Response
 from pathlib import Path
 import re
 import os
-from mqtt_bambulab import isMqttClientConnected
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +99,7 @@ def serve_snapshot() -> Response:
     - Backoff échec : évite les tentatives trop fréquentes.
     - Lock global : garantit au plus 1 ffmpeg à la fois (multi-threads).
     """
+    from mqtt_bambulab import isMqttClientConnected
      # 0) Si l'imprimante est hors ligne (MQTT déconnecté), servir un fallback immédiatement.
     try:
         if not isMqttClientConnected():
