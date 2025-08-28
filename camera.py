@@ -101,7 +101,7 @@ def serve_snapshot() -> Response:
     """
     from mqtt_bambulab import isMqttClientConnected
      # 0) Si l'imprimante est hors ligne (MQTT déconnecté), servir un fallback immédiatement.
-     try:
+    try:
         if not isMqttClientConnected():
             offline_path = Path(__file__).resolve().parent / "static" / "offline.png"
             if offline_path.exists():
