@@ -567,6 +567,32 @@
 {% block scripts %}
 {{ super() }}
 <script>
+function setSelectValue(tsOrEl, value){
+  if (!value) return;
+  const v = String(value).trim();
+
+  // Cas TomSelect
+  if (tsOrEl && tsOrEl.addOption) {
+    // ajoute l’option si absente
+    if (!tsOrEl.options || !tsOrEl.options[v]) {
+      tsOrEl.addOption({ value: v, text: v });
+    }
+    tsOrEl.refreshOptions(false);
+    // sélectionne la valeur (remplace la sélection précédente)
+    tsOrEl.setValue(v, true);
+    return;
+  }
+
+  // Fallback natif <select>
+  const el = tsOrEl && tsOrEl.input ? tsOrEl.input : tsOrEl; // au cas où
+  if (!el) return;
+  if (!Array.from(el.options).some(o => o.value === v)) {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    el.appendChild(opt);
+  }
+  el.value = v;
+}
 document.addEventListener('DOMContentLoaded', function () {
 (function(){
   let filamentModal, manufacturerTS, materialTS;
@@ -1009,13 +1035,17 @@ if (priceVal && isNaN(Number(priceVal.replace(',', '.')))) {
     document.getElementById('name').value = f.name || '';
 
     if (window.manufacturerTS) {
-      window.manufacturerTS.clear();
-      if (f.manufacturer) window.manufacturerTS.addItem(f.manufacturer, true);
-    }
-    if (window.materialTS) {
-      window.materialTS.clear();
-      if (f.material) window.materialTS.addItem(f.material, true);
-    }
+  window.manufacturerTS.clear(true); // efface la sélection uniquement
+  setSelectValue(window.manufacturerTS, f.manufacturer || '');
+} else {
+  setSelectValue(document.getElementById('manufacturer'), f.manufacturer || '');
+}
+if (window.materialTS) {
+  window.materialTS.clear(true); // efface la sélection courante
+  setSelectValue(window.materialTS, f.material || '');
+} else {
+  setSelectValue(document.getElementById('material'), f.material || '');
+}
     document.getElementById('comment').value = 'Importé depuis catalogue';
 
     const t = Array.isArray(f.color_hexes) && f.color_hexes.length ? (f.multi_color_direction || 'coaxial') : 'monochrome';
