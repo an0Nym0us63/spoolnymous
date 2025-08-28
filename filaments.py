@@ -62,6 +62,7 @@ def _launch_background_translation(filament_id: int, name: str):
     """Fire-and-forget."""
     t = threading.Thread(target=_translate_and_store_async, args=(filament_id, name), daemon=True)
     t.start()
+
     
 def trayUid(ams_id, tray_id):
     return f"{get_app_setting("PRINTER_ID","")}_{ams_id}_{tray_id}"
@@ -93,7 +94,24 @@ def _tx() -> Iterable[sqlite3.Cursor]:
         raise
     finally:
         conn.close()
+        
+def backfill_missing_translations() -> None:
+    """
+    Pour tous les filaments sans translated_name,
+    lance la traduction en arrière-plan.
+    """
+    with _tx() as cur:
+        cur.execute("SELECT id, name, translated_name FROM filaments")
+        rows = cur.fetchall()
 
+    for r in rows:
+        fid = r["id"]
+        name = r["name"]
+        tname = r["translated_name"]
+
+        if not tname or str(tname).strip() == "":
+            # 🔥 lancement en arrière-plan
+            _launch_background_translation(fid, name)
 
 # ----------------------------------------------------------------------------
 # Schéma (filaments & bobines)
@@ -217,8 +235,8 @@ def ensure_schema() -> None:
         _maybe_add("filaments", "multicolor_type", "TEXT DEFAULT 'monochrome'")
         _maybe_add("filaments", "swatch", "INTEGER NOT NULL DEFAULT 0")
         _maybe_add("filaments", "transparent", "INTEGER NOT NULL DEFAULT 0")
-        added_translated = _maybe_add("filaments", "translated_name", "TEXT")
-
+        _maybe_add("filaments", "translated_name", "TEXT")
+        backfill_missing_translations()
         _maybe_add("bobines", "external_spool_id", "TEXT")
         _maybe_add("bobines", "foundMode", "TEXT")
         # Index utiles sur bobines
