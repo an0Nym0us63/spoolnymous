@@ -77,26 +77,39 @@ def _ffmpeg_compress(in_path: Path, out_path: Path, to_webp: bool = True,
                      max_w: int = 1600, max_h: int = 1600, quality: int = 80) -> None:
     """
     Compresse l'image via ffmpeg sans dépendances Python.
-    - to_webp=True : encode libwebp (garde l'alpha), sinon JPEG.
-    - Redimensionne à max_w×max_h (aspect conservé).
+    - Applique l'orientation EXIF (-autorotate 1) au décodage.
+    - Redimensionne à max_w×max_h (ratio conservé) + SAR neutre (setsar=1).
+    - Force 1 frame (évite les WebP animés si source HEIC/Live Photo).
     - Supprime les métadonnées.
+    - to_webp=True : encode libwebp (alpha OK), sinon JPEG.
     """
-    scale = f"scale='min(iw,{max_w})':'min(ih,{max_h})':force_original_aspect_ratio=decrease"
+    vf = (
+        f"scale='min(iw,{max_w})':'min(ih,{max_h})':force_original_aspect_ratio=decrease,"
+        "setsar=1"
+    )
+
     common = [
-        "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+        "ffmpeg",
+        "-y", "-hide_banner", "-loglevel", "error",
         "-nostdin",
+
+        # ⬇️ CLÉ : appliquer l’orientation EXIF (doit être AVANT -i)
+        "-autorotate", "1",
+
         "-i", str(in_path),
-        "-vf", scale,
-        "-map_metadata", "-1",
-        "-an",
+        "-vf", vf,
+        "-frames:v", "1",         # une seule image de sortie
+        "-map_metadata", "-1",    # strip EXIF
+        "-an",                    # no audio
     ]
+
     if to_webp:
-        # WebP : bon ratio, alpha supporté. quality 0-100 ; compression_level 0-6
+        # WebP : qualité 0..100
         cmd = common + ["-c:v", "libwebp", "-q:v", str(quality), "-compression_level", "4", str(out_path)]
     else:
-        # JPEG : universel, pas d’alpha. quality via -q:v (2-5 ≈ 90-70%)
-        # On force l’espace couleur compatible.
+        # JPEG : -q:v ~ 2..5 = haute qualité. yuvj420p reste compatible large.
         cmd = common + ["-c:v", "mjpeg", "-q:v", "3", "-pix_fmt", "yuvj420p", str(out_path)]
+
     subprocess.run(cmd, check=True)
 
 COLOR_FAMILIES = {
