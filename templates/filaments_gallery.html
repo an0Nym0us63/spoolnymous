@@ -137,27 +137,11 @@
 .compare-card .line1{ display:flex; align-items:center; gap:.35rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .compare-card .line2{ color:#9ca3af; font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .compare-card .badge-s{ font-size:.66rem; padding:.08rem .3rem; background:rgba(255,255,255,.08); border-radius:.45rem; }
-.gallery-grid .form-check-input {
-  appearance: none;       /* enlève le style natif */
-  -webkit-appearance: none;
-  -moz-appearance: none;
+.chk-compare input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  border: 2px solid #ccc;
-  border-radius: 4px;
-  background: rgba(0,0,0,0.4);
   cursor: pointer;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-.gallery-grid .form-check-input:checked {
-  background-color: #0d6efd; /* bleu bootstrap */
-  border-color: #0d6efd;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='white' d='M13.485 1.929l.707.707-8.485 8.485-4.243-4.243.707-.707 3.536 3.536z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 70%;
+  accent-color: #0d6efd; /* la couleur bootstrap primary */
 }
 </style>
 
@@ -191,9 +175,9 @@
            alt="Swatch {{ f.name or '' }}"
            onerror="this.src='{{ asset_url('img/placeholder_swatch.png') }}'">
 
-      <div class="chk-compare form-check form-check-inline">
-        <input class="form-check-input js-compare" type="checkbox" onchange="onCompareToggle(this, {{ f.id }})">
-      </div>
+      <div class="chk-compare">
+  <input class="js-compare" type="checkbox" onchange="onCompareToggle(this, {{ f.id }})">
+</div>
 
       <div class="meta">
         <div class="line1">
