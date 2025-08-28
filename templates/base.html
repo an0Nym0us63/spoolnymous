@@ -115,11 +115,11 @@
       🧵 Filaments
     </a>
     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filamentsDropdown">
-      <li>
-        <a class="dropdown-item" href="{{ url_for('filaments_catalog') }}">📚 Catalogue</a>
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('filaments_catalog') }}">📚 Catalogue</a>
       </li>
-      <li>
-        <a class="dropdown-item" href="{{ url_for('filaments') }}">🌀 Bobines</a>
+      <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('filaments') }}">🌀 Bobines</a>
       </li>
 <li class="nav-item">
   <a href="{{ url_for('filaments_gallery') }}" class="nav-link">🖼️ Galerie</a>
@@ -133,11 +133,11 @@
       🧺 Inventaire
     </a>
     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="inventoryDropdown" style="min-width: 260px;">
-      <li data-requires-write>
-        <a class="dropdown-item" href="{{ url_for('objects_page') }}">📦 Objets</a>
+      <li class="nav-item" data-requires-write>
+        <a class="nav-link" href="{{ url_for('objects_page') }}">📦 Objets</a>
       </li>
-      <li data-requires-write>
-        <a class="dropdown-item" href="{{ url_for('accessories_list') }}">🧰 Accessoires</a>
+      <li class="nav-item" data-requires-write>
+        <a class="nav-link" href="{{ url_for('accessories_list') }}">🧰 Accessoires</a>
       </li>
     </ul>
   </li>
@@ -151,16 +151,16 @@
     </a>
     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="instDropdown" style="min-width: 260px;">
       {% for inst in installations %}
-        <li>
-          <a class="dropdown-item"
+        <li class="nav-item">
+          <a class="nav-link"
              href="{{ url_for('switch.switch_install', install_id=inst.id) }}">
             👤 {{ inst.label or ('Installation #' ~ inst.id) }}
           </a>
         </li>
       {% endfor %}
 	   <li><hr class="dropdown-divider"></li>
-    <li>
-      <a class="dropdown-item" href="{{ url_for('installations_overview') }}">
+    <li class="nav-item">
+      <a class="nav-link" href="{{ url_for('installations_overview') }}">
         📡 Vue Globale
       </a>
     </li>
