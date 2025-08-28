@@ -2280,9 +2280,9 @@ def get_filaments_for_gallery(args: Dict[str, Any]) -> Dict[str, Any]:
     page = max(1, page)
 
     try:
-        page_size = int(args.get("page_size", 60))
+        page_size = int(args.get("page_size", 250))
     except Exception:
-        page_size = 60
+        page_size = 250
     page_size = max(1, min(120, page_size))
 
     # --- WHERE / ORDER existants
