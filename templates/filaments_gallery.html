@@ -68,6 +68,45 @@
   width: 22px; height: 22px; border-radius: .25rem; object-fit: cover;
 }
 .compare-btn { margin-left: .5rem; }
+.compare-grid{
+  display:grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap:12px;
+}
+@media (max-width:1400px){ .compare-grid{ grid-template-columns: repeat(3,1fr);} }
+@media (max-width:992px){  .compare-grid{ grid-template-columns: repeat(2,1fr);} }
+@media (max-width:576px){  .compare-grid{ grid-template-columns: 1fr;} }
+
+.compare-card{
+  background:#0f172a;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:.75rem;
+  overflow:hidden;
+  box-shadow:0 4px 12px rgba(0,0,0,.25);
+}
+.compare-card .thumb{
+  width:100%;
+  aspect-ratio:1/1;
+  object-fit:cover;
+  display:block;
+  background:#111827;
+}
+.compare-card .meta{
+  padding:.5rem .6rem;
+  font-size:.85rem;
+}
+.compare-card .line1{
+  display:flex; align-items:center; gap:.35rem;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.compare-card .line2{
+  color:#9ca3af; font-size:.78rem;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.compare-card .badge-s{
+  font-size:.70rem; padding:.1rem .35rem;
+  background:rgba(255,255,255,.08); border-radius:.5rem;
+}
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -105,31 +144,14 @@
       </div>
 
       <div class="meta">
-  {# LIGNE 1 : Type (matériau) + Marque #}
-  <div class="line1">
-    <span class="badge-s">{{ f.material or '—' }}</span>
-    <strong class="text-truncate">{{ f.manufacturer or '—' }}</strong>
-  </div>
-
-  {# LIGNE 2 : Couleur(s) #}
-  <div class="line2 d-flex align-items-center gap-1">
-    {% if f.colors_array %}
-      {% set colors = f.colors_array.split(',') if f.colors_array is string else f.colors_array %}
-      <span class="d-inline-block" style="width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,.25);
-        background: linear-gradient(90deg,{% for c in colors %}#{{ c|trim|replace('#','') }}{% if not loop.last %}, {% endif %}{% endfor %});">
-      </span>
-      <span class="text-truncate">
-        {% for c in colors %}#{{ c|trim|replace('#','') }}{% if not loop.last %} / {% endif %}{% endfor %}
-      </span>
-    {% elif f.color %}
-      <span class="d-inline-block" style="width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,.25);
-        background:#{{ f.color|replace('#','') }}"></span>
-      <span class="text-truncate">#{{ f.color|replace('#','') }}</span>
-    {% else %}
-      —
-    {% endif %}
-  </div>
-</div>
+        <div class="line1">
+          <span class="badge-s">{{ f.material or '—' }}</span>
+          <strong class="text-truncate">{{ f.name or '—' }}</strong>
+        </div>
+        <div class="line2">
+          {{ f.manufacturer or '—' }}
+        </div>
+      </div>
     </div>
   {% endfor %}
 </div>
@@ -158,6 +180,19 @@
     </div>
   </div>
 </div>
+<div class="modal fade" id="filamentLightbox" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="background:rgba(15,23,42,.98); border:1px solid rgba(255,255,255,.1);">
+      <div class="modal-header py-2">
+        <h6 class="modal-title" id="flbTitle">Swatch</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body p-0">
+        <img id="flbImg" class="img-fluid w-100 d-block" src="" alt="Swatch" style="max-height:85vh; object-fit:contain;">
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -165,15 +200,28 @@
 <script>
 // ---------- Lightbox : réutilise openGalleryFromEntry de base.html ----------
 function openFilamentLightbox(tile){
-  const url = tile.getAttribute('data-swatch-url');
-  const name = tile.getAttribute('data-name') || '';
+  const url   = tile.getAttribute('data-swatch-url');
+  const name  = tile.getAttribute('data-name') || '';
+  const manu  = tile.getAttribute('data-manufacturer') || '';
+  const mat   = tile.getAttribute('data-material') || '';
+
   if (!url) return;
-  const images = [{ url, name }];
-  openGalleryFromEntry(images, name || 'Swatch');
+
+  // Titre: "Type – Nom – Marque"
+  const title = `${mat || '—'} \u2013 ${name || '—'} \u2013 ${manu || '—'}`;
+
+  const imgEl   = document.getElementById('flbImg');
+  const titleEl = document.getElementById('flbTitle');
+
+  if (imgEl)   imgEl.src = url;
+  if (titleEl) titleEl.textContent = title;
+
+  const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('filamentLightbox'));
+  modal.show();
 }
 
 // ---------- Sélection & comparaison ----------
-const MAX_COMPARE = 4;
+const MAX_COMPARE = 6;
 const compareSet  = new Map(); // id -> data
 
 function onCompareToggle(checkbox, id){
@@ -257,42 +305,48 @@ function openCompareModal(){
     Swal.fire("Comparaison", "Sélectionne au moins 2 filaments.", "info");
     return;
   }
-  // Construire un tableau comparatif
   const items = Array.from(compareSet.values());
 
-  const rows = [
-    { label: 'Aperçu',    key: '__swatch__', render: d => `<img src="${d.swatch_url}" class="img-fluid rounded border" style="max-height:120px" onerror="this.style.display='none'">` },
-    { label: 'Nom',       key: 'name' },
-    { label: 'Fabricant', key: 'manufacturer' },
-    { label: 'Matériau',  key: 'material' },
-    { label: 'Transparent', key: 'transparent', render: d => d.transparent ? 'Oui' : 'Non' },
-    { label: 'Prix',      key: 'price', render: d => (d.price ? (Number(d.price).toFixed(2) + ' €') : '—') },
-    { label: 'Poids filament (g)', key: 'weight' },
-    { label: 'Tare bobine (g)',    key: 'spoolw' },
-    { label: 'Profil ID', key: 'profile' },
-    { label: 'Bobines actives/total', key: '__spools__', render: d => `${d.active||0}/${d.total||0}` },
-    { label: 'Commentaire', key: 'comment' },
-  ];
-
-  let html = `<table class="table table-sm align-middle table-striped">
-    <thead><tr><th style="width: 220px;">Caractéristique</th>${items.map(d=>`<th>${escapeHtml(d.material||'—')} · <strong>${escapeHtml(d.name||'—')}</strong></th>`).join('')}</tr></thead>
-    <tbody>`;
-
-  for (const r of rows){
-    html += `<tr><th>${r.label}</th>`;
-    html += items.map(d=>{
-      const val = r.render ? r.render(d) : escapeHtml(d[r.key] ?? '—');
-      return `<td>${val || '—'}</td>`;
-    }).join('');
-    html += `</tr>`;
-  }
-  html += `</tbody></table>`;
-
   const wrap = document.getElementById('compareTableWrap');
-  if (wrap) wrap.innerHTML = html;
+  if (!wrap) return;
+
+  // Construit des tuiles côte à côte
+  let html = `<div class="compare-grid">`;
+  html += items.map(d => {
+    const title = `${(d.material||'—')} – ${(d.name||'—')} – ${(d.manufacturer||'—')}`;
+    return `
+      <div class="compare-card" role="button"
+           onclick="openCompareLightbox('${encodeURIComponent(d.swatch_url)}','${encodeURIComponent(title)}')">
+        <img class="thumb" src="${d.swatch_url}" alt="${title}"
+             onerror="this.style.display='none'">
+        <div class="meta">
+          <div class="line1">
+            <span class="badge-s">${d.material || '—'}</span>
+            <strong class="text-truncate">${d.name || '—'}</strong>
+          </div>
+          <div class="line2">${d.manufacturer || '—'}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  html += `</div>`;
+
+  wrap.innerHTML = html;
 
   const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('compareModal'));
   modal.show();
+}
+
+// Lightbox de comparaison (réutilise la modale simple déjà ajoutée)
+function openCompareLightbox(urlEnc, titleEnc){
+  const url   = decodeURIComponent(urlEnc || '');
+  const title = decodeURIComponent(titleEnc || 'Swatch');
+  const imgEl = document.getElementById('flbImg');
+  const ttlEl = document.getElementById('flbTitle');
+  if (imgEl) imgEl.src = url;
+  if (ttlEl) ttlEl.textContent = title;
+  const m = bootstrap.Modal.getOrCreateInstance(document.getElementById('filamentLightbox'));
+  m.show();
 }
 
 function escapeHtml(s){
