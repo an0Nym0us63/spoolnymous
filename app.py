@@ -3449,6 +3449,7 @@ def installations_overview():
         local_overview_url=url_for("local_overview") 
     )
     
+@app.get("/api/filaments/<int:fid>/photos")
 def api_filament_photos(fid):
     base_dir, main_path, gallery_dir = _filament_paths(fid)
 
