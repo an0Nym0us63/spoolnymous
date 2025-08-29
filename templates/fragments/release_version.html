@@ -1,0 +1,23 @@
+{# templates/fragments/release_version.html #}
+<div class="modal fade" id="releaseNotesModal" tabindex="-1" aria-labelledby="releaseNotesLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="releaseNotesLabel">
+          Notes de version <span class="text-muted fw-normal" id="rel-version"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2 small text-muted" id="rel-meta"></div>
+        <div id="rel-body">
+          <div class="text-muted">Chargement des notes…</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a class="btn btn-outline-secondary d-none" id="rel-link" target="_blank" rel="noopener">Voir en ligne</a>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>

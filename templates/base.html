@@ -49,6 +49,40 @@
   [data-requires-write] {
     display: none !important;
   }
+* --- Toast MAJ : taille fluide + césure --- */
+#updateToast {
+  max-width: 420px;
+  width: clamp(280px, 90vw, 420px);
+  border-radius: .75rem;
+}
+#updateToast .toast-body {
+  overflow-wrap: anywhere; /* évite le débordement sur noms de branches/versions longs */
+  word-break: break-word;
+}
+
+/* Conteneur positionné (remplace le style inline) */
+.update-toast-container {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1080;
+}
+
+/* --- Mobile : style “sheet” plein largeur en bas --- */
+@media (max-width: 576px) {
+  .update-toast-container {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: .5rem;
+  }
+  #updateToast {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    border-radius: .75rem .75rem 0 0;
+  }
+}
 {% endif %}
 </style>
 </head>
@@ -505,14 +539,19 @@ window.openGalleryFromEntry = function(images, title) {
   });
 })();
 </script>
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080">
+<div class="update-toast-container">
   <div id="updateToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
     <div class="d-flex">
       <div class="toast-body">
         🚀 Une nouvelle version est disponible sur la branche <strong id="update-branch"></strong>.<br>
         <small id="update-info"></small>
+        <div class="mt-2 d-flex gap-2">
+          <button type="button" class="btn btn-light btn-sm" id="btn-open-release">Notes de version</button>
+          <button type="button" class="btn btn-outline-light btn-sm" data-bs-dismiss="toast" aria-label="Fermer">Fermer</button>
+        </div>
+        <div class="mt-2 small text-white-50" id="release-snippet" style="display:none;"></div>
       </div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fermer"></button>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto d-none d-sm-block" data-bs-dismiss="toast" aria-label="Fermer"></button>
     </div>
   </div>
 </div>
@@ -546,6 +585,43 @@ window.openGalleryFromEntry = function(images, title) {
     console.warn("Update toast: échec de vérification", e);
   }
 })();
+function showReleaseModalFromGitHub(opts){
+  const modalEl = document.getElementById('releaseNotesModal');
+  const bodyEl  = document.getElementById('rel-body');
+  if (!modalEl || !bodyEl) return;
+
+  // Affiche la modale immédiatement (UX fluide)
+  if (window.bootstrap && bootstrap.Modal) {
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  } else {
+    modalEl.style.display = 'block';
+  }
+
+  // Placeholder de chargement
+  bodyEl.innerHTML = `<div class="text-muted">Chargement…</div>`;
+
+  // Paramètres optionnels (chemin/branche)
+  const params = new URLSearchParams();
+  if (opts?.branch) params.set('branch', opts.branch);
+  if (opts?.path)   params.set('path',   opts.path);
+
+  fetch(`/release_fragment${params.toString() ? '?' + params.toString() : ''}`)
+    .then(r => r.ok ? r.text() : Promise.reject(r))
+    .then(html => { bodyEl.innerHTML = html; })
+    .catch(() => {
+      bodyEl.innerHTML = `<div class="text-danger">Impossible de charger les notes de version.</div>`;
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('btn-open-release');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      // tu peux passer un path spécifique ex: { path: "releases/1.8.0.html" }
+      showReleaseModalFromGitHub();
+    }, { passive: true });
+  }
+});
 </script>
 </body>
 </html>

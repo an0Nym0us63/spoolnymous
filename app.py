@@ -27,7 +27,7 @@ import tempfile
 from flask_login import LoginManager, login_required,current_user
 from flask_cors import CORS
 from auth import auth_bp, User, get_stored_user,_is_guest_token_valid
-from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app
+from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app,render_template_string
 
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -450,10 +450,109 @@ APP_BUILD_DATE = os.getenv("BUILD_DATE")  or _read_file("/etc/image_build_date")
 # Repo en dur
 _GH_OWNER = "an0Nym0us63"
 _GH_REPO  = "spoolnymous"
+GITHUB_RELEASE_PATH   = "templates/release_note.html"
 # Cache + backoff
 _BRANCH_SHA_CACHE = {}   # {branch: {"ts": <epoch>, "sha": "abcdefg", "fail_ts": <epoch or 0>}}
 _GH_TTL_OK   = 60      # 1h si ça marche
 _GH_TTL_FAIL = 300       # 5min de backoff si ça échoue
+
+# Cache + backoff (indépendant de _BRANCH_SHA_CACHE)
+_REL_CACHE = {}  # {(branch, path): {"ts": <epoch>, "fail_ts": <epoch or 0>, "body": "<raw html>"}}
+_REL_TTL_OK   = 120        # TTL cache OK (sec) – ajuste à ton goût
+_REL_TTL_FAIL = 300        # Backoff sur échecs (sec)
+
+def _is_safe_repo_path(p: str) -> bool:
+    """Évite chemins absolus et traversée de répertoires."""
+    if not p or p.startswith("/") or ".." in p:
+        return False
+    return True
+
+def _rel_cache_get(branch: str, path: str):
+    ent = _REL_CACHE.get((branch, path))
+    if not ent:
+        return None
+    now = time.time()
+    # Si on est en période de backoff après un échec, on ne retente pas
+    if ent.get("fail_ts", 0) and (now - ent["fail_ts"] < _REL_TTL_FAIL):
+        return ent.get("body")  # peut être None
+    # Si cache OK encore frais
+    if ent.get("body") is not None and (now - ent.get("ts", 0) < _REL_TTL_OK):
+        return ent["body"]
+    return None
+
+def _rel_cache_set_ok(branch: str, path: str, body: str):
+    _REL_CACHE[(branch, path)] = {"ts": time.time(), "fail_ts": 0, "body": body}
+
+def _rel_cache_set_fail(branch: str, path: str):
+    ent = _REL_CACHE.get((branch, path), {"ts": 0, "body": None})
+    _REL_CACHE[(branch, path)] = {"ts": ent.get("ts", 0), "body": ent.get("body"), "fail_ts": time.time()}
+
+def _fetch_release_fragment(branch: str, path: str) -> str | None:
+    """
+    Récupère le fichier brut sur raw.githubusercontent.com avec cache/backoff.
+    Retourne le texte (str) ou None si indisponible.
+    """
+    # 1) Cache/backoff
+    cached = _rel_cache_get(branch, path)
+    if cached is not None:
+        return cached  # peut être None si on est en backoff et qu'on n'avait jamais rien eu
+
+    # 2) Requête réseau (timeouts agressifs)
+    raw_url = f"https://raw.githubusercontent.com/{_GH_OWNER}/{_GH_REPO}/{branch}/{path}"
+    try:
+        r = requests.get(raw_url, timeout=(1, 2))
+        if r.status_code == 200:
+            text = r.text or ""
+            _rel_cache_set_ok(branch, path, text)
+            return text
+        # 404/403/… => échec
+        _rel_cache_set_fail(branch, path)
+        return None
+    except requests.RequestException:
+        _rel_cache_set_fail(branch, path)
+        return None
+
+@app.route("/release_fragment")
+def release_fragment():
+    """
+    Renvoie un fragment HTML prêt à injecter dans la modale.
+    - GET /release_fragment?branch=<...>&path=<...>
+    Defaults:
+      branch = APP_BUILD_BRANCH
+      path   = GITHUB_RELEASE_PATH
+    Sécurise le chemin, applique cache/backoff, rend via Jinja.
+    """
+    branch = (request.args.get("branch") or APP_BUILD_BRANCH or "main").strip()
+    path   = (request.args.get("path")   or GITHUB_RELEASE_PATH).strip()
+
+    if not _is_safe_repo_path(path):
+        abort(400, description="Chemin invalide")
+
+    # Option utilitaire: nocache=1 pour forcer un refresh (dev/admin)
+    nocache = request.args.get("nocache") == "1"
+    if nocache:
+        # Invalide ce couple pour forcer une requête réseau
+        _REL_CACHE.pop((branch, path), None)
+
+    raw = _fetch_release_fragment(branch, path)
+    if raw is None:
+        abort(502, description="Impossible de récupérer le fragment sur GitHub")
+
+    # Contexte Jinja minimal (ajoute ce que tu veux)
+    ctx = {
+        "branch": branch,
+        "app_version_current": (APP_COMMIT_SHA or "")[:7],
+        "app_version_latest":  "",  # si tu veux y passer _latest_branch_sha(branch)
+        "built_at": (APP_BUILD_DATE or "unknown"),
+    }
+
+    try:
+        html = render_template_string(raw, **ctx)
+    except Exception:
+        # Si le fragment contient du Jinja invalide, on remonte une 500 claire
+        abort(500, description="Erreur de rendu du fragment Jinja")
+
+    return Response(html, mimetype="text/html")
 
 @app.route("/api/version")
 def api_version():
