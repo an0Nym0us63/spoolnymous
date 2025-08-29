@@ -537,7 +537,6 @@ def safe_update_status(data):
         "remaining_time": data.get("mc_remaining_time"),
         "tray_now": data.get("ams", {}).get("tray_now"),
     }
-    logger.debug(json.dumps(data))
     # ---------- BED TEMP (nouveaux firmwares: device.bed.info.temp 32 bits) ----------
     bed_temp_raw = data.get("device", {}).get("bed", {}).get("info", {}).get("temp")
     if bed_temp_raw is not None:
@@ -905,6 +904,8 @@ def on_message(client, userdata, msg):
     # Save external spool tray data
     if "print" in data and "vt_tray" in data["print"]:
       LAST_AMS_CONFIG["vt_tray"] = data["print"]["vt_tray"]
+    if "print" in data and "vir_slot" in data["print"]:
+      LAST_AMS_CONFIG["vt_tray"] = data["print"]["vir_slot"]
 
     # Save ams spool data
     if "print" in data and "ams" in data["print"] and "ams" in data["print"]["ams"]:
