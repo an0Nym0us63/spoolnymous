@@ -318,21 +318,27 @@ async function fetchTileGallery(tile){
     if (!r.ok) throw 0;
     const d = await r.json();
 
-    // On construit la liste: principale d’abord puis galerie
     const items = [];
     if (d.main_url) items.push({ url: d.main_url, is_main: true, filename: 'main.webp' });
     (d.gallery || []).forEach(g => items.push({ url: g.url, is_main: false, filename: g.filename }));
 
-    // évite les doublons (au cas où)
     const seen = new Set();
     const uniq = items.filter(it => (seen.has(it.url) ? false : (seen.add(it.url), true)));
 
-    // fallback: si rien, on met au moins le swatch
-    if (!uniq.length && sw) uniq.push({ url: sw, is_main: true, filename: 'main.webp' });
+    // ⬇️ utilise TA fonction existante pour afficher le badge
+    if (typeof window.showMultiIndicator === 'function') {
+      window.showMultiIndicator(tile, uniq.length);
+    }
 
     return { items: uniq, title };
   } catch {
     const items = sw ? [{ url: sw, is_main: true, filename: 'main.webp' }] : [];
+
+    // ⬇️ même chose en fallback
+    if (typeof window.showMultiIndicator === 'function') {
+      window.showMultiIndicator(tile, items.length);
+    }
+
     return { items, title };
   }
 }
