@@ -9,6 +9,7 @@ import json
 import urllib.parse
 import urllib.request
 from math import sqrt, atan2, cos, sin, exp, pi
+import os
 
 
 # On réutilise la config DB telle qu'elle existe déjà dans le projet
