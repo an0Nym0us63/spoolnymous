@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, date, timezone
 import time
 import os
 import re
+import shutil 
 from collections import defaultdict,deque
 from urllib.parse import urlencode, urlparse, urlunparse
 import requests
@@ -3470,7 +3471,6 @@ def api_filament_photos(fid):
     return jsonify({"main": {"url": main_url} if main_url else None,
                     "gallery": gallery})
 
-
 @app.post("/filaments/<int:fid>/photos/set_main")
 def filament_set_main(fid):
     filename = (request.form.get("filename") or "").strip()
@@ -3486,32 +3486,25 @@ def filament_set_main(fid):
     # 1) déplacer l’ancienne principale (si existe) dans la galerie
     if os.path.exists(main_path):
         ts = int(time.time())
-        safe_name = f"main_{ts}.webp"
-        dst_old = os.path.join(gallery_dir, safe_name)
+        dst_old = os.path.join(gallery_dir, f"main_{ts}.webp")
         try:
             shutil.move(main_path, dst_old)
         except Exception:
-            # en cas d’échec, on ne bloque pas la promotion
-            pass
+            pass  # on ne bloque pas
 
-    # 2) promouvoir la nouvelle en principale
-    ext = os.path.splitext(src_path)[1].lower()
+    # 2) promouvoir la nouvelle en principale (via ffmpeg → webp)
     try:
-        if Image is not None:
-            # conversion propre en .webp
-            with Image.open(src_path) as im:
-                im.save(main_path, format="WEBP", quality=85, method=6)
-        else:
-            # fallback minimaliste: copie binaire (le mime-type sera webp, idéalement installer Pillow)
-            shutil.copy2(src_path, main_path)
+        _ffmpeg_compress(Path(src_path), Path(main_path), to_webp=True, max_w=1600, max_h=1600, quality=85)
     except Exception as e:
-        return jsonify({"ok": False, "error": f"convert/save failed: {e}"}), 500
+        return jsonify({"ok": False, "error": f"ffmpeg failed: {e}"}), 500
 
-    # 3) on laisse l’original dans la galerie (ça devient une vignette classique)
+    # 3) supprimer l’original de la galerie (pas de doublon)
+    try:
+        os.remove(src_path)
+    except Exception:
+        pass
+
     main_url = url_for("static", filename=f"uploads/filaments/{fid}.webp", _external=False)
     return jsonify({"ok": True, "main_url": f"{main_url}?_={int(time.time())}"})
-        
-       
-
 
 app.register_blueprint(auth_bp)
