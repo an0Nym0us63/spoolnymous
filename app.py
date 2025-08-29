@@ -60,17 +60,13 @@ PHOTO_RE = re.compile(r"^Photo-(\d{2,})$", re.IGNORECASE)
 
 FILAMENT_ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}
 
-def _filament_paths(fid: int) -> tuple[Path, Path, Path]:
-    """
-    Retourne (base_dir, main_path, gallery_dir) pour un filament.
-    base_dir    = static/uploads/filaments
-    main_path   = static/uploads/filaments/<fid>.webp
-    gallery_dir = static/uploads/filaments/<fid>/
-    """
-    base = Path(app.static_folder) / "uploads" / "filaments"
-    main = base / f"{fid}.webp"
-    gallery = base / str(fid)
-    return base, main, gallery
+def _filament_paths(fid):
+    """Retourne (base_dir, main_path, gallery_dir) pour un filament."""
+    base_dir = os.path.join(app.static_folder, "uploads", "filaments")
+    gallery_dir = os.path.join(base_dir, str(fid))
+    main_path = os.path.join(base_dir, f"{fid}.webp")  # image principale canonique
+    os.makedirs(gallery_dir, exist_ok=True)
+    return base_dir, main_path, gallery_dir
 
 def _uniq_gallery_name(gallery_dir: Path, ext: str = ".webp") -> Path:
     """Nom unique style 20250710-153012-abc123.webp"""
@@ -3451,67 +3447,69 @@ def installations_overview():
         page_title="Installations",
         local_overview_url=url_for("local_overview") 
     )
+    
+@app.get("/api/filaments/<int:fid>/photos")
+def api_filament_photos(fid):
+    _, main_path, gallery_dir = _filament_paths(fid)
 
-@app.get("/api/filaments/<int:filament_id>/photos")
-def api_filament_photos(filament_id: int):
-    base_dir, main_path, gallery_dir = _filament_paths(filament_id)
-    result = {"main": None, "gallery": []}
+    # liste des vignettes (toutes images dans le sous-dossier)
+    exts = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+    gallery = []
+    if os.path.isdir(gallery_dir):
+        for name in sorted(os.listdir(gallery_dir)):
+            if os.path.splitext(name)[1].lower() in exts:
+                gallery.append({
+                    "filename": name,
+                    "url": url_for("static", filename=f"uploads/filaments/{fid}/{name}", _external=False)
+                })
 
-    if main_path.exists():
-        rel = main_path.relative_to(app.static_folder).as_posix()
-        result["main"] = {
-            "url": url_for("static", filename=rel.replace("static/", "")) if rel.startswith("static/") else f"/static/{rel}",
-            "filename": main_path.name,
-        }
+    main_url = None
+    if os.path.exists(main_path):
+        main_url = url_for("static", filename=f"uploads/filaments/{fid}.webp", _external=False)
 
-    if gallery_dir.exists():
-        items = []
-        for p in gallery_dir.iterdir():
-            if not p.is_file():
-                continue
-            if p.suffix.lower() not in FILAMENT_ALLOWED_IMAGE_EXTS and p.suffix.lower() != ".webp":
-                continue
-            items.append((p.stat().st_mtime, p))
-        # récents d'abord
-        items.sort(key=lambda x: x[0], reverse=True)
-        for _, p in items:
-            rel = p.relative_to(app.static_folder).as_posix()
-            result["gallery"].append({
-                "url": url_for("static", filename=rel.replace("static/", "")) if rel.startswith("static/") else f"/static/{rel}",
-                "filename": p.name,
-            })
-
-    return jsonify(result)
+    return jsonify({"main": {"url": main_url} if main_url else None,
+                    "gallery": gallery})
 
 
-@app.post("/filaments/<int:filament_id>/photos/set_main")
-def set_main_filament_photo(filament_id: int):
-    """
-    Promote une photo de la galerie en principale.
-    """
-    _, main_path, gallery_dir = _filament_paths(filament_id)
+@app.post("/filaments/<int:fid>/photos/set_main")
+def filament_set_main(fid):
     filename = (request.form.get("filename") or "").strip()
-    if not filename or "/" in filename or "\\" in filename:
-        return jsonify({"ok": False, "error": "bad_filename"}), 400
+    if not filename:
+        return jsonify({"ok": False, "error": "missing filename"}), 400
 
-    src = gallery_dir / filename
-    if not src.exists() or not src.is_file():
-        return jsonify({"ok": False, "error": "not_found"}), 404
+    _, main_path, gallery_dir = _filament_paths(fid)
 
-    try:
-        # on recompresse vers la principale pour homogénéiser (taille/qualité)
-        tmp = src  # on peut directement re-encoder depuis src
-        to_webp = True
-        out_ext = ".webp" if to_webp else src.suffix.lower()
-        _ffmpeg_compress(tmp, main_path.with_suffix(out_ext), to_webp=to_webp, max_w=800, max_h=800, quality=80)
+    src_path = os.path.join(gallery_dir, filename)
+    if not os.path.isfile(src_path):
+        return jsonify({"ok": False, "error": "file not found"}), 404
+
+    # 1) déplacer l’ancienne principale (si existe) dans la galerie
+    if os.path.exists(main_path):
+        ts = int(time.time())
+        safe_name = f"main_{ts}.webp"
+        dst_old = os.path.join(gallery_dir, safe_name)
         try:
-            update_filament(filament_id, swatch=1)
+            shutil.move(main_path, dst_old)
         except Exception:
+            # en cas d’échec, on ne bloque pas la promotion
             pass
-        return jsonify({"ok": True})
-    except subprocess.CalledProcessError as e:
-        app.logger.warning("set_main_filament_photo: ffmpeg error: %s", e)
-        return jsonify({"ok": False, "error": "convert_failed"}), 500
+
+    # 2) promouvoir la nouvelle en principale
+    ext = os.path.splitext(src_path)[1].lower()
+    try:
+        if Image is not None:
+            # conversion propre en .webp
+            with Image.open(src_path) as im:
+                im.save(main_path, format="WEBP", quality=85, method=6)
+        else:
+            # fallback minimaliste: copie binaire (le mime-type sera webp, idéalement installer Pillow)
+            shutil.copy2(src_path, main_path)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"convert/save failed: {e}"}), 500
+
+    # 3) on laisse l’original dans la galerie (ça devient une vignette classique)
+    main_url = url_for("static", filename=f"uploads/filaments/{fid}.webp", _external=False)
+    return jsonify({"ok": True, "main_url": f"{main_url}?_={int(time.time())}"})
         
        
 
