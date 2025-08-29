@@ -453,8 +453,8 @@ _GH_REPO  = "spoolnymous"
 GITHUB_RELEASE_PATH   = "templates/release_note.html"
 # Cache + backoff
 _BRANCH_SHA_CACHE = {}   # {branch: {"ts": <epoch>, "sha": "abcdefg", "fail_ts": <epoch or 0>}}
-_GH_TTL_OK   = 120      # 1h si ça marche
-_GH_TTL_FAIL = 300       # 5min de backoff si ça échoue
+_GH_TTL_OK   = 60      # 1h si ça marche
+_GH_TTL_FAIL = 120       # 5min de backoff si ça échoue
 
 # Cache + backoff (indépendant de _BRANCH_SHA_CACHE)
 _REL_CACHE = {}  # {(branch, path): {"ts": <epoch>, "fail_ts": <epoch or 0>, "body": "<raw html>"}}
