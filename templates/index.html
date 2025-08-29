@@ -1,5 +1,21 @@
 {% extends 'base.html' %}
-
+{% macro color_chip_bg(colors) -%}
+{# colors peut être une string (mono) ou une liste (multi) #}
+{% if colors is iterable and colors is not string %}
+  {% set n = colors|length %}
+  {% if n <= 1 %}
+    background-color: #{{ colors[0] }};
+  {% else %}
+    background: linear-gradient(90deg,
+    {%- for c in colors -%}
+      #{{ c }} {{ (100/n) * (loop.index0) }}% {{ (100/n) * (loop.index) }}%{{ "," if not loop.last }}
+    {%- endfor -%}
+    );
+  {% endif %}
+{% else %}
+  background-color: #{{ colors }};
+{% endif %}
+{%- endmacro %}
 {% block content %}
 {% if printer_status %}
 <style>
@@ -77,33 +93,24 @@
   box-shadow: 0 1px 2px rgba(0,0,0,.35);
   line-height: 1;
 }
-/* Conteneur commun pour l’icône couleur */
-.spool-icon{
-  display:flex;             /* enfants côte à côte */
-  overflow:hidden;
+/* Puce couleur uniforme (mono ou multi via background/gradient) */
+.color-chip{
+  display:inline-block;
+  width: 1.9rem;          /* contenu: un poil plus large */
+  height: 1.1rem;         /* ≈ h-5 */
   border-radius: .25rem;
   border: 1px solid rgba(255,255,255,.25);
-  width: 1.5rem;            /* ≈ w-6 */
-  height: 1.1rem;           /* ≈ h-5 */
-  box-shadow: 0 0 0 1px rgba(0,0,0,.2) inset;
+  overflow:hidden;
 }
 
-/* Variante plus petite déjà utilisée dans le header */
-.spool-icon.small{
-  width: 1.5rem;            /* garde la même largeur que le mono */
+/* Variante compacte pour les headers */
+.color-chip.small{
+  width: 1.5rem;          /* header: gabarit plus compact */
   height: 1.1rem;
 }
 
-/* Chaque bande couleur occupe une fraction égale et toute la hauteur */
-.spool-icon > div{
-  flex: 1 0 0;
-  height: 100%;
-}
-
-/* Optionnel : fine séparation verticale entre bandes */
-.spool-icon > div + div{
-  box-shadow: -1px 0 0 rgba(0,0,0,.25) inset;
-}
+/* Optionnel : enlever toute bordure dans le panneau détaillé */
+.color-chip.noborder{ border: none; }
 </style>
 <div x-data="{ open: false }"
      class="mb-4 rounded-xl overflow-hidden shadow-md"
