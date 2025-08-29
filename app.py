@@ -431,16 +431,30 @@ CORS(
     supports_credentials=False,
     max_age=600,
 )
-import os
-import time
-import requests
-from flask import jsonify
+
+DISABLE_UPDATE_CHECK = os.getenv("DISABLE_UPDATE_CHECK", "0") == "1"
 
 APP_BUILD_BRANCH = os.getenv("BUILD_BRANCH", "release")
-APP_COMMIT_SHA   = os.getenv("COMMIT_SHA") or _read_file("/etc/image_commit_sha") or "unknown"
-APP_BUILD_DATE   = os.getenv("BUILD_DATE") or _read_file("/etc/image_build_date") or "unknown"
+
+# Lecture des fichiers posés par l'entrypoint (optionnel)
+def _read_file(path: str) -> str | None:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return (f.read() or "").strip() or None
+    except Exception:
+        return None
+
+APP_COMMIT_SHA = os.getenv("COMMIT_SHA") or _read_file("/etc/image_commit_sha") or "unknown"
+APP_BUILD_DATE = os.getenv("BUILD_DATE")  or _read_file("/etc/image_build_date") or "unknown"
+
+# Repo en dur
 _GH_OWNER = "an0Nym0us63"
 _GH_REPO  = "spoolnymous"
+
+# Cache + backoff
+_BRANCH_SHA_CACHE = {}   # {branch: {"ts": <epoch>, "sha": "abcdefg", "fail_ts": <epoch or 0>}}
+_GH_TTL_OK   = 3600      # 1h si ça marche
+_GH_TTL_FAIL = 300       # 5min de backoff si ça échoue
 
 @app.route("/api/version")
 def api_version():
@@ -450,30 +464,41 @@ def api_version():
         "built_at": (APP_BUILD_DATE or "unknown"),
     })
 
-# Cache (par branche) pour limiter les appels API
-_BRANCH_SHA_CACHE = {}  # { branch: {"ts": epoch_seconds, "sha": "abcdefg"} }
-_GH_TTL = 60 * 60  # 1h
-
 def _latest_branch_sha(branch: str) -> str | None:
+    if DISABLE_UPDATE_CHECK:
+        return None
+
     now = time.time()
-    entry = _BRANCH_SHA_CACHE.get(branch)
-    if entry and (now - entry["ts"] < _GH_TTL):
-        return entry["sha"]
+    ent = _BRANCH_SHA_CACHE.get(branch, {"ts": 0, "sha": None, "fail_ts": 0})
+
+    # Backoff si dernier appel a échoué récemment
+    if ent.get("fail_ts", 0) and (now - ent["fail_ts"] < _GH_TTL_FAIL):
+        return ent.get("sha")  # renvoie la dernière valeur connue (évent. None), sans réseau
+
+    # Si cache OK et encore frais
+    if ent.get("sha") and (now - ent.get("ts", 0) < _GH_TTL_OK):
+        return ent["sha"]
+
     try:
         url = f"https://api.github.com/repos/{_GH_OWNER}/{_GH_REPO}/commits/{branch}"
-        r = requests.get(url, timeout=5)
+        # Timeout agressif : connect=1s, read=1s -> n’immobilise pas le worker
+        r = requests.get(url, timeout=(1, 1), headers={"Accept": "application/vnd.github+json"})
         r.raise_for_status()
         sha = (r.json().get("sha") or "")[:7]
-        _BRANCH_SHA_CACHE[branch] = {"ts": now, "sha": sha}
+        _BRANCH_SHA_CACHE[branch] = {"ts": now, "sha": sha, "fail_ts": 0}
         return sha
     except Exception:
-        return None
+        # Échec : on note l’échec, pas de levée d’exception
+        _BRANCH_SHA_CACHE[branch] = {"ts": ent.get("ts", 0), "sha": ent.get("sha"), "fail_ts": now}
+        return ent.get("sha")  # peut être None
 
 @app.route("/api/update_status")
 def api_update_status():
     latest = _latest_branch_sha(APP_BUILD_BRANCH)
     current = (APP_COMMIT_SHA or "")[:7]
     update_available = bool(latest and current and latest != current)
+    if DISABLE_UPDATE_CHECK:
+        update_available = False
     return jsonify({
         "current": current or "unknown",
         "latest": latest or "unknown",
