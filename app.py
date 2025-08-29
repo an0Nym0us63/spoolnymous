@@ -1567,7 +1567,7 @@ def filaments():
                 filament.get("name", "").lower(),
                 filament.get("material", "").lower(),
                 vendor.get("name", "").lower(),
-                f.get("location", "").lower(),
+                (f.get("location", "") or "").lower(),
             ]
             return all(any(term in field for field in fields) for term in search_terms)
         all_filaments = [f for f in all_filaments if matches(f)]
