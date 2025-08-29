@@ -63,6 +63,20 @@
 .nozzle-row.is-active .tgt {
   opacity: 1;
 }
+.day-delta {
+  display: inline-block;
+  vertical-align: super;   /* le met en "exposant" */
+  margin-left: .25rem;
+  border-radius: .5rem;
+  padding: .05rem .25rem;
+  line-height: 1;
+  font-size: .65em;
+  font-weight: 600;
+  color: #0b1220;
+  background: linear-gradient(135deg, #67e8f9, #22d3ee); /* cyan clair -> cyan */
+  border: 1px solid rgba(255,255,255,.25);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.15) inset;
+}
 </style>
 <div x-data="{ open: false }"
      class="mb-4 rounded-xl overflow-hidden shadow-md"
@@ -131,9 +145,14 @@
       </div>
       <div class="text-right text-xs">
         <div id="status-remaining">
-          ⏱️ {{ printer_status.remaining_time_str }}<br>
-          🗓️ {{ printer_status.estimated_end or '' }}
-        </div>
+  ⏱️ {{ printer_status.remaining_time_str }}<br>
+  🗓️ {{ printer_status.estimated_end or '' }}
+  {% if printer_status.finish_delta and printer_status.finish_delta > 0 %}
+    <span class="day-delta" title="+{{ printer_status.finish_delta }} jour(s)">
+      +{{ printer_status.finish_delta }}
+    </span>
+  {% endif %}
+</div>
       </div>
     </div>
   </div>
@@ -478,12 +497,22 @@ statusTextEl.innerText = status;
           bar.classList.add('from-green-500', 'to-blue-500');
         }
 
-        if (data.remaining_time_str || data.estimated_end) {
-          document.getElementById('status-remaining').innerHTML =
-            `⏱️ ${data.remaining_time_str}<br>🗓️ ${data.estimated_end}`;
-        } else {
-          document.getElementById('status-remaining').innerHTML = '';
-        }
+        const renderEstimatedEnd = (endStr, delta) => {
+  if (!endStr && !(Number(delta) > 0)) return '';
+  const badge = (Number(delta) > 0)
+    ? ` <span class="day-delta" title="+${delta} jour(s)">+${delta}</span>`
+    : '';
+  // endStr peut être vide si le backend ne l’a pas
+  return `🗓️ ${endStr || ''}${badge}`;
+};
+
+if (data.remaining_time_str || data.estimated_end || (Number(data.finish_delta) > 0)) {
+  document.getElementById('status-remaining').innerHTML =
+    `⏱️ ${data.remaining_time_str || ''}<br>` +
+    renderEstimatedEnd(data.estimated_end || '', data.finish_delta || 0);
+} else {
+  document.getElementById('status-remaining').innerHTML = '';
+}
 
         document.getElementById('status-layers').innerHTML = fmtSup(data.print_layer,data.total_layers,'');
 

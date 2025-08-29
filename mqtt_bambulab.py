@@ -739,9 +739,16 @@ def safe_update_status(data):
         if remaining > 0:
             estimated_end = datetime.now() + timedelta(minutes=remaining)
             fields["estimated_end"] = estimated_end.strftime("%H:%M")
+    
+            # Calcul du décalage en jours
+            finish_delta = (estimated_end.date() - datetime.now().date()).days
+            fields["finish_delta"] = max(finish_delta, 0)  # sécurité, évite négatif
+    
         hours = int(remaining // 60)
         minutes = int(remaining % 60)
-        fields["remaining_time_str"] = f"{hours}h {minutes:02d}min" if hours > 0 else f"{minutes}min"
+        fields["remaining_time_str"] = (
+            f"{hours}h {minutes:02d}min" if hours > 0 else f"{minutes}min"
+        )
     ####----snapshot-----
     try:
         job_id = data.get("job_id")
