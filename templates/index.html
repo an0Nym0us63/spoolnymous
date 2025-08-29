@@ -93,30 +93,35 @@
   box-shadow: 0 1px 2px rgba(0,0,0,.35);
   line-height: 1;
 }
-/* Puce couleur uniforme (mono ou multi via background/gradient) */
+/* Chips couleur (header + contenu) */
 .color-chip{
-  display:inline-flex; align-items:center; justify-content:center;
-  border-radius:.35rem; border:1px solid rgba(255,255,255,.25);
-  overflow:hidden; font-weight:700; letter-spacing:.02em;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:.35rem;
+  border:1px solid rgba(255,255,255,.25);
+  overflow:hidden;
+  font-weight:700; letter-spacing:.02em;
+  background-clip: padding-box;            /* <- stoppe la coloration de la bordure */
 }
 
 /* Header : un peu plus large */
 .color-chip.small{
-  width: 2.25rem;    /* avant 1.5rem */
+  width: 2.75rem;                           /* avant 2.25 */
   height: 1.15rem;
 }
 
 /* Contenu : bien plus large */
 .color-chip.big{
-  width: 5.75rem;    /* large */
-  height: 1.6rem;    /* plus haut */
-  font-size:.75rem;  /* pour afficher #HEX en mono */
+  width: 6.25rem;                           /* plus large */
+  height: 1.7rem;
+  font-size:.75rem;
 }
-/* Quand le JS injecte des <div> (multi) -> segments égaux */
-.color-chip > div{
-  flex: 1 1 0;
-  height: 100%;
-  box-sizing: border-box;
+
+/* Si jamais on réutilise des <div> internes */
+.color-chip > div{ flex:1 1 0; height:100%; }
+
+/* Vitrine AMS mini barres (visuel en-tête AMS) */
+#ams-card- .px-3 .w-2.h-5 {                 /* ou ta classe exacte */
+  background-clip: padding-box;             /* même raison */
 }
 
 /* Palette “contenu” (si tu utilises .spool-icon dans le détail) */
@@ -664,8 +669,9 @@ if (nameEl) {
   el.style.background = "";
   el.style.backgroundColor = "";
 
-  if (Array.isArray(colors) && colors.length > 1) {
-    const stops = colors.map(c => `#${c}`).join(", ");
+   if (Array.isArray(colors) && colors.length > 1) {
+    const n = colors.length;
+    const stops = colors.map((c, i) => `#${c} ${(i/(n-1))*100}%`).join(", ");
     el.style.background = `linear-gradient(90deg, ${stops})`;
   } else if (Array.isArray(colors) && colors.length === 1) {
     el.style.backgroundColor = `#${colors[0]}`;
@@ -674,31 +680,23 @@ if (nameEl) {
   }
 };
 
-// --- HEADER chip (petite)
-setGradientOrMono(
-  document.getElementById(`tray-color-${key}`),
-  tray.tray_color
-);
+// HEADER (petite pastille)
+setGradientOrMono(document.getElementById(`tray-color-${key}`), tray.tray_color);
 
-// --- CONTENU chip (grande) + codes
+// CONTENU (grande pastille + textes)
 const bigChip = document.getElementById(`tray-color-big-${key}`);
 const codesEl = document.getElementById(`tray-color-codes-${key}`);
 setGradientOrMono(bigChip, tray.tray_color);
 
-// Codes : mono => dans la pastille ; multi => en dessous entre crochets
 if (bigChip && codesEl) {
   if (Array.isArray(tray.tray_color) && tray.tray_color.length > 1) {
-    bigChip.textContent = ""; // pas de texte dans la pastille pour multi
+    bigChip.textContent = ""; // gradient plein
     const list = tray.tray_color.map(c => `#${String(c).toUpperCase()}`);
     codesEl.textContent = `[ ${list.join(", ")} ]`;
   } else {
-    // mono
-    const hex = Array.isArray(tray.tray_color)
-      ? (tray.tray_color[0] || "")
-      : (tray.tray_color || "");
-    const hexText = hex ? `#${String(hex).toUpperCase()}` : "";
-    bigChip.textContent = hexText;       // affiché dans la pastille
-    codesEl.textContent = "";            // rien en dessous
+    const hex = Array.isArray(tray.tray_color) ? (tray.tray_color[0] || "") : (tray.tray_color || "");
+    bigChip.textContent = hex ? `#${String(hex).toUpperCase()}` : "";
+    codesEl.textContent = "";
   }
 }
 // --- Barrettes dans la mini "vitrine" AMS (en-tête carte AMS)
