@@ -79,5 +79,5 @@ chown -R app:app \
 # --------- Lancement Gunicorn ---------
 echo "[ENTRYPOINT] Lancement de Gunicorn..."
 # 2 workers pour éviter qu'une requête lente bloque l'UI
-exec su-exec app gunicorn -k gthread -w 2 --threads 10 --timeout 120 \
+exec su-exec app gunicorn -k gthread -w 1 --threads 10 --timeout 120 \
   -b 0.0.0.0:8000 app:app "$@"
