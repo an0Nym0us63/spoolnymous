@@ -1043,14 +1043,35 @@ def update_bobine(bobine_id: int, **fields: Any) -> None:
         if cur.rowcount == 0:
             raise ValueError(f"Bobine introuvable id={bobine_id}")
     return True
-
-
+            
 def remove_bobine(bobine_id: int) -> None:
+    """
+    Supprime la bobine uniquement si elle n'est référencée par aucun filament_usage (spool_id = bobine_id).
+    Suppression atomique via DELETE ... WHERE NOT EXISTS.
+    """
     with _tx() as cur:
-        cur.execute("DELETE FROM bobines WHERE id = ?", (bobine_id,))
+        cur.execute(
+            """
+            DELETE FROM bobines
+             WHERE id = ?
+               AND NOT EXISTS (
+                   SELECT 1 FROM filament_usage fu
+                    WHERE fu.spool_id = ?
+               )
+            """,
+            (bobine_id, bobine_id),
+        )
         if cur.rowcount == 0:
-            raise ValueError(f"Bobine introuvable id={bobine_id}")
-
+            # Soit la bobine n'existe pas, soit elle a des usages
+            # Discriminer pour un message clair :
+            cur.execute("SELECT 1 FROM bobines WHERE id = ?", (bobine_id,))
+            if cur.fetchone() is None:
+                raise ValueError(f"Bobine introuvable id={bobine_id}")
+            else:
+                raise ValueError(
+                    "Suppression impossible : des historiques d'utilisation (filament_usage) "
+                    "référencent encore cette bobine."
+                )
 
 def archive_bobine(bobine_id: int, archived: bool = True) -> None:
     """

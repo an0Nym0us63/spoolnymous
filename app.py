@@ -31,7 +31,7 @@ from flask import flash,Flask, request, render_template, redirect, url_for,jsoni
 
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine,attach_spool_counts,remove_filament,update_bobine_tag,update_filament,get_filaments_for_gallery
+from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine,attach_spool_counts,remove_filament,update_bobine_tag,update_filament,get_filaments_for_gallery,remove_bobine
 
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
@@ -827,6 +827,7 @@ def home():
   try:
     with PRINTER_STATUS_LOCK:
         status_copy = dict(PRINTER_STATUS)
+    logger.debug(json.dumps(status_copy))
     last_ams_config = getLastAMSConfig()
     ams_data = last_ams_config.get("ams", [])
     vt_tray_data = last_ams_config.get("vt_tray", {})
@@ -1401,10 +1402,10 @@ def filaments():
         filament = f.get("filament", {})
         vendor = filament.get("vendor", {})
         return (
-            f.get("location", "").lower(),
-            filament.get("material", "").lower(),
-            vendor.get("name", "").lower(),
-            filament.get("name", "").lower()
+            (f.get("location") or "").lower(),
+            (filament.get("material") or "").lower(),
+            (vendor.get("name") or "").lower(),
+            (filament.get("name") or "").lower()
         )
 
     if sort == "remaining":
@@ -2793,6 +2794,15 @@ def api_ui_update_filament(filament_id):
         return jsonify({"ok": False, "error": "invalid", "message": str(e)}), 400
     except Exception as e:
         return jsonify({"ok": False, "error": "server", "message": str(e)}), 500
+
+@app.route('/spool/<int:spool_id>/delete', methods=['POST'])
+def delete_spool_route(spool_id):
+    try:
+        remove_bobine(spool_id)
+        flash(f"Bobine #{spool_id} supprimée.", "success")
+    except Exception as e:
+        flash(f"Échec de la suppression de la bobine #{spool_id} : {e}", "warning")
+    return redirect(request.referrer or url_for('filament_page'))
 
 @app.route("/upload_photo/<int:print_id>", methods=["POST"])
 def upload_print_photo(print_id):

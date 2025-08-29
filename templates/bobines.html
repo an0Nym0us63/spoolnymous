@@ -275,7 +275,12 @@
                 <button type="button" class="dropdown-item text-warning" data-bs-toggle="modal" data-bs-target="#archiveModal_{{ spool.id }}">
                   🗄️ Archiver
                 </button>
-              </li>
+              </li><li>
+  <button class="dropdown-item text-danger" type="button"
+          data-bs-toggle="modal" data-bs-target="#deleteSpoolModal_{{ spool.id }}">
+    🗑️ Supprimer
+  </button>
+</li>
             </ul>
           </div>
           
@@ -376,6 +381,31 @@
               </div>
             </div>
           </div>
+		  <!-- Modal suppression -->
+<div class="modal fade" id="deleteSpoolModal_{{ spool.id }}" tabindex="-1"
+     aria-labelledby="deleteSpoolLabel_{{ spool.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('delete_spool_route', spool_id=spool.id) }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteSpoolLabel_{{ spool.id }}">
+            Supprimer la bobine #{{ spool.id }} ?
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0">
+            Cette action est <strong>définitive</strong> et supprimera la bobine de la base.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-danger">🗑️ Supprimer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
         </div>
       </div>
     </div>

@@ -219,7 +219,6 @@ def snapshot_to_print_file(print_id: str | int, filename_no_ext: str) -> tuple[s
         raise RuntimeError(err)
     if not urls:
         raise RuntimeError("Aucune URL caméra disponible.")
-    time.sleep(5)
     # 1) capturer (essaie chaque URL)
     data = None
     last_exc = None
