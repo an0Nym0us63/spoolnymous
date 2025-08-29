@@ -76,23 +76,21 @@
 
       {% if tray_data.tray_type %}
         <div class="flex gap-4">
-          <div class="min-w-[6.5rem]">  {# un peu plus large que 5.5rem #}
-  <span
-    class="color-chip noborder"
-    style="{{ color_chip_bg(tray_data.tray_color) }}">
-  </span>
-  {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
-    <span class="inline-block mt-2 text-xs text-gray-300">
-      {{ tray_data.tray_color|map('upper')|join(' · ') }}
-    </span>
-  {% else %}
-    <span class="inline-block mt-2 rounded px-2 py-1 text-xs font-bold shadow"
-          style="background-color:#{{ tray_data.tray_color }};
-                 color:{% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
-      #{{ tray_data.tray_color|upper }}
-    </span>
-  {% endif %}
-</div>
+          <div class="min-w-[5.5rem]">
+            {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
+              <div class="spool-icon"><!-- palette multiple -->
+                {% for color in tray_data.tray_color %}
+                  <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <span class="inline-block mt-2 rounded px-2 py-1 text-xs font-bold shadow"
+                    style="background-color: #{{ tray_data.tray_color }};
+                           color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
+                #{{ tray_data.tray_color|upper }}
+              </span>
+            {% endif %}
+          </div>
 
           <div class="flex-1 space-y-2">
 
