@@ -93,50 +93,59 @@
   box-shadow: 0 1px 2px rgba(0,0,0,.35);
   line-height: 1;
 }
-/* Chips couleur (header + contenu) */
+/* Pastille générique */
 .color-chip{
-  display:flex; align-items:center; justify-content:center;
-  border-radius:.35rem;
-  border:1px solid rgba(255,255,255,.25);
-  overflow:hidden;
+  position: relative;
+  display: inline-flex; align-items:center; justify-content:center;
+  border-radius:.45rem;
+  /* Important : le gradient ne “passe” pas sous la bordure */
+  background-clip: padding-box;
+  border: 1px solid rgba(255,255,255,.28);
+  overflow: hidden;
   font-weight:700; letter-spacing:.02em;
-  background-clip: padding-box;            /* <- stoppe la coloration de la bordure */
+  outline: none;              /* évite le halo bleu focus */
+  box-shadow: 0 0 0 0 transparent;  /* pas d’ombre parasite */
 }
 
-/* Header : un peu plus large */
+/* Header = plus large */
 .color-chip.small{
-  width: 2.75rem;                           /* avant 2.25 */
-  height: 1.15rem;
+  width: 2.6rem;              /* ↑ plus large qu’avant */
+  height: 1.1rem;
 }
 
-/* Contenu : bien plus large */
+/* Contenu = bien plus large */
 .color-chip.big{
-  width: 6.25rem;                           /* plus large */
-  height: 1.7rem;
+  width: 6.25rem;             /* pastille large */
+  height: 1.6rem;
   font-size:.75rem;
 }
 
-/* Si jamais on réutilise des <div> internes */
-.color-chip > div{ flex:1 1 0; height:100%; }
+/* Si un rendu multi segmente via <div>, ils prennent 100% de la hauteur */
+.color-chip > div{
+  flex: 1 1 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Petit “rack” AMS (si tu l’utilises ailleurs) */
+.spool-icon{
+  display:inline-flex;
+  width: 3.8rem; height: 1.2rem;
+  border-radius:.25rem;
+  border: 1px solid rgba(255,255,255,.25);
+  overflow:hidden;
+}
+.spool-icon > div{ flex:1 1 0; height:100%; }
+
+/* Optionnel : texte lisible dans les pastilles mono */
+.color-chip.big.mono{
+  color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.35);
+}
 
 /* Vitrine AMS mini barres (visuel en-tête AMS) */
 #ams-card- .px-3 .w-2.h-5 {                 /* ou ta classe exacte */
   background-clip: padding-box;             /* même raison */
 }
-
-/* Palette “contenu” (si tu utilises .spool-icon dans le détail) */
-.spool-icon{
-  display: inline-flex;
-  width: 3.5rem;
-  height: 1.2rem;
-  border-radius: .25rem;
-  border: 1px solid rgba(255,255,255,.25);
-  overflow: hidden;
-  vertical-align: middle;
-  box-sizing: border-box;
-}
-.spool-icon.small{ width: 1.5rem; height: 1.1rem; }
-.spool-icon > div{ flex: 1 1 0; height: 100%; }
 </style>
 <div x-data="{ open: false }"
      class="mb-4 rounded-xl overflow-hidden shadow-md"
@@ -662,21 +671,29 @@ if (nameEl) {
     metaEl.textContent = parts.length ? parts.join(' - ') : 'Vide';
   }
 
-  // --- Couleur(s) ---
-  const setGradientOrMono = (el, colors) => {
+const setGradientOrMono = (el, colors) => {
   if (!el) return;
-  el.textContent = "";                   // reset texte
-  el.style.background = "";
-  el.style.backgroundColor = "";
 
-   if (Array.isArray(colors) && colors.length > 1) {
-    const n = colors.length;
-    const stops = colors.map((c, i) => `#${c} ${(i/(n-1))*100}%`).join(", ");
-    el.style.background = `linear-gradient(90deg, ${stops})`;
-  } else if (Array.isArray(colors) && colors.length === 1) {
-    el.style.backgroundColor = `#${colors[0]}`;
-  } else if (typeof colors === "string" && colors.trim()) {
-    el.style.backgroundColor = `#${colors}`;
+  // reset
+  el.classList.remove('mono');
+  el.textContent = "";
+  el.style.background = "";
+  el.style.backgroundImage = "";
+  el.style.backgroundColor = "";
+  el.style.backgroundRepeat = "no-repeat";
+  el.style.backgroundSize = "100% 100%";
+  el.style.backgroundOrigin = "padding-box"; // évite le “saignement” dans la bordure
+
+  const asList = Array.isArray(colors) ? colors.filter(Boolean) : (colors ? [colors] : []);
+
+  if (asList.length > 1) {
+    // vrai dégradé continu, sans steps
+    const stops = asList.map(c => `#${String(c).replace(/^#/, '')}`).join(', ');
+    el.style.backgroundImage = `linear-gradient(90deg, ${stops})`;
+  } else if (asList.length === 1) {
+    const hex = `#${String(asList[0]).replace(/^#/, '')}`;
+    el.style.backgroundColor = hex;
+    el.classList.add('mono'); // pour le style de texte
   }
 };
 
