@@ -172,7 +172,7 @@ def processMessage(data):
         name += ' - ' +PENDING_PRINT_METADATA["plateID"]
       logger.info('Inserting new print ' + name)
       logger.debug(str(PENDING_PRINT_METADATA))
-      print_id = insert_print(name, "cloud", PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],data["print"]["job_id"])
+      print_id = insert_print(name, "cloud", PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],data["print"]["job_id"],data)
 
       if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"]:
         PENDING_PRINT_METADATA["ams_mapping"] = PRINTER_STATE["print"]["ams_mapping"]
@@ -206,7 +206,7 @@ def processMessage(data):
             name = PENDING_PRINT_METADATA["title"]
         if (PENDING_PRINT_METADATA["plateID"] != '1'):
             name += ' - ' +PENDING_PRINT_METADATA["plateID"]
-        print_id = insert_print(name, PRINTER_STATE["print"]["print_type"], PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],PENDING_PRINT_METADATA["title"],PRINTER_STATE["print"]["job_id"])
+        print_id = insert_print(name, PRINTER_STATE["print"]["print_type"], PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],PENDING_PRINT_METADATA["title"],PRINTER_STATE["print"]["job_id"],PRINTER_STATE)
 
         PENDING_PRINT_METADATA["ams_mapping"] = []
         PENDING_PRINT_METADATA["filamentChanges"] = []
@@ -904,8 +904,6 @@ def on_message(client, userdata, msg):
     # Save external spool tray data
     if "print" in data and "vt_tray" in data["print"]:
       LAST_AMS_CONFIG["vt_tray"] = data["print"]["vt_tray"]
-    if "print" in data and "vir_slot" in data["print"]:
-      LAST_AMS_CONFIG["vt_tray"] = data["print"]["vir_slot"]
 
     # Save ams spool data
     if "print" in data and "ams" in data["print"] and "ams" in data["print"]["ams"]:

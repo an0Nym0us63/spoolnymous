@@ -149,6 +149,21 @@
     📸 Uploader photo
   </a>
 </li>
+<li>
+  <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editDesignIdModal_{{ print.id }}">
+    🏷️ Modifier identifiant MK
+  </a>
+</li>
+
+{# --- VIEW ON MAKERWORLD (si present) --- #}
+{% set _mk = print.design_id %}
+{% if _mk and _mk|string|length > 0 %}
+<li>
+  <a class="dropdown-item" href="https://makerworld.com/fr/models/{{ _mk }}"
+     target="_blank" rel="noopener noreferrer">
+    🌐 Voir sur MakerWorld
+  </a>
+</li>
 {% if print.model_file %}
 <li class="d-none d-md-block">
   <a class="dropdown-item text-success"

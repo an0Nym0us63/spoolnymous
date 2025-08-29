@@ -117,6 +117,7 @@ def create_database() -> None:
                 margin REAL DEFAULT 0.0,
                 job_id INTEGER DEFAULT 0,
                 original_duration REAL,
+                design_id TEXT,
                 FOREIGN KEY (group_id) REFERENCES print_groups(id)
             )
         ''')
@@ -324,6 +325,8 @@ def create_database() -> None:
             cursor.execute("ALTER TABLE prints ADD COLUMN margin REAL DEFAULT 0.0")
         if "job_id" not in columns:
             cursor.execute("ALTER TABLE prints ADD COLUMN job_id INTEGER DEFAULT 0")
+        if "design_id" not in columns:
+            cursor.execute("ALTER TABLE prints ADD COLUMN design_id TEXT")
         
         cursor.execute("PRAGMA table_info(filament_usage)")
         columns = [col[1] for col in cursor.fetchall()]
@@ -439,22 +442,26 @@ def clean_print_name(raw_name: str) -> str:
 
     return name
 
-def insert_print(file_name: str, print_type: str, image_file: str = None, print_date: str = None, duration: float = 0, job_id: int = 0) -> int:
+def insert_print(file_name: str, print_type: str, image_file: str = None, print_date: str = None, duration: float = 0, job_id: int = 0,fulldata: Optional[dict] = None) -> int:
     if print_date is None:
         print_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     cleaned = clean_print_name(file_name)
     translated = clean_print_name(update_translated_name(cleaned))
+    design_id = ""
 
+    if fulldata is not None:
+        # sécuriser les accès
+        design_id = fulldata.get("print", {}).get("design_id", "")
     conn = sqlite3.connect(db_config["db_path"])
     cursor = conn.cursor()
     status = "IN_PROGRESS"
     if (print_type == "manual"):
         status = "SUCCESS"
     cursor.execute('''
-        INSERT INTO prints (print_date, file_name, print_type, image_file, duration, original_name, translated_name, job_id, status,original_duration)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (print_date, cleaned, print_type, image_file, duration, file_name, translated, job_id, status, duration))
+        INSERT INTO prints (print_date, file_name, print_type, image_file, duration, original_name, translated_name, job_id, status,original_duration,design_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (print_date, cleaned, print_type, image_file, duration, file_name, translated, job_id, status, duration, design_id))
     print_id = cursor.lastrowid
     conn.commit()
     conn.close()
