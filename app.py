@@ -453,7 +453,7 @@ _GH_REPO  = "spoolnymous"
 
 # Cache + backoff
 _BRANCH_SHA_CACHE = {}   # {branch: {"ts": <epoch>, "sha": "abcdefg", "fail_ts": <epoch or 0>}}
-_GH_TTL_OK   = 3600      # 1h si ça marche
+_GH_TTL_OK   = 60      # 1h si ça marche
 _GH_TTL_FAIL = 300       # 5min de backoff si ça échoue
 
 @app.route("/api/version")
