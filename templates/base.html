@@ -529,8 +529,6 @@ window.openGalleryFromEntry = function(images, title) {
 
     if (!d.update_available) return;
 
-    // Anti-spam : on n’affiche qu’une fois par "latest" connu
-
     document.getElementById("update-branch").textContent = d.branch || "";
     document.getElementById("update-info").textContent =
       `Actuel: ${(d.current || "?")} • Nouveau: ${(d.latest || "?")}`;
