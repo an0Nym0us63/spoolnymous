@@ -7,10 +7,6 @@
   <section class="mb-5">
     <h4 class="text-light mb-4">🛠️ Paramètres système</h4>
 
-    <div class="mb-4">
-      <a class="btn btn-outline-info" href="{{ url_for('logs_page') }}">📜 Ouvrir la page Logs</a>
-    </div>
-
     <!-- FORMULAIRE SYSTÈME (autonome) -->
     <form method="POST">
       <div class="mb-3">
@@ -343,6 +339,13 @@
       </dl>
     </div>
   </div>
+</section>
+
+<section class="mb-5">
+
+    <div class="mb-4">
+      <a class="btn btn-info" href="{{ url_for('logs_page') }}">📜 Ouvrir la page Logs</a>
+    </div>
 </section>
 
 <script>

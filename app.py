@@ -640,6 +640,7 @@ EXEMPT_ENDPOINTS = {
     "auth.autologin_token",
     "auth.guest_autologin",
     "static",
+    "healthz",
 }
 
 # Chemins exemptés par préfixe (API publiques et snapshot si on veut public)
@@ -647,6 +648,10 @@ EXEMPT_PATH_PREFIXES = (
     "/api/public/",
     "/camera/snapshot",   # <- garde si tu exposes le snapshot sans auth
 )
+
+@app.route("/healthz")
+def healthz():
+    return jsonify(status="ok"), 200
 
 @app.before_request
 def require_login():
