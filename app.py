@@ -3451,25 +3451,30 @@ def installations_overview():
     
 @app.get("/api/filaments/<int:fid>/photos")
 def api_filament_photos(fid):
-    _, main_path, gallery_dir = _filament_paths(fid)
+    base_dir, main_path, gallery_dir = _filament_paths(fid)
 
-    # liste des vignettes (toutes images dans le sous-dossier)
-    exts = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
-    gallery = []
+    items = []
     if os.path.isdir(gallery_dir):
         for name in sorted(os.listdir(gallery_dir)):
-            if os.path.splitext(name)[1].lower() in exts:
-                gallery.append({
-                    "filename": name,
-                    "url": url_for("static", filename=f"uploads/filaments/{fid}/{name}", _external=False)
-                })
+            if name.startswith('.'):
+                continue
+            ext = name.rsplit('.', 1)[-1].lower()
+            if ext not in ("jpg","jpeg","png","webp","gif"):
+                continue
+            items.append({
+                "filename": name,
+                "url": url_for("static", filename=f"uploads/filaments/{fid}/{name}", _external=False)
+            })
 
-    main_url = None
+    # ➕ injecte la principale en premier, flaggée
     if os.path.exists(main_path):
-        main_url = url_for("static", filename=f"uploads/filaments/{fid}.webp", _external=False)
+        items.insert(0, {
+            "filename": f"{fid}.webp",
+            "url": url_for("static", filename=f"uploads/filaments/{fid}.webp", _external=False),
+            "is_main": True
+        })
 
-    return jsonify({"main": {"url": main_url} if main_url else None,
-                    "gallery": gallery})
+    return jsonify({"gallery": items})
 
 @app.post("/filaments/<int:fid>/photos/set_main")
 def filament_set_main(fid):

@@ -632,34 +632,36 @@ async function loadFilamentPhotos(fid, container){
 
 function renderFilamentPhotos(fid, data){
   const items = [];
-  // Bouton pour ouvrir la galerie (réutilise ta fonction openGalleryFromEntry)
-  const gallery = (data.gallery || []).map(g => ({ url: g.url, name: g.filename }));
+  const gallery = (data.gallery || []).map(g => ({ url: g.url, name: g.filename, is_main: g.is_main }));
+
   if (gallery.length){
     items.push(`
-      <button class="btn btn-outline-secondary btn-sm" onclick='openGalleryFromEntry(${JSON.stringify(gallery)}, "Photos filament #${fid}")'>
+      <button class="btn btn-outline-secondary btn-sm"
+              onclick='openGalleryFromEntry(${JSON.stringify(gallery)}, "Photos filament #${fid}")'>
         Ouvrir galerie
       </button>
     `);
   }
-  // Grille de vignettes
-  (data.gallery || []).forEach(g => {
+
+  gallery.forEach(g => {
+    const leftCtl = g.is_main
+      ? `<span class="badge bg-warning text-dark">★ principale</span>`
+      : `<button class="btn btn-light btn-sm js-set-main" data-fn="${g.name}" title="Définir comme principale">⭐</button>`;
+
+    const rightCtl = g.is_main
+      ? ``
+      : `<button class="btn btn-outline-danger btn-sm js-del-photo" data-url="${g.url}" title="Supprimer">🗑</button>`;
+
     items.push(`
       <div class="position-relative">
         <img src="${g.url}" class="img-thumbnail" style="width:120px;height:120px;object-fit:cover;">
-        <div class="position-absolute top-0 start-0 m-1 d-flex gap-1">
-          <button class="btn btn-light btn-sm js-set-main" data-fn="${g.filename}" title="Définir comme principale">⭐</button>
-        </div>
-        <div class="position-absolute top-0 end-0 m-1">
-          <button class="btn btn-outline-danger btn-sm js-del-photo"
-                  data-url="${g.url}" title="Supprimer">🗑</button>
-        </div>
+        <div class="position-absolute top-0 start-0 m-1 d-flex gap-1">${leftCtl}</div>
+        <div class="position-absolute top-0 end-0 m-1">${rightCtl}</div>
       </div>
     `);
   });
-  if (items.length === 0) {
-    return '<em class="text-muted">Aucune photo de galerie.</em>';
-  }
-  return items.join('');
+
+  return items.length ? items.join('') : '<em class="text-muted">Aucune photo de galerie.</em>';
 }
 
 function bindPhotoActions(fid, container){
