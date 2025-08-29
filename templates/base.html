@@ -443,7 +443,7 @@ document.addEventListener('click', async (e) => {
     }
     const entity   = parts[upIdx + 1];
     const entityId = parts[upIdx + 2];
-    const filename = parts[upIdx + 3];
+    const filename = parts.slice(upIdx + 3).join('/');
 
     // Bloquer .3mf
     if (filename.toLowerCase().endsWith('.3mf')) {
