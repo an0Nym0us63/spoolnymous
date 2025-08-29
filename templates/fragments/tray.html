@@ -44,11 +44,9 @@
 
     <div class="text-end text-white text-sm">
   {% if tray_data.tray_type %}
-    <div>
-  <span
-    id="tray-color-{{ ams_id|string }}_{{ tray_data.id|string }}"
-    class="color-chip small"
-    data-mode="mono">
+<div>
+  <span class="color-chip small"
+        id="tray-color-{{ ams_id|string }}_{{ tray_data.id|string }}">
   </span>
 </div>
 
@@ -75,11 +73,17 @@
 
       {% if tray_data.tray_type %}
         <div class="flex gap-4">
-          <span
-  id="tray-color-{{ ams_id|string }}_{{ tray_data.id|string }}"
-  class="color-chip"
-  data-mode="mono">
-</span>
+<div class="min-w-[7.5rem] flex flex-col items-start gap-1">
+  <!-- Grosse pastille gradient/mono -->
+  <span class="color-chip big"
+        id="tray-color-big-{{ ams_id|string }}_{{ tray_data.id|string }}">
+  </span>
+
+  <!-- Ligne des codes (#XXXXXX ou [#A,#B,...]) -->
+  <span class="text-xs opacity-90"
+        id="tray-color-codes-{{ ams_id|string }}_{{ tray_data.id|string }}">
+  </span>
+</div>
 
           <div class="flex-1 space-y-2">
 

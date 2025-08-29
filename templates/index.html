@@ -95,18 +95,22 @@
 }
 /* Puce couleur uniforme (mono ou multi via background/gradient) */
 .color-chip{
-  display: inline-flex;        /* important pour répartir les segments */
-  width: 1.9rem;               /* contenu: un peu plus large */
-  height: 1.1rem;
-  border-radius: .25rem;
-  border: 1px solid rgba(255,255,255,.25);
-  overflow: hidden;
-  vertical-align: middle;
-  box-sizing: border-box;
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:.35rem; border:1px solid rgba(255,255,255,.25);
+  overflow:hidden; font-weight:700; letter-spacing:.02em;
 }
+
+/* Header : un peu plus large */
 .color-chip.small{
-  width: 1.5rem;               /* header compact */
-  height: 1.1rem;
+  width: 2.25rem;    /* avant 1.5rem */
+  height: 1.15rem;
+}
+
+/* Contenu : bien plus large */
+.color-chip.big{
+  width: 6.75rem;    /* large */
+  height: 1.6rem;    /* plus haut */
+  font-size:.75rem;  /* pour afficher #HEX en mono */
 }
 /* Quand le JS injecte des <div> (multi) -> segments égaux */
 .color-chip > div{
@@ -654,26 +658,63 @@ if (nameEl) {
   }
 
   // --- Couleur(s) ---
-  const colorEl = document.getElementById(`tray-color-${key}`);
-  if (colorEl) {
-  colorEl.classList.add('color-chip');
-    // Réinitialisation
-    colorEl.innerHTML = '';
-    colorEl.style.background = '';
-    colorEl.style.backgroundColor = '';
+  const setGradientOrMono = (el, colors) => {
+  if (!el) return;
+  el.textContent = "";                   // reset texte
+  el.style.background = "";
+  el.style.backgroundColor = "";
 
-    if (Array.isArray(tray.tray_color) && tray.tray_color.length) {
-      colorEl.setAttribute('data-mode', 'multi');
-      colorEl.innerHTML = tray.tray_color
-        .map(c => `<div style="background-color:#${c}" title="#${c}"></div>`)
-        .join('');
-    } else if (textOr(tray.tray_color)) {
-      colorEl.setAttribute('data-mode', 'mono');
-      colorEl.style.backgroundColor = `#${tray.tray_color}`;
-    } else {
-      // pas de couleur -> rien
-    }
+  if (Array.isArray(colors) && colors.length > 1) {
+    const stops = colors.map(c => `#${c}`).join(", ");
+    el.style.background = `linear-gradient(90deg, ${stops})`;
+  } else if (Array.isArray(colors) && colors.length === 1) {
+    el.style.backgroundColor = `#${colors[0]}`;
+  } else if (typeof colors === "string" && colors.trim()) {
+    el.style.backgroundColor = `#${colors}`;
   }
+};
+
+// --- HEADER chip (petite)
+setGradientOrMono(
+  document.getElementById(`tray-color-${key}`),
+  tray.tray_color
+);
+
+// --- CONTENU chip (grande) + codes
+const bigChip = document.getElementById(`tray-color-big-${key}`);
+const codesEl = document.getElementById(`tray-color-codes-${key}`);
+setGradientOrMono(bigChip, tray.tray_color);
+
+// Codes : mono => dans la pastille ; multi => en dessous entre crochets
+if (bigChip && codesEl) {
+  if (Array.isArray(tray.tray_color) && tray.tray_color.length > 1) {
+    bigChip.textContent = ""; // pas de texte dans la pastille pour multi
+    const list = tray.tray_color.map(c => `#${String(c).toUpperCase()}`);
+    codesEl.textContent = `[ ${list.join(", ")} ]`;
+  } else {
+    // mono
+    const hex = Array.isArray(tray.tray_color)
+      ? (tray.tray_color[0] || "")
+      : (tray.tray_color || "");
+    const hexText = hex ? `#${String(hex).toUpperCase()}` : "";
+    bigChip.textContent = hexText;       // affiché dans la pastille
+    codesEl.textContent = "";            // rien en dessous
+  }
+}
+// --- Barrettes dans la mini "vitrine" AMS (en-tête carte AMS)
+const g = document.getElementById(`tray-graphic-${key}`);
+if (g) {
+  g.style.background = "";
+  g.style.backgroundColor = "";
+  if (Array.isArray(tray.tray_color) && tray.tray_color.length > 1) {
+    g.style.background = `linear-gradient(90deg, ${tray.tray_color.map(c => `#${c}`).join(',')})`;
+  } else if (Array.isArray(tray.tray_color) && tray.tray_color.length === 1) {
+    g.style.backgroundColor = `#${tray.tray_color[0]}`;
+  } else if (typeof tray.tray_color === "string" && tray.tray_color.trim()) {
+    g.style.backgroundColor = `#${tray.tray_color}`;
+  }
+}
+
 
   // --- Dernier usage ---
   setOrHide(document.getElementById(`tray-last-used-${key}`), textOr(tray.last_used, ''));
@@ -713,17 +754,6 @@ if (nameEl) {
     else                     fmEl.removeAttribute('title');
   }
 
-  // --- Barrettes dans la grille AMS ---
-  const g = document.getElementById(`tray-graphic-${key}`);
-  if (g) {
-    g.style.background = '';
-    g.style.backgroundColor = '';
-    if (Array.isArray(tray.tray_color) && tray.tray_color.length) {
-      g.style.background = `linear-gradient(90deg, ${tray.tray_color.map(c => `#${c}`).join(',')})`;
-    } else if (textOr(tray.tray_color)) {
-      g.style.backgroundColor = `#${tray.tray_color}`;
-    }
-  }
 };
 
 // Tous les AMS
