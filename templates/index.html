@@ -95,22 +95,39 @@
 }
 /* Puce couleur uniforme (mono ou multi via background/gradient) */
 .color-chip{
-  display:inline-block;
-  width: 1.9rem;          /* contenu: un poil plus large */
-  height: 1.1rem;         /* ≈ h-5 */
+  display: inline-flex;        /* important pour répartir les segments */
+  width: 1.9rem;               /* contenu: un peu plus large */
+  height: 1.1rem;
   border-radius: .25rem;
   border: 1px solid rgba(255,255,255,.25);
-  overflow:hidden;
+  overflow: hidden;
+  vertical-align: middle;
+  box-sizing: border-box;
 }
-
-/* Variante compacte pour les headers */
 .color-chip.small{
-  width: 1.5rem;          /* header: gabarit plus compact */
+  width: 1.5rem;               /* header compact */
   height: 1.1rem;
 }
+/* Quand le JS injecte des <div> (multi) -> segments égaux */
+.color-chip > div{
+  flex: 1 1 0;
+  height: 100%;
+  box-sizing: border-box;
+}
 
-/* Optionnel : enlever toute bordure dans le panneau détaillé */
-.color-chip.noborder{ border: none; }
+/* Palette “contenu” (si tu utilises .spool-icon dans le détail) */
+.spool-icon{
+  display: inline-flex;
+  width: 3.5rem;
+  height: 1.2rem;
+  border-radius: .25rem;
+  border: 1px solid rgba(255,255,255,.25);
+  overflow: hidden;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+.spool-icon.small{ width: 1.5rem; height: 1.1rem; }
+.spool-icon > div{ flex: 1 1 0; height: 100%; }
 </style>
 <div x-data="{ open: false }"
      class="mb-4 rounded-xl overflow-hidden shadow-md"
@@ -639,6 +656,7 @@ if (nameEl) {
   // --- Couleur(s) ---
   const colorEl = document.getElementById(`tray-color-${key}`);
   if (colorEl) {
+  colorEl.classList.add('color-chip');
     // Réinitialisation
     colorEl.innerHTML = '';
     colorEl.style.background = '';

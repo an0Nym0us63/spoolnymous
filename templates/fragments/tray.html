@@ -45,13 +45,12 @@
     <div class="text-end text-white text-sm">
   {% if tray_data.tray_type %}
     <div>
-      <span
-        class="color-chip small"
-        id="tray-color-{{ ams_id|string }}_{{ tray_data.id|string }}"
-        style="{{ color_chip_bg(tray_data.tray_color) }}"
-        title="{% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}{{ tray_data.tray_color|join(', ') }}{% else %}#{{ tray_data.tray_color }}{% endif %}">
-      </span>
-    </div>
+  <span
+    id="tray-color-{{ ams_id|string }}_{{ tray_data.id|string }}"
+    class="color-chip small"
+    data-mode="mono">
+  </span>
+</div>
 
     {% if AUTO_SPEND and tray_data.matched %}
       <div class="text-xs mt-1 text-gray-300" data-remaining-weight-wrapper>
@@ -76,21 +75,11 @@
 
       {% if tray_data.tray_type %}
         <div class="flex gap-4">
-          <div class="min-w-[5.5rem]">
-            {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
-              <div class="spool-icon"><!-- palette multiple -->
-                {% for color in tray_data.tray_color %}
-                  <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
-                {% endfor %}
-              </div>
-            {% else %}
-              <span class="inline-block mt-2 rounded px-2 py-1 text-xs font-bold shadow"
-                    style="background-color: #{{ tray_data.tray_color }};
-                           color: {% if color_is_dark(tray_data.tray_color) %}#fff{% else %}#000{% endif %}">
-                #{{ tray_data.tray_color|upper }}
-              </span>
-            {% endif %}
-          </div>
+          <span
+  id="tray-color-{{ ams_id|string }}_{{ tray_data.id|string }}"
+  class="color-chip"
+  data-mode="mono">
+</span>
 
           <div class="flex-1 space-y-2">
 
