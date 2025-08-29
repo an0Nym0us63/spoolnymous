@@ -647,49 +647,87 @@ def safe_update_status(data):
             fields["target_nozzle_temp"] = ntt
 
     # ---------- AMS / TRAY MAPPING ----------
+    def _to_int_safe(v, default=None):
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return default
+    
     try:
         tray_now = int(data.get("ams", {}).get("tray_now"))
     except (TypeError, ValueError):
         tray_now = None
-
-    ams_list = data.get("ams", {}).get("ams", [])
+    
+    ams_list = data.get("ams", {}).get("ams", []) or []
     fields["ams"] = {}
     for ams in ams_list:
-        ams_id = int(ams.get("id"))
-        dry_time = int(ams.get("dry_time", 0))
+        ams_id = _to_int_safe(ams.get("id"))
+        if ams_id is None:
+            continue
+        dry_time = _to_int_safe(ams.get("dry_time"), 0) or 0
         fields["ams"][ams_id] = {"dry_time": dry_time}
+    
     fields["tray_local_id"] = None
     fields["tray_ams_id"] = None
-
+    
     # Map AMS -> extrudeur (aligne avec LEFT/RIGHT_* ci-dessus)
     ams_extruder_map = {0: RIGHT_NOZZLE_ID, 1: LEFT_NOZZLE_ID}
-
-    if tray_now is not None and isinstance(ams_list, list) and tray_now != 255:
-        candidate_trays = []
+    
+    def _collect_candidate_trays(tray_now_val):
+        """Retourne une liste [(ams_id, tray_local)] qui matchent tray_now."""
+        cands = []
         for ams in ams_list:
-            try:
-                ams_id = int(ams.get("id"))
-            except (TypeError, ValueError):
+            ams_id = _to_int_safe(ams.get("id"))
+            if ams_id is None:
                 continue
-            for tray in ams.get("tray", []):
-                try:
-                    tray_id = int(tray.get("id"))
-                except (TypeError, ValueError):
+            for tray in ams.get("tray", []) or []:
+                tray_id = _to_int_safe(tray.get("id"))
+                if tray_id is None:
                     continue
-                if tray_id == tray_now:
-                    candidate_trays.append((ams_id, tray_id))
-
+                # Cas "local": tray_id est 0..3, tray_now_val peut être local ou global.
+                if tray_id == tray_now_val:
+                    cands.append((ams_id, tray_id))
+        return cands
+    
+    if tray_now is not None and isinstance(ams_list, list) and tray_now != 255:
+        candidate_trays = _collect_candidate_trays(tray_now)
+    
+        if not candidate_trays:
+            # --- Fallback: normaliser un index "global" en (ams_id, tray_local)
+            derived_ams_id = tray_now // 4
+            derived_tray_local = tray_now % 4
+    
+            # Si un AMS avec cet id existe et expose ce tray local, on l'ajoute.
+            has_exact = False
+            for ams in ams_list:
+                ams_id = _to_int_safe(ams.get("id"))
+                if ams_id == derived_ams_id:
+                    tray_locals = { _to_int_safe(t.get("id")) for t in (ams.get("tray") or []) }
+                    if derived_tray_local in tray_locals:
+                        candidate_trays.append((derived_ams_id, derived_tray_local))
+                        has_exact = True
+                    break
+    
+            # Cas pratique : un seul AMS présent mais son id ≠ derived_ams_id
+            # (ex: seul AMS avec id=1, tray_now=4 → derived=(1,0). Si l'AMS unique a un autre id,
+            # on force le mapping vers cet AMS unique en conservant le tray_local normalisé.
+            if not has_exact and len(ams_list) == 1:
+                sole_ams_id = _to_int_safe(ams_list[0].get("id"))
+                if sole_ams_id is not None:
+                    candidate_trays.append((sole_ams_id, derived_tray_local))
+    
+        # Sélection finale identique à ta logique actuelle
         if len(ams_list) == 1 and candidate_trays:
             fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
-        elif len(ams_list) > 1:
+        elif len(ams_list) > 1 and candidate_trays:
             for ams_id, tray_id in candidate_trays:
                 if ams_extruder_map.get(ams_id) == active_nozzle_index:
                     fields["tray_ams_id"] = ams_id
                     fields["tray_local_id"] = tray_id
                     break
-        if fields["tray_ams_id"] is None and candidate_trays:
-            fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
-
+            if fields["tray_ams_id"] is None:
+                fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
+    
     elif tray_now is not None and isinstance(ams_list, list) and tray_now == 255:
         # Bobine externe
         fields["tray_ams_id"] = 255
