@@ -160,6 +160,19 @@
   padding: .15rem .45rem;
   pointer-events: none;
 }
+/* Indicateur "plusieurs photos" (coin bas-gauche) */
+.badge-overlay-multi{
+  position:absolute;
+  bottom:6px; left:6px;
+  font-size:.85rem;
+  background: rgba(0,0,0,.6);
+  color:#e5e7eb;
+  border-radius:.5rem;
+  padding:.12rem .4rem;
+  pointer-events:none;
+  line-height:1;
+}
+.badge-overlay-multi i{ vertical-align:-1px; }
 </style>
 <div class="d-flex gap-2 align-items-center mb-2">
   <input id="galSearch" class="form-control form-control-sm" type="search"
@@ -295,20 +308,78 @@
 {{ super() }}
 <script>
 // ---------- Lightbox : réutilise openGalleryFromEntry de base.html ----------
-function openFilamentLightbox(tile){
-  const url   = tile.getAttribute('data-swatch-url');
-  const name  = tile.getAttribute('data-name') || '';
-  const manu  = tile.getAttribute('data-manufacturer') || '';
-  const mat   = tile.getAttribute('data-material') || '';
+async function fetchTileGallery(tile){
+  if (tile._gallery) return tile._gallery;
 
+  const fid = tile.dataset.id;
+  const swatchUrl = tile.dataset.swatchUrl || tile.dataset.swatch_url || '';
+  let gallery = [], count = 0;
+
+  try {
+    const r = await fetch(`/api/filaments/${fid}/photos`);
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+
+    // copie des photos renvoyées par l'API
+    gallery = Array.isArray(d.gallery) ? d.gallery.slice() : [];
+
+    // s'assurer que la principale est présente en tête
+    const mainUrl = (d.main && d.main.url) || swatchUrl;
+    if (mainUrl && !gallery.some(g => g.url === mainUrl || g.is_main)){
+      gallery.unshift({ url: mainUrl, filename: `main_${fid}.webp`, is_main: true });
+    }
+    count = gallery.length;
+  } catch(e){
+    // fallback : au moins la principale
+    if (swatchUrl){
+      gallery = [{ url: swatchUrl, filename: `main_${fid}.webp`, is_main: true }];
+      count = 1;
+    }
+  }
+
+  tile._gallery = { gallery, count };
+  showMultiIndicator(tile, count);
+  return tile._gallery;
+}
+
+function showMultiIndicator(tile, count){
+  // retire l’éventuel ancien badge
+  const old = tile.querySelector('.badge-overlay-multi');
+  if (old) old.remove();
+
+  if (count > 1){
+    const span = document.createElement('span');
+    span.className = 'badge-overlay-multi';
+    // utilise Bootstrap Icons si dispo, sinon l’emoji s’affiche quand même
+    span.innerHTML = `<i class="bi bi-images"></i> ×${count}`;
+    tile.querySelector('.thumb-wrap')?.appendChild(span);
+  }
+}
+
+async function openFilamentLightbox(tile){
+  const name = tile.getAttribute('data-name') || '';
+  const manu = tile.getAttribute('data-manufacturer') || '';
+  const mat  = tile.getAttribute('data-material') || '';
+  const title = `${mat || '—'} – ${name || '—'} – ${manu || '—'}`;
+
+  const { gallery, count } = await fetchTileGallery(tile);
+
+  // S'il y a plusieurs images et que le viewer global est dispo → on l’utilise
+  if (count > 1 && typeof window.openGalleryFromEntry === 'function'){
+    const items = gallery.map(g => ({ url: g.url, name: g.filename }));
+    openGalleryFromEntry(items, title);
+    return;
+  }
+
+  // Sinon on garde ta lightbox simple avec la principale
+  const url = (gallery[0] && gallery[0].url) 
+           || tile.getAttribute('data-swatch-url') 
+           || tile.getAttribute('data-swatch_url') 
+           || '';
   if (!url) return;
-
-  // Titre: "Type – Nom – Marque"
-  const title = `${mat || '—'} \u2013 ${name || '—'} \u2013 ${manu || '—'}`;
 
   const imgEl   = document.getElementById('flbImg');
   const titleEl = document.getElementById('flbTitle');
-
   if (imgEl)   imgEl.src = url;
   if (titleEl) titleEl.textContent = title;
 
@@ -485,6 +556,10 @@ function escapeHtml(s){
   if (!$grid) return;
 
   let tiles = Array.from($grid.querySelectorAll('.tile'));
+  tiles.forEach(t => {
+  t.addEventListener('mouseenter', () => { fetchTileGallery(t); }, { passive: true });
+  t.addEventListener('touchstart', () => { fetchTileGallery(t); }, { passive: true, once: true });
+});
 
   const COLOR_ORDER = [
     "Noir","Blanc","Gris","Rouge","Rose","Orange","Jaune","Beige","Vert","Turquoise","Bleu","Violet","Marron",""
