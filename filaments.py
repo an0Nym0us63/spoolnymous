@@ -439,6 +439,35 @@ _FAMILY_RGB_REFS = {
     "Marron": [(150, 75, 0), (120, 70, 30), (170, 100, 50)],
 }
 
+_ALLOWED_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+
+def _filament_photo_count(fid: int) -> int:
+    """
+    Compte total des images disponibles pour un filament:
+    - 1 si le swatch principal <fid>.webp existe
+    - + N fichiers valides dans static/uploads/filaments/<fid>/
+    (fichiers cachés et extensions non listées ignorés)
+    """
+    base_dir = (Path(__file__).resolve().parent / "static" / "uploads" / "filaments")
+    main_path = base_dir / f"{fid}.webp"
+    gallery_dir = base_dir / str(fid)
+
+    count = 0
+    if main_path.exists():
+        count += 1
+    if gallery_dir.is_dir():
+        try:
+            for name in os.listdir(gallery_dir):
+                if name.startswith("."):
+                    continue
+                ext = os.path.splitext(name)[1].lower()
+                if ext in _ALLOWED_EXTS:
+                    count += 1
+        except Exception:
+            # on reste tolérant: si lecture échoue, on ne bloque pas la page
+            pass
+    return count
+
 # Convertit sRGB 0..255 -> lin -> XYZ (D65) -> Lab
 def _hex_to_rgb(h: str) -> tuple[int, int, int] | None:
     if not h: return None
@@ -2391,7 +2420,11 @@ def get_filaments_for_gallery(args: Dict[str, Any]) -> Dict[str, Any]:
     start = (page - 1) * page_size
     end   = start + page_size
     items = filtered[start:end]
-
+    for d in items:
+        fid = int(d.get("id"))
+        pc = _filament_photo_count(fid)
+        d["photo_count"] = pc
+        d["has_gallery"] = (pc > 1)
     return {
         "items": items,
         "total": total,

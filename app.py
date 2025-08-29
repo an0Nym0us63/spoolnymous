@@ -3449,32 +3449,49 @@ def installations_overview():
         local_overview_url=url_for("local_overview") 
     )
     
-@app.get("/api/filaments/<int:fid>/photos")
 def api_filament_photos(fid):
     base_dir, main_path, gallery_dir = _filament_paths(fid)
 
+    # 1) Construit la liste "gallery" comme tu le fais déjà...
     items = []
     if os.path.isdir(gallery_dir):
         for name in sorted(os.listdir(gallery_dir)):
             if name.startswith('.'):
                 continue
             ext = name.rsplit('.', 1)[-1].lower()
-            if ext not in ("jpg","jpeg","png","webp","gif"):
+            if ext not in ("jpg", "jpeg", "png", "webp", "gif"):
                 continue
-            items.append({
-                "filename": name,
-                "url": url_for("static", filename=f"uploads/filaments/{fid}/{name}", _external=False)
-            })
+            url = url_for(
+                "static",
+                filename=f"uploads/filaments/{fid}/{name}",
+                _external=False
+            )
+            items.append({"url": url, "filename": name})
 
-    # ➕ injecte la principale en premier, flaggée
+    # 2) URL de la principale si présente
+    main_url = None
     if os.path.exists(main_path):
-        items.insert(0, {
-            "filename": f"{fid}.webp",
-            "url": url_for("static", filename=f"uploads/filaments/{fid}.webp", _external=False),
-            "is_main": True
-        })
+        main_url = url_for("static", filename=f"uploads/filaments/{fid}.webp", _external=False)
 
-    return jsonify({"gallery": items})
+    # 3) Compte *dédupliqué* (main + galerie)
+    seen = set()
+    ordered_urls = ([main_url] if main_url else []) + [g["url"] for g in items]
+    uniq_urls = []
+    for u in ordered_urls:
+        if u and u not in seen:
+            seen.add(u)
+            uniq_urls.append(u)
+
+    count = len(uniq_urls)
+    has_gallery = count > 1
+
+    return jsonify({
+        "ok": True,
+        "main_url": main_url,
+        "gallery": items,
+        "count": count,
+        "has_gallery": has_gallery,
+    })
 
 @app.post("/filaments/<int:fid>/photos/set_main")
 def filament_set_main(fid):

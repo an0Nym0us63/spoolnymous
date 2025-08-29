@@ -318,6 +318,7 @@ async function fetchTileGallery(tile){
     if (!r.ok) throw 0;
     const d = await r.json();
 
+    // Items (main + gallery) en dédupliquant
     const items = [];
     if (d.main_url) items.push({ url: d.main_url, is_main: true, filename: 'main.webp' });
     (d.gallery || []).forEach(g => items.push({ url: g.url, is_main: false, filename: g.filename }));
@@ -325,21 +326,19 @@ async function fetchTileGallery(tile){
     const seen = new Set();
     const uniq = items.filter(it => (seen.has(it.url) ? false : (seen.add(it.url), true)));
 
-    // ⬇️ utilise TA fonction existante pour afficher le badge
-    if (typeof window.showMultiIndicator === 'function') {
-      window.showMultiIndicator(tile, uniq.length);
-    }
+    // Priorité au count renvoyé par l'API ; sinon, fallback sur uniq.length
+    const count = Number.isFinite(d.count) ? d.count : uniq.length;
 
-    return { items: uniq, title };
+    // Affiche/rafraîchit le badge (même si déjà présent)
+    showMultiIndicator(tile, count);
+
+    return { items: uniq, title, count };
   } catch {
     const items = sw ? [{ url: sw, is_main: true, filename: 'main.webp' }] : [];
-
-    // ⬇️ même chose en fallback
-    if (typeof window.showMultiIndicator === 'function') {
-      window.showMultiIndicator(tile, items.length);
-    }
-
-    return { items, title };
+    // Fallback : si le serveur n'a pas répondu, on ne peut pas compter la galerie.
+    // On n’écrit pas de badge 'multi' ici, sauf si tu veux afficher "×1".
+    showMultiIndicator(tile, items.length);
+    return { items, title, count: items.length };
   }
 }
 
@@ -351,7 +350,6 @@ function showMultiIndicator(tile, count){
   if (count > 1){
     const span = document.createElement('span');
     span.className = 'badge-overlay-multi';
-    // utilise Bootstrap Icons si dispo, sinon l’emoji s’affiche quand même
     span.innerHTML = `<i class="bi bi-images"></i> ×${count}`;
     tile.querySelector('.thumb-wrap')?.appendChild(span);
   }
@@ -557,6 +555,13 @@ function escapeHtml(s){
   if (!$grid) return;
 
   let tiles = Array.from($grid.querySelectorAll('.tile'));
+    tiles.forEach(t => {
+    const raw = t.getAttribute('data-photo-count') || t.dataset.photoCount;
+    const pc = parseInt(raw, 10);
+    if (!Number.isNaN(pc)) {
+      showMultiIndicator(t, pc);
+    }
+  });
   tiles.forEach(t => {
   t.addEventListener('mouseenter', () => { fetchTileGallery(t); }, { passive: true });
   t.addEventListener('touchstart', () => { fetchTileGallery(t); }, { passive: true, once: true });
