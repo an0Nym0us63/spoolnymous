@@ -622,6 +622,33 @@ async function loadFilamentPhotos(fid, container){
     const r = await fetch(`/api/filaments/${fid}/photos`);
     if (!r.ok) throw new Error();
     const d = await r.json();
+
+    const hasExtra = (d.gallery || []).some(g => !g.is_main);
+    const wrapCol = container.closest('.col-12.mt-2') || container.parentElement;
+
+    if (!hasExtra){
+      // 1) on masque entièrement la section "galerie"
+      if (wrapCol) wrapCol.classList.add('d-none');
+      container.dataset.loaded = '1';
+      container.innerHTML = '';
+
+      // 2) on fait ouvrir la galerie en cliquant sur le swatch (même s’il est seul)
+      const main = (d.gallery || []).find(g => g.is_main) 
+                || { url: `/static/uploads/filaments/${fid}.webp`, filename: `main_${fid}.webp` };
+
+      const mainImg = document.querySelector(`#swatchWrap-${fid} img`);
+      if (mainImg && !mainImg.dataset.galleryOne){
+        mainImg.style.cursor = 'zoom-in';
+        mainImg.addEventListener('click', () => {
+          openGalleryFromEntry([{ url: main.url, name: main.filename }], `Photos filament #${fid}`);
+        });
+        mainImg.dataset.galleryOne = '1'; // évite double-binding
+      }
+      return;
+    } else {
+      if (wrapCol) wrapCol.classList.remove('d-none');
+    }
+
     container.dataset.loaded = '1';
     container.innerHTML = renderFilamentPhotos(fid, d);
     bindPhotoActions(fid, container);
@@ -631,22 +658,25 @@ async function loadFilamentPhotos(fid, container){
 }
 
 function renderFilamentPhotos(fid, data){
+  const gallery = (data.gallery || []);
+  const extras = gallery.filter(g => !g.is_main);
+  if (extras.length === 0) return ''; // rien à afficher ici
+
   const items = [];
-  const gallery = (data.gallery || []).map(g => ({ url: g.url, name: g.filename, is_main: g.is_main }));
+  // bouton galerie (ouvre avec principale + extras)
+  const viewer = gallery.map(g => ({ url: g.url, name: g.filename }));
+  items.push(`
+    <button class="btn btn-outline-secondary btn-sm"
+            onclick='openGalleryFromEntry(${JSON.stringify(viewer)}, "Photos filament #${fid}")'>
+      Ouvrir galerie
+    </button>
+  `);
 
-  if (gallery.length){
-    items.push(`
-      <button class="btn btn-outline-secondary btn-sm"
-              onclick='openGalleryFromEntry(${JSON.stringify(gallery)}, "Photos filament #${fid}")'>
-        Ouvrir galerie
-      </button>
-    `);
-  }
-
+  // vignettes (y compris la principale)
   gallery.forEach(g => {
     const leftCtl = g.is_main
       ? `<span class="badge bg-warning text-dark">★ principale</span>`
-      : `<button class="btn btn-light btn-sm js-set-main" data-fn="${g.name}" title="Définir comme principale">⭐</button>`;
+      : `<button class="btn btn-light btn-sm js-set-main" data-fn="${g.filename}" title="Définir comme principale">⭐</button>`;
 
     const rightCtl = g.is_main
       ? ``
@@ -661,7 +691,7 @@ function renderFilamentPhotos(fid, data){
     `);
   });
 
-  return items.length ? items.join('') : '<em class="text-muted">Aucune photo de galerie.</em>';
+  return items.join('');
 }
 
 function bindPhotoActions(fid, container){
