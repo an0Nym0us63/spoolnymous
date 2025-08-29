@@ -13,7 +13,20 @@
         <img src="" alt="Snapshot local" class="overview-img rounded">
         <div class="overview-info mt-2 text-start">
           <div class="small mb-1">📦 <strong>Impression</strong> : <span class="printName">—</span></div>
-          <div class="small">🕒 <strong>Fin estimée</strong> : <span class="estimated_end">—</span></div>
+          <div class="small">🕒 <strong>Fin estimée</strong> :
+  <span class="estimated_end">
+    {{ inst.estimated_end if inst is defined else local_estimated_end or '—' }}
+  </span>
+  {% if inst is defined %}
+    {% if inst.finish_delta and inst.finish_delta > 0 %}
+      <span class="day-delta">+{{ inst.finish_delta }}</span>
+    {% endif %}
+  {% else %}
+    {% if finish_delta and finish_delta > 0 %}
+      <span class="day-delta">+{{ finish_delta }}</span>
+    {% endif %}
+  {% endif %}
+</div>
           <div class="progress mt-2" role="progressbar" aria-valuemin="0" aria-valuemax="100">
             <div class="progress-bar" style="width:0%">0%</div>
           </div>
@@ -32,7 +45,20 @@
         <img src="" alt="Snapshot {{ inst.name }}" class="overview-img rounded">
         <div class="overview-info mt-2 text-start">
           <div class="small mb-1">📦 <strong>Impression</strong> : <span class="printName">—</span></div>
-          <div class="small">🕒 <strong>Fin estimée</strong> : <span class="estimated_end">—</span></div>
+          <div class="small">🕒 <strong>Fin estimée</strong> :
+  <span class="estimated_end">
+    {{ inst.estimated_end if inst is defined else local_estimated_end or '—' }}
+  </span>
+  {% if inst is defined %}
+    {% if inst.finish_delta and inst.finish_delta > 0 %}
+      <span class="day-delta">+{{ inst.finish_delta }}</span>
+    {% endif %}
+  {% else %}
+    {% if finish_delta and finish_delta > 0 %}
+      <span class="day-delta">+{{ finish_delta }}</span>
+    {% endif %}
+  {% endif %}
+</div>
           <div class="progress mt-2" role="progressbar" aria-valuemin="0" aria-valuemax="100">
             <div class="progress-bar" style="width:0%">0%</div>
           </div>
@@ -79,6 +105,22 @@
 
 /* Petit espace supplémentaire sous chaque tuile (en plus du gap de la grid) */
 .overview-tile { margin-bottom: 8px; }
+
+
+.day-delta {
+  display: inline-block;
+  vertical-align: super;   /* le met en "exposant" */
+  margin-left: .05rem;
+  padding: .05rem .3rem;
+  border-radius: .5rem;
+  font-size: 0.7em;
+  font-weight: 700; /* gras */
+  color: #fff;
+  background: linear-gradient(135deg, #22c55e, #16a34a); /* vert-500 -> vert-600 */
+  border: 1px solid rgba(0,0,0,.25);
+  box-shadow: 0 1px 2px rgba(0,0,0,.35);
+  line-height: 1;
+}
 </style>
 {% endblock %}
 
@@ -119,7 +161,16 @@
           }
           // textes
           tile.querySelector('.printName').textContent = data.printName || '—';
-          tile.querySelector('.estimated_end').textContent = data.estimated_end || '—';
+		  const endEl = tile.querySelector('.estimated_end');
+if (endEl) {
+  const end = data.estimated_end || '—';
+  const delta = Number(data.finish_delta) || 0;
+  let html = end;
+  if (delta > 0) {
+    html += ` <span class="day-delta">+${delta}</span>`;
+  }
+  endEl.innerHTML = html;
+}
 
           // progression
           const p = pct(data.progress);
