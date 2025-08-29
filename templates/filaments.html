@@ -1206,5 +1206,40 @@ if (window.materialTS) {
   selNameEl.addEventListener('change', onNameChanged);
   btnApply.addEventListener('click', applyToMainModal);
 })();
+
+(function () {
+  // Ne pas déclencher si on tape dans un champ, si Select2 est ouvert, ou si une modale SweetAlert/Bootstrap est ouverte
+  function uiIsBusy() {
+    const tag = document.activeElement?.tagName;
+    const typing = tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable;
+    const select2Open = !!document.querySelector('.select2-container--open');
+    const swalOpen = !!document.querySelector('.swal2-container.swal2-shown');
+    const modalOpen = !!document.querySelector('.modal.show');
+    return typing || select2Open || swalOpen || modalOpen;
+  }
+
+  function toggleOffcanvas(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    let oc = bootstrap.Offcanvas.getInstance(el);
+    if (!oc) oc = new bootstrap.Offcanvas(el);
+    if (el.classList.contains('show')) oc.hide(); else oc.show();
+  }
+
+  document.addEventListener('keydown', function (event) {
+    // ignore touches avec modifieurs (Ctrl/Cmd/Alt) et si UI occupée
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (uiIsBusy()) return;
+
+    const k = event.key?.toLowerCase();
+    if (k === 'f') {
+      event.preventDefault();
+      toggleOffcanvas('filtersOffcanvas');       // ✅ ID réel
+    } else if (k === 'p') {
+      event.preventDefault();
+      toggleOffcanvas('paginationOffcanvas');    // ✅ ID réel
+    }
+  });
+})();
 </script>
 {% endblock %}
