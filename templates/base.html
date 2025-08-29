@@ -49,7 +49,8 @@
   [data-requires-write] {
     display: none !important;
   }
-* --- Toast MAJ : taille fluide + césure --- */
+{% endif %}
+/* --- Toast MAJ : taille fluide + césure --- */
 #updateToast {
   max-width: 420px;
   width: clamp(280px, 90vw, 420px);
@@ -60,7 +61,7 @@
   word-break: break-word;
 }
 
-/* Conteneur positionné (remplace le style inline) */
+/* Conteneur positionné en bas à droite (desktop) */
 .update-toast-container {
   position: fixed;
   right: 1rem;
@@ -68,22 +69,24 @@
   z-index: 1080;
 }
 
-/* --- Mobile : style “sheet” plein largeur en bas --- */
+/* --- Mobile : sticky au viewport, pleine largeur --- */
 @media (max-width: 576px) {
   .update-toast-container {
+    position: fixed;         /* sticky viewport */
     left: 0;
     right: 0;
-    bottom: 0;
-    padding: .5rem;
+    /* colle au bas de l’écran, en respectant le safe-area iOS */
+    bottom: calc(env(safe-area-inset-bottom, 0) + .0rem);
+    padding: .5rem .5rem calc(env(safe-area-inset-bottom, 0) + .5rem);
+    z-index: 1080;
   }
   #updateToast {
     max-width: none;
     width: 100%;
     margin: 0;
-    border-radius: .75rem .75rem 0 0;
+    border-radius: .75rem .75rem 0 0; /* look “sheet” */
   }
 }
-{% endif %}
 </style>
 </head>
 <body>
