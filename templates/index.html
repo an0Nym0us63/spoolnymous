@@ -77,6 +77,33 @@
   box-shadow: 0 1px 2px rgba(0,0,0,.35);
   line-height: 1;
 }
+/* Conteneur commun pour l’icône couleur */
+.spool-icon{
+  display:flex;             /* enfants côte à côte */
+  overflow:hidden;
+  border-radius: .25rem;
+  border: 1px solid rgba(255,255,255,.25);
+  width: 1.5rem;            /* ≈ w-6 */
+  height: 1.1rem;           /* ≈ h-5 */
+  box-shadow: 0 0 0 1px rgba(0,0,0,.2) inset;
+}
+
+/* Variante plus petite déjà utilisée dans le header */
+.spool-icon.small{
+  width: 1.5rem;            /* garde la même largeur que le mono */
+  height: 1.1rem;
+}
+
+/* Chaque bande couleur occupe une fraction égale et toute la hauteur */
+.spool-icon > div{
+  flex: 1 0 0;
+  height: 100%;
+}
+
+/* Optionnel : fine séparation verticale entre bandes */
+.spool-icon > div + div{
+  box-shadow: -1px 0 0 rgba(0,0,0,.25) inset;
+}
 </style>
 <div x-data="{ open: false }"
      class="mb-4 rounded-xl overflow-hidden shadow-md"
