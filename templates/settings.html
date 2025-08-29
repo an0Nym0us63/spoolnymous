@@ -337,6 +337,9 @@
         <dt class="col-sm-3">Build</dt>
         <dd class="col-sm-9"><span data-key="built_at">…</span></dd>
       </dl>
+	  <button type="button" id="btn-open-release-version" class="btn btn-info">
+        📜 Notes de version
+      </button>
     </div>
   </div>
 </section>
@@ -363,6 +366,15 @@
     console.warn("Version: échec de chargement", e);
   }
 })();
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('btn-open-release-version');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      // Charge le fragment release depuis GitHub et ouvre la modale
+      showReleaseModalFromGitHub();
+    }, { passive: true });
+  }
+});
 </script>
 </div>
 
