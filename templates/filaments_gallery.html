@@ -214,6 +214,8 @@
      data-comment="{{ (f.comment or '')|e }}"
      data-swatch="{{ 1 if f.swatch == 1 else 0 }}"
      data-swatch-url="{{ f.swatch_url }}"
+	 data-photo-count="{{ f.photo_count or 0 }}"
+     data-has-gallery="{{ 1 if (f.photo_count or 0) > 1 else 0 }}"
      onclick="if(event.target.type!=='checkbox'){ openFilamentLightbox(this); }">
 
       <div class="thumb-wrap">
