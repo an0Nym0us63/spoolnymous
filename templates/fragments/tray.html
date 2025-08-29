@@ -44,11 +44,14 @@
 
     <div class="text-end text-white text-sm">
   {% if tray_data.tray_type %}
-<div>
-  <span class="color-chip small"
-        id="tray-color-{{ ams_id|string }}_{{ tray_data.id|string }}">
-  </span>
-</div>
+  <div>
+      <span
+        id="tray-color-{{ ams_id|string }}_{{ tray_data.id|string }}"
+        class="color-chip small"
+        style="{{ color_chip_bg(tray_data.tray_color) }}"
+        title="{{ tray_data.tray_color if tray_data.tray_color is string else (tray_data.tray_color|join(', ')) }}"
+      ></span>
+    </div>
 
     {% if AUTO_SPEND and tray_data.matched %}
       <div class="text-xs mt-1 text-gray-300" data-remaining-weight-wrapper>
@@ -73,16 +76,14 @@
 
       {% if tray_data.tray_type %}
         <div class="flex gap-4">
-<div class="min-w-[7.5rem] flex flex-col items-start gap-1">
-  <!-- Grosse pastille gradient/mono -->
-  <span class="color-chip big"
-        id="tray-color-big-{{ ams_id|string }}_{{ tray_data.id|string }}">
-  </span>
-
-  <!-- Ligne des codes (#XXXXXX ou [#A,#B,...]) -->
-  <span class="text-xs opacity-90"
-        id="tray-color-codes-{{ ams_id|string }}_{{ tray_data.id|string }}">
-  </span>
+<div class="min-w-[5.5rem]">
+  <span
+    id="tray-color-big-{{ ams_id|string }}_{{ tray_data.id|string }}"
+    class="color-chip big"
+    style="{{ color_chip_bg(tray_data.tray_color) }}"
+  ></span>
+  <div id="tray-color-codes-{{ ams_id|string }}_{{ tray_data.id|string }}"
+       class="text-xs text-gray-400 mt-1 text-center"></div>
 </div>
 
           <div class="flex-1 space-y-2">
