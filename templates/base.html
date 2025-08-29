@@ -268,11 +268,11 @@ document.addEventListener("DOMContentLoaded", function () {
   const alertEl = document.querySelector('#flash-alert[data-autohide="true"]');
   if (!alertEl) return;
   const delayAttr = parseInt(alertEl.getAttribute('data-autohide-delay'), 10);
-  const AUTO_HIDE_MS = Number.isFinite(delayAttr) ? delayAttr : 5000;
+  const AUTO_HIDE_MS = Number.isFinite(delayAttr) ? delayAttr : 8000;
   const bsAlert = bootstrap.Alert.getOrCreateInstance(alertEl);
   let timer = setTimeout(() => bsAlert.close(), AUTO_HIDE_MS);
   alertEl.addEventListener("mouseenter", () => { if (timer) { clearTimeout(timer); timer = null; }});
-  alertEl.addEventListener("mouseleave", () => { if (!timer) timer = setTimeout(() => bsAlert.close(), 1500); });
+  alertEl.addEventListener("mouseleave", () => { if (!timer) timer = setTimeout(() => bsAlert.close(), 3000); });
 });
 </script>
 
