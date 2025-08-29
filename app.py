@@ -3195,37 +3195,6 @@ def delete_entity_photo(entity, entity_id):
         flash("Erreur lors de la suppression.", "danger")
 
     return redirect(request.referrer or url_for("print_history"))
-    
-@app.route("/delete_photo/<entity>/<int:entity_id>", methods=["POST"])
-def delete_entity_photo(entity, entity_id):
-    
-    ALLOWED_IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic'}  # pas de .3mf ici
-    entity = (entity or "").strip().lower()
-    if entity not in {"prints", "groups", "objects"}:
-        abort(404)
-
-    filename = (request.form.get("filename") or "").strip()
-    if not filename or "/" in filename or "\\" in filename:
-        abort(400)
-
-    ext = os.path.splitext(filename)[1].lower()
-    if ext not in ALLOWED_IMAGE_EXTS:
-        flash("Suppression refusée pour ce type de fichier.", "warning")
-        return redirect(request.referrer or url_for("print_history"))
-
-    base_dir = Path(app.static_folder) / "uploads" / entity / str(entity_id)
-    file_path = base_dir / filename
-
-    try:
-        file_path.unlink()
-        flash("Photo supprimée.", "success")
-    except FileNotFoundError:
-        flash("La photo était déjà supprimée.", "info")
-    except Exception as e:
-        app.logger.exception("delete_entity_photo error")
-        flash("Erreur lors de la suppression.", "danger")
-
-    return redirect(request.referrer or url_for("print_history"))
 
 @app.route("/sync_catalog", methods=["POST"])
 def sync_catalog():
