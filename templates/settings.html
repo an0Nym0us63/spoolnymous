@@ -325,7 +325,42 @@
       <button type="submit" class="btn btn-primary w-100">📤 Ajouter manuellement</button>
     </form>
   </section>
+<!-- ℹ️ Version de l’application -->
+<section class="mb-5">
+  <h4 class="text-light mb-4">ℹ️ Version de l’application</h4>
 
+  <div class="card bg-dark border-secondary">
+    <div class="card-body">
+      <dl class="row mb-0" id="app-version">
+        <dt class="col-sm-3">Branche</dt>
+        <dd class="col-sm-9"><span data-key="branch">…</span></dd>
+
+        <dt class="col-sm-3">Commit</dt>
+        <dd class="col-sm-9"><code data-key="commit">…</code></dd>
+
+        <dt class="col-sm-3">Build</dt>
+        <dd class="col-sm-9"><span data-key="built_at">…</span></dd>
+      </dl>
+    </div>
+  </div>
+</section>
+
+<script>
+(async function loadVersion(){
+  try {
+    const r = await fetch("/api/version");
+    if (!r.ok) return;
+    const v = await r.json();
+    const root = document.getElementById("app-version");
+    if (!root) return;
+    root.querySelector('[data-key="branch"]').textContent = v.branch || "n/a";
+    root.querySelector('[data-key="commit"]').textContent = (v.commit || "n/a").slice(0,7);
+    root.querySelector('[data-key="built_at"]').textContent = v.built_at || "n/a";
+  } catch(e) {
+    console.warn("Version: échec de chargement", e);
+  }
+})();
+</script>
 </div>
 
 <!-- SCRIPTS -->

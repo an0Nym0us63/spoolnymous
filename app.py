@@ -431,6 +431,55 @@ CORS(
     supports_credentials=False,
     max_age=600,
 )
+import os
+import time
+import requests
+from flask import jsonify
+
+APP_BUILD_BRANCH = os.getenv("BUILD_BRANCH", "release")
+APP_COMMIT_SHA   = os.getenv("COMMIT_SHA") or _read_file("/etc/image_commit_sha") or "unknown"
+APP_BUILD_DATE   = os.getenv("BUILD_DATE") or _read_file("/etc/image_build_date") or "unknown"
+_GH_OWNER = "an0Nym0us63"
+_GH_REPO  = "spoolnymous"
+
+@app.route("/api/version")
+def api_version():
+    return jsonify({
+        "branch": APP_BUILD_BRANCH,
+        "commit": (APP_COMMIT_SHA or "unknown"),
+        "built_at": (APP_BUILD_DATE or "unknown"),
+    })
+
+# Cache (par branche) pour limiter les appels API
+_BRANCH_SHA_CACHE = {}  # { branch: {"ts": epoch_seconds, "sha": "abcdefg"} }
+_GH_TTL = 60 * 60  # 1h
+
+def _latest_branch_sha(branch: str) -> str | None:
+    now = time.time()
+    entry = _BRANCH_SHA_CACHE.get(branch)
+    if entry and (now - entry["ts"] < _GH_TTL):
+        return entry["sha"]
+    try:
+        url = f"https://api.github.com/repos/{_GH_OWNER}/{_GH_REPO}/commits/{branch}"
+        r = requests.get(url, timeout=5)
+        r.raise_for_status()
+        sha = (r.json().get("sha") or "")[:7]
+        _BRANCH_SHA_CACHE[branch] = {"ts": now, "sha": sha}
+        return sha
+    except Exception:
+        return None
+
+@app.route("/api/update_status")
+def api_update_status():
+    latest = _latest_branch_sha(APP_BUILD_BRANCH)
+    current = (APP_COMMIT_SHA or "")[:7]
+    update_available = bool(latest and current and latest != current)
+    return jsonify({
+        "current": current or "unknown",
+        "latest": latest or "unknown",
+        "branch": APP_BUILD_BRANCH,
+        "update_available": update_available
+    })
     
 def _static_asset_url(filename: str) -> str:
     """Retourne url_for('static', filename=..., v=<hash court>) basé sur le contenu du fichier."""

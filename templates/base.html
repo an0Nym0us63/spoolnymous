@@ -96,7 +96,7 @@
   <!-- <li class="nav-item">
     <a href="{{ url_for('assign_tag') }}" class="nav-link">📛 Assign NFC Tag</a>
   </li>-->  <li class="nav-item dropdown">
-    <a class="nav-link dropdown-toggle" href="#" id="filamentsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <a class="nav-link dropdown-toggle" href="#" id="printsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
       🖨️ Impressions
     </a>
     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filamentsDropdown">
@@ -217,6 +217,7 @@
   </div>
   {% endif %}
   {% block content %}{% endblock %}
+ 
 </main>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -502,6 +503,56 @@ window.openGalleryFromEntry = function(images, title) {
       setupCarouselMeta(pid);
     });
   });
+})();
+</script>
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080">
+  <div id="updateToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">
+        🚀 Une nouvelle version est disponible sur la branche <strong id="update-branch"></strong>.<br>
+        <small id="update-info"></small>
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fermer"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+(async function checkUpdate(){
+  try {
+    // On n’affiche que sur la page d’accueil
+    if (location.pathname !== "/") return;
+
+    const r = await fetch("/api/update_status");
+    if (!r.ok) return;
+    const d = await r.json();
+
+    if (!d.update_available) return;
+
+    // Anti-spam : on n’affiche qu’une fois par "latest" connu
+    const key = "spoolnymous_last_seen_latest";
+    try {
+      const seen = localStorage.getItem(key);
+      if (seen && seen === (d.latest || "")) return;
+      localStorage.setItem(key, d.latest || "");
+    } catch(_) { /* localStorage indisponible -> on ignore */ }
+
+    document.getElementById("update-branch").textContent = d.branch || "";
+    document.getElementById("update-info").textContent =
+      `Actuel: ${(d.current || "?")} • Nouveau: ${(d.latest || "?")}`;
+
+    const el = document.getElementById("updateToast");
+    // Nécessite Bootstrap JS (déjà inclus si tu utilises les components)
+    if (el && window.bootstrap && bootstrap.Toast) {
+      const t = new bootstrap.Toast(el, { delay: 8000 });
+      t.show();
+    } else {
+      // Fallback très simple si Bootstrap JS n’est pas chargé
+      el.style.display = "block";
+    }
+  } catch(e) {
+    console.warn("Update toast: échec de vérification", e);
+  }
 })();
 </script>
 </body>
