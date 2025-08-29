@@ -3338,6 +3338,7 @@ def public_overview():
         "snapshot_url": url_for("camera_snapshot", _external=True),
         "printName": status.get("printName"),
         "estimated_end": status.get("estimated_end"),
+        "finish_delta": status.get("finish_delta"),
         "progress": status.get("progress")
     })
 
@@ -3351,6 +3352,7 @@ def local_overview():
         "snapshot_url": url_for("camera_snapshot"),
         "printName": status.get("printName"),
         "estimated_end": status.get("estimated_end"),
+        "finish_delta": status.get("finish_delta"),
         "progress": status.get("progress")
     })
     
