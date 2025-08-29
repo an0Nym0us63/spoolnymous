@@ -62,10 +62,10 @@ FILAMENT_ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif
 
 def _filament_paths(fid):
     """Retourne (base_dir, main_path, gallery_dir) pour un filament."""
-    base_dir = os.path.join(app.static_folder, "uploads", "filaments")
-    gallery_dir = os.path.join(base_dir, str(fid))
-    main_path = os.path.join(base_dir, f"{fid}.webp")  # image principale canonique
-    os.makedirs(gallery_dir, exist_ok=True)
+    base_dir = Path(app.static_folder) / "uploads" / "filaments"
+    gallery_dir = base_dir / str(fid)
+    main_path = base_dir / f"{fid}.webp"  # image principale canonique
+    gallery_dir.mkdir(parents=True, exist_ok=True)
     return base_dir, main_path, gallery_dir
 
 def _uniq_gallery_name(gallery_dir: Path, ext: str = ".webp") -> Path:
