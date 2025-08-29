@@ -530,12 +530,6 @@ window.openGalleryFromEntry = function(images, title) {
     if (!d.update_available) return;
 
     // Anti-spam : on n’affiche qu’une fois par "latest" connu
-    const key = "spoolnymous_last_seen_latest";
-    try {
-      const seen = localStorage.getItem(key);
-      if (seen && seen === (d.latest || "")) return;
-      localStorage.setItem(key, d.latest || "");
-    } catch(_) { /* localStorage indisponible -> on ignore */ }
 
     document.getElementById("update-branch").textContent = d.branch || "";
     document.getElementById("update-info").textContent =
