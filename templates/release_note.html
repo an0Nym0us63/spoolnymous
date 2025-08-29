@@ -92,3 +92,28 @@
   -->
 
 </div>
+<style>
+.release-notes ul {
+  list-style: none;
+  padding-left: 0;
+  margin-left: 0;
+}
+.release-notes ul li {
+  position: relative;
+  padding-left: 1.2rem;
+  margin-bottom: 0.4rem;
+}
+.release-notes ul li::before {
+  content: "";
+  position: absolute;
+  top: 0.55em;
+  left: 0;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: #6c757d; /* gris par défaut */
+}
+.release-notes h6 .badge.bg-success ~ ul li::before { background: #198754; } /* vert */
+.release-notes h6 .badge.bg-danger  ~ ul li::before { background: #dc3545; } /* rouge */
+.release-notes h6 .badge.bg-info    ~ ul li::before { background: #0dcaf0; } /* bleu clair */
+</style>
