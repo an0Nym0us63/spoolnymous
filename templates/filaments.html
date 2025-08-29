@@ -362,8 +362,14 @@
         class="img-thumbnail d-block mx-auto"
         style="max-width:240px; height:auto;"
         onerror="this.classList.add('d-none')">
+		
     {% endif %}
   </div>
+  <div class="col-12 mt-2">
+  <div id="filament-photos-{{ fil.id }}" class="d-flex flex-wrap gap-2 justify-content-center small text-muted">
+    <!-- chargé à l’ouverture de l’accordéon -->
+  </div>
+</div>
             <div class="col-md-6">
               <ul class="list-unstyled mb-0">
                 <li><strong>Nom :</strong> {{ fil.name or '—' }}</li>
@@ -601,6 +607,84 @@ function setSelectValue(tsOrEl, value){
   el.value = v;
 }
 document.addEventListener('DOMContentLoaded', function () {
+document.querySelectorAll('.accordion-collapse[id^="collapseFilament"]').forEach(el => {
+    el.addEventListener('shown.bs.collapse', () => {
+      const fid = Number(el.id.replace('collapseFilament',''));
+      const container = document.getElementById('filament-photos-' + fid);
+      if (!container || container.dataset.loaded === '1') return;
+      loadFilamentPhotos(fid, container);
+    }, { passive: true });
+  });
+});
+async function loadFilamentPhotos(fid, container){
+  try {
+    container.innerHTML = 'Chargement…';
+    const r = await fetch(`/api/filaments/${fid}/photos`);
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    container.dataset.loaded = '1';
+    container.innerHTML = renderFilamentPhotos(fid, d);
+    bindPhotoActions(fid, container);
+  } catch(e){
+    container.innerHTML = '<span class="text-danger">Échec de chargement.</span>';
+  }
+}
+
+function renderFilamentPhotos(fid, data){
+  const items = [];
+  // Bouton pour ouvrir la galerie (réutilise ta fonction openGalleryFromEntry)
+  const gallery = (data.gallery || []).map(g => ({ url: g.url, name: g.filename }));
+  if (gallery.length){
+    items.push(`
+      <button class="btn btn-outline-secondary btn-sm" onclick='openGalleryFromEntry(${JSON.stringify(gallery)}, "Photos filament #${fid}")'>
+        Ouvrir galerie
+      </button>
+    `);
+  }
+  // Grille de vignettes
+  (data.gallery || []).forEach(g => {
+    items.push(`
+      <div class="position-relative">
+        <img src="${g.url}" class="img-thumbnail" style="width:120px;height:120px;object-fit:cover;">
+        <div class="position-absolute top-0 start-0 m-1 d-flex gap-1">
+          <button class="btn btn-light btn-sm js-set-main" data-fn="${g.filename}" title="Définir comme principale">⭐</button>
+        </div>
+        <div class="position-absolute top-0 end-0 m-1">
+          <button class="btn btn-outline-danger btn-sm js-del-photo"
+                  data-url="${g.url}" title="Supprimer">🗑</button>
+        </div>
+      </div>
+    `);
+  });
+  if (items.length === 0) {
+    return '<em class="text-muted">Aucune photo de galerie.</em>';
+  }
+  return items.join('');
+}
+
+function bindPhotoActions(fid, container){
+  // Promotion en principale
+  container.querySelectorAll('.js-set-main').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const fn = btn.dataset.fn;
+      const fd = new FormData();
+      fd.append('filename', fn);
+      const r = await fetch(`/filaments/${fid}/photos/set_main`, { method: 'POST', body: fd });
+      const ok = r.ok && (await r.json()).ok;
+      if (ok){
+        // rafraîchir l’aperçu principal (swatch) + recharger la liste
+        const mainImg = document.querySelector(`#swatchWrap-${fid} img`);
+        if (mainImg) {
+          const u = new URL(mainImg.src, location.origin);
+          u.searchParams.set('_', Date.now());
+          mainImg.src = u.toString();
+          mainImg.classList.remove('d-none');
+        }
+        container.dataset.loaded = '0';
+        loadFilamentPhotos(fid, container);
+      }
+    }, { passive: true });
+  });
 (function(){
   let filamentModal, manufacturerTS, materialTS;
   // ✅ empêche de ré-attacher/initialiser à chaque open
