@@ -548,7 +548,6 @@ card.innerHTML = `
   </div>
   <div class="meta">
     <div class="line1">
-      <i class="bi bi-folder-fill d-none album-icon"></i>
       <strong class="text-truncate album-title" title="${title}">${title}</strong>
       <a class="mw-link d-none" target="_blank" rel="noopener"
          title="Voir sur MakerWorld" aria-label="Voir sur MakerWorld">
@@ -601,7 +600,6 @@ function renderPatchwork(card, photos){
 function updateAlbumUI(key){
   const a = albums.get(key);
   if(!a) return;
-  const icon = a.cardEl.querySelector('.album-icon');
   const countEl = a.cardEl.querySelector('.album-count');
 
   renderPatchwork(a.cardEl, a.photos);
@@ -609,7 +607,9 @@ function updateAlbumUI(key){
   if(a.photos.length > 1){
     icon.classList.remove('d-none');
     countEl.classList.remove('d-none');
-    countEl.textContent = String(a.photos.length);
+	count = String(a.photos.length)
+    countEl.textContent = `<i class="bi bi-images"></i> ×${count}`;
+	;
   }else{
     icon.classList.add('d-none');
     countEl.classList.add('d-none');
