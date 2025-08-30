@@ -796,10 +796,17 @@ def add_cache_headers(response):
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
     else:
-        # Heuristique : si la ressource vient de /static/, on la rend très cacheable
-        # (l’URL contient ?v=<hash>, donc safe)
         try:
             if request.path.startswith("/static/"):
+                    response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+                # ⚠️ Ne JAMAIS mettre immutable sur les uploads utilisateurs :
+                # on veut que les suppressions / remplacements soient visibles immédiatement.
+            if request.path.startswith("/static/uploads/"):
+                response.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
+                response.headers["Pragma"] = "no-cache"
+                response.headers["Expires"] = "0"
+            elif request.path.startswith("/static/"):
+                # OK pour les assets versionnés (CSS/JS avec ?v=hash)
                 response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         except Exception:
             pass
@@ -3464,11 +3471,10 @@ def api_filament_photos(fid):
             ext = name.rsplit('.', 1)[-1].lower()
             if ext not in ("jpg", "jpeg", "png", "webp", "gif"):
                 continue
-            url = url_for(
-                "static",
-                filename=f"uploads/filaments/{fid}/{name}",
-                _external=False
-            )
+            
+            p = os.path.join(gallery_dir, name)
+            v = int(os.path.getmtime(p)) if os.path.exists(p) else int(time.time())
+            url = url_for("static", filename=f"uploads/filaments/{fid}/{name}", _external=False) + f"?v={v}"
             items.append({"url": url, "filename": name})
 
     # 2) URL de la principale si présente

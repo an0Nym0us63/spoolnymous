@@ -395,8 +395,23 @@ LB.btnDelete.addEventListener('click', async ()=>{
 
   if (!(await ask())) return;
 
-  // TODO: suppression serveur si besoin
-  // await fetch('/api/gallery/photo/delete', { method:'POST', ... });
+  // Suppression côté serveur (réutilise l’endpoint existant)
+  try {
+    const fd = new FormData();
+    // ⚠️ p.name contient le nom de fichier AVEC extension (ex: "Photo-0001.webp")
+    fd.append('filename', p.name);
+    const resp = await fetch(
+      `/delete_photo/${encodeURIComponent(a.entity)}/${encodeURIComponent(a.id)}`,
+      { method: 'POST', body: fd, headers: { 'X-Requested-With': 'fetch' } }
+    );
+    if (!resp.ok) {
+      if (window.Swal) await Swal.fire('Erreur', 'La suppression a échoué côté serveur.', 'error');
+      return;
+    }
+  } catch (e) {
+    if (window.Swal) await Swal.fire('Erreur', 'La suppression a échoué (réseau).', 'error');
+    return;
+  }
 
   // Mise à jour locale
   a.photos.splice(LB.index, 1);

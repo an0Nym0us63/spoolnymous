@@ -1990,7 +1990,7 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                 groups[key].append({
                     "entity": entity,
                     "entity_id": entity_id,
-                    "url": f"/static/uploads/{entity}/{entity_id}/{name}",
+                    "url": f"/static/uploads/{entity}/{entity_id}/{name}?v={int((d / name).stat().st_mtime)}",
                     "name": name,
                     "base_name": Path(name).stem,  # sans extension
                     "seq": _seq_from_name(name),   # pour tri asc
