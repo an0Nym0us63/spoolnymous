@@ -3529,7 +3529,6 @@ def filament_set_main(fid):
 
     main_url = url_for("static", filename=f"uploads/filaments/{fid}.webp", _external=False)
     return jsonify({"ok": True, "main_url": f"{main_url}?_={int(time.time())}"})
-    
 
 _RX_MW_ID = re.compile(r"(?:/collections/|/models/)(\d+)", re.IGNORECASE)
 
@@ -3550,5 +3549,13 @@ def set_design_id():
     print_id = int(request.form["print_id"])
     raw = request.form.get("design_id")
     design_id = _normalize_design_id(raw)
+@app.post("/prints/set-design-id")
+def set_design_id():
+    print_id = int(request.form["print_id"])
+    raw = (request.form.get("design_id") or "").strip()
+    design_id = _normalize_design_id(raw)
+    # update DB: design_id -> design_id (chaîne vide = effacer)
+    update_print_history_field(print_id, "design_id",design_id)  # à toi d’implémenter
+    return redirect(request.referrer or url_for("prints"))
 
 app.register_blueprint(auth_bp)
