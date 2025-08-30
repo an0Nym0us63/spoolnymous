@@ -3,18 +3,12 @@
 {% block content %}
 
 {% import 'macros/hidden_args.jinja2' as macros %}
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div class="container mt-2">
-      {% for category, message in messages %}
-        <div class="alert alert-{{ 'warning' if category == 'message' else category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-{% endwith %}
+<style>
+.print-card{
+  content-visibility:auto;
+  contain-intrinsic-size: 320px 420px; /* “taille fantôme” approximative pour réserver la place */
+}
+</style>
 <!-- Bouton flottant pagination -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
   <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#paginationOffcanvas" aria-controls="paginationOffcanvas">
@@ -287,4 +281,26 @@ document.addEventListener("DOMContentLoaded", () => {
   } catch {}
 })();
 </script>
+<script>
+(() => {
+  // 1) S’assure que toutes les images de cartes sont bien lazy/async
+  document.querySelectorAll('.print-card img').forEach(img => {
+    if (!img.hasAttribute('loading'))       img.setAttribute('loading', 'lazy');
+    if (!img.hasAttribute('decoding'))      img.setAttribute('decoding', 'async');
+    if (!img.hasAttribute('fetchpriority')) img.setAttribute('fetchpriority', 'low');
+  });
+
+  // 2) Pré-décodage très proche du viewport pour lisser le scroll
+  const io = new IntersectionObserver((entries, obs) => {
+    for (const e of entries) if (e.isIntersecting) {
+      const img = e.target;
+      if ('decode' in img) img.decode().catch(() => {});
+      obs.unobserve(img);
+    }
+  }, { rootMargin: '400px 0px' });
+
+  document.querySelectorAll('.print-card img[loading="lazy"]').forEach(img => io.observe(img));
+})();
+</script>
+
 {% endblock %}
