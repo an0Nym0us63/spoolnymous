@@ -1975,7 +1975,7 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                 if not f.is_file():
                     continue
                 name = f.name
-                if not name.lower().startsWith(prefix.lower()):
+                if not str(name).lower().startswith(str(prefix).lower()):
                     continue
                 # sécurité simple
                 if name.lower().endswith(".3mf"):
