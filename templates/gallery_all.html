@@ -593,7 +593,7 @@ function renderPatchwork(card, photos){
     const count = photos.length;
     if (count > 1){
       chip.classList.remove('d-none');
-      countSpan.textContent = String(count);
+      countSpan.textContent = 'x'+String(count);
     } else {
       chip.classList.add('d-none');
       countSpan.textContent = '0';
