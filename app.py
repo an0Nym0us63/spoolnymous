@@ -3369,13 +3369,13 @@ def api_gallery_photos():
     start = (page - 1) * per
     end   = start + per
     chunk = items[start:end]
-
     return jsonify({
         "items": [
             {
                 "url": it["url"],
                 "name": it["name"],
                 "base_name": it["base_name"],
+                "makerworld_url": it["makerworld_url"],
                 "item_title": it["item_title"],
                 "entity": it["entity"],
                 "entity_id": it["entity_id"],
