@@ -184,8 +184,13 @@
         <div class="d-flex flex-column justify-content-center align-items-end ms-2 text-end" style="min-width: 70px;">
           {% if spool.location %}
             <div class="small text-muted" style="font-size: 0.75rem;">{{ spool.location }}</div>
-          {% endif %}
-          <strong style="font-size: 1rem;">{{ spool.remaining_weight|round|int }} g</strong>
+          {% endif %}<strong style="font-size: 1rem;">
+  {% if spool.remaining_weight is number %}
+    {{ spool.remaining_weight|round|int }} g
+  {% else %}
+    — 
+  {% endif %}
+</strong>
         </div>
       </div>
     </button>
@@ -310,7 +315,11 @@
             </li>
             <li><strong>Poids initial :</strong> {{ spool.initial_weight|round|int }} g</li>
             <li data-requires-write><strong>Prix :</strong> {{ spool.price|default("—") }} €</li>
-            <li><strong>Stock restant :</strong> {{ spool.remaining_weight|round|int }} g</li>
+            <li><strong>Stock restant :</strong> {% if spool.remaining_weight is number %}
+    {{ spool.remaining_weight|round|int }} g
+  {% else %}
+    — 
+  {% endif %}</li>
             <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
             <li><strong>Couleur :</strong>
               {% if spool.filament.multi_color_hexes %}
