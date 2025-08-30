@@ -171,6 +171,12 @@ sentinel.empty{ color:var(--bs-secondary-color); }
   .search-input{ width: 100%; }
 }
 .swal2-container { z-index: 3000 !important; }
+  .mw-link{
+    display:inline-flex; align-items:center;
+    margin-left:.35rem; opacity:.85; text-decoration:none;
+  }
+  .mw-link:hover{ opacity:1; }
+  .mw-link .bi{ font-size:.9rem; }
 </style>
 {% endblock %}
 
@@ -416,6 +422,10 @@ function createAlbumCard(entity, id, title){
     <div class="mt-2 d-flex align-items-center gap-2 meta-line">
       <i class="bi bi-folder-fill d-none album-icon"></i>
       <span class="text-truncate album-title" title="${title}">${title}</span>
+	  <a class="mw-link d-none" target="_blank" rel="noopener"
+       title="Voir sur MakerWorld" aria-label="Voir sur MakerWorld">
+      <i class="bi bi-box-arrow-up-right"></i>
+    </a>
       <span class="badge text-bg-secondary ms-auto d-none album-count">0</span>
     </div>
   `;
@@ -459,6 +469,16 @@ function updateAlbumUI(key){
     icon.classList.add('d-none');
     countEl.classList.add('d-none');
   }
+  const linkEl = a.cardEl.querySelector('.mw-link');
+if (linkEl) {
+  if (a.makerworldUrl) {
+    linkEl.href = a.makerworldUrl;
+    linkEl.classList.remove('d-none');
+  } else {
+    linkEl.removeAttribute('href');
+    linkEl.classList.add('d-none');
+  }
+}
 }
 
 function addPhotoToAlbum(item){
@@ -470,7 +490,7 @@ function addPhotoToAlbum(item){
     const title = albumTitle(entity, id, item.item_title);
     const cardEl = createAlbumCard(entity, id, title);
     cardEl.dataset.key = key;
-    albums.set(key, { entity, id, title, cardEl, photos: [] });
+    albums.set(key, { entity, id, title, cardEl, photos: [], makerworldUrl: null });
   }
   const a = albums.get(key);
 
@@ -478,6 +498,9 @@ function addPhotoToAlbum(item){
     a.photos.push({ url:item.url, name:item.name, base:item.base_name });
     updateAlbumUI(key);
   }
+  if (!a.makerworldUrl && item.makerworld_url) {
+  a.makerworldUrl = item.makerworld_url;
+}
 }
 (() => {
   let startX = 0, startY = 0, dx = 0, dy = 0, active = false, lockedAxis = null;

@@ -2010,33 +2010,37 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
         q_norm = q.casefold()
         print_ids  = [m["entity_id"] for k, m in meta.items() if m["entity"] == "prints"]
         group_ids  = [m["entity_id"] for k, m in meta.items() if m["entity"] == "groups"]
-
-        prints_meta = {}
-        groups_meta = {}
-
+    
+        prints_meta: dict[int, dict] = {}
+        groups_meta: dict[int, str] = {}         # gid -> name
+        groups_mw: dict[int, str | None] = {}    # gid -> makerworldUrl or None
+    
         try:
             conn = sqlite3.connect(db_config["db_path"])
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
-
-            # PRINTS: file_name / translated_name / original_name
+    
+            # -------- PRINTS: file_name / translated_name / original_name / design_id --------
             if print_ids:
                 q_marks = ",".join("?" for _ in print_ids)
                 cur.execute(f"""
-                    SELECT id, file_name, translated_name, original_name
+                    SELECT id, file_name, translated_name, original_name, design_id
                     FROM prints
                     WHERE id IN ({q_marks})
                 """, tuple(print_ids))
                 for r in cur.fetchall():
+                    did = (r["design_id"] or "").strip() if r["design_id"] is not None else ""
+                    mw = f"https://makerworld.com/fr/models/{did}" if did else None
                     prints_meta[r["id"]] = {
                         "file_name":       (r["file_name"]       or ""),
                         "translated_name": (r["translated_name"] or ""),
                         "original_name":   (r["original_name"]   or ""),
-                        "tags": [],  # complété juste après
+                        "design_id":       did,
+                        "makerworldUrl":   mw,
+                        "tags": [],
                     }
-
-                # Tags associés (bulk)
-                from collections import defaultdict as _dd
+    
+                # Tags (bulk)
                 if print_ids:
                     q_marks = ",".join("?" for _ in print_ids)
                     cur.execute(f"""
@@ -2045,23 +2049,47 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                         WHERE print_id IN ({q_marks})
                     """, tuple(print_ids))
                     for pid, tag in cur.fetchall():
-                        prints_meta.setdefault(pid, {"file_name":"", "translated_name":"", "original_name":"", "tags":[]})
+                        prints_meta.setdefault(pid, {"file_name":"", "translated_name":"", "original_name":"", "tags":[], "design_id":"", "makerworldUrl": None})
                         if tag:
                             prints_meta[pid]["tags"].append(str(tag))
-
-            # GROUPS: name (print_groups en priorité, puis groups)
+    
+            # -------- GROUPS: name + makerworld à partir du print de référence --------
             if group_ids:
+                # 1) Noms (print_groups puis fallback groups) — inchangé
                 q_marks = ",".join("?" for _ in group_ids)
-                cur.execute(f"SELECT id, name FROM print_groups WHERE id IN ({q_marks})", tuple(group_ids))
-                tmp = {r["id"]: (r["name"] or "") for r in cur.fetchall()}
+                cur.execute(f"SELECT id, name, primary_print_id FROM print_groups WHERE id IN ({q_marks})", tuple(group_ids))
+                tmp = {}
+                ref_map: dict[int, int | None] = {}  # gid -> primary_print_id
+                for r in cur.fetchall():
+                    tmp[r["id"]] = (r["name"] or "")
+                    ref_map[r["id"]] = r["primary_print_id"]
+    
                 missing = [gid for gid in group_ids if gid not in tmp]
                 if missing:
                     q2 = ",".join("?" for _ in missing)
+                    # si la table groups n’a pas primary_print_id, on ne le lira pas ici
                     cur.execute(f"SELECT id, name FROM groups WHERE id IN ({q2})", tuple(missing))
                     for r in cur.fetchall():
                         tmp[r["id"]] = (r["name"] or "")
+                        ref_map.setdefault(r["id"], None)
+    
                 groups_meta = tmp
-
+    
+                # 2) makerworldUrl à partir du design_id du primary_print_id
+                #    On récupère tous les prints référencés d’un coup
+                ref_print_ids = [pid for pid in ref_map.values() if pid]
+                did_map: dict[int, str] = {}
+                if ref_print_ids:
+                    q3 = ",".join("?" for _ in ref_print_ids)
+                    cur.execute(f"SELECT id, design_id FROM prints WHERE id IN ({q3})", tuple(ref_print_ids))
+                    for r in cur.fetchall():
+                        did_map[r["id"]] = (r["design_id"] or "").strip() if r["design_id"] is not None else ""
+    
+                for gid in group_ids:
+                    primary_pid = ref_map.get(gid)
+                    did = did_map.get(primary_pid, "") if primary_pid else ""
+                    groups_mw[gid] = f"https://makerworld.com/fr/models/{did}" if did else None
+    
         except Exception:
             # En cas de pépin DB, on ne filtre pas (comportement grâce)
             pass
@@ -2070,8 +2098,8 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                 conn.close()
             except Exception:
                 pass
-
-        # Applique le filtre q sur les clés
+    
+        # Applique le filtre q sur les clés (inchangé)
         keep_keys = []
         for key, m in meta.items():
             if m["entity"] == "prints":
@@ -2090,32 +2118,45 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                 name = (groups_meta.get(gid) or "").casefold()
                 if q_norm in name:
                     keep_keys.append(key)
-
-        # Filtre les groupes/métadonnées aux seules clés retenues
+    
         groups = {k: groups[k] for k in keep_keys if k in groups}
-        meta   = {k: meta[k]   for k in keep_keys if k in meta}
-
-    # 3) Tri intra-groupe par seq asc, puis nom
+        # enrichit meta au passage avec makerworldUrl
+        new_meta = {}
+        for k in keep_keys:
+            m = meta[k]
+            if m["entity"] == "prints":
+                pid = m["entity_id"]
+                m["makerworldUrl"] = prints_meta.get(pid, {}).get("makerworldUrl")
+            else:
+                gid = m["entity_id"]
+                m["makerworldUrl"] = groups_mw.get(gid)
+            new_meta[k] = m
+        meta = new_meta
+    
+    # 3) Tri intra-groupe par seq asc, puis nom (inchangé)
     for key, photos in groups.items():
         photos.sort(key=lambda x: (x["seq"], x["name"]))
-
-    # 4) Ordre des groupes : plus récents d’abord
+    
+    # 4) Ordre des groupes : plus récents d’abord (inchangé)
     ordered_keys = sorted(meta.keys(), key=lambda k: meta[k]["latest_mtime"], reverse=True)
-
-    # 5) Aplatit avec champs enrichis (schema inchangé)
+    
+    # 5) Aplatit avec champs enrichis (+ makerworldUrl)
     out = []
     for key in ordered_keys:
-        title = meta[key]["item_title"]
+        m = meta[key]
+        title = m["item_title"]
+        mw   = m.get("makerworldUrl")  # déjà pré-calculé ci-dessus
         for ph in groups.get(key, []):
             out.append({
                 "entity": ph["entity"],
                 "entity_id": ph["entity_id"],
                 "url": ph["url"],
-                "name": ph["name"],             # ex: Photo-12.jpg
-                "base_name": ph["base_name"],   # ex: Photo-12
-                "item_title": title,            # ex: Mon Vase ou Groupe Foo
+                "name": ph["name"],           # ex: Photo-12.jpg
+                "base_name": ph["base_name"], # ex: Photo-12
+                "item_title": title,          # ex: Mon Vase ou Groupe Foo
+                "makerworldUrl": mw           # ex: https://makerworld.com/fr/models/XXXX  ou None
             })
-
+    
     return out
 
 create_database()
