@@ -416,27 +416,25 @@ document.addEventListener('keydown', (e)=>{
 function createAlbumCard(entity, id, title){
   const card = document.createElement('div');
   card.className = 'album-card';
-
   card.innerHTML = `
-    <div class="patchwork"><!-- thumbs injectées --></div>
+    <div class="patchwork"></div>
     <div class="mt-2 d-flex align-items-center gap-2 meta-line">
       <i class="bi bi-folder-fill d-none album-icon"></i>
       <span class="text-truncate album-title" title="${title}">${title}</span>
-	  <a class="mw-link d-none" target="_blank" rel="noopener"
-       title="Voir sur MakerWorld" aria-label="Voir sur MakerWorld">
-      <i class="bi bi-box-arrow-up-right"></i>
-    </a>
+      <a class="mw-link d-none" target="_blank" rel="noopener"
+         title="Voir sur MakerWorld" aria-label="Voir sur MakerWorld">
+        <i class="bi bi-box-arrow-up-right"></i>
+      </a>
       <span class="badge text-bg-secondary ms-auto d-none album-count">0</span>
     </div>
   `;
 
-  // Clic = ouvrir le diaporama (index 0 par défaut)
-  card.addEventListener('click', ()=>{
-    const key = card.dataset.key;
-    const a = albums.get(key);
-    if(!a) return;
-    lbOpen(key, 0);
-  });
+  // Clic carte = lightbox
+  card.addEventListener('click', ()=>{ const a = albums.get(card.dataset.key); if(a) lbOpen(card.dataset.key, 0); });
+
+  // ✅ 3) empêcher l’ouverture de la lightbox si on clique le lien
+  const link = card.querySelector('.mw-link');
+  link.addEventListener('click', (e)=> e.stopPropagation());
 
   grid.appendChild(card);
   return card;
@@ -494,13 +492,19 @@ function addPhotoToAlbum(item){
   }
   const a = albums.get(key);
 
+  // ✅ 1) setter l’URL MakerWorld AVANT le rendu
+  const mw = item.makerworld_url || item.makerworldUrl || null;
+  if (mw && !a.makerworldUrl) {
+    a.makerworldUrl = mw;
+  }
+
+  // Ajout de la photo si nouvelle
   if(!a.photos.some(p => p.url === item.url)){
     a.photos.push({ url:item.url, name:item.name, base:item.base_name });
-    updateAlbumUI(key);
   }
-  if (!a.makerworldUrl && item.makerworld_url) {
-  a.makerworldUrl = item.makerworld_url;
-}
+
+  // ✅ 2) mettre à jour l’UI après avoir set makerworldUrl et/ou ajouté la photo
+  updateAlbumUI(key);
 }
 (() => {
   let startX = 0, startY = 0, dx = 0, dy = 0, active = false, lockedAxis = null;
