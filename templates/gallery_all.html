@@ -114,15 +114,6 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
     border-radius: .6rem;
   }
 
-.meta-line {
-  min-height: 28px;
-  font-size: 0.7rem;   /* plus petit qu'avant */
-}
-.meta-line .album-title,
-.meta-line .album-count,
-.meta-line .mw-link {
-  font-size: inherit;  /* hérite du 0.8rem */
-}
 
   /* Neutralise l’effet hover (inutile au tactile) */
   .album-card:hover .patchwork{ transform: none; }
@@ -174,8 +165,8 @@ sentinel.empty{ color:var(--bs-secondary-color); }
 /* 1) La ligne méta plus petite et sans marge verticale */
 .meta-line{
   margin-top: 0 !important;      /* écrase le mt-2 injecté */
-  padding: .35rem .55rem;         /* resserré */
-  font-size: .8rem;               /* plus petit */
+  padding: .1rem .2rem;         /* resserré */
+  font-size: .6rem;               /* plus petit */
   background: color-mix(in oklab, var(--tile-bg) 96%, transparent);
   border-top: 1px solid rgba(255,255,255,.08);
   border-bottom-left-radius: .75rem;
@@ -190,7 +181,7 @@ sentinel.empty{ color:var(--bs-secondary-color); }
 
 /* 3) Le conteneur global donne l’effet “tuile” (fond + ombre) */
 .album-card{
-  border-radius: .75rem;
+  border-radius: .6rem;
   overflow: hidden;
   background: var(--tile-bg);
   box-shadow: 0 1px 3px rgba(0,0,0,.12);
