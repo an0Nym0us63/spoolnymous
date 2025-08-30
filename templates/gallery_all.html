@@ -226,8 +226,8 @@ sentinel.empty{ color:var(--bs-secondary-color); }
 }
 .meta{ padding:.5rem .6rem; font-size:.85rem; }
 .meta .line1{
-  display:flex; align-items:center; gap:.35rem;
-  white-space:nowrap; overflow:hidden;
+  font-size:.8rem; opacity:.8; margin-top:.15rem;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .meta .line1 .text-truncate{ min-width:0; }
 .meta .line2{
@@ -556,7 +556,6 @@ function createAlbumCard(entity, id, title) {
           <div class="mw-icon"><i class="bi bi-globe2"></i></div>
         </a>
       </div>
-      <div class="line2 text-truncate">${albumTitle(entity, id, title)}</div>
     </div>
   `;
 
