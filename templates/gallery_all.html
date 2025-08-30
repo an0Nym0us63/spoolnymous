@@ -166,7 +166,7 @@ sentinel.empty{ color:var(--bs-secondary-color); }
 .meta-line{
   margin-top: 0 !important;      /* écrase le mt-2 injecté */
   padding: .1rem .2rem;         /* resserré */
-  font-size: .6rem;               /* plus petit */
+  font-size: .7rem;               /* plus petit */
   background: color-mix(in oklab, var(--tile-bg) 96%, transparent);
   border-top: 1px solid rgba(255,255,255,.08);
   border-bottom-left-radius: .75rem;
@@ -181,7 +181,7 @@ sentinel.empty{ color:var(--bs-secondary-color); }
 
 /* 3) Le conteneur global donne l’effet “tuile” (fond + ombre) */
 .album-card{
-  border-radius: .6rem;
+  border-radius: .7rem;
   overflow: hidden;
   background: var(--tile-bg);
   box-shadow: 0 1px 3px rgba(0,0,0,.12);
@@ -440,7 +440,6 @@ function createAlbumCard(entity, id, title){
    title="Voir sur MakerWorld" aria-label="Voir sur MakerWorld">
   <div class="mw-icon"><i class="bi bi-globe2"></i></div>
 </a>
-      <span class="badge text-bg-secondary ms-auto d-none album-count">0</span>
     </div>
   `;
 
