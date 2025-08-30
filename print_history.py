@@ -1986,11 +1986,19 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                 except Exception:
                     mtime = 0
                 latest_mtime = max(latest_mtime, mtime)
+                 # URL + cache-buster basé sur le mtime du FICHIER réel
+                try:
+                    v = int(mtime) if mtime else 0
+                except Exception:
+                    v = 0
+                url = f"/static/uploads/{entity}/{entity_id}/{name}"
+                if v:
+                    url = f"{url}?v={v}"
 
                 groups[key].append({
                     "entity": entity,
                     "entity_id": entity_id,
-                    "url": f"/static/uploads/{entity}/{entity_id}/{name}?v={int((Path(base) / name).stat().st_mtime)}",
+                    "url": url,
                     "name": name,
                     "base_name": Path(name).stem,  # sans extension
                     "seq": _seq_from_name(name),   # pour tri asc
