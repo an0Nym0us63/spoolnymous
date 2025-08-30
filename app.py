@@ -3555,7 +3555,7 @@ def set_design_id():
     update_print_history_field(print_id, "design_id",design_id)  # à toi d’implémenter
     return redirect(request.referrer or url_for("prints"))
 
-@app.post("/prints/set-design-id")
+@app.post("/groups/set-design-id")
 def set_design_id_group():
     group_id = int(request.form["group_id"])
     raw = (request.form.get("design_id") or "").strip()
