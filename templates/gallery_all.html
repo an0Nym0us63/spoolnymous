@@ -297,6 +297,29 @@ sentinel.empty{ color:var(--bs-secondary-color); }
 /* Globe MakerWorld serré à droite */
 .mw-link{ margin-left:auto; display:inline-flex; align-items:center; }
 .mw-link .mw-icon{ display:inline-flex; align-items:center; }
+:root{
+  /* surface bleutée proche filaments */
+  --tile-bg: color-mix(in oklab, var(--bs-body-bg) 90%, var(--bs-primary) 10%);
+  --tile-border: color-mix(in oklab, var(--bs-border-color) 80%, var(--bs-primary) 20%);
+}
+.tile{
+  background: var(--tile-bg) !important;
+  border-color: var(--tile-border) !important;
+}
+/* le conteneur gère l’arrondi et le fond, l’intérieur est transparent */
+.tile{
+  border-radius:.75rem; overflow:hidden;
+}
+.thumb-wrap{ background:#0f1218; }              /* vignette sombre neutre */
+.meta{
+  background: inherit;                          /* même fond que .tile */
+  padding:.5rem .6rem; font-size:.85rem;
+  border-top:1px solid var(--tile-border);      /* fine séparation */
+}
+/* pas de border-radius internes qui “débordent” */
+.patchwork, .meta-line, .meta{
+  border-radius:0 !important;
+}
 </style>
 {% endblock %}
 
@@ -461,6 +484,12 @@ function lbRender(){
   LB.img.alt = specific || a.title || '';
   LB.idx.textContent = String(LB.index + 1);
   LB.total.textContent = String(a.photos.length);
+
+  const multi = a.photos.length > 1;
+  LB.btnPrev.classList.toggle('d-none', !multi);
+  LB.btnNext.classList.toggle('d-none', !multi);
+  // optionnel : cacher aussi l’overlay nav cliquable
+  LB.root.querySelector('.lb-nav')?.classList.toggle('d-none', !multi);
 }
 
 qInput.addEventListener('input', debounce(()=>{
@@ -527,8 +556,11 @@ LB.btnDelete.addEventListener('click', async ()=>{
 
 document.addEventListener('keydown', (e)=>{
   if(!LB.root.classList.contains('open')) return;
-  if(e.key === 'ArrowLeft') lbMove(-1);
-  if(e.key === 'ArrowRight') lbMove(+1);
+  const a = albums.get(LB.albumKey);
+  if(!a) return;
+  const multi = a.photos.length > 1;
+  if(multi && e.key === 'ArrowLeft')  lbMove(-1);
+  if(multi && e.key === 'ArrowRight') lbMove(+1);
   if(e.key === 'Escape') lbClose();
 });
 
@@ -654,6 +686,9 @@ function addPhotoToAlbum(item){
 
   const onStart = (e) => {
     if (!LB.root.classList.contains('open')) return;
+	 // ✅ désactive swipe si une seule photo
+  const a = albums.get(LB.albumKey);
+  if (!a || a.photos.length < 2) return;
     const t = e.touches ? e.touches[0] : e;
     startX = t.clientX; startY = t.clientY;
     dx = dy = 0; active = true; lockedAxis = null;
