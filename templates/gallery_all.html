@@ -3,11 +3,14 @@
 <style>
 :root{
   --thumb-size: 180px;
-  --tile-bg: #111; /* couleur de fond des tuiles (clair: #f5f5f5) */
+  --tile-bg: color-mix(in oklab, var(--bs-body-bg) 90%, var(--bs-primary) 10%);
+  --tile-border: color-mix(in oklab, var(--bs-border-color) 80%, var(--bs-primary) 20%);
 }
 
+/* Page */
 body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 
+/* Header sticky */
 .gallery-header{
   position:sticky; top:0; z-index:1030;
   backdrop-filter:blur(6px);
@@ -15,7 +18,7 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
   border-bottom:1px solid rgba(255,255,255,.08);
 }
 
-/* Grille principale (cards album) */
+/* Grille principale */
 .g-grid{
   --g-thumb-size: 220px;
   display:grid;
@@ -23,243 +26,28 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
   gap:1rem;
 }
 
-/* Carte d’album */
-.album-card{ cursor:pointer; }
-.meta-line{ min-height:28px; }
-.album-title{ font-size:.75rem; line-height:1.2; }
-.album-count{ font-size:.75rem; }
-
-/* Tuile carrée */
-.patchwork{
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;          /* carré responsive */
-  border-radius: .75rem;
-  overflow: hidden;
-  background: var(--tile-bg, #111);
-  box-shadow: 0 1px 3px rgba(0,0,0,.08);
-}
-
-/* Une seule image, pleine tuile */
-.patchwork.single img{
-  position:absolute; inset:0;
-  width:100%; height:100%;
-  object-fit:cover; object-position:center;
-  display:block;
-}
-
-/* (Optionnel) micro-hover pour un peu de relief */
-.album-card .patchwork{ transition: transform .12s ease; }
-.album-card:hover .patchwork{ transform: translateY(-2px); }
-
-/* Lightbox */
-.lightbox{ position:fixed; inset:0; z-index:2000; display:none; background:rgba(0,0,0,.92); }
-.lightbox.open{ display:grid; place-items:center; }
-.lightbox img{ max-width:92vw; max-height:86vh; object-fit:contain; box-shadow:0 0 0 1px rgba(255,255,255,.08); border-radius:.5rem; }
-.lb-toolbar{ position:fixed; top:.5rem; left:.5rem; right:.5rem; display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
-.lb-actions{ display:flex; gap:.5rem; }
-.lb-index{ color:#fff; opacity:.8; font-size:.9rem; }
-.lb-nav{ position:fixed; inset:0; display:flex; align-items:center; justify-content:space-between; pointer-events:none; }
-.lb-nav .btn{ pointer-events:all; border-radius:999px; }
-/* Lightbox : titre adaptatif */
-.lb-toolbar{
-  flex-wrap: nowrap; /* desktop : une ligne */
-}
-
-#lbName{
-  max-width: 70vw;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.lb-index{
-  flex-shrink: 0; /* évite que le compteur se comprime trop */
-}
-
-/* En mobile : stack vertical */
-@media (max-width: 576px){
-  .lb-toolbar{
-    flex-wrap: wrap;          /* permet le retour à la ligne */
-    gap: .25rem;
-  }
-  #lbName{
-    max-width: 100%;
-    white-space: normal;
-    text-overflow: clip;
-    line-height: 1.2;
-  }
-  .lb-index{
-    width: 100%;
-    text-align: left;        /* ou center si tu veux */
-    font-size: .8rem;
-    opacity: .7;
-  }
-}
-/* ===== Mobile : 2 colonnes fixes qui s'adaptent à la largeur ===== */
-@media (max-width: 576px){
-  /* Bordures du container plus fines pour gagner de la place */
-  .container{ padding-left: .5rem; padding-right: .5rem; }
-
-  /* Grille forcée à 2 colonnes, quelles que soient les tailles prévues au-dessus */
-  .g-grid{
-    /* on casse l'auto-fill/minmax desktop */
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: .6rem !important;
-  }
-
-  /* Tuile : carré, pas de débord, coins doux */
-  .patchwork{
-    aspect-ratio: 1 / 1;
-    border-radius: .6rem;
-  }
-
-
-  /* Neutralise l’effet hover (inutile au tactile) */
-  .album-card:hover .patchwork{ transform: none; }
-}
-
-/* Variante 2 lignes sur mobile (si titres souvent longs) */
-/*
-@media (max-width: 576px){
-  .album-title{
-    white-space: normal;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-  }
-}
-*/
-q::placeholder{ opacity:.7; }
-sentinel.empty{ color:var(--bs-secondary-color); }
-.search-inner{
-  display:flex; justify-content:center;
-}
-.search-input{ width: min(720px, 100%); }
-
-/* look de l’input group (sobriété, pas de gros aplat) */
-.search-input .input-group-text{
-  background: var(--bs-body-bg);
-  border-color: var(--bs-border-color);
-}
-.search-input .form-control{
-  background: var(--bs-body-bg);
-  border-color: var(--bs-border-color);
-}
-.search-input .btn{
-  border-color: var(--bs-border-color);
-}
-
-/* Mobile : pleine largeur */
-@media (max-width: 576px){
-  .search-input{ width: 100%; }
-}
-.swal2-container { z-index: 3000 !important; }
-  .mw-link{
-    display:inline-flex; align-items:center;
-    margin-left:.35rem; opacity:.85; text-decoration:none;
-  }
-  .mw-link:hover{ opacity:1; }
-  .mw-link .bi{ font-size:.9rem; }
-/* 1) La ligne méta plus petite et sans marge verticale */
-.meta-line{
-  margin-top: 0 !important;      /* écrase le mt-2 injecté */
-  padding: .1rem .2rem;         /* resserré */
-  font-size: .7rem;               /* plus petit */
-  background: color-mix(in oklab, var(--tile-bg) 96%, transparent);
-  border-top: 1px solid rgba(255,255,255,.08);
-  border-bottom-left-radius: .75rem;
-  border-bottom-right-radius: .75rem;
-}
-
-/* 2) La vignette (haut) garde les coins supérieurs */
-.patchwork{
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-/* 3) Le conteneur global donne l’effet “tuile” (fond + ombre) */
-.album-card{
-  border-radius: .7rem;
-  overflow: hidden;
-  background: var(--tile-bg);
-  box-shadow: 0 1px 3px rgba(0,0,0,.12);
-}
-
-/* 4) Resserre les éléments de la méta-ligne */
-.meta-line .album-title{ font-size: inherit; line-height: 1.15; }
-.meta-line .album-count{ font-size: .72em; padding: .1rem .35rem; }
-.meta-line .mw-link{ font-size: .9em; opacity:.85; }
-.meta-line .mw-link:hover{ opacity:1; }
-/* === Compact tile style (aligné sur filaments_gallery) === */
-.tile{
-  border:1px solid var(--bs-border-color);
-  border-radius:.75rem;
-  overflow:hidden;
-  background:var(--bs-body-bg);
-  box-shadow:0 1px 3px rgba(0,0,0,.06);
-  transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-  cursor:pointer;
-}
-.tile:hover{
-  transform:translateY(-1px);
-  box-shadow:0 6px 14px rgba(0,0,0,.12);
-  border-color:color-mix(in oklab, var(--bs-border-color) 60%, var(--bs-primary) 40%);
-}
-.thumb-wrap{
+/* --- Tuile compacte style filaments --- */
+.album-card.tile{
   position:relative;
-  width:100%;
-  aspect-ratio:1/1;
-  background:#111827; /* placeholder sombre comme dans filaments */
-}
-.thumb{
-  position:absolute; inset:0;
-  width:100%; height:100%;
-  object-fit:cover; object-position:center;
-  display:block;
-}
-.badge-overlay{
-  position:absolute; top:.4rem; right:.4rem;
-  font-size:.85rem; background:rgba(0,0,0,.5);
-  color:#fff; padding:.2rem .4rem; border-radius:.5rem;
-}
-.meta{ padding:.5rem .6rem; font-size:.85rem; }
-.meta .line1{
-  font-size:.8rem; opacity:.8; margin-top:.15rem;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-.meta .line1 .text-truncate{ min-width:0; }
-.meta .line2{
-  font-size:.8rem; opacity:.8; margin-top:.15rem;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-/* badge compact (comme filaments) */
-.badge-s{
-  font-size:.68rem; padding:.15rem .35rem;
-  background:var(--bs-secondary-bg); color:var(--bs-secondary-color);
-  border-radius:.35rem;
-}
-/* === Tuile compacte style filaments === */
-.tile{
-  border:1px solid var(--bs-border-color);
-  border-radius:.75rem;
+  cursor:pointer;
+  border-radius:.75rem;           /* unique arrondi */
   overflow:hidden;
-  background:var(--bs-body-bg);
+  background:var(--tile-bg);
+  border:1px solid var(--tile-border);
   box-shadow:0 1px 3px rgba(0,0,0,.06);
   transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-  cursor:pointer;
 }
-.tile:hover{
+.album-card.tile:hover{
   transform:translateY(-1px);
   box-shadow:0 6px 14px rgba(0,0,0,.10);
-  border-color:var(--bs-border-color);
 }
+
+/* Vignette */
 .thumb-wrap{
   position:relative;
   width:100%;
   aspect-ratio:1/1;
-  background:var(--bs-secondary-bg);
+  background:#0f1218;             /* placeholder sombre neutre */
 }
 .thumb{
   position:absolute; inset:0;
@@ -268,7 +56,7 @@ sentinel.empty{ color:var(--bs-secondary-color); }
   display:block;
 }
 
-/* Chip compteur en bas-gauche (comme filaments) */
+/* Chip compteur en bas-gauche */
 .badge-chip{
   position:absolute; left:.5rem; bottom:.5rem;
   display:inline-flex; align-items:center; gap:.35rem;
@@ -282,8 +70,12 @@ sentinel.empty{ color:var(--bs-secondary-color); }
 }
 .badge-chip .bi{ opacity:.85; font-size:.85rem; }
 
-/* Bloc infos sous la vignette */
-.meta{ padding:.5rem .6rem; font-size:.85rem; }
+/* Métadonnées */
+.meta{
+  background:inherit;
+  padding:.5rem .6rem; font-size:.85rem;
+  border-top:1px solid color-mix(in oklab, var(--tile-border) 70%, transparent);
+}
 .meta .line1{
   display:flex; align-items:center; gap:.4rem;
   white-space:nowrap; overflow:hidden;
@@ -294,34 +86,51 @@ sentinel.empty{ color:var(--bs-secondary-color); }
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
-/* Globe MakerWorld serré à droite */
+/* Globe MakerWorld à droite */
 .mw-link{ margin-left:auto; display:inline-flex; align-items:center; }
 .mw-link .mw-icon{ display:inline-flex; align-items:center; }
-:root{
-  /* surface bleutée proche filaments */
-  --tile-bg: color-mix(in oklab, var(--bs-body-bg) 90%, var(--bs-primary) 10%);
-  --tile-border: color-mix(in oklab, var(--bs-border-color) 80%, var(--bs-primary) 20%);
+.mw-link .bi{ font-size:.9rem; opacity:.85; }
+.mw-link:hover{ opacity:1; }
+
+/* Search bar */
+.search-inner{ display:flex; justify-content:center; }
+.search-input{ width: min(720px, 100%); }
+.search-input .input-group-text,
+.search-input .form-control,
+.search-input .btn{
+  background: var(--bs-body-bg);
+  border-color: var(--bs-border-color);
 }
-.tile{
-  background: var(--tile-bg) !important;
-  border-color: var(--tile-border) !important;
+@media (max-width: 576px){
+  .search-input{ width:100%; }
 }
-/* le conteneur gère l’arrondi et le fond, l’intérieur est transparent */
-.tile{
-  border-radius:.75rem; overflow:hidden;
+
+/* Lightbox */
+.lightbox{ position:fixed; inset:0; z-index:2000; display:none; background:rgba(0,0,0,.92); }
+.lightbox.open{ display:grid; place-items:center; }
+.lightbox img{ max-width:92vw; max-height:86vh; object-fit:contain; box-shadow:0 0 0 1px rgba(255,255,255,.08); border-radius:.5rem; }
+.lb-toolbar{ position:fixed; top:.5rem; left:.5rem; right:.5rem; display:flex; align-items:center; justify-content:space-between; gap:.5rem; flex-wrap:nowrap; }
+.lb-actions{ display:flex; gap:.5rem; }
+.lb-index{ color:#fff; opacity:.8; font-size:.9rem; flex-shrink:0; }
+.lb-nav{ position:fixed; inset:0; display:flex; align-items:center; justify-content:space-between; pointer-events:none; }
+.lb-nav .btn{ pointer-events:all; border-radius:999px; }
+#lbName{ max-width:70vw; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+@media (max-width:576px){
+  .lb-toolbar{ flex-wrap:wrap; gap:.25rem; }
+  #lbName{ max-width:100%; white-space:normal; line-height:1.2; text-overflow:clip; }
+  .lb-index{ width:100%; text-align:left; font-size:.8rem; opacity:.7; }
+  .container{ padding-left:.5rem; padding-right:.5rem; }
+  .g-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap:.6rem !important; }
 }
-.thumb-wrap{ background:#0f1218; }              /* vignette sombre neutre */
-.meta{
-  background: inherit;                          /* même fond que .tile */
-  padding:.5rem .6rem; font-size:.85rem;
-  border-top:1px solid var(--tile-border);      /* fine séparation */
-}
-/* pas de border-radius internes qui “débordent” */
-.patchwork, .meta-line, .meta{
-  border-radius:0 !important;
-}
+
+/* Divers */
+q::placeholder{ opacity:.7; }
+#sentinel.empty{ color:var(--bs-secondary-color); }
+.swal2-container{ z-index:3000 !important; }
 </style>
 {% endblock %}
+
 
 {% block content %}
 <main class="gallery-page">
@@ -625,7 +434,7 @@ function renderPatchwork(card, photos){
     const count = photos.length;
     if (count > 1){
       chip.classList.remove('d-none');
-      countSpan.textContent = 'x'+String(count);
+      countSpan.textContent = '×'+String(count);
     } else {
       chip.classList.add('d-none');
       countSpan.textContent = '0';
