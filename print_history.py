@@ -1937,7 +1937,7 @@ def _item_title(entity: str, entity_id: int) -> str:
         return title.strip()
     return ("Print #{}".format(entity_id) if entity == "prints" else "Groupe #{}".format(entity_id))
 
-ddef list_all_photos(prefix="Photo-", q: str | None = None):
+def list_all_photos(prefix="Photo-", q: str | None = None):
     """
     Scanne /static/uploads/{prints,groups}/<id> et retourne la liste
     de toutes les photos dont le nom commence par `prefix` (par défaut Photo-).
