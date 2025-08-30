@@ -1118,7 +1118,7 @@ def health():
 def print_history():
 
     page = int(request.args.get("page", 1))
-    per_page = int(request.args.get("per_page", 30))
+    per_page = int(request.args.get("per_page", 20))
     ref_print_id = request.args.get("ref_print_id", type=int)
     ref_group_id = request.args.get("ref_group_id", type=int)
 

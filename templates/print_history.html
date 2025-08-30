@@ -3,12 +3,7 @@
 {% block content %}
 
 {% import 'macros/hidden_args.jinja2' as macros %}
-<style>
-.print-card{
-  content-visibility:auto;
-  contain-intrinsic-size: 320px 420px; /* “taille fantôme” approximative pour réserver la place */
-}
-</style>
+
 <!-- Bouton flottant pagination -->
 <div class="position-fixed bottom-0 end-0 m-3" style="z-index:1030;">
   <button class="btn btn-sm btn-primary rounded-circle" type="button" data-bs-toggle="offcanvas" data-bs-target="#paginationOffcanvas" aria-controls="paginationOffcanvas">
@@ -223,84 +218,4 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 </script>
-<script>
-/* Optimisations non-visuelles pour print_history/list_prints */
-(() => {
-  // 1) Évite de peindre les cartes hors-écran (invisible pour l’utilisateur)
-  //    -> content-visibility ne change pas le rendu, juste la perf.
-  document.querySelectorAll('.print-card').forEach(card => {
-    // On n'écrase pas les styles existants (on ajoute seulement).
-    card.style.setProperty('content-visibility', 'auto');              // skip paint offscreen
-    card.style.setProperty('contain-intrinsic-size', '320px 420px');   // réserve la place (anti-CLS)
-  });
-
-  // 2) S’assure que toutes les vignettes sont lazy/async (au cas où le template n’a pas les attrs)
-  document.querySelectorAll('.print-card img').forEach(img => {
-    if (!img.hasAttribute('loading'))       img.setAttribute('loading', 'lazy');
-    if (!img.hasAttribute('decoding'))      img.setAttribute('decoding', 'async');
-    if (!img.hasAttribute('fetchpriority')) img.setAttribute('fetchpriority', 'low');
-  });
-
-  // 3) Si la page crée les cartes côté client, on évite les à-coups avec un rendu par lots
-  window.renderPrintsInBatches = async function renderPrintsInBatches(items, buildCard, container, batch=40){
-    let i = 0;
-    const idle = window.requestIdleCallback || (fn => setTimeout(fn, 16));
-    return new Promise(resolve => {
-      function step(deadline){
-        const frag = document.createDocumentFragment();
-        let count = 0;
-        while (i < items.length && count < batch && (!deadline || deadline.timeRemaining() > 4)) {
-          frag.appendChild(buildCard(items[i++]));
-          count++;
-        }
-        container.appendChild(frag);
-        if (i < items.length) idle(step); else resolve();
-      }
-      idle(step);
-    });
-  };
-
-  // 4) Lazy “douce” via IntersectionObserver (ne change pas le DOM, juste quand on charge)
-  //    Ici on ne touche PAS aux src. On peut juste pré-activer le décodage à l’approche.
-  const io = new IntersectionObserver((entries) => {
-    for (const e of entries) if (e.isIntersecting) {
-      const img = e.target;
-      // hint au navigateur : commence le décodage calmement
-      if ('decode' in img) img.decode().catch(() => {});
-      io.unobserve(img);
-    }
-  }, { rootMargin: '400px 0px' });
-
-  document.querySelectorAll('.print-card img[loading="lazy"]').forEach(img => io.observe(img));
-
-  // 5) Par sécurité : écouteurs scroll/touch en passive (si présents ailleurs)
-  try {
-    window.addEventListener('touchstart', ()=>{}, { passive:true });
-    window.addEventListener('touchmove',  ()=>{}, { passive:true });
-    window.addEventListener('wheel',      ()=>{}, { passive:true });
-  } catch {}
-})();
-</script>
-<script>
-(() => {
-  // 1) S’assure que toutes les images de cartes sont bien lazy/async
-  document.querySelectorAll('.print-card img').forEach(img => {
-    if (!img.hasAttribute('loading'))       img.setAttribute('loading', 'lazy');
-    if (!img.hasAttribute('decoding'))      img.setAttribute('decoding', 'async');
-    if (!img.hasAttribute('fetchpriority')) img.setAttribute('fetchpriority', 'low');
-  });
-
-  // 2) Pré-décodage très proche du viewport pour lisser le scroll
-  const io = new IntersectionObserver((entries, obs) => {
-    for (const e of entries) if (e.isIntersecting) {
-      const img = e.target;
-      if ('decode' in img) img.decode().catch(() => {});
-      obs.unobserve(img);
-    }
-  }, { rootMargin: '400px 0px' });
-
-  document.querySelectorAll('.print-card img[loading="lazy"]').forEach(img => io.observe(img));
-})();
-</script>
-
 {% endblock %}
