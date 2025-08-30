@@ -476,25 +476,30 @@ document.addEventListener('keydown', (e)=>{
 });
 
 // === RENDU ALBUMS ============================================================
-function createAlbumCard(entity, id, title){
+function createAlbumCard(entity, id, title) {
+  const card = document.createElement('div');
   card.className = 'album-card tile';
-card.innerHTML = `
-  <div class="thumb-wrap">
-    <img class="thumb" alt="">
-    <span class="badge-overlay d-none album-count">0</span>
-  </div>
-  <div class="meta">
-    <div class="line1">
-      <i class="bi bi-folder-fill d-none album-icon"></i>
-      <strong class="text-truncate album-title" title="${title}">${title}</strong>
-      <a class="mw-link d-none" target="_blank" rel="noopener"
-         title="Voir sur MakerWorld" aria-label="Voir sur MakerWorld">
-        <div class="mw-icon"><i class="bi bi-globe2"></i></div>
-      </a>
+  card.dataset.entity = entity;
+  card.dataset.id = id;
+  card.dataset.key = `${entity}:${id}`;
+
+  card.innerHTML = `
+    <div class="thumb-wrap">
+      <img class="thumb" alt="">
+      <span class="badge-overlay d-none album-count">0</span>
     </div>
-    <div class="line2 text-truncate">${albumTitle(entity, id, title)}</div>
-  </div>
-`;
+    <div class="meta">
+      <div class="line1">
+        <i class="bi bi-folder-fill d-none album-icon"></i>
+        <strong class="text-truncate album-title" title="${title}">${title}</strong>
+        <a class="mw-link d-none" target="_blank" rel="noopener"
+           title="Voir sur MakerWorld" aria-label="Voir sur MakerWorld">
+          <div class="mw-icon"><i class="bi bi-globe2"></i></div>
+        </a>
+      </div>
+      <div class="line2 text-truncate">${albumTitle(entity, id, title)}</div>
+    </div>
+  `;
 
   // Clic carte = lightbox
   card.addEventListener('click', ()=>{ const a = albums.get(card.dataset.key); if(a) lbOpen(card.dataset.key, 0); });
