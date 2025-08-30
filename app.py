@@ -3369,7 +3369,6 @@ def api_gallery_photos():
     start = (page - 1) * per
     end   = start + per
     chunk = items[start:end]
-    logger.debug(json.dumps(items))
     return jsonify({
         "items": [
             {
