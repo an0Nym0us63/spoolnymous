@@ -11,6 +11,7 @@ from config import get_app_setting,get_electric_rate_at
 from camera import snapshot_to_print_file
 from pathlib import Path
 import re
+from typing import Optional
 
 
 import logging
