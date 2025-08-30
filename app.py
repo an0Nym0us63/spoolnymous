@@ -3375,7 +3375,7 @@ def api_gallery_photos():
                 "url": it["url"],
                 "name": it["name"],
                 "base_name": it["base_name"],
-                "makerworld_url": it["makerworld_url"],
+                "makerworld_url": it["makerworldUrl"],
                 "item_title": it["item_title"],
                 "entity": it["entity"],
                 "entity_id": it["entity_id"],
