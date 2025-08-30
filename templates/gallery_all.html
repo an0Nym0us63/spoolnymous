@@ -158,6 +158,28 @@ q::placeholder{ opacity:.7; }
   height:8px;
   background:var(--tile-bg);
   pointer-events:none;
+}/* === Harmonisation exacte avec filaments_gallery === */
+:root{
+  --tile-bg: #0f172a;                 /* même fond de tuile */
+  --tile-border-rgba: rgba(255,255,255,.08);
+}
+
+/* Tuile (carte) */
+.album-card.tile{
+  background: var(--tile-bg) !important;
+  border: 1px solid var(--tile-border-rgba) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,.2) !important;
+}
+
+/* Fond de la zone image (thumb) */
+.album-card .thumb-wrap{
+  background: #111827 !important;
+}
+
+/* Pas de trait entre image et méta (tu ne voulais plus la ligne) */
+.album-card .meta{
+  border-top: none !important;
+  background: var(--tile-bg) !important;  /* homogène */
 }
 </style>
 {% endblock %}
