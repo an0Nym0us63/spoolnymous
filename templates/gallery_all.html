@@ -128,6 +128,37 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 q::placeholder{ opacity:.7; }
 #sentinel.empty{ color:var(--bs-secondary-color); }
 .swal2-container{ z-index:3000 !important; }
+/* === FIX COINS BAS === */
+.album-card.tile{
+  border-radius:.75rem;         /* arrondi unique */
+  overflow:hidden;
+  background:var(--tile-bg);
+  border:1px solid var(--tile-border);
+}
+
+/* enfants forcés carrés et même fond */
+.album-card .thumb-wrap,
+.album-card .meta,
+.album-card .patchwork{
+  border-radius:0 !important;
+  background:inherit !important;
+}
+
+/* supprimer tout gradient / transparent qui bave */
+.album-card .meta{
+  background:var(--tile-bg) !important;
+  border-top:1px solid color-mix(in oklab, var(--tile-border) 70%, transparent);
+}
+
+/* ceinture + bretelles : masque de fond sur le bas */
+.album-card::after{
+  content:"";
+  position:absolute;
+  left:0; right:0; bottom:0;
+  height:8px;
+  background:var(--tile-bg);
+  pointer-events:none;
+}
 </style>
 {% endblock %}
 
