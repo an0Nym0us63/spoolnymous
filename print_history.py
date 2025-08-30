@@ -2081,11 +2081,41 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                     q3 = ",".join("?" for _ in ref_print_ids)
                     cur.execute(f"SELECT id, design_id FROM prints WHERE id IN ({q3})", tuple(ref_print_ids))
                     for r in cur.fetchall():
-                        did_map[r["id"]] = (r["design_id"] or "").strip() if r["design_id"] is not None else ""
-
+                        did_map[r["id"]] = (r["design_id"] or "").strip()
+                
+                # 1) valeur initiale par groupe à partir du primary_print_id
+                group_did: dict[int, str] = {}
                 for gid in group_ids:
                     primary_pid = ref_map.get(gid)
                     did = did_map.get(primary_pid, "") if primary_pid else ""
+                    group_did[gid] = did
+                
+                # 2) Fallback: pour les groupes sans design_id, scanner les prints rattachés
+                missing_gids = [gid for gid, did in group_did.items() if not did]
+                if missing_gids:
+                    # gid -> [print_ids]
+                    group_to_pids: dict[int, list[int]] = {gid: (get_group_print_ids(gid) or []) for gid in missing_gids}
+                
+                    # batch SQL pour tous les print_ids supplémentaires (évite N requêtes)
+                    extra_pids = {pid for pids in group_to_pids.values() for pid in pids
+                                if pid and pid not in did_map}
+                    if extra_pids:
+                        q4 = ",".join("?" for _ in extra_pids)
+                        cur.execute(f"SELECT id, design_id FROM prints WHERE id IN ({q4})", tuple(extra_pids))
+                        for r in cur.fetchall():
+                            did_map[r["id"]] = (r["design_id"] or "").strip()
+                
+                    # choisir le premier design_id non vide trouvé parmi les prints du groupe
+                    for gid in missing_gids:
+                        for pid in group_to_pids.get(gid, []):
+                            did = did_map.get(pid, "")
+                            if did:
+                                group_did[gid] = did
+                                break
+                
+                # 3) Construire l'URL finale (ou None si toujours rien)
+                for gid in group_ids:
+                    did = group_did.get(gid, "")
                     groups_mw[gid] = f"https://makerworld.com/fr/models/{did}" if did else None
 
         except Exception:
