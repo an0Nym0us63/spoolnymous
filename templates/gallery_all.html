@@ -114,21 +114,15 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
     border-radius: .6rem;
   }
 
-  /* Légende compacte sous la vignette */
-  .meta-line{ min-height: 22px; }
-
-  /* 1 ligne tronquée (ou 2 lignes si tu préfères, voir variante) */
-  .album-title{
-    font-size: .84rem;
-    line-height: 1.15;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .album-count{
-    font-size: .68rem;
-    padding: .1rem .35rem;
-  }
+.meta-line {
+  min-height: 28px;
+  font-size: 0.7rem;   /* plus petit qu'avant */
+}
+.meta-line .album-title,
+.meta-line .album-count,
+.meta-line .mw-link {
+  font-size: inherit;  /* hérite du 0.8rem */
+}
 
   /* Neutralise l’effet hover (inutile au tactile) */
   .album-card:hover .patchwork{ transform: none; }
@@ -422,9 +416,9 @@ function createAlbumCard(entity, id, title){
       <i class="bi bi-folder-fill d-none album-icon"></i>
       <span class="text-truncate album-title" title="${title}">${title}</span>
       <a class="mw-link d-none" target="_blank" rel="noopener"
-         title="Voir sur MakerWorld" aria-label="Voir sur MakerWorld">
-        <i class="bi bi-box-arrow-up-right"></i>
-      </a>
+   title="Voir sur MakerWorld" aria-label="Voir sur MakerWorld">
+  <div class="mw-icon"><i class="bi bi-globe2"></i></div>
+</a>
       <span class="badge text-bg-secondary ms-auto d-none album-count">0</span>
     </div>
   `;
