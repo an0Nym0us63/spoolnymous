@@ -171,6 +171,36 @@ sentinel.empty{ color:var(--bs-secondary-color); }
   }
   .mw-link:hover{ opacity:1; }
   .mw-link .bi{ font-size:.9rem; }
+/* 1) La ligne méta plus petite et sans marge verticale */
+.meta-line{
+  margin-top: 0 !important;      /* écrase le mt-2 injecté */
+  padding: .35rem .55rem;         /* resserré */
+  font-size: .8rem;               /* plus petit */
+  background: color-mix(in oklab, var(--tile-bg) 96%, transparent);
+  border-top: 1px solid rgba(255,255,255,.08);
+  border-bottom-left-radius: .75rem;
+  border-bottom-right-radius: .75rem;
+}
+
+/* 2) La vignette (haut) garde les coins supérieurs */
+.patchwork{
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* 3) Le conteneur global donne l’effet “tuile” (fond + ombre) */
+.album-card{
+  border-radius: .75rem;
+  overflow: hidden;
+  background: var(--tile-bg);
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
+}
+
+/* 4) Resserre les éléments de la méta-ligne */
+.meta-line .album-title{ font-size: inherit; line-height: 1.15; }
+.meta-line .album-count{ font-size: .72em; padding: .1rem .35rem; }
+.meta-line .mw-link{ font-size: .9em; opacity:.85; }
+.meta-line .mw-link:hover{ opacity:1; }
 </style>
 {% endblock %}
 
