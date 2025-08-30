@@ -3543,12 +3543,7 @@ def _normalize_design_id(raw: str) -> str:
     if s.isdigit():
         return s
     return s  # fallback: on laisse tel quel (au cas où tu souhaites loguer/traiter ailleurs)
-
-@app.post("/prints/set-design-id")
-def set_design_id():
-    print_id = int(request.form["print_id"])
-    raw = request.form.get("design_id")
-    design_id = _normalize_design_id(raw)
+    
 @app.post("/prints/set-design-id")
 def set_design_id():
     print_id = int(request.form["print_id"])
