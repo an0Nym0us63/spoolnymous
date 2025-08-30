@@ -240,13 +240,15 @@ sentinel.empty{ color:var(--bs-secondary-color); }
   background:var(--bs-secondary-bg); color:var(--bs-secondary-color);
   border-radius:.35rem;
 }
-/* === Cards compactes (aligné sur filaments) === */
+/* === Tuile compacte style filaments === */
 .tile{
   border:1px solid var(--bs-border-color);
   border-radius:.75rem;
+  overflow:hidden;
   background:var(--bs-body-bg);
-  box-shadow:0 2px 6px rgba(0,0,0,.04);
+  box-shadow:0 1px 3px rgba(0,0,0,.06);
   transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  cursor:pointer;
 }
 .tile:hover{
   transform:translateY(-1px);
@@ -266,7 +268,7 @@ sentinel.empty{ color:var(--bs-secondary-color); }
   display:block;
 }
 
-/* Chip compteur en bas-gauche (façon filaments) */
+/* Chip compteur en bas-gauche (comme filaments) */
 .badge-chip{
   position:absolute; left:.5rem; bottom:.5rem;
   display:inline-flex; align-items:center; gap:.35rem;
@@ -278,9 +280,9 @@ sentinel.empty{ color:var(--bs-secondary-color); }
   border-radius:.5rem;
   box-shadow:0 1px 2px rgba(0,0,0,.06);
 }
-.badge-chip .bi{ opacity:.8; font-size:.8rem; }
+.badge-chip .bi{ opacity:.85; font-size:.85rem; }
 
-/* Métadonnées sous l’image */
+/* Bloc infos sous la vignette */
 .meta{ padding:.5rem .6rem; font-size:.85rem; }
 .meta .line1{
   display:flex; align-items:center; gap:.4rem;
@@ -292,7 +294,7 @@ sentinel.empty{ color:var(--bs-secondary-color); }
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
-/* Lien MakerWorld calé à droite */
+/* Globe MakerWorld serré à droite */
 .mw-link{ margin-left:auto; display:inline-flex; align-items:center; }
 .mw-link .mw-icon{ display:inline-flex; align-items:center; }
 </style>
@@ -538,30 +540,33 @@ function createAlbumCard(entity, id, title) {
   card.dataset.id = id;
   card.dataset.key = `${entity}:${id}`;
 
-card.innerHTML = `
-  <div class="thumb-wrap">
-    <img class="thumb" alt="">
-    <span class="badge-chip d-none album-count">
-      <i class="bi bi-collection"></i>
-      <span class="count">0</span>
-    </span>
-  </div>
-  <div class="meta">
-    <div class="line1">
-      <strong class="text-truncate album-title" title="${title}">${title}</strong>
-      <a class="mw-link d-none" target="_blank" rel="noopener"
-         title="Voir sur MakerWorld" aria-label="Voir sur MakerWorld">
-        <div class="mw-icon"><i class="bi bi-globe2"></i></div>
-      </a>
+  card.innerHTML = `
+    <div class="thumb-wrap">
+      <img class="thumb" alt="">
+      <span class="badge-chip d-none album-count" title="Nombre de photos">
+        <i class="bi bi-images"></i>
+        <span class="count">0</span>
+      </span>
     </div>
-    <div class="line2 text-truncate">${albumTitle(entity, id, title)}</div>
-  </div>
-`;
+    <div class="meta">
+      <div class="line1">
+        <strong class="text-truncate album-title" title="${title}">${title}</strong>
+        <a class="mw-link d-none" target="_blank" rel="noopener"
+           title="Voir sur MakerWorld" aria-label="Voir sur MakerWorld">
+          <div class="mw-icon"><i class="bi bi-globe2"></i></div>
+        </a>
+      </div>
+      <div class="line2 text-truncate">${albumTitle(entity, id, title)}</div>
+    </div>
+  `;
 
-  // Clic carte = lightbox
-  card.addEventListener('click', ()=>{ const a = albums.get(card.dataset.key); if(a) lbOpen(card.dataset.key, 0); });
+  // Clic carte = ouvrir lightbox
+  card.addEventListener('click', () => {
+    const a = albums.get(card.dataset.key);
+    if (a) lbOpen(card.dataset.key, 0);
+  });
 
-  // ✅ 3) empêcher l’ouverture de la lightbox si on clique le lien
+  // Ne pas ouvrir la lightbox si clic sur le lien
   const link = card.querySelector('.mw-link');
   link.addEventListener('click', (e)=> e.stopPropagation());
 
@@ -599,31 +604,22 @@ function renderPatchwork(card, photos){
 
 function updateAlbumUI(key){
   const a = albums.get(key);
-  if(!a) return;
-  const countEl = a.cardEl.querySelector('.album-count');
+  if(!a || !a.cardEl) return;
 
+  // Met à jour l'image de couverture + chip compteur
   renderPatchwork(a.cardEl, a.photos);
 
-  if(a.photos.length > 1){
-    icon.classList.remove('d-none');
-    countEl.classList.remove('d-none');
-	count = String(a.photos.length)
-    countEl.textContent = `<i class="bi bi-images"></i> ×${count}`;
-	;
-  }else{
-    icon.classList.add('d-none');
-    countEl.classList.add('d-none');
-  }
+  // Lien MakerWorld (toujours serré à droite)
   const linkEl = a.cardEl.querySelector('.mw-link');
-if (linkEl) {
-  if (a.makerworldUrl) {
-    linkEl.href = a.makerworldUrl;
-    linkEl.classList.remove('d-none');
-  } else {
-    linkEl.removeAttribute('href');
-    linkEl.classList.add('d-none');
+  if (linkEl) {
+    if (a.makerworldUrl) {
+      linkEl.href = a.makerworldUrl;
+      linkEl.classList.remove('d-none');
+    } else {
+      linkEl.removeAttribute('href');
+      linkEl.classList.add('d-none');
+    }
   }
-}
 }
 
 function addPhotoToAlbum(item){
@@ -639,18 +635,17 @@ function addPhotoToAlbum(item){
   }
   const a = albums.get(key);
 
-  // ✅ 1) setter l’URL MakerWorld AVANT le rendu
+  // URL MakerWorld
   const mw = item.makerworld_url || item.makerworldUrl || null;
-  if (mw && !a.makerworldUrl) {
-    a.makerworldUrl = mw;
-  }
+  if (mw && !a.makerworldUrl) a.makerworldUrl = mw;
 
   // Ajout de la photo si nouvelle
-  if(!a.photos.some(p => p.url === item.url)){
-    a.photos.push({ url:item.url, name:item.name, base:item.base_name });
+  const url = item.url || item.path || item.src;
+  if (url && !a.photos.some(p => p.url === url)){
+    a.photos.push({ url, name:item.name, base:item.base_name });
   }
 
-  // ✅ 2) mettre à jour l’UI après avoir set makerworldUrl et/ou ajouté la photo
+  // Mise à jour UI
   updateAlbumUI(key);
 }
 (() => {
