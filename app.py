@@ -39,7 +39,7 @@ from filament import generate_filament_brand_code, generate_filament_temperature
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel,insert_manual_print
-from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print,get_all_tray_spool_mappings,set_tray_spool_map,delete_all_tray_spool_mappings, get_tags_for_prints, get_tags_for_group, add_tag_to_group, remove_tag_from_group,list_print_images,list_group_images,list_all_photos
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot,get_distinct_values,update_print_filename,get_filament_for_print, delete_print, get_tags_for_print, add_tag_to_print, remove_tag_from_print,update_filament_usage,update_print_history_field,create_print_group,get_print_groups,update_print_group_field,update_group_created_at,get_group_id_of_print,get_statistics,adjustDuration,set_group_primary_print,set_sold_info,recalculate_print_data, recalculate_group_data,cleanup_orphan_data,get_latest_print,get_all_tray_spool_mappings,set_tray_spool_map,delete_all_tray_spool_mappings, get_tags_for_prints, get_tags_for_group, add_tag_to_group, remove_tag_from_group,list_print_images,list_group_images,list_all_photos,get_group_print_ids
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK
 from installations import load_installations
 from switcher import switch_bp
@@ -1235,10 +1235,12 @@ def print_history():
             # Gestion thumbnail selon primary_print_id
             if entry.get("primary_print_id") == p["id"]:
                 entry["thumbnail"] = p.get("image_file")
+                entry["design_id"] = p.get("design_id")
             elif not entry.get("thumbnail") and p.get("image_file"):
                 if p["id"] > entry.get("max_print_id", 0):
                     entry["max_print_id"] = p["id"]
                     entry["thumbnail"] = p["image_file"]
+                    entry["design_id"] = p.get("design_id")
         
             for filament in p["filament_usage"]:
                 key = filament["spool_id"] or f"{filament['filament_type']}-{filament['color']}"
@@ -3551,6 +3553,17 @@ def set_design_id():
     design_id = _normalize_design_id(raw)
     # update DB: design_id -> design_id (chaîne vide = effacer)
     update_print_history_field(print_id, "design_id",design_id)  # à toi d’implémenter
+    return redirect(request.referrer or url_for("prints"))
+
+@app.post("/prints/set-design-id")
+def set_design_id_group():
+    group_id = int(request.form["group_id"])
+    raw = (request.form.get("design_id") or "").strip()
+    design_id = _normalize_design_id(raw)
+    # update DB: design_id -> design_id (chaîne vide = effacer)
+    prints= get_group_print_ids(group_id)
+    for print_id in prints:
+        update_print_history_field(print_id, "design_id",design_id)  # à toi d’implémenter
     return redirect(request.referrer or url_for("prints"))
 
 app.register_blueprint(auth_bp)

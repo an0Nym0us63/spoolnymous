@@ -116,3 +116,38 @@
     </form>
   </div>
 </div>
+
+
+<div class="modal fade" id="editDesignIdGroupModal_{{ entry.id }}" tabindex="-1" aria-labelledby="editDesignIdGroupLabel_{{ entry.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" method="post" action="{{ url_for('set_design_id_group') }}">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editDesignIdLabel_{{ entry.id }}">Modifier l’identifiant MakerWorld</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" name="group_id" value="{{ entry.id }}">
+        {{ macros.render_filtered_args(args) }}
+
+        <label for="design_id_input_{{ entry.id }}" class="form-label small">Identifiant (ex: 123456)</label>
+        <input
+          type="text"
+          class="form-control"
+          id="design_id_input_{{ entry.id }}"
+          name="design_id"
+          value="{{ entry.design_id or '' }}"
+          placeholder="Laisser vide pour effacer"
+        >
+        <div class="form-text">
+          Sera utilisé pour ouvrir <code>https://makerworld.com/fr/models/&lt;identifiant&gt;</code>.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
