@@ -3179,7 +3179,7 @@ def delete_entity_photo(entity, entity_id):
         else:
             base_dir = Path(app.static_folder) / "uploads" / entity / str(entity_id)
             file_path = base_dir / filename
-        
+            logger.debug(file_path)
             try:
                 file_path.unlink()
                 flash("Photo supprimée.", "success")
