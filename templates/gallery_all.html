@@ -194,8 +194,12 @@ q::placeholder{ opacity:.7; }
 .fila-name a:hover{ text-decoration:underline; }
 
 .album-card.tile{ overflow: visible !important; } /* pas de clipping */
-.album-card .actions{ position: relative; z-index: 1200; }
-.dropdown-menu{ z-index: 2000; } /* passe au-dessus de la tuile *
+/* Laisser le menu déborder librement de la ligne de méta */
+.meta .line1{ overflow: visible !important; }
+
+/* Pile correcte pour le bouton et le menu */
+.album-card .actions{ position: relative; z-index: 2000; }
+.dropdown-menu{ z-index: 3000; }
 </style>
 {% endblock %}
 
