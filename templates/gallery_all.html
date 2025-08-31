@@ -527,6 +527,7 @@ card.querySelectorAll('.action-btn, .dropdown-menu').forEach(el=>{
 const ddBtn = card.querySelector('.action-btn[data-bs-toggle="dropdown"]');
 if (ddBtn) {
   ddBtn.addEventListener('click', (e) => {
+	console.log('[gallery] raw action-btn click');
     e.preventDefault();
     e.stopPropagation(); // ne pas déclencher la lightbox
     const dd = bootstrap.Dropdown.getOrCreateInstance(ddBtn);
@@ -554,6 +555,18 @@ if (viewF) {
 }
 
   grid.appendChild(card);
+  // Délégation globale : ouvre/ferme le menu des cartes
+grid.addEventListener('click', (e) => {
+  const btn = e.target.closest('.action-btn[data-bs-toggle="dropdown"]');
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation(); // éviter la lightbox
+  const dd = bootstrap.Dropdown.getOrCreateInstance(btn);
+  dd.toggle();
+  // DEBUG visuel
+  console.log('[gallery] dropdown toggled for', btn.closest('.album-card')?.dataset.key);
+});
+
   return card;
 }
 function renderPatchwork(card, photos){
