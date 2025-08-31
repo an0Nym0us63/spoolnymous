@@ -763,7 +763,7 @@ function renderFilamentsList(container, items){
   for (const it of items){
     const color = (it.color || '').toString().trim();
     const name = (it.name || '').toString().trim() || 'N/A';
-    const searchname = (it.name || '').toString().trim() || 'N/A';
+    const searchname = (it.searchname || '').toString().trim() || 'N/A';
     const grams = fmt(it.grams_used);
 
     const row = document.createElement('div');
