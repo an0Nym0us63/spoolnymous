@@ -314,36 +314,32 @@ const LB = {
 };
 
 function toggleDropdownManually(btn){
-  const wrapper = btn.closest('.dropdown');
-  const menu = wrapper?.querySelector('.dropdown-menu');
+  const wrap = btn.closest('.dropdown');
+  const menu = wrap?.querySelector('.dropdown-menu');
   if(!menu) return;
 
   // fermer les autres
   document.querySelectorAll('.dropdown-menu.show').forEach(m=>{
-    if(m !== menu) m.classList.remove('show');
+    if(m!==menu){ m.classList.remove('show'); m.style.display=''; }
   });
 
   const willOpen = !menu.classList.contains('show');
   if (willOpen){
     menu.classList.add('show');
-    // petits styles minimaux au cas où Popper ne positionne pas
     menu.style.display = 'block';
-    // assure le positionnement relatif à .actions
-    const actions = btn.closest('.actions');
-    if (actions) actions.style.position = 'relative';
-  } else {
+    (btn.closest('.actions')||wrap).style.position = 'relative';
+  }else{
     menu.classList.remove('show');
     menu.style.display = '';
   }
   btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
 }
 
-// fermer clic à l’extérieur (pour fallback)
-document.addEventListener('click', (e)=>{
-  if (e.target.closest('.dropdown')) return;
+// clic extérieur -> fermer (fallback)
+document.addEventListener('click',(e)=>{
+  if(e.target.closest('.dropdown')) return;
   document.querySelectorAll('.dropdown-menu.show').forEach(m=>{
-    m.classList.remove('show');
-    m.style.display = '';
+    m.classList.remove('show'); m.style.display='';
   });
 });
 
@@ -574,22 +570,37 @@ const ddBtn = card.querySelector('.action-btn[data-bs-toggle="dropdown"]');
 if (ddBtn) {
   ddBtn.addEventListener('click', (e) => {
     e.preventDefault();
-    e.stopPropagation();
+    e.stopPropagation(); // éviter la lightbox
 
-    const dd = window.bootstrap.Dropdown.getOrCreateInstance(ddBtn, {
-      popperConfig: (defaultBs) => ({
-        ...defaultBs,
-        placement: 'bottom-start',           // ⬅️ aligné à gauche du bouton
-        strategy: 'fixed',                   // ⬅️ au-dessus des tuiles voisines
-        modifiers: [
-          ...(defaultBs?.modifiers || []),
-          { name: 'preventOverflow', options: { boundary: 'viewport', altBoundary: true, tether: true } },
-          { name: 'flip',            options: { fallbackPlacements: ['top-start','bottom-end','top-end'] } },
-          { name: 'offset',          options: { offset: [0, 6] } }
-        ]
-      })
+    // 1) tenter Bootstrap avec un popperConfig robuste
+    let usedBootstrap = false;
+    try {
+      if (window.bootstrap?.Dropdown) {
+        const dd = window.bootstrap.Dropdown.getOrCreateInstance(ddBtn, {
+          popperConfig: (def)=>({
+            ...def,
+            placement: 'bottom-start',          // aligne à gauche du bouton
+            strategy: 'fixed',                  // par-dessus les tuiles voisines
+            modifiers: [
+              ...(def?.modifiers||[]),
+              { name:'offset', options:{ offset:[0,6] } },
+              { name:'preventOverflow', options:{ boundary:'viewport', altBoundary:true, tether:true } },
+              { name:'flip', options:{ fallbackPlacements:['top-start','bottom-end','top-end'] } },
+            ]
+          })
+        });
+        dd.toggle();
+        usedBootstrap = true;
+      }
+    } catch(_) {}
+
+    // 2) micro-check : si après ce tick pas de .show → fallback manuel
+    queueMicrotask(()=> {
+      const menu = ddBtn.closest('.dropdown')?.querySelector('.dropdown-menu');
+      const hasShow = !!menu && menu.classList.contains('show');
+      if (!hasShow) toggleDropdownManually(ddBtn);
+      // console.debug('[gallery] dropdown:', usedBootstrap ? 'bs tried' : 'no bs', '→ show?', hasShow);
     });
-    dd.toggle();
   });
 }
 
