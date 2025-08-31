@@ -1473,6 +1473,58 @@ def get_print_filaments(print_id):
 
     return jsonify(enriched)
 
+@app.route("/groups/<int:group_id>/filaments", methods=["GET"])
+def get_group_filaments(group_id):
+    """
+    Agrège les usages de filament pour tous les prints d’un groupe.
+    Sortie homogène avec /history/<print_id>/filaments :
+    [
+      { "spool_id": 12, "grams_used": 34.5, "name": "...", "color": "#RRGGBB" },
+      ...
+    ]
+    """
+    try:
+        pids = get_group_print_ids(group_id) or []
+    except Exception:
+        pids = []
+
+    totals = {}  # key -> dict
+    for pid in pids:
+        try:
+            usages = get_filament_for_print(pid) or []
+        except Exception:
+            usages = []
+        for u in usages:
+            grams = float(u.get("grams_used") or 0.0)
+            spool_id = u.get("spool_id")
+            key = ("spool", spool_id) if spool_id else ("fallback", u.get("filament_type"), u.get("color"))
+
+            if key not in totals:
+                name = None
+                color = None
+                if spool_id:
+                    try:
+                        spool = fetch_spool_by_id(spool_id)
+                    except Exception:
+                        spool = None
+                    if spool:
+                        color = spool.get("filament", {}).get("color_hex")
+                        vendor = spool.get("filament", {}).get("vendor", {}).get("name", "")
+                        material = spool.get("filament", {}).get("material", "")
+                        real_name = spool.get("filament", {}).get("name", "")
+                        name = f"#{spool_id} - {real_name} - {vendor} - {material}".strip(" -")
+                if not name:
+                    name = (u.get("filament_type") or "N/A")
+                    color = u.get("color")
+                if color:
+                    color = f"#{str(color).lstrip('#')}"
+                totals[key] = {"spool_id": spool_id, "grams_used": 0.0, "name": name, "color": color}
+
+            totals[key]["grams_used"] += grams
+
+    enriched = sorted(totals.values(), key=lambda x: x["grams_used"], reverse=True)
+    return jsonify(enriched)
+
 @app.route("/history/<int:print_id>/tags", methods=["GET"])
 def get_tags(print_id):
     tags = get_tags_for_print(print_id)

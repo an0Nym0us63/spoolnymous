@@ -2061,6 +2061,30 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                         })
                         if tag:
                             prints_meta[pid]["tags"].append(str(tag))
+                
+                if print_ids:
+                    q_marks = ",".join("?" for _ in print_ids)
+                    cur.execute(f"""
+                        SELECT fu.print_id,
+                            COALESCE(f.name, '')        AS name,
+                            COALESCE(f.manufacturer,'') AS manufacturer,
+                            COALESCE(f.material,'')     AS material,
+                            COALESCE(fu.filament_type,'') AS fallback_type
+                        FROM filament_usage fu
+                        LEFT JOIN bobines b   ON fu.spool_id = b.id
+                        LEFT JOIN filaments f ON b.filament_id = f.id
+                        WHERE fu.print_id IN ({q_marks})
+                    """, tuple(print_ids))
+                    for pid, name, manuf, material, fallback in cur.fetchall():
+                        s = " ".join([name or "", manuf or "", material or "", fallback or ""]).strip()
+                        if s:
+                            prints_meta.setdefault(pid, {
+                                "file_name":"", "translated_name":"", "original_name":"",
+                                "tags":[], "design_id":"", "makerworldUrl": None
+                            })
+                            prints_meta[pid].setdefault("filaments_text", [])
+                            prints_meta[pid]["filaments_text"].append(s)
+
 
             # ---- GROUPS: name (print_groups puis fallback groups) + makerworld via primary_print_id
             if group_ids:
@@ -2148,6 +2172,7 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                     pm.get("translated_name", ""),
                     pm.get("original_name", ""),
                     *pm.get("tags", []),
+                    *pm.get("filaments_text", []),  # 👈 ajoute ça
                 ]).casefold()
                 if q_norm in hay:
                     keep_keys.append(key)

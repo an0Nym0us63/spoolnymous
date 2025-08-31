@@ -181,6 +181,16 @@ q::placeholder{ opacity:.7; }
   border-top: none !important;
   background: var(--tile-bg) !important;  /* homogène */
 }
+/* Actions (menu à la place du globe) */
+.album-card .actions { margin-left:auto; display:flex; align-items:center; }
+.album-card .actions .btn.action-btn { padding:.15rem .45rem; line-height:1; }
+
+/* Liste filaments dans la modal */
+.fila-row{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:.5rem; padding:.4rem .25rem; }
+.fila-row + .fila-row{ border-top:1px dashed var(--bs-border-color); }
+.fila-swatch{ width:14px; height:14px; border-radius:9999px; border:1px solid rgba(0,0,0,.2); box-shadow: inset 0 0 0 1px rgba(255,255,255,.15); }
+.fila-name a{ text-decoration:none; }
+.fila-name a:hover{ text-decoration:underline; }
 </style>
 {% endblock %}
 
@@ -219,6 +229,23 @@ q::placeholder{ opacity:.7; }
   <div class="lb-nav px-2">
     <button id="lbPrev" class="btn btn-outline-light"><i class="bi bi-chevron-left"></i></button>
     <button id="lbNext" class="btn btn-outline-light"><i class="bi bi-chevron-right"></i></button>
+  </div>
+</div>
+<!-- Modal: Filaments utilisés -->
+<div class="modal fade" id="filamentsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-md">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-palette2 me-2"></i>
+          Filaments utilisés
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <div id="filamentsList" class="list-unstyled m-0"></div>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -460,10 +487,24 @@ function createAlbumCard(entity, id, title) {
     <div class="meta">
       <div class="line1">
         <strong class="text-truncate album-title" title="${title}">${title}</strong>
-        <a class="mw-link d-none" target="_blank" rel="noopener"
-           title="Voir sur MakerWorld" aria-label="Voir sur MakerWorld">
-          <div class="mw-icon"><i class="bi bi-globe2"></i></div>
-        </a>
+        <div class="actions dropdown">
+  <button class="btn btn-sm btn-outline-secondary action-btn" type="button"
+          data-bs-toggle="dropdown" aria-expanded="false" title="Actions" aria-label="Actions">
+    <i class="bi bi-three-dots"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li>
+      <a class="dropdown-item js-view-filaments" href="#">
+        <i class="bi bi-palette2 me-2"></i>Voir les filaments
+      </a>
+    </li>
+    <li>
+      <a class="dropdown-item js-open-makerworld d-none" target="_blank" rel="noopener">
+        <i class="bi bi-globe2 me-2"></i>Voir sur MakerWorld
+      </a>
+    </li>
+  </ul>
+</div>
       </div>
     </div>
   `;
@@ -473,10 +514,30 @@ function createAlbumCard(entity, id, title) {
     const a = albums.get(card.dataset.key);
     if (a) lbOpen(card.dataset.key, 0);
   });
+  
+  // Empêcher la lightbox quand on clique dans le menu
+card.querySelectorAll('.action-btn, .dropdown-menu').forEach(el=>{
+  el.addEventListener('click', (e)=> e.stopPropagation());
+});
 
-  // Ne pas ouvrir la lightbox si clic sur le lien
-  const link = card.querySelector('.mw-link');
-  link.addEventListener('click', (e)=> e.stopPropagation());
+// Ouvrir MakerWorld (si présent)
+const mwItem = card.querySelector('.js-open-makerworld');
+if (mwItem) {
+  mwItem.addEventListener('click', (e)=> {
+    // on laisse le navigateur ouvrir le lien, mais on bloque la lightbox
+    e.stopPropagation();
+  });
+}
+
+// Ouvrir la modal des filaments
+const viewF = card.querySelector('.js-view-filaments');
+if (viewF) {
+  viewF.addEventListener('click', (e)=> {
+    e.preventDefault();
+    e.stopPropagation();
+    showFilamentsFor(card); // fonction ajoutée plus bas
+  });
+}
 
   grid.appendChild(card);
   return card;
@@ -508,6 +569,16 @@ function renderPatchwork(card, photos){
       countSpan.textContent = '0';
     }
   }
+  const mwItem = a.cardEl.querySelector('.js-open-makerworld');
+if (mwItem) {
+  if (a.makerworldUrl) {
+    mwItem.href = a.makerworldUrl;
+    mwItem.classList.remove('d-none');
+  } else {
+    mwItem.removeAttribute('href');
+    mwItem.classList.add('d-none');
+  }
+}
 }
 
 function updateAlbumUI(key){
@@ -518,16 +589,16 @@ function updateAlbumUI(key){
   renderPatchwork(a.cardEl, a.photos);
 
   // Lien MakerWorld (toujours serré à droite)
-  const linkEl = a.cardEl.querySelector('.mw-link');
-  if (linkEl) {
-    if (a.makerworldUrl) {
-      linkEl.href = a.makerworldUrl;
-      linkEl.classList.remove('d-none');
-    } else {
-      linkEl.removeAttribute('href');
-      linkEl.classList.add('d-none');
-    }
+const mwItem = a.cardEl.querySelector('.js-open-makerworld');
+if (mwItem) {
+  if (a.makerworldUrl) {
+    mwItem.href = a.makerworldUrl;
+    mwItem.classList.remove('d-none');
+  } else {
+    mwItem.removeAttribute('href');
+    mwItem.classList.add('d-none');
   }
+}
 }
 
 function addPhotoToAlbum(item){
@@ -601,6 +672,79 @@ function addPhotoToAlbum(item){
   LB.root.addEventListener('touchmove',  onMove,  { passive: false }); // ⚠️ pour pouvoir preventDefault
   LB.root.addEventListener('touchend',   onEnd,   { passive: true });
 })();
+
+async function showFilamentsFor(card){
+  const entity = card.dataset.entity; // "prints" | "groups"
+  const id = parseInt(card.dataset.id, 10);
+  let url;
+  if (entity === 'prints') url = `/history/${id}/filaments`;
+  else if (entity === 'groups') url = `/groups/${id}/filaments`;
+  else return;
+
+  const listEl = document.getElementById('filamentsList');
+  listEl.innerHTML = `<div class="text-secondary">Chargement…</div>`;
+
+  try{
+    const r = await fetch(url, { credentials:'same-origin' });
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json(); // [{spool_id, grams_used, name, color}]
+    renderFilamentsList(listEl, data);
+  }catch(err){
+    listEl.innerHTML = `<div class="text-danger">Erreur de chargement</div>`;
+    console.error(err);
+  }
+
+  const modalEl = document.getElementById('filamentsModal');
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  modal.show();
+}
+
+function renderFilamentsList(container, items){
+  if (!items || !items.length){
+    container.innerHTML = `<div class="text-secondary">Aucun filament</div>`;
+    return;
+  }
+  items = [...items].sort((a,b)=> (b.grams_used||0)-(a.grams_used||0));
+
+  const fmt = (g) => {
+    if (g == null) return '';
+    const n = Math.round(Number(g) * 10) / 10;
+    return `${n} g`;
+  };
+
+  container.innerHTML = '';
+  for (const it of items){
+    const color = (it.color || '').toString().trim();
+    const name = (it.name || '').toString().trim() || 'N/A';
+    const grams = fmt(it.grams_used);
+
+    const row = document.createElement('div');
+    row.className = 'fila-row d-grid align-items-center';
+    row.style.gridTemplateColumns = 'auto 1fr auto';
+    row.style.gap = '.5rem';
+    row.innerHTML = `
+      <span class="fila-swatch" style="${color ? `width:14px;height:14px;border-radius:9999px;background:${color};border:1px solid rgba(0,0,0,.2);box-shadow: inset 0 0 0 1px rgba(255,255,255,.15);` : 'width:14px;height:14px;border-radius:9999px;background:transparent;border:1px solid var(--bs-border-color)'}"></span>
+      <span class="fila-name"><a href="#" class="js-filter-by-filament" data-term="${name.replace(/"/g,'&quot;')}">${name}</a></span>
+      <span class="fila-qty text-nowrap text-secondary">${grams}</span>
+    `;
+    row.querySelector('.js-filter-by-filament').addEventListener('click', (e)=>{
+      e.preventDefault();
+      applySearch(name);
+      const modal = bootstrap.Modal.getInstance(document.getElementById('filamentsModal'));
+      if (modal) modal.hide();
+    });
+
+    container.appendChild(row);
+  }
+}
+
+function applySearch(term){
+  const input = document.getElementById('q');
+  if (!input) return;
+  input.value = term;
+  state.q = term;
+  resetAndReload();
+}
 // === DATA LOADING ============================================================
 
 
