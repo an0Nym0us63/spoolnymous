@@ -569,17 +569,6 @@ function renderPatchwork(card, photos){
       countSpan.textContent = '0';
     }
   }
-  const mwItem = a.cardEl.querySelector('.js-open-makerworld');
-if (mwItem) {
-  if (a.makerworldUrl) {
-    mwItem.href = a.makerworldUrl;
-    mwItem.classList.remove('d-none');
-  } else {
-    mwItem.removeAttribute('href');
-    mwItem.classList.add('d-none');
-  }
-}
-}
 
 function updateAlbumUI(key){
   const a = albums.get(key);

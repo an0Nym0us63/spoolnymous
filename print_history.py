@@ -2105,6 +2105,27 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                         ref_map.setdefault(r["id"], None)
 
                 groups_meta = tmp
+                
+                groups_filaments_text: dict[int, list[str]] = {}
+
+                if group_ids:
+                    q_marks = ",".join("?" for _ in group_ids)
+                    cur.execute(f"""
+                        SELECT p.group_id,
+                               COALESCE(f.name, '')        AS name,
+                               COALESCE(f.manufacturer,'') AS manufacturer,
+                               COALESCE(f.material,'')     AS material,
+                               COALESCE(fu.filament_type,'') AS fallback_type
+                        FROM prints p
+                        JOIN filament_usage fu ON fu.print_id = p.id
+                        LEFT JOIN bobines b    ON fu.spool_id = b.id
+                        LEFT JOIN filaments f  ON b.filament_id = f.id
+                        WHERE p.group_id IN ({q_marks})
+                    """, tuple(group_ids))
+                    for gid, name, manuf, material, fallback in cur.fetchall():
+                        s = " ".join([name or "", manuf or "", material or "", fallback or ""]).strip()
+                        if s:
+                            groups_filaments_text.setdefault(gid, []).append(s)
 
                 # makerworldUrl à partir du design_id du print de référence
                 ref_print_ids = [pid for pid in ref_map.values() if pid]
@@ -2178,8 +2199,11 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                     keep_keys.append(key)
             else:
                 gid = m["entity_id"]
-                name = (groups_meta.get(gid) or "").casefold()
-                if q_norm in name:
+                hay = " ".join([
+                    (groups_meta.get(gid) or ""),
+                    *groups_filaments_text.get(gid, []),
+                ]).casefold()
+                if q_norm in hay:
                     keep_keys.append(key)
 
         groups = {k: groups[k] for k in keep_keys if k in groups}
