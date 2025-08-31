@@ -192,21 +192,6 @@ q::placeholder{ opacity:.7; }
 .fila-swatch{ width:14px; height:14px; border-radius:9999px; border:1px solid rgba(0,0,0,.2); box-shadow: inset 0 0 0 1px rgba(255,255,255,.15); }
 .fila-name a{ text-decoration:none; }
 .fila-name a:hover{ text-decoration:underline; }
-
-.album-card.tile{ overflow: visible !important; } /* pas de clipping */
-/* Laisser le menu déborder librement de la ligne de méta */
-.meta .line1{ overflow: visible !important; }
-
-/* Pile correcte pour le bouton et le menu */
-.album-card .actions{ position: relative; z-index: 2000; }
-.dropdown-menu{ z-index: 3000; }
-/* La carte crée un contexte, on lui donne une pile de base */
-.album-card { position: relative; z-index: 0; }
-.album-card:hover { z-index: 2; }              /* la carte survolée passe au-dessus */
-
-/* Le bouton et le menu passent devant les autres cartes */
-.album-card .actions { position: relative; z-index: 4000; }
-.album-card .dropdown-menu { z-index: 5000; }  /* > cartes voisines */
 </style>
 {% endblock %}
 
@@ -245,6 +230,29 @@ q::placeholder{ opacity:.7; }
   <div class="lb-nav px-2">
     <button id="lbPrev" class="btn btn-outline-light"><i class="bi bi-chevron-left"></i></button>
     <button id="lbNext" class="btn btn-outline-light"><i class="bi bi-chevron-right"></i></button>
+  </div>
+</div>
+<div class="modal fade" id="actionsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-three-dots-vertical me-2"></i>
+          Actions
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="list-group list-group-flush">
+          <button type="button" id="actViewFilaments" class="list-group-item list-group-item-action">
+            <i class="bi bi-palette2 me-2"></i>Voir les filaments
+          </button>
+          <a id="actMakerWorld" class="list-group-item list-group-item-action d-none" target="_blank" rel="noopener">
+            <i class="bi bi-globe2 me-2"></i>Voir sur MakerWorld
+          </a>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 <!-- Modal: Filaments utilisés -->
@@ -313,35 +321,39 @@ const LB = {
   index: 0,
 };
 
-function toggleDropdownManually(btn){
-  const wrap = btn.closest('.dropdown');
-  const menu = wrap?.querySelector('.dropdown-menu');
-  if(!menu) return;
+// Références de la modale Actions
+const AM = {
+  el: document.getElementById('actionsModal'),
+  btnFilaments: document.getElementById('actViewFilaments'),
+  aMaker: document.getElementById('actMakerWorld'),
+  bs: null,
+  currentCard: null
+};
+AM.bs = bootstrap.Modal.getOrCreateInstance(AM.el);
 
-  // fermer les autres
-  document.querySelectorAll('.dropdown-menu.show').forEach(m=>{
-    if(m!==menu){ m.classList.remove('show'); m.style.display=''; }
-  });
+// Ouvre la modale et configure les actions selon la carte
+function openActionsModal(card){
+  AM.currentCard = card;
 
-  const willOpen = !menu.classList.contains('show');
-  if (willOpen){
-    menu.classList.add('show');
-    menu.style.display = 'block';
-    (btn.closest('.actions')||wrap).style.position = 'relative';
-  }else{
-    menu.classList.remove('show');
-    menu.style.display = '';
+  // Filaments : simple bouton -> ouvre la modal des filaments existante
+  AM.btnFilaments.onclick = () => {
+    AM.bs.hide();
+    showFilamentsFor(card);
+  };
+
+  // MakerWorld : visible seulement s'il y a une URL
+  const key = card.dataset.key;
+  const a = albums.get(key);
+  if (a?.makerworldUrl) {
+    AM.aMaker.classList.remove('d-none');
+    AM.aMaker.href = a.makerworldUrl;
+  } else {
+    AM.aMaker.classList.add('d-none');
+    AM.aMaker.removeAttribute('href');
   }
-  btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-}
 
-// clic extérieur -> fermer (fallback)
-document.addEventListener('click',(e)=>{
-  if(e.target.closest('.dropdown')) return;
-  document.querySelectorAll('.dropdown-menu.show').forEach(m=>{
-    m.classList.remove('show'); m.style.display='';
-  });
-});
+  AM.bs.show();
+}
 
 function parseAlbumKeyFromUrl(url){
   try{
@@ -523,38 +535,25 @@ function createAlbumCard(entity, id, title) {
   card.dataset.key = `${entity}:${id}`;
 
   card.innerHTML = `
-    <div class="thumb-wrap">
-      <img class="thumb" alt="">
-      <span class="badge-chip d-none album-count" title="Nombre de photos">
-        <i class="bi bi-images"></i>
-        <span class="count">0</span>
-      </span>
-    </div>
-    <div class="meta">
-      <div class="line1">
-        <strong class="text-truncate album-title" title="${title}">${title}</strong>
-        <div class="actions dropdown">
-  <button class="btn btn-sm btn-outline-secondary action-btn" type="button"
-        data-bs-toggle="dropdown" data-bs-boundary="viewport"   data-bs-auto-close="outside"
-        aria-expanded="false" title="Actions" aria-label="Actions">
-  <i class="bi bi-three-dots"></i>
-</button>
-  <ul class="dropdown-menu">
-    <li>
-      <a class="dropdown-item js-view-filaments" href="#">
-        <i class="bi bi-palette2 me-2"></i>Voir les filaments
-      </a>
-    </li>
-    <li>
-      <a class="dropdown-item js-open-makerworld d-none" target="_blank" rel="noopener">
-        <i class="bi bi-globe2 me-2"></i>Voir sur MakerWorld
-      </a>
-    </li>
-  </ul>
-</div>
+  <div class="thumb-wrap">
+    <img class="thumb" alt="">
+    <span class="badge-chip d-none album-count" title="Nombre de photos">
+      <i class="bi bi-images"></i>
+      <span class="count">0</span>
+    </span>
+  </div>
+  <div class="meta">
+    <div class="line1">
+      <strong class="text-truncate album-title" title="${title}">${title}</strong>
+      <div class="actions ms-auto">
+        <button class="btn btn-sm btn-outline-secondary js-actions-btn" type="button"
+                title="Actions" aria-label="Actions">
+          <i class="bi bi-three-dots"></i>
+        </button>
       </div>
     </div>
-  `;
+  </div>
+`;
 
   // Clic carte = ouvrir lightbox
   card.addEventListener('click', () => {
@@ -566,41 +565,13 @@ function createAlbumCard(entity, id, title) {
 card.querySelectorAll('.dropdown-menu').forEach(el=>{
   el.addEventListener('click', (e)=> e.stopPropagation());
 });
-const ddBtn = card.querySelector('.action-btn[data-bs-toggle="dropdown"]');
-if (ddBtn) {
-  ddBtn.addEventListener('click', (e) => {
+
+const actionsBtn = card.querySelector('.js-actions-btn');
+if (actionsBtn) {
+  actionsBtn.addEventListener('click', (e) => {
     e.preventDefault();
-    e.stopPropagation(); // éviter la lightbox
-
-    // 1) tenter Bootstrap avec un popperConfig robuste
-    let usedBootstrap = false;
-    try {
-      if (window.bootstrap?.Dropdown) {
-        const dd = window.bootstrap.Dropdown.getOrCreateInstance(ddBtn, {
-          popperConfig: (def)=>({
-            ...def,
-            placement: 'bottom-start',          // aligne à gauche du bouton
-            strategy: 'fixed',                  // par-dessus les tuiles voisines
-            modifiers: [
-              ...(def?.modifiers||[]),
-              { name:'offset', options:{ offset:[0,6] } },
-              { name:'preventOverflow', options:{ boundary:'viewport', altBoundary:true, tether:true } },
-              { name:'flip', options:{ fallbackPlacements:['top-start','bottom-end','top-end'] } },
-            ]
-          })
-        });
-        dd.toggle();
-        usedBootstrap = true;
-      }
-    } catch(_) {}
-
-    // 2) micro-check : si après ce tick pas de .show → fallback manuel
-    queueMicrotask(()=> {
-      const menu = ddBtn.closest('.dropdown')?.querySelector('.dropdown-menu');
-      const hasShow = !!menu && menu.classList.contains('show');
-      if (!hasShow) toggleDropdownManually(ddBtn);
-      // console.debug('[gallery] dropdown:', usedBootstrap ? 'bs tried' : 'no bs', '→ show?', hasShow);
-    });
+    e.stopPropagation(); // ne pas ouvrir la lightbox
+    openActionsModal(card); // 👈 affiche la modale centrée
   });
 }
 
