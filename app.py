@@ -1459,6 +1459,7 @@ def get_print_filaments(print_id):
             material = spool.get("filament", {}).get("material", "UnknownMaterial")
             realName = spool.get("filament", {}).get("name", "UnknownName")
             name = f"#{spool_id} - {realName} - {vendor} - {material}"
+            searchname = f"{real_name} {vendor} {material}"
         else:
             color = usage.get("color", "#000000")
             name = usage.get("filament_type", "N/A")
@@ -1468,6 +1469,7 @@ def get_print_filaments(print_id):
             "spool_id": spool_id,
             "grams_used": grams_used,
             "name": name,
+            "searchname": searchname,
             "color": color
         })
 
