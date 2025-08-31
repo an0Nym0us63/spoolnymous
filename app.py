@@ -1513,12 +1513,13 @@ def get_group_filaments(group_id):
                         material = spool.get("filament", {}).get("material", "")
                         real_name = spool.get("filament", {}).get("name", "")
                         name = f"#{spool_id} - {real_name} - {vendor} - {material}".strip(" -")
+                        searchname = f"{real_name} {vendor} {material}"
                 if not name:
                     name = (u.get("filament_type") or "N/A")
                     color = u.get("color")
                 if color:
                     color = f"#{str(color).lstrip('#')}"
-                totals[key] = {"spool_id": spool_id, "grams_used": 0.0, "name": name, "color": color}
+                totals[key] = {"spool_id": spool_id, "grams_used": 0.0, "name": name, "color": color,"searchname":searchname}
 
             totals[key]["grams_used"] += grams
 
