@@ -200,6 +200,13 @@ q::placeholder{ opacity:.7; }
 /* Pile correcte pour le bouton et le menu */
 .album-card .actions{ position: relative; z-index: 2000; }
 .dropdown-menu{ z-index: 3000; }
+/* La carte crée un contexte, on lui donne une pile de base */
+.album-card { position: relative; z-index: 0; }
+.album-card:hover { z-index: 2; }              /* la carte survolée passe au-dessus */
+
+/* Le bouton et le menu passent devant les autres cartes */
+.album-card .actions { position: relative; z-index: 4000; }
+.album-card .dropdown-menu { z-index: 5000; }  /* > cartes voisines */
 </style>
 {% endblock %}
 
@@ -532,11 +539,11 @@ function createAlbumCard(entity, id, title) {
         <strong class="text-truncate album-title" title="${title}">${title}</strong>
         <div class="actions dropdown">
   <button class="btn btn-sm btn-outline-secondary action-btn" type="button"
-        data-bs-toggle="dropdown" data-bs-auto-close="outside"
+        data-bs-toggle="dropdown" data-bs-boundary="viewport"   data-bs-auto-close="outside"
         aria-expanded="false" title="Actions" aria-label="Actions">
   <i class="bi bi-three-dots"></i>
 </button>
-  <ul class="dropdown-menu dropdown-menu-end">
+  <ul class="dropdown-menu">
     <li>
       <a class="dropdown-item js-view-filaments" href="#">
         <i class="bi bi-palette2 me-2"></i>Voir les filaments
@@ -567,29 +574,22 @@ const ddBtn = card.querySelector('.action-btn[data-bs-toggle="dropdown"]');
 if (ddBtn) {
   ddBtn.addEventListener('click', (e) => {
     e.preventDefault();
-    e.stopPropagation(); // éviter la lightbox
+    e.stopPropagation();
 
-    let openedViaBS = false;
-    try {
-      if (window.bootstrap?.Dropdown) {
-        const dd = window.bootstrap.Dropdown.getOrCreateInstance(ddBtn, {
-          popperConfig: { strategy: 'fixed' }  // robuste si ancêtres transformés
-        });
-        dd.toggle();
-        openedViaBS = true;
-      }
-    } catch(_) { /* no-op */ }
-
-    // On vérifie si Bootstrap a effectivement mis .show sur le menu
-    const menu = ddBtn.closest('.dropdown')?.querySelector('.dropdown-menu');
-    const hasShow = !!menu && menu.classList.contains('show');
-
-    if (!hasShow) {
-      // Fallback manuel
-      toggleDropdownManually(ddBtn);
-    }
-    // DEBUG si besoin
-    // console.log('[gallery] dropdown state:', hasShow ? 'bs-opened' : 'fallback-toggled');
+    const dd = window.bootstrap.Dropdown.getOrCreateInstance(ddBtn, {
+      popperConfig: (defaultBs) => ({
+        ...defaultBs,
+        placement: 'bottom-start',           // ⬅️ aligné à gauche du bouton
+        strategy: 'fixed',                   // ⬅️ au-dessus des tuiles voisines
+        modifiers: [
+          ...(defaultBs?.modifiers || []),
+          { name: 'preventOverflow', options: { boundary: 'viewport', altBoundary: true, tether: true } },
+          { name: 'flip',            options: { fallbackPlacements: ['top-start','bottom-end','top-end'] } },
+          { name: 'offset',          options: { offset: [0, 6] } }
+        ]
+      })
+    });
+    dd.toggle();
   });
 }
 
