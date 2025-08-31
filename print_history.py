@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import sqlite3
 from datetime import datetime, timedelta
@@ -12,7 +13,6 @@ from camera import snapshot_to_print_file
 from pathlib import Path
 import re
 from typing import Any,Optional
-from __future__ import annotationsy
 
 
 import logging
