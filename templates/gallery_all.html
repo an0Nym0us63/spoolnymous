@@ -194,6 +194,8 @@ q::placeholder{ opacity:.7; }
 .fila-name a:hover{ text-decoration:underline; }
 
 .dropdown-menu{ z-index: 1100; }
+/* Force: le dropdown ne doit pas être clipé par la carte */
+.album-card.tile{ overflow: visible !important; }
 </style>
 {% endblock %}
 
@@ -522,6 +524,15 @@ function createAlbumCard(entity, id, title) {
 card.querySelectorAll('.action-btn, .dropdown-menu').forEach(el=>{
   el.addEventListener('click', (e)=> e.stopPropagation());
 });
+const ddBtn = card.querySelector('.action-btn[data-bs-toggle="dropdown"]');
+if (ddBtn) {
+  ddBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation(); // ne pas déclencher la lightbox
+    const dd = bootstrap.Dropdown.getOrCreateInstance(ddBtn);
+    dd.toggle();
+  });
+}
 
 // Ouvrir MakerWorld (si présent)
 const mwItem = card.querySelector('.js-open-makerworld');
