@@ -193,9 +193,10 @@ q::placeholder{ opacity:.7; }
 .fila-name a{ text-decoration:none; }
 .fila-name a:hover{ text-decoration:underline; }
 
-.dropdown-menu{ z-index: 1100; }
 /* Force: le dropdown ne doit pas être clipé par la carte */
 .album-card.tile{ overflow: visible !important; }
+.album-card .actions{ position: relative; z-index: 1200; }
+.dropdown-menu{ z-index: 2000; } /* monte d’un cran si thème/stacking context */
 </style>
 {% endblock %}
 
@@ -494,9 +495,10 @@ function createAlbumCard(entity, id, title) {
         <strong class="text-truncate album-title" title="${title}">${title}</strong>
         <div class="actions dropdown">
   <button class="btn btn-sm btn-outline-secondary action-btn" type="button"
-          data-bs-toggle="dropdown" aria-expanded="false" title="Actions" aria-label="Actions">
-    <i class="bi bi-three-dots"></i>
-  </button>
+        data-bs-toggle="dropdown" data-bs-auto-close="outside"
+        aria-expanded="false" title="Actions" aria-label="Actions">
+  <i class="bi bi-three-dots"></i>
+</button>
   <ul class="dropdown-menu dropdown-menu-end">
     <li>
       <a class="dropdown-item js-view-filaments" href="#">
@@ -521,16 +523,17 @@ function createAlbumCard(entity, id, title) {
   });
   
   // Empêcher la lightbox quand on clique dans le menu
-card.querySelectorAll('.action-btn, .dropdown-menu').forEach(el=>{
+card.querySelectorAll('.dropdown-menu').forEach(el=>{
   el.addEventListener('click', (e)=> e.stopPropagation());
 });
 const ddBtn = card.querySelector('.action-btn[data-bs-toggle="dropdown"]');
 if (ddBtn) {
   ddBtn.addEventListener('click', (e) => {
-	console.log('[gallery] raw action-btn click');
     e.preventDefault();
     e.stopPropagation(); // ne pas déclencher la lightbox
-    const dd = bootstrap.Dropdown.getOrCreateInstance(ddBtn);
+	const dd = window.bootstrap.Dropdown.getOrCreateInstance(ddBtn, {
+      popperConfig: { strategy: 'fixed' } // plus robuste dans les conteneurs transformés
+    });
     dd.toggle();
   });
 }
@@ -555,17 +558,7 @@ if (viewF) {
 }
 
   grid.appendChild(card);
-  // Délégation globale : ouvre/ferme le menu des cartes
-grid.addEventListener('click', (e) => {
-  const btn = e.target.closest('.action-btn[data-bs-toggle="dropdown"]');
-  if (!btn) return;
-  e.preventDefault();
-  e.stopPropagation(); // éviter la lightbox
-  const dd = bootstrap.Dropdown.getOrCreateInstance(btn);
-  dd.toggle();
-  // DEBUG visuel
-  console.log('[gallery] dropdown toggled for', btn.closest('.album-card')?.dataset.key);
-});
+
 
   return card;
 }
