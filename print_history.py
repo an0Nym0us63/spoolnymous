@@ -11,7 +11,8 @@ from config import get_app_setting,get_electric_rate_at
 from camera import snapshot_to_print_file
 from pathlib import Path
 import re
-from typing import Optional
+from typing import Any,Optional
+from __future__ import annotationsy
 
 
 import logging
@@ -1937,11 +1938,6 @@ def _item_title(entity: str, entity_id: int) -> str:
         return title.strip()
     return ("Print #{}".format(entity_id) if entity == "prints" else "Groupe #{}".format(entity_id))
 
-from __future__ import annotations
-import sqlite3
-from collections import defaultdict
-from pathlib import Path
-from typing import Any
 
 # On suppose que ces helpers existent déjà dans ton fichier
 # - db_config["db_path"]
