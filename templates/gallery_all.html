@@ -74,7 +74,7 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 /* Métadonnées */
 .meta{
   background:inherit;
-  padding:.5rem .6rem; font-size:.85rem;
+  padding:.5rem .6rem; font-size:.7rem;
   border-top:1px solid color-mix(in oklab, var(--tile-border) 70%, transparent);
 }
 .meta .line1{
@@ -83,7 +83,7 @@ body.gallery-page{ overflow-y:auto; background:var(--bs-body-bg); }
 }
 .meta .line1 .text-truncate{ min-width:0; }
 .meta .line2{
-  font-size:.8rem; opacity:.8; margin-top:.15rem;
+  font-size:.7rem; opacity:.8; margin-top:.15rem;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
@@ -777,7 +777,7 @@ function renderFilamentsList(container, items){
     `;
     row.querySelector('.js-filter-by-filament').addEventListener('click', (e)=>{
       e.preventDefault();
-      applySearch(name);
+      applySearch(searchname);
       const modal = bootstrap.Modal.getInstance(document.getElementById('filamentsModal'));
       if (modal) modal.hide();
     });
