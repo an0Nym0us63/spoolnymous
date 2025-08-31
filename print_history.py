@@ -1949,12 +1949,16 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
       - GROUPS  retenus si q ∈ name (print_groups.name puis fallback groups.name)
       - On ne renvoie que les photos des items retenus.
     """
+    from pathlib import Path
+    from collections import defaultdict
+    import sqlite3
+
     base_dir = Path(__file__).resolve().parent
 
     groups = defaultdict(list)  # key -> photos: { "prints:12": [ {...}, ... ], "groups:3": [...] }
     meta   = {}                 # key -> {'entity','entity_id','item_title','latest_mtime'}
 
-    # 1) Scan FS et collecte des clés (prints/groups ayant au moins une photo)
+    # ===== 1) Scan FS et collecte des clés (prints/groups ayant au moins une photo)
     for entity in ("prints", "groups"):
         base = base_dir / "static" / "uploads" / entity
         if not base.exists():
@@ -1986,7 +1990,8 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                 except Exception:
                     mtime = 0
                 latest_mtime = max(latest_mtime, mtime)
-                 # URL + cache-buster basé sur le mtime du FICHIER réel
+
+                # URL + cache-buster basé sur le mtime du FICHIER réel
                 try:
                     v = int(mtime) if mtime else 0
                 except Exception:
@@ -2012,15 +2017,18 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                     "latest_mtime": latest_mtime,
                 }
 
-    # ===== 2) ENRICHISSEMENT DB (TOUJOURS) ===================================
+    # ===== 2) ENRICHISSEMENT DB (TOUJOURS)
     print_ids = [m["entity_id"] for m in meta.values() if m["entity"] == "prints"]
     group_ids = [m["entity_id"] for m in meta.values() if m["entity"] == "groups"]
 
     prints_meta: dict[int, dict] = {}
     groups_meta: dict[int, str] = {}         # gid -> name
     groups_mw: dict[int, str | None] = {}    # gid -> makerworldUrl or None
+    groups_filaments_text: dict[int, list[str]] = {}  # gid -> list[str] (pour filtre q)
+    print_to_group: dict[int, int | None] = {}        # pid -> gid (pour fusion)
 
     if print_ids or group_ids:
+        conn = None
         try:
             conn = sqlite3.connect(db_config["db_path"])
             conn.row_factory = sqlite3.Row
@@ -2061,15 +2069,16 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                         })
                         if tag:
                             prints_meta[pid]["tags"].append(str(tag))
-                
+
+                # Filaments (texte) pour PRINTS (filtre q)
                 if print_ids:
                     q_marks = ",".join("?" for _ in print_ids)
                     cur.execute(f"""
                         SELECT fu.print_id,
-                            COALESCE(f.name, '')        AS name,
-                            COALESCE(f.manufacturer,'') AS manufacturer,
-                            COALESCE(f.material,'')     AS material,
-                            COALESCE(fu.filament_type,'') AS fallback_type
+                               COALESCE(f.name, '')        AS name,
+                               COALESCE(f.manufacturer,'') AS manufacturer,
+                               COALESCE(f.material,'')     AS material,
+                               COALESCE(fu.filament_type,'') AS fallback_type
                         FROM filament_usage fu
                         LEFT JOIN bobines b   ON fu.spool_id = b.id
                         LEFT JOIN filaments f ON b.filament_id = f.id
@@ -2085,13 +2094,23 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                             prints_meta[pid].setdefault("filaments_text", [])
                             prints_meta[pid]["filaments_text"].append(s)
 
+                # Map print -> group (pour fusion ultérieure)
+                if print_ids:
+                    q_marks = ",".join("?" for _ in print_ids)
+                    cur.execute(f"SELECT id, group_id FROM prints WHERE id IN ({q_marks})", tuple(print_ids))
+                    for pid, gid in cur.fetchall():
+                        print_to_group[int(pid)] = int(gid) if gid is not None else None
 
             # ---- GROUPS: name (print_groups puis fallback groups) + makerworld via primary_print_id
+            ref_map: dict[int, int | None] = {}  # gid -> primary_print_id
             if group_ids:
                 q_marks = ",".join("?" for _ in group_ids)
-                cur.execute(f"SELECT id, name, primary_print_id FROM print_groups WHERE id IN ({q_marks})", tuple(group_ids))
+                cur.execute(f"""
+                    SELECT id, name, primary_print_id
+                    FROM print_groups
+                    WHERE id IN ({q_marks})
+                """, tuple(group_ids))
                 tmp = {}
-                ref_map: dict[int, int | None] = {}  # gid -> primary_print_id
                 for r in cur.fetchall():
                     tmp[r["id"]] = (r["name"] or "")
                     ref_map[r["id"]] = r["primary_print_id"]
@@ -2105,9 +2124,8 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                         ref_map.setdefault(r["id"], None)
 
                 groups_meta = tmp
-                
-                groups_filaments_text: dict[int, list[str]] = {}
 
+                # Filaments (texte) agrégé pour GROUPS (filtre q)
                 if group_ids:
                     q_marks = ",".join("?" for _ in group_ids)
                     cur.execute(f"""
@@ -2135,29 +2153,29 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                     cur.execute(f"SELECT id, design_id FROM prints WHERE id IN ({q3})", tuple(ref_print_ids))
                     for r in cur.fetchall():
                         did_map[r["id"]] = (r["design_id"] or "").strip()
-                
+
                 # 1) valeur initiale par groupe à partir du primary_print_id
                 group_did: dict[int, str] = {}
                 for gid in group_ids:
                     primary_pid = ref_map.get(gid)
                     did = did_map.get(primary_pid, "") if primary_pid else ""
                     group_did[gid] = did
-                
+
                 # 2) Fallback: pour les groupes sans design_id, scanner les prints rattachés
                 missing_gids = [gid for gid, did in group_did.items() if not did]
                 if missing_gids:
                     # gid -> [print_ids]
                     group_to_pids: dict[int, list[int]] = {gid: (get_group_print_ids(gid) or []) for gid in missing_gids}
-                
+
                     # batch SQL pour tous les print_ids supplémentaires (évite N requêtes)
                     extra_pids = {pid for pids in group_to_pids.values() for pid in pids
-                                if pid and pid not in did_map}
+                                  if pid and pid not in did_map}
                     if extra_pids:
                         q4 = ",".join("?" for _ in extra_pids)
                         cur.execute(f"SELECT id, design_id FROM prints WHERE id IN ({q4})", tuple(extra_pids))
                         for r in cur.fetchall():
                             did_map[r["id"]] = (r["design_id"] or "").strip()
-                
+
                     # choisir le premier design_id non vide trouvé parmi les prints du groupe
                     for gid in missing_gids:
                         for pid in group_to_pids.get(gid, []):
@@ -2165,7 +2183,7 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                             if did:
                                 group_did[gid] = did
                                 break
-                
+
                 # 3) Construire l'URL finale (ou None si toujours rien)
                 for gid in group_ids:
                     did = group_did.get(gid, "")
@@ -2176,11 +2194,12 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
             pass
         finally:
             try:
-                conn.close()
+                if conn:
+                    conn.close()
             except Exception:
                 pass
 
-    # ===== 3) Filtrage q (optionnel) =========================================
+    # ===== 3) Filtrage q (optionnel)
     if q:
         q_norm = q.casefold()
         keep_keys = []
@@ -2193,7 +2212,7 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
                     pm.get("translated_name", ""),
                     pm.get("original_name", ""),
                     *pm.get("tags", []),
-                    *pm.get("filaments_text", []),  # 👈 ajoute ça
+                    *pm.get("filaments_text", []),
                 ]).casefold()
                 if q_norm in hay:
                     keep_keys.append(key)
@@ -2209,7 +2228,39 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
         groups = {k: groups[k] for k in keep_keys if k in groups}
         meta   = {k: meta[k]   for k in keep_keys if k in meta}
 
-    # ===== 4) Enrichit meta avec makerworldUrl (TOUJOURS) =====================
+    # ===== 3bis) FUSION PRINT -> GROUP si le groupe a déjà des photos
+    # (se fait après filtrage pour éviter les surprises côté recherche)
+    if print_to_group:
+        # groupes présents et avec photos (post-filtrage)
+        groups_with_photos = {
+            int(k.split(":")[1]) for k, lst in groups.items()
+            if k.startswith("groups:") and lst
+        }
+        for key in list(groups.keys()):
+            if not key.startswith("prints:"):
+                continue
+            pid = int(key.split(":")[1])
+            gid = print_to_group.get(pid)
+            gkey = f"groups:{gid}" if gid else None
+
+            # Fusion UNIQUEMENT si le groupe existe dans 'groups' ET a déjà des photos
+            if gid and gkey in groups and groups[gkey]:
+                # append les photos du print dans le groupe, puis tri
+                groups[gkey].extend(groups[key])
+                groups[gkey].sort(key=lambda x: (x["seq"], x["name"]))
+
+                # mettre à jour le latest_mtime du groupe si possible
+                if gkey in meta and key in meta:
+                    meta[gkey]["latest_mtime"] = max(
+                        meta[gkey].get("latest_mtime", 0),
+                        meta[key].get("latest_mtime", 0)
+                    )
+
+                # supprimer la carte print “solo”
+                groups.pop(key, None)
+                meta.pop(key, None)
+
+    # ===== 4) Enrichit meta avec makerworldUrl (TOUJOURS)
     for k, m in meta.items():
         if m["entity"] == "prints":
             pid = m["entity_id"]
@@ -2218,13 +2269,13 @@ def list_all_photos(prefix="Photo-", q: str | None = None):
             gid = m["entity_id"]
             m["makerworldUrl"] = groups_mw.get(gid)
 
-    # ===== 5) Tri intra-groupe / ordre des groupes ===========================
+    # ===== 5) Tri intra-groupe / ordre des groupes
     for key, photos in groups.items():
         photos.sort(key=lambda x: (x["seq"], x["name"]))
 
     ordered_keys = sorted(meta.keys(), key=lambda k: meta[k]["latest_mtime"], reverse=True)
 
-    # ===== 6) Sortie aplatie (+ makerworldUrl) ===============================
+    # ===== 6) Sortie aplatie (+ makerworldUrl)
     out = []
     for key in ordered_keys:
         m = meta[key]
