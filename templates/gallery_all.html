@@ -193,10 +193,9 @@ q::placeholder{ opacity:.7; }
 .fila-name a{ text-decoration:none; }
 .fila-name a:hover{ text-decoration:underline; }
 
-/* Force: le dropdown ne doit pas être clipé par la carte */
-.album-card.tile{ overflow: visible !important; }
+.album-card.tile{ overflow: visible !important; } /* pas de clipping */
 .album-card .actions{ position: relative; z-index: 1200; }
-.dropdown-menu{ z-index: 2000; } /* monte d’un cran si thème/stacking context */
+.dropdown-menu{ z-index: 2000; } /* passe au-dessus de la tuile *
 </style>
 {% endblock %}
 
@@ -302,6 +301,40 @@ const LB = {
   albumKey: null,
   index: 0,
 };
+
+function toggleDropdownManually(btn){
+  const wrapper = btn.closest('.dropdown');
+  const menu = wrapper?.querySelector('.dropdown-menu');
+  if(!menu) return;
+
+  // fermer les autres
+  document.querySelectorAll('.dropdown-menu.show').forEach(m=>{
+    if(m !== menu) m.classList.remove('show');
+  });
+
+  const willOpen = !menu.classList.contains('show');
+  if (willOpen){
+    menu.classList.add('show');
+    // petits styles minimaux au cas où Popper ne positionne pas
+    menu.style.display = 'block';
+    // assure le positionnement relatif à .actions
+    const actions = btn.closest('.actions');
+    if (actions) actions.style.position = 'relative';
+  } else {
+    menu.classList.remove('show');
+    menu.style.display = '';
+  }
+  btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+}
+
+// fermer clic à l’extérieur (pour fallback)
+document.addEventListener('click', (e)=>{
+  if (e.target.closest('.dropdown')) return;
+  document.querySelectorAll('.dropdown-menu.show').forEach(m=>{
+    m.classList.remove('show');
+    m.style.display = '';
+  });
+});
 
 function parseAlbumKeyFromUrl(url){
   try{
@@ -530,11 +563,29 @@ const ddBtn = card.querySelector('.action-btn[data-bs-toggle="dropdown"]');
 if (ddBtn) {
   ddBtn.addEventListener('click', (e) => {
     e.preventDefault();
-    e.stopPropagation(); // ne pas déclencher la lightbox
-	const dd = window.bootstrap.Dropdown.getOrCreateInstance(ddBtn, {
-      popperConfig: { strategy: 'fixed' } // plus robuste dans les conteneurs transformés
-    });
-    dd.toggle();
+    e.stopPropagation(); // éviter la lightbox
+
+    let openedViaBS = false;
+    try {
+      if (window.bootstrap?.Dropdown) {
+        const dd = window.bootstrap.Dropdown.getOrCreateInstance(ddBtn, {
+          popperConfig: { strategy: 'fixed' }  // robuste si ancêtres transformés
+        });
+        dd.toggle();
+        openedViaBS = true;
+      }
+    } catch(_) { /* no-op */ }
+
+    // On vérifie si Bootstrap a effectivement mis .show sur le menu
+    const menu = ddBtn.closest('.dropdown')?.querySelector('.dropdown-menu');
+    const hasShow = !!menu && menu.classList.contains('show');
+
+    if (!hasShow) {
+      // Fallback manuel
+      toggleDropdownManually(ddBtn);
+    }
+    // DEBUG si besoin
+    // console.log('[gallery] dropdown state:', hasShow ? 'bs-opened' : 'fallback-toggled');
   });
 }
 
