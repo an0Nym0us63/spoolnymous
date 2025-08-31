@@ -663,9 +663,17 @@ function getAlbumKeyFromItem(item){
 
 // === REMPLACE le début de addPhotoToAlbum par ceci :
 function addPhotoToAlbum(item){
-  const parsed = getAlbumKeyFromItem(item);
-  if(!parsed) return;
-  const { key, entity, id } = parsed;
+  // 👉 priorité aux champs backend si présents
+  let entity = item.entity;
+  let id = item.entity_id;
+
+  if (!entity || !id) {
+    const parsed = parseAlbumKeyFromUrl(item.url || item.path || item.src);
+    if(!parsed) return;
+    entity = parsed.entity;
+    id = parsed.id;
+  }
+  const key = `${entity}:${id}`;
 
   if(!albums.has(key)){
     const title = albumTitle(entity, id, item.item_title);
