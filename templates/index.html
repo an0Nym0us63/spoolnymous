@@ -475,7 +475,7 @@
         <ul class="list-group list-group-flush">
           {% for p in points %}
           <li class="list-group-item" style="background:transparent">
-            <div class="fw-semibold">{{ p.message }}</div>
+            <div class="fw-semibold">{{ p.message|safe }}</div>
             <div class="text-muted small">
               {% if p.param and p.value %}{{ p.param }}={{ p.value }}{% endif %}
             </div>

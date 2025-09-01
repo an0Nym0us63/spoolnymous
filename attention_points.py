@@ -2,6 +2,7 @@ from __future__ import annotations
 import random
 import sqlite3
 from typing import Any, Dict, List, Optional
+import re
 
 # Pas de paramètres en DB pour le moment : tout est dans ce fichier.
 ATTENTION_SPOOL_EMPTY_THRESHOLD_G: float = 50.0   # seuil en grammes
@@ -38,6 +39,95 @@ def _fmt_spool_name(spool: dict) -> str:
     if color: lib = f"{lib} ({color})"
     if sid: lib = f"{lib}  #{sid}"
     return lib.strip()
+
+
+def _normalize_hex(color: Optional[str]) -> Optional[str]:
+    """Retourne une couleur hex valide (#RRGGBB) si possible, sinon None."""
+    if not color or not isinstance(color, str):
+        return None
+    c = color.strip()
+    if not c:
+        return None
+    if c.startswith('#'):
+        c = c.upper()
+        if len(c) == 7 and all(ch in '0123456789ABCDEF#' for ch in c):
+            return c
+        if len(c) == 4 and all(ch in '0123456789ABCDEF#' for ch in c):
+            # convert #RGB -> #RRGGBB
+            return f"#{c[1]*2}{c[2]*2}{c[3]*2}"
+    return None
+
+
+def _parse_color_field(raw: Optional[Any]) -> Dict[str, Any]:
+    """Tente d'interpréter le champ couleur en :
+    - color_hex : str (#RRGGBB) si une seule couleur
+    - colors    : List[str] si plusieurs hex (pour gradient)
+    - color_name: str si c'est un nom non-hex
+    Accepte soit une string ("#ff0000" ou "#ff0000,#00ff00") soit une liste.
+    """
+    meta: Dict[str, Any] = {"color_hex": None, "colors": None, "color_name": None}
+    if raw is None:
+        return meta
+    # liste -> normaliser chaque entrée hex
+    if isinstance(raw, (list, tuple)):
+        colors = [c for c in ( _normalize_hex(str(x)) for x in raw ) if c]
+        if len(colors) == 1:
+            meta["color_hex"] = colors[0]
+        elif len(colors) > 1:
+            meta["colors"] = colors
+        return meta
+    # string -> split sur , ; |
+    if isinstance(raw, str):
+        # essais multi
+        if any(sep in raw for sep in [',',';','|']):
+            parts = [p.strip() for p in re.split(r"[,;|]", raw) if p.strip()]
+            colors = [c for c in (_normalize_hex(p) for p in parts) if c]
+            if len(colors) == 1:
+                meta["color_hex"] = colors[0]
+            elif len(colors) > 1:
+                meta["colors"] = colors
+            else:
+                meta["color_name"] = raw.strip()
+            return meta
+        # simple
+        hx = _normalize_hex(raw)
+        if hx:
+            meta["color_hex"] = hx
+        else:
+            meta["color_name"] = raw.strip()
+        return meta
+    # fallback texte
+    meta["color_name"] = str(raw)
+    return meta
+
+
+def _swatch_html_from_meta(meta: Dict[str, Any], size: int = 12, radius: int = 3) -> str:
+    """Construit une vignette HTML inline (span) :
+    - couleur unie si `color_hex`
+    - gradient linéaire si `colors`
+    Retourne une string HTML prête à insérer dans une phrase.
+    """
+    style_base = f"display:inline-block;width:{size}px;height:{size}px;border-radius:{radius}px;vertical-align:middle;margin:0 6px 0 2px;border:1px solid rgba(0,0,0,.15);"
+    if meta.get("colors"):
+        grad = ", ".join(meta["colors"])  # déjà normalisées
+        style = style_base + f"background: linear-gradient(90deg, {grad});"
+        return f"<span aria-hidden=\"true\" style=\"{style}\"></span>"
+    if meta.get("color_hex"):
+        style = style_base + f"background-color: {meta['color_hex']};"
+        return f"<span aria-hidden=\"true\" style=\"{style}\"></span>"
+    return ""
+    c = color.strip()
+    if not c:
+        return None
+    if c.startswith('#'):
+        c = c.upper()
+        if len(c) == 7 and all(ch in '0123456789ABCDEF#' for ch in c):
+            return c
+        if len(c) == 4 and all(ch in '0123456789ABCDEF#' for ch in c):
+            # convert #RGB -> #RRGGBB
+            return f"#{c[1]*2}{c[2]*2}{c[3]*2}"
+    # sinon, on ne tente pas de conversion nom->hex ici
+    return None
 
 # ---------------------------------------------------------------------------
 # Collecteurs par catégorie
@@ -76,27 +166,28 @@ def _collect_unassigned_filament_usage() -> List[AttentionPoint]:
 def _collect_filaments_without_swatch() -> List[AttentionPoint]:
     conn = _get_conn()
     cur = conn.cursor()
-    cur.execute("""
+    cur.execute(
+        """
         SELECT f.id, f.name, f.manufacturer, f.material, f.color
         FROM filaments f
         WHERE COALESCE(f.swatch, 0) = 0
         ORDER BY f.manufacturer, f.name
-    """)
+        """
+    )
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
     out: List[AttentionPoint] = []
     for r in rows:
         name_parts = [p for p in [r.get("manufacturer"), r.get("name"), r.get("material")] if p]
         disp = " — ".join(name_parts) if name_parts else f"Filament #{r['id']}"
-        color = r.get("color")
-        if color:
-            disp = f"{disp} ({color})"
+        color_meta = _parse_color_field(r.get("color"))
+        meta = {**color_meta}
         out.append({
             "category": "filament_without_swatch",
             "name": disp,
             "param": "filament_id",
             "value": int(r["id"]),
-            "meta": {}
+            "meta": meta,
         })
     return out
 
@@ -181,38 +272,92 @@ def _collect_groups_without_photo() -> List[AttentionPoint]:
 # ---------------------------------------------------------------------------
 
 PHRASES = {
-    "spool_almost_empty": (
-        "Bobine à finir : {name} est presque vide ({remaining_g:.0f} g restants{pct_txt}). "
-        "Essayez de planifier une petite impression pour la terminer."
-    ),
-    "filament_without_swatch": (
-        "Filament sans swatch : {name}. Prenez une photo/échantillon pour améliorer le catalogue."
-    ),
-    "print_usage_unassigned": (
-        "Affectations manquantes : l’impression « {name} » a {usages} usage(s) de filament "
-        "non associés à une bobine (≈ {grams_total:.0f} g)."
-    ),
-    "print_without_photo": (
-        "Photo manquante : l’impression « {name} » n’a pas encore de visuel."
-    ),
-    "group_without_photo": (
-        "Photo manquante : le groupe « {name} » n’a pas encore de visuel."
-    ),
+    "spool_almost_empty": [
+        "Bobine à finir : {name} est presque vide ({remaining_g:.0f} g restants{pct_txt}). Essayez de planifier une petite impression pour la terminer.",
+        "{name} arrive en fin de bobine ({remaining_g:.0f} g{pct_txt}). C’est le moment de l’utiliser sur une petite pièce.",
+        "Presque vide : {name} (≈ {remaining_g:.0f} g restants{pct_txt}).",
+        "Plus beaucoup sur {name} : ~{remaining_g:.0f} g{pct_txt}. Pensez à la terminer.",
+        "{name} passe sous le seuil ({remaining_g:.0f} g{pct_txt}). À finir rapidement.",
+        "Attention, {name} est faible ({remaining_g:.0f} g{pct_txt}).",
+        "{name} est presque au bout ({remaining_g:.0f} g{pct_txt}).",
+        "Stock faible sur {name} : {remaining_g:.0f} g{pct_txt} restants.",
+        "{name} pourrait ne pas suffire pour une grosse pièce ({remaining_g:.0f} g{pct_txt}).",
+        "Derniers grammes pour {name} : {remaining_g:.0f} g{pct_txt}.",
+    ],
+    "filament_without_swatch": [
+        "Filament sans swatch {swatch_html}: {name}. Ajoutez un échantillon.",
+        "Pas de swatch {swatch_html} pour {name}. Une vignette couleur serait utile.",
+        "{swatch_html} {name} n’a pas encore de swatch. Pensez à le créer.",
+        "Swatch manquant {swatch_html}: {name}.",
+        "Échantillon absent {swatch_html} pour {name}.",
+        "Complétez le swatch de {swatch_html} {name} pour le catalogue.",
+        "{name} : aucun swatch enregistré {swatch_html}.",
+        "Ajoutez une pastille {swatch_html} pour {name}.",
+        "{name} est sans aperçu couleur (swatch) {swatch_html}.",
+        "Faites une prise rapide : swatch manquant sur {name} {swatch_html}.",
+    ],
+    "print_usage_unassigned": [
+        "Affectations manquantes : l’impression « {name} » a {usages} usage(s) non associés (≈ {grams_total:.0f} g).",
+        "L’impression « {name} » a des usages de filament non reliés à une bobine (≈ {grams_total:.0f} g).",
+        "Associez les usages de filament pour « {name} » ({usages} entrées, ~{grams_total:.0f} g).",
+        "Usages orphelins sur « {name} » : {usages} (≈ {grams_total:.0f} g).",
+        "Lien bobine manquant pour « {name} » (~{grams_total:.0f} g).",
+        "Vérifier l’affectation de filament pour « {name} ».",
+        "« {name} » : usages sans bobine ({usages}).",
+        "Affectez une bobine aux usages de « {name} ».",
+        "Usages non assignés (≈ {grams_total:.0f} g) sur « {name} ».",
+        "Compléter les affectations pour « {name} ».",
+    ],
+    "print_without_photo": [
+        "Photo manquante : l’impression « {name} » n’a pas de visuel.",
+        "Ajoutez une image pour l’impression « {name} ».",
+        "Pas d’aperçu pour « {name} ». Pensez à une photo.",
+        "Aucun visuel enregistré pour « {name} ».",
+        "« {name} » mérite une photo !",
+        "Capturez un cliché de « {name} » pour l’historique.",
+        "Complétez la galerie de « {name} ».",
+        "Visuel absent sur « {name} ».",
+        "Ajoutez une miniature pour « {name} ».",
+        "Photo à ajouter pour « {name} ».",
+    ],
+    "group_without_photo": [
+        "Photo manquante : le groupe « {name} » n’a pas de visuel.",
+        "Ajoutez une image au groupe « {name} ».",
+        "Pas d’aperçu pour le groupe « {name} ».",
+        "Aucun visuel enregistré pour le groupe « {name} ».",
+        "« {name} » (groupe) mérite une photo.",
+        "Complétez la galerie du groupe « {name} ».",
+        "Visuel absent sur le groupe « {name} ».",
+        "Ajoutez une miniature pour le groupe « {name} ».",
+        "Photo à ajouter pour le groupe « {name} ».",
+        "Pensez à illustrer le groupe « {name} ».",
+    ],
 }
 
 def render_message(point: AttentionPoint) -> str:
     cat = point.get("category")
-    tpl = PHRASES.get(cat, "{name}")
+    tpls = PHRASES.get(cat, ["{name}"])
+    tpl = random.choice(tpls) if isinstance(tpls, list) and tpls else tpls
     meta = point.get("meta") or {}
+
+    # Ajout contextuel : vignette/gradient au sein de la phrase pour les filaments sans swatch
+    if cat == "filament_without_swatch":
+        swatch_html = _swatch_html_from_meta(meta)
+    else:
+        swatch_html = ""
+
     d = {
         "name": point.get("name", ""),
-        **meta
+        "swatch_html": swatch_html,
+        **meta,
     }
+
     if cat == "spool_almost_empty":
         pct = meta.get("pct")
         d["pct_txt"] = f", {pct*100:.0f}%" if isinstance(pct, (int, float)) else ""
         if d.get("remaining_g") is None:
             d["remaining_g"] = 0.0
+
     return tpl.format(**d)
 
 # ---------------------------------------------------------------------------
