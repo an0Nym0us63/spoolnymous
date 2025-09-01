@@ -257,26 +257,41 @@ CATEGORY_LABELS: Dict[str, str] = {
 }
 
 
-def build_buckets_with_messages(buckets: Dict[str, List[AttentionPoint]]) -> Dict[str, List[AttentionPoint]]:
-    """Ajoute la clé `message` à chaque point en utilisant `render_message`."""
+def build_buckets_with_messages(
+    buckets: Dict[str, List[AttentionPoint]],
+    *,
+    sample_per_category: Optional[int] = None,
+) -> Dict[str, List[AttentionPoint]]:
+    """Ajoute la clé `message` à chaque point et **peut échantillonner** par catégorie.
+
+    Args:
+        buckets: dict {cat: [points...]}
+        sample_per_category: si défini, limite aléatoirement à N éléments par catégorie
+                             (None pour conserver la liste complète)
+    """
     out: Dict[str, List[AttentionPoint]] = {}
     for cat, items in buckets.items():
-        out[cat] = [dict(p, message=render_message(p)) for p in items]
+        chosen = items
+        if items and isinstance(sample_per_category, int):
+            n = min(len(items), max(sample_per_category, 0))
+            chosen = random.sample(items, n)
+        out[cat] = [dict(p, message=render_message(p)) for p in chosen]
     return out
 
 
-def get_attention_context(per_category_max: int = 3) -> Dict[str, Any]:
+def get_attention_context(per_category_max: int = 3, *, sample_buckets: bool = True) -> Dict[str, Any]:
     """
-    Prépare tout ce qu'il faut passer au template, sans que `app.py` n'ait à
-    reconstruire quoi que ce soit.
+    Prépare tout ce qu'il faut passer au template.
 
-    Retour :
-      - attention_samples : liste de points (avec `message`) issus du sampling
-      - attention_buckets : dict catégorisé -> liste de points (avec `message`)
-      - category_labels   : mapping clé catégorie -> libellé lisible
+    Args:
+        per_category_max: nombre max d'items par catégorie pour l'accueil
+        sample_buckets: si True, **échantillonne** aussi les listes par catégorie; sinon, renvoie toutes les entrées
     """
     buckets = collect_attention_points()
-    buckets_rendered = build_buckets_with_messages(buckets)
+    buckets_rendered = build_buckets_with_messages(
+        buckets,
+        sample_per_category=per_category_max if sample_buckets else None,
+    )
 
     samples = sample_for_home(per_category_max=per_category_max)
     samples = [dict(p, message=render_message(p)) for p in samples]
