@@ -46,6 +46,7 @@ from switcher import switch_bp
 from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects, list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory,rename_accessory, create_object_group, rename_object_group, assign_object_to_group, remove_object_from_group, search_object_groups, list_object_groups_with_counts,get_object_groups,set_desired_price,get_object,set_group_desired_price,get_tags_for_objects, add_object_tag as dal_add_object_tag, remove_object_tag as dal_remove_object_tag, get_tags_for_object_groups, add_tag_to_object_group as dal_add_tag_to_object_group, remove_tag_from_object_group as dal_remove_tag_from_object_group,list_object_images,list_group_object_images
 from camera import serve_snapshot, svg_fallback
 from catalog_sync import CatalogSync
+from attention_points import collect_attention_points, render_message, sample_for_home
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -1073,11 +1074,17 @@ def home():
         status_copy["thumbnail"] = None
         status_copy["printName"] = None
     # Nouveau : si ?webview=1 → on met le cookie
+    _buckets = collect_attention_points()
+    _samples = sample_for_home(_buckets, per_category_max=3)
+    attention_samples = [dict(p, message=render_message(p)) for p in _samples]
+    attention_buckets = {k: [dict(p, message=render_message(p)) for p in v] for k, v in _buckets.items()}
     resp = make_response(render_template(
         'index.html',
         success_message=success_message,
         ams_data=ams_data,
         vt_tray_data=vt_tray_data,
+        attention_samples=attention_samples,
+        attention_buckets=attention_buckets,
         issue=issue,
         page_title="Accueil",
         printer_status=status_copy

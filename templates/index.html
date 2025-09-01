@@ -458,6 +458,31 @@
 
   </div>
 </div>
+{% if attention_samples and attention_samples|length > 0 %}
+<div class="mt-4">
+  <div class="card shadow-sm border-0 rounded-3" style="background:rgba(255,255,255,0.04)">
+    <div class="card-header border-0" style="background:transparent">
+      <h5 class="mb-0">Points d’attention</h5>
+      <small class="text-muted">Sélection aléatoire par catégorie (max 3 chacun)</small>
+    </div>
+    <div class="card-body pt-0">
+      <ul class="list-group list-group-flush">
+        {% for p in attention_samples %}
+        <li class="list-group-item d-flex align-items-start" style="background:transparent">
+          <div class="flex-grow-1">
+            <div class="fw-semibold">{{ p.message }}</div>
+            <div class="text-muted small">
+              Catégorie : {{ p.category }}
+              {% if p.param and p.value %} — {{ p.param }}={{ p.value }}{% endif %}
+            </div>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endif %}
 </div>
 
 <!-- Alpine.js requis -->
