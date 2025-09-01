@@ -499,7 +499,6 @@ def _maybe_reset_state_for_new_print(job_id: str, st: dict, fields: dict):
         _persist(job_id)
 
 def safe_update_status(data):
-    logger.debug(json.dumps(data))
 
     # -------- imports utilitaires locaux (si pas déjà au module) --------
     # from globals import PRINTER_STATUS, update_status, current_status_snapshot, deep_merge
