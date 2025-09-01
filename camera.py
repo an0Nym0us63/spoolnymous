@@ -8,6 +8,9 @@ from flask import Response,send_file
 from pathlib import Path
 import re
 import os
+import socket
+import ssl
+import struct
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +33,115 @@ _FAIL_BASE       = 10.0  # s : premier palier de backoff en cas d'échec
 _FAIL_MAX        = 120.0 # s : plafond de backoff
 _FAIL_JITTER     = 0.20  # ±20% de jitter
 _FFMPEG_TIMEOUTS = 6.0   # délai pour ffmpeg
+
+def _get_printer_model_name() -> str:
+    """Récupère le nom modèle via mqtt_bambulab.getPrinterModel()."""
+    try:
+        from mqtt_bambulab import getPrinterModel  # type: ignore
+        info = getPrinterModel() or {}
+        return str(info.get("model") or "")
+    except Exception:
+        return ""
+
+def _get_ip_and_code():
+    """Récupère IP et code d'accès via app.get_app_setting, fallback env."""
+    try:
+        from app import get_app_setting  # type: ignore
+    except Exception:
+        def get_app_setting(key, default=""):
+            return os.environ.get(key, default)
+    ip   = get_app_setting("PRINTER_IP", "")
+    code = get_app_setting("PRINTER_ACCESS_CODE", "")
+    return ip, code
+
+def _snapshot_once_tls6000(timeout_s: float = 5.0) -> bytes:
+    """
+    Prend UNE image via le flux local TLS port 6000 (protocole Bambu 'bblp').
+    Robuste (lecture header 16o + payload) et tolérant sur le JPEG (SOI/EOI).
+    """
+    ip, access_code = _get_ip_and_code()
+    if not ip or not access_code:
+        raise RuntimeError("IP ou code d'accès manquant pour TLS6000")
+
+    username = "bblp"
+    port = 6000
+
+    # Construire le buffer d'auth tel que fait HA
+    auth_data = bytearray()
+    auth_data += struct.pack("<I", 0x40)    # '@'\0\0\0
+    auth_data += struct.pack("<I", 0x3000)  # \0'0'\0\0
+    auth_data += struct.pack("<I", 0)
+    auth_data += struct.pack("<I", 0)
+    # username (32 octets, ASCII + padding)
+    for i in range(len(username)):
+        auth_data += struct.pack("<c", username[i].encode("ascii"))
+    for _ in range(32 - len(username)):
+        auth_data += struct.pack("<x")
+    # access_code (32 octets)
+    for i in range(len(access_code)):
+        auth_data += struct.pack("<c", access_code[i].encode("ascii"))
+    for _ in range(32 - len(access_code)):
+        auth_data += struct.pack("<x")
+
+    # Contexte TLS permissif (LAN)
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    # Lecture par state machine (header 16o puis payload)
+    sock = socket.create_connection((ip, port), timeout=timeout_s)
+    try:
+        with ctx.wrap_socket(sock, server_hostname=ip) as ssock:
+            ssock.settimeout(timeout_s)
+            ssock.sendall(auth_data)
+
+            buf = bytearray()
+            need_header = True
+            payload_size = None
+
+            # petite boucle avec timeout global (réévalué par socket)
+            start = time.monotonic()
+            while True:
+                if time.monotonic() - start > timeout_s:
+                    raise TimeoutError("TLS6000 snapshot timeout")
+
+                try:
+                    chunk = ssock.recv(4096)
+                except ssl.SSLWantReadError:
+                    time.sleep(0.05)
+                    continue
+
+                if not chunk:
+                    # close() côté imprimante ou refus
+                    raise RuntimeError("Flux TLS6000 indisponible")
+
+                buf += chunk
+
+                while True:
+                    if need_header:
+                        if len(buf) < 16:
+                            break
+                        # 4 octets LE pour la taille payload (corrigé vs [0:3])
+                        payload_size = int.from_bytes(buf[0:4], "little")
+                        # Optionnel : valider buf[8:12] == b"\x01\x00\x00\x00"
+                        buf = buf[16:]
+                        need_header = False
+                    else:
+                        if payload_size is None or len(buf) < payload_size:
+                            break
+                        img = bytes(buf[:payload_size])
+                        buf = buf[payload_size:]
+                        # Validation JPEG souple : SOI FFD8, EOI FFD9
+                        if not (len(img) >= 2 and img[0] == 0xFF and img[1] == 0xD8):
+                            raise RuntimeError("JPEG SOI manquante")
+                        if not (len(img) >= 2 and img[-2] == 0xFF and img[-1] == 0xD9):
+                            raise RuntimeError("JPEG EOI manquante")
+                        return img  # 1 seule image
+    finally:
+        try:
+            sock.close()
+        except Exception:
+            pass
 
 def get_camera_urls():
     """
@@ -145,50 +257,74 @@ def serve_snapshot() -> Response:
         _SNAP["ts"] = now
 
     # 4) Essayer les URLs, hors lock pour ne pas bloquer le process entier
+    model = _get_printer_model_name().upper()
     last_exc = None
-    for u in urls:
-        try:
-            data = _snapshot_once(u, timeout_s=_FFMPEG_TIMEOUTS)
-            # Succès → mettre à jour l'état (sous lock)
-            with _SNAP_LOCK:
-                _SNAP["data"] = data
-                _SNAP["ok"] = True
-                _SNAP["fail_count"] = 0
-                _SNAP["retry_at"] = 0.0
-                _SNAP["last_err"] = ""
-                # réponse fraîche
-                r = Response(data, mimetype="image/jpeg")
-                r.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
-                r.headers["X-Camera-Status"] = "ok"
-                r.headers["X-Snapshot-Age"] = "0.000"
-                return r
+    if "P1P" in model:
+        last_exc = "Model without chamber camera"
+    else:
+        def _try_rtsp():
+            # tente chaque URL via ffmpeg, renvoie bytes au 1er succès
+            last = None
+            for u in urls:
+                try:
+                    return _snapshot_once(u, timeout_s=_FFMPEG_TIMEOUTS)
+                except Exception as e:
+                    last = e
+                    continue
+            raise last or RuntimeError("RTSP providers failed")
 
-        except subprocess.TimeoutExpired as e:
-            last_exc = "Timeout"
-            logger.warning("snapshot camera timeout on %s: %s", u, e)
+        def _try_tls():
+            return _snapshot_once_tls6000(timeout_s=5.0)
 
-        except subprocess.CalledProcessError as e:
-            stderr = (e.stderr.decode("utf-8", "ignore") if e.stderr else "").strip()
-            last_exc = "Camera ffmpeg error"
-            logger.warning("snapshot camera ffmpeg error on %s: %s", u, stderr or e)
-
-        except Exception as e:
-            last_exc = "Unexpected"
-            logger.warning("snapshot camera unexpected error on %s: %s", u, e)
+        if any(x in model for x in ["H2D", "X1", "X1 CARBON", "X1E"]):
+            providers = [_try_rtsp]
+        elif any(x in model for x in ["P1S", "A1", "A1 MINI"]):
+            providers = [_try_tls]
+        else:
+            # Modèle inconnu : tenter RTSP puis TLS
+            providers = [_try_rtsp, _try_tls]
+    if providers:
+        for provider in providers:
+            try:
+                data = provider()
+                # Succès → mettre à jour l'état (sous lock)
+                with _SNAP_LOCK:
+                    _SNAP["data"] = data
+                    _SNAP["ok"] = True
+                    _SNAP["fail_count"] = 0
+                    _SNAP["retry_at"] = 0.0
+                    _SNAP["last_err"] = ""
+                    r = Response(data, mimetype="image/jpeg")
+                    r.headers["Cache-Control"] = "no-store, max-age=0, must-revalidate"
+                    r.headers["X-Camera-Status"] = "ok"
+                    r.headers["X-Snapshot-Age"] = "0.000"
+                    r.headers["X-Provider"] = "tls6000" if provider.__name__ == "_try_tls" else "rtsp"
+                    return r
+            except subprocess.TimeoutExpired as e:
+                last_exc = "Timeout"
+                logger.warning("snapshot camera timeout: %s", e)
+            except subprocess.CalledProcessError as e:
+                stderr = (e.stderr.decode("utf-8", "ignore") if getattr(e, "stderr", None) else "").strip()
+                last_exc = "Camera ffmpeg error"
+                logger.warning("snapshot camera ffmpeg error: %s", stderr or e)
+            except Exception as e:
+                last_exc = f"Provider {provider.__name__} failed"
+                logger.warning("snapshot camera provider error: %s", e)
 
     # 5) Tous les essais ont échoué → backoff + servir fallback
     with _SNAP_LOCK:
         _SNAP["ok"] = False
         _SNAP["fail_count"] = min(_SNAP["fail_count"] + 1, 999999)
         base = min(_FAIL_BASE * (2 ** (_SNAP["fail_count"] - 1)), _FAIL_MAX)
-        jitter = base * _FAIL_JITTER * (2 * random.random() - 1.0)  # ±jitter
+        jitter = base * _FAIL_JITTER * (2 * random.random() - 1.0)
         wait_s = max(1.0, base + jitter)
         _SNAP["retry_at"] = time.monotonic() + wait_s
-        _SNAP["last_err"] = "error"
+        _SNAP["last_err"] = str(last_exc or "error")
 
     msg = _SNAP["last_err"] or "Erreur snapshot"
-    r = svg_fallback(msg)
+    r = svg_fallback(msg if "P1P" not in model else "Caméra chambre indisponible sur ce modèle")
     r.headers["X-Retry-In"] = f"{wait_s:.3f}"
+    r.headers["X-Model"] = model or "Unknown"
     return r
 
 def _sanitize_filename(name: str) -> str:
