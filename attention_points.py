@@ -253,9 +253,6 @@ def render_message(point: AttentionPoint) -> str:
 # ---------------------------------------------------------------------------
 
 def collect_attention_points() -> Dict[str, List[AttentionPoint]]:
-    """
-    Retourne un dict {category: [points ...]} couvrant toutes les catégories.
-    """
     return {
         "print_usage_unassigned": _collect_unassigned_filament_usage(),
         "filament_without_swatch": _collect_filaments_without_swatch(),
@@ -265,10 +262,12 @@ def collect_attention_points() -> Dict[str, List[AttentionPoint]]:
     }
 
 
-def sample_for_home(buckets: Dict[str, List[AttentionPoint]], per_category_max: int = 3) -> List[AttentionPoint]:
+def sample_for_home(per_category_max: int = 3) -> List[AttentionPoint]:
     """
-    Sélectionne aléatoirement jusqu’à N points par catégorie pour l’accueil.
+    Récupère directement les points via collect_attention_points et sélectionne
+    aléatoirement jusqu’à N points par catégorie.
     """
+    buckets = collect_attention_points()
     out: List[AttentionPoint] = []
     for cat, items in buckets.items():
         if not items:
