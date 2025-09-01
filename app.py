@@ -1074,17 +1074,14 @@ def home():
         status_copy["thumbnail"] = None
         status_copy["printName"] = None
     # Nouveau : si ?webview=1 → on met le cookie
-    _buckets = collect_attention_points()
     _samples = sample_for_home(_buckets, per_category_max=3)
     attention_samples = [dict(p, message=render_message(p)) for p in _samples]
-    attention_buckets = {k: [dict(p, message=render_message(p)) for p in v] for k, v in _buckets.items()}
     resp = make_response(render_template(
         'index.html',
         success_message=success_message,
         ams_data=ams_data,
         vt_tray_data=vt_tray_data,
         attention_samples=attention_samples,
-        attention_buckets=attention_buckets,
         issue=issue,
         page_title="Accueil",
         printer_status=status_copy

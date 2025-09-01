@@ -458,7 +458,7 @@
 
   </div>
 </div>
-{% if attention_buckets %}
+{% if attention_samples %}
 <div class="mt-4">
   <div class="card shadow-sm border-0 rounded-3">
     <div class="card-header border-0">
@@ -467,7 +467,7 @@
     </div>
     <div class="card-body pt-0">
 
-      {% for category, points in attention_buckets.items() if points %}
+      {% for category, points in attention_samples.items() if points %}
       <div class="mb-3">
         <h6 class="fw-bold text-primary mb-2">
           {{ category|replace('_',' ')|capitalize }}
