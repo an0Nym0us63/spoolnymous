@@ -4,20 +4,14 @@ import sqlite3
 from typing import Any, Dict, List, Optional
 
 # Pas de paramètres en DB pour le moment : tout est dans ce fichier.
-ATTENTION_SPOOL_EMPTY_THRESHOLD_G: float = 150.0   # seuil en grammes
-ATTENTION_SPOOL_EMPTY_THRESHOLD_PCT: float = 0.15 # seuil en pourcentage (0.10 = 10%)
+ATTENTION_SPOOL_EMPTY_THRESHOLD_G: float = 50.0   # seuil en grammes
+ATTENTION_SPOOL_EMPTY_THRESHOLD_PCT: float = 0.10 # seuil en pourcentage (0.10 = 10%)
 
 from filaments import fetch_spools
 from print_history import db_config, list_print_images, list_group_images, get_print_groups
 
 # Type uniforme pour un "point d'attention"
-# - category : identifiant court et stable
-# - name     : nom humain lisible de la ressource
-# - param    : clé technique principale (ex: print_id, spool_id...)
-# - value    : valeur associée (ex: quantité/grammes/pourcentage)
-# - meta     : dict libre avec infos utiles au rendu
 AttentionPoint = Dict[str, Any]
-
 
 # ---------------------------------------------------------------------------
 # Helpers DB & formatage
@@ -32,9 +26,6 @@ def _row_to_dict(row: sqlite3.Row) -> dict:
     return {k: row[k] for k in row.keys()}
 
 def _fmt_spool_name(spool: dict) -> str:
-    """
-    Rend un libellé compact et parlant pour une bobine.
-    """
     f = spool.get("filament", {}) or {}
     man = f.get("manufacturer") or ""
     name = f.get("name") or ""
@@ -48,15 +39,11 @@ def _fmt_spool_name(spool: dict) -> str:
     if sid: lib = f"{lib}  #{sid}"
     return lib.strip()
 
-
 # ---------------------------------------------------------------------------
 # Collecteurs par catégorie
 # ---------------------------------------------------------------------------
 
 def _collect_unassigned_filament_usage() -> List[AttentionPoint]:
-    """
-    Impressions avec des lignes filament_usage sans spool_id (NULL).
-    """
     conn = _get_conn()
     cur = conn.cursor()
     cur.execute("""
@@ -86,11 +73,7 @@ def _collect_unassigned_filament_usage() -> List[AttentionPoint]:
         })
     return out
 
-
 def _collect_filaments_without_swatch() -> List[AttentionPoint]:
-    """
-    Filaments sans swatch (table filaments.swatch = 0).
-    """
     conn = _get_conn()
     cur = conn.cursor()
     cur.execute("""
@@ -117,12 +100,7 @@ def _collect_filaments_without_swatch() -> List[AttentionPoint]:
         })
     return out
 
-
 def _collect_spools_almost_empty() -> List[AttentionPoint]:
-    """
-    Bobines presque vides (seuil grammes OU pourcentage).
-    Utilise fetch_spools(archived=False).
-    """
     th_g = float(ATTENTION_SPOOL_EMPTY_THRESHOLD_G)
     th_pct = float(ATTENTION_SPOOL_EMPTY_THRESHOLD_PCT)
 
@@ -158,11 +136,7 @@ def _collect_spools_almost_empty() -> List[AttentionPoint]:
             })
     return out
 
-
 def _collect_prints_without_photo(limit: int = 500) -> List[AttentionPoint]:
-    """
-    Impressions sans photo (aucune image trouvée par list_print_images).
-    """
     conn = _get_conn()
     cur = conn.cursor()
     cur.execute(f"""
@@ -187,11 +161,7 @@ def _collect_prints_without_photo(limit: int = 500) -> List[AttentionPoint]:
             })
     return out
 
-
 def _collect_groups_without_photo() -> List[AttentionPoint]:
-    """
-    Groupes sans photo (aucune image retournée par list_group_images).
-    """
     groups = get_print_groups()
     out: List[AttentionPoint] = []
     for g in groups:
@@ -205,7 +175,6 @@ def _collect_groups_without_photo() -> List[AttentionPoint]:
                 "meta": {}
             })
     return out
-
 
 # ---------------------------------------------------------------------------
 # Rendu des messages
@@ -239,14 +208,12 @@ def render_message(point: AttentionPoint) -> str:
         "name": point.get("name", ""),
         **meta
     }
-    # cas particulier pour la bobine (pourcentage)
     if cat == "spool_almost_empty":
         pct = meta.get("pct")
         d["pct_txt"] = f", {pct*100:.0f}%" if isinstance(pct, (int, float)) else ""
         if d.get("remaining_g") is None:
             d["remaining_g"] = 0.0
     return tpl.format(**d)
-
 
 # ---------------------------------------------------------------------------
 # Orchestrateur
@@ -260,7 +227,6 @@ def collect_attention_points() -> Dict[str, List[AttentionPoint]]:
         "print_without_photo": _collect_prints_without_photo(),
         "group_without_photo": _collect_groups_without_photo(),
     }
-
 
 def sample_for_home(per_category_max: int = 3) -> List[AttentionPoint]:
     """
@@ -276,3 +242,47 @@ def sample_for_home(per_category_max: int = 3) -> List[AttentionPoint]:
         out.extend(random.sample(items, n))
     random.shuffle(out)
     return out
+
+
+# ---------------------------------------------------------------------------
+# Contexte prêt pour le template (labels + messages + échantillon)
+# ---------------------------------------------------------------------------
+
+CATEGORY_LABELS: Dict[str, str] = {
+    "print_usage_unassigned": "Affectations manquantes",
+    "filament_without_swatch": "Filaments sans swatch",
+    "spool_almost_empty": "Bobines presque vides",
+    "print_without_photo": "Impressions sans photo",
+    "group_without_photo": "Groupes sans photo",
+}
+
+
+def build_buckets_with_messages(buckets: Dict[str, List[AttentionPoint]]) -> Dict[str, List[AttentionPoint]]:
+    """Ajoute la clé `message` à chaque point en utilisant `render_message`."""
+    out: Dict[str, List[AttentionPoint]] = {}
+    for cat, items in buckets.items():
+        out[cat] = [dict(p, message=render_message(p)) for p in items]
+    return out
+
+
+def get_attention_context(per_category_max: int = 3) -> Dict[str, Any]:
+    """
+    Prépare tout ce qu'il faut passer au template, sans que `app.py` n'ait à
+    reconstruire quoi que ce soit.
+
+    Retour :
+      - attention_samples : liste de points (avec `message`) issus du sampling
+      - attention_buckets : dict catégorisé -> liste de points (avec `message`)
+      - category_labels   : mapping clé catégorie -> libellé lisible
+    """
+    buckets = collect_attention_points()
+    buckets_rendered = build_buckets_with_messages(buckets)
+
+    samples = sample_for_home(per_category_max=per_category_max)
+    samples = [dict(p, message=render_message(p)) for p in samples]
+
+    return {
+        "attention_samples": samples,
+        "attention_buckets": buckets_rendered,
+        "category_labels": CATEGORY_LABELS,
+    }
