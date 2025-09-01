@@ -1074,7 +1074,7 @@ def home():
         status_copy["thumbnail"] = None
         status_copy["printName"] = None
     # Nouveau : si ?webview=1 → on met le cookie
-    _samples = sample_for_home(_buckets, per_category_max=3)
+    _samples = sample_for_home(per_category_max=3)
     attention_samples = [dict(p, message=render_message(p)) for p in _samples]
     resp = make_response(render_template(
         'index.html',
