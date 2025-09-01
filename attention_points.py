@@ -4,8 +4,8 @@ import sqlite3
 from typing import Any, Dict, List, Optional
 
 # Pas de paramètres en DB pour le moment : tout est dans ce fichier.
-ATTENTION_SPOOL_EMPTY_THRESHOLD_G: float = 50.0   # seuil en grammes
-ATTENTION_SPOOL_EMPTY_THRESHOLD_PCT: float = 0.10 # seuil en pourcentage (0.10 = 10%)
+ATTENTION_SPOOL_EMPTY_THRESHOLD_G: float = 150.0   # seuil en grammes
+ATTENTION_SPOOL_EMPTY_THRESHOLD_PCT: float = 0.15 # seuil en pourcentage (0.10 = 10%)
 
 from filaments import fetch_spools
 from print_history import db_config, list_print_images, list_group_images, get_print_groups
