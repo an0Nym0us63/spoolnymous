@@ -1080,7 +1080,6 @@ def home():
         success_message=success_message,
         ams_data=ams_data,
         vt_tray_data=vt_tray_data,
-        attention_samples=attention_samples,
         issue=issue,
         page_title="Accueil",
         printer_status=status_copy,
