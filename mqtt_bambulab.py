@@ -17,7 +17,7 @@ from collections.abc import Mapping
 from logger import append_to_rotating_file
 from print_history import  insert_print, insert_filament_usage, update_filament_spool,update_print_field_with_job_id,get_tray_spool_map,delete_tray_spool_map_by_id,snapshot_milestone
 from filaments import fetch_spools,clearActiveTray,setActiveTray,spendFilaments
-from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK, PROCESSED_JOBS, PENDING_JOBS
+from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK, PROCESSED_JOBS, PENDING_JOBS, update_status, current_status_snapshot, deep_merge
 import logging
 from pathlib import Path
 from contextlib import suppress
@@ -83,10 +83,6 @@ def fire_and_forget(fn, *args, name=None, release_lock=False, **kwargs):
     t = Thread(target=_runner, name=name or fn.__name__, daemon=True)
     t.start()
     return t
-
-def update_status(new_data):
-    with PRINTER_STATUS_LOCK:
-        PRINTER_STATUS.update(new_data)
         
 def getPrinterModel():
     PRINTER_ID = get_app_setting("PRINTER_ID","")
@@ -504,6 +500,11 @@ def _maybe_reset_state_for_new_print(job_id: str, st: dict, fields: dict):
 
 def safe_update_status(data):
     logger.debug(json.dumps(data))
+
+    # -------- imports utilitaires locaux (si pas déjà au module) --------
+    # from globals import PRINTER_STATUS, update_status, current_status_snapshot, deep_merge
+    import copy
+
     # ---------- Utils ----------
     def _to_int(val):
         try:
@@ -538,6 +539,7 @@ def safe_update_status(data):
         "remaining_time": data.get("mc_remaining_time"),
         "tray_now": data.get("ams", {}).get("tray_now"),
     }
+
     # ---------- BED TEMP (nouveaux firmwares: device.bed.info.temp 32 bits) ----------
     bed_temp_raw = data.get("device", {}).get("bed", {}).get("info", {}).get("temp")
     if bed_temp_raw is not None:
@@ -652,12 +654,12 @@ def safe_update_status(data):
             return int(v)
         except (TypeError, ValueError):
             return default
-    
+
     try:
         tray_now = int(data.get("ams", {}).get("tray_now"))
     except (TypeError, ValueError):
         tray_now = None
-    
+
     ams_list = data.get("ams", {}).get("ams", []) or []
     fields["ams"] = {}
     for ams in ams_list:
@@ -666,13 +668,13 @@ def safe_update_status(data):
             continue
         dry_time = _to_int_safe(ams.get("dry_time"), 0) or 0
         fields["ams"][ams_id] = {"dry_time": dry_time}
-    
+
     fields["tray_local_id"] = None
     fields["tray_ams_id"] = None
-    
+
     # Map AMS -> extrudeur (aligne avec LEFT/RIGHT_* ci-dessus)
     ams_extruder_map = {0: RIGHT_NOZZLE_ID, 1: LEFT_NOZZLE_ID}
-    
+
     def _collect_candidate_trays(tray_now_val):
         """Retourne une liste [(ams_id, tray_local)] qui matchent tray_now."""
         cands = []
@@ -684,19 +686,18 @@ def safe_update_status(data):
                 tray_id = _to_int_safe(tray.get("id"))
                 if tray_id is None:
                     continue
-                # Cas "local": tray_id est 0..3, tray_now_val peut être local ou global.
                 if tray_id == tray_now_val:
                     cands.append((ams_id, tray_id))
         return cands
-    
+
     if tray_now is not None and isinstance(ams_list, list) and tray_now != 255:
         candidate_trays = _collect_candidate_trays(tray_now)
-    
+
         if not candidate_trays:
             # --- Fallback: normaliser un index "global" en (ams_id, tray_local)
             derived_ams_id = tray_now // 4
             derived_tray_local = tray_now % 4
-    
+
             # Si un AMS avec cet id existe et expose ce tray local, on l'ajoute.
             has_exact = False
             for ams in ams_list:
@@ -707,16 +708,14 @@ def safe_update_status(data):
                         candidate_trays.append((derived_ams_id, derived_tray_local))
                         has_exact = True
                     break
-    
+
             # Cas pratique : un seul AMS présent mais son id ≠ derived_ams_id
-            # (ex: seul AMS avec id=1, tray_now=4 → derived=(1,0). Si l'AMS unique a un autre id,
-            # on force le mapping vers cet AMS unique en conservant le tray_local normalisé.
             if not has_exact and len(ams_list) == 1:
                 sole_ams_id = _to_int_safe(ams_list[0].get("id"))
                 if sole_ams_id is not None:
                     candidate_trays.append((sole_ams_id, derived_tray_local))
-    
-        # Sélection finale identique à ta logique actuelle
+
+        # Sélection finale
         if len(ams_list) == 1 and candidate_trays:
             fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
         elif len(ams_list) > 1 and candidate_trays:
@@ -727,7 +726,7 @@ def safe_update_status(data):
                     break
             if fields["tray_ams_id"] is None:
                 fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
-    
+
     elif tray_now is not None and isinstance(ams_list, list) and tray_now == 255:
         # Bobine externe
         fields["tray_ams_id"] = 255
@@ -739,28 +738,39 @@ def safe_update_status(data):
         if remaining > 0:
             estimated_end = datetime.now() + timedelta(minutes=remaining)
             fields["estimated_end"] = estimated_end.strftime("%H:%M")
-    
-            # Calcul du décalage en jours
             finish_delta = (estimated_end.date() - datetime.now().date()).days
             fields["finish_delta"] = max(finish_delta, 0)  # sécurité, évite négatif
-    
+
         hours = int(remaining // 60)
         minutes = int(remaining % 60)
         fields["remaining_time_str"] = (
             f"{hours}h {minutes:02d}min" if hours > 0 else f"{minutes}min"
         )
+
+    # ---------- Vue fusionnée (prev ⊕ delta) pour raisonnement robuste ----------
+    try:
+        prev_status = current_status_snapshot()
+        delta = {k: v for k, v in fields.items() if v is not None}
+        merged_fields = copy.deepcopy(prev_status)
+        deep_merge(merged_fields, delta)
+    except Exception:
+        merged_fields = fields  # fallback dégradé
+
     ####----snapshot-----
     try:
         job_id = data.get("job_id")
         if not job_id:
-            # Certaines trames n’ont pas de job_id : on ignore silencieusement
+            # Frames sans job_id : on fusionne quand même le delta pour PRINTER_STATUS,
+            # puis on sort (pas de milestones à calculer ici).
+            update_status({k: v for k, v in fields.items() if v is not None})
             return
         job_id = str(job_id)
 
-        prog_raw = fields.get("progress")
-        layer_raw = fields.get("print_layer")
+        # Utiliser la vue fusionnée pour éviter les trous
+        prog_raw = merged_fields.get("progress")
+        layer_raw = merged_fields.get("print_layer")
 
-        # Parsing robustes
+        # Parsings robustes
         try:
             prog = float(prog_raw) if prog_raw is not None else None
         except Exception:
@@ -772,15 +782,13 @@ def safe_update_status(data):
                 layer = int(layer_raw)
 
         st = _state(job_id)
-        # Nouveau run ?
-        _maybe_reset_state_for_new_print(job_id, st, fields)
 
-        # À la première observation d’un job en cours (ex: reboot), on fige l'état bas
-        # => ne jamais déclencher en dessous de l'état courant
-        _maybe_reset_state_for_new_print(job_id, st, fields)
+        # Nouveau run ? (appel avec vue complète)
+        _maybe_reset_state_for_new_print(job_id, st, merged_fields)
+        # À la première observation d’un job en cours, on fige l'état bas
+        _maybe_reset_state_for_new_print(job_id, st, merged_fields)
 
-        # Seulement si l’on accroche un job déjà entamé (reboot/reconnect),
-        # on marque les milestones <= état courant comme "déjà passés".
+        # Attache milieu d'impression ?
         is_mid_print_attach = (
             (st.get("last", -1.0) <= 0) and (
                 (isinstance(prog, (int, float)) and prog >= 1.0) or
@@ -789,21 +797,18 @@ def safe_update_status(data):
         )
         if is_mid_print_attach and not st.get("_skip_below_done"):
             _mark_skip_below_current(job_id, st, prog, layer)
+
         # 1) Milestones % : 50 / 99 / 100
         if prog is not None and 0.0 <= prog <= 100.0:
-            # Calcul des paliers à tirer (en évitant ceux déjà marqués true)
             to_fire = []
             prev = st.get("last", -1.0)
-            # On déclenche lors d’un passage 'vers le haut'
+
             def _cross(prev_v, cur_v, th):
                 return prev_v < th <= cur_v
 
-            if not st["m50"] and _cross(prev, prog, 50.0):
-                to_fire.append(50)
-            if not st["m99"] and _cross(prev, prog, 99.0):
-                to_fire.append(99)
-            if not st["m100"] and _cross(prev, prog, 100.0):
-                to_fire.append(100)
+            if not st["m50"]  and _cross(prev, prog, 50.0):  to_fire.append(50)
+            if not st["m99"]  and _cross(prev, prog, 99.0):  to_fire.append(99)
+            if not st["m100"] and _cross(prev, prog, 100.0): to_fire.append(100)
 
             for pct in to_fire:
                 fire_and_forget(
@@ -816,13 +821,10 @@ def safe_update_status(data):
                 if pct == 99:  st["m99"]  = True
                 if pct == 100: st["m100"] = True
 
-            # Mémorise dernier %
             st["last"] = max(prev, prog)
             _persist(job_id)
 
-        # 2) Milestones fin couche 1 & 2 :
-        #    - fin couche 1  => quand layer atteint pour la 1ère fois 2
-        #    - fin couche 2  => quand layer atteint pour la 1ère fois 3
+        # 2) Milestones fin couche 1 & 2
         if layer is not None:
             prev_layer = st.get("last_layer") or 0
 
@@ -849,9 +851,13 @@ def safe_update_status(data):
 
     except Exception:
         logger.debug("Milestones snapshot: erreur non bloquante", exc_info=True)
+
     # ---------- Détection fin/échec (antirebond) ----------
     job_id = data.get("job_id")
-    status = (fields.get("status") or "").upper()
+    # Prendre le status dans la vue fusionnée (peut être absent du delta)
+    status = ((merged_fields.get("status") or "") if isinstance(merged_fields, dict)
+              else (fields.get("status") or "")).upper()
+
     if job_id and status in {"FINISH", "FAILED"}:
         now = time.time()
         if job_id not in PROCESSED_JOBS:
@@ -863,7 +869,8 @@ def safe_update_status(data):
                     if now - first_seen >= 10:
                         final_status = "SUCCESS" if status == "FINISH" else "FAILED"
                         if status == 'FAILED':
-                            pct=int(fields.get("progress"))
+                            with suppress(Exception):
+                                pct = int((merged_fields.get("progress") or 0))
                             snapshot_milestone(job_id, pct, basename=f"Impression-{pct}-echec")
                         update_print_field_with_job_id(job_id, "status", final_status)
                         PROCESSED_JOBS.add(job_id)
@@ -874,7 +881,7 @@ def safe_update_status(data):
                 else:
                     PENDING_JOBS[job_id] = (status, now)
 
-    # ---------- Publication ----------
+    # ---------- Publication (delta uniquement) ----------
     update_status({k: v for k, v in fields.items() if v is not None})
 
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970
