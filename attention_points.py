@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Optional
 import re
 
 # Pas de paramètres en DB pour le moment : tout est dans ce fichier.
-ATTENTION_SPOOL_EMPTY_THRESHOLD_G: float = 50.0   # seuil en grammes
-ATTENTION_SPOOL_EMPTY_THRESHOLD_PCT: float = 0.10 # seuil en pourcentage (0.10 = 10%)
+ATTENTION_SPOOL_EMPTY_THRESHOLD_G: float = 150.0   # seuil en grammes
+ATTENTION_SPOOL_EMPTY_THRESHOLD_PCT: float = 0.15 # seuil en pourcentage (0.10 = 10%)
 
 from filaments import fetch_spools
 from print_history import db_config, list_print_images, list_group_images, get_print_groups
@@ -266,6 +266,42 @@ def _collect_groups_without_photo() -> List[AttentionPoint]:
                 "meta": {}
             })
     return out
+   
+def _collect_prints_photo_without_design(limit: int = 500) -> List[AttentionPoint]:
+    """
+    Sélectionne les impressions qui ont au moins une photo uploadée manuellement
+    (via list_print_images) mais dont design_id est vide / nul / 0.
+    """
+    conn = _get_conn()
+    cur = conn.cursor()
+    # On couvre: NULL, 0, '', '  '
+    cur.execute(f"""
+        SELECT p.id, p.file_name, p.design_id
+        FROM prints p
+        WHERE p.design_id IS NULL
+              OR p.design_id = 0
+              OR TRIM(CAST(p.design_id AS TEXT)) = ''
+        ORDER BY p.id DESC
+        LIMIT {int(limit)}
+    """)
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+
+    out: List[AttentionPoint] = []
+    for r in rows:
+        imgs = list_print_images(r["id"])
+        if imgs:  # => il y a bien une (vraie) photo côté uploads
+            out.append({
+                "category": "print_photo_without_design",
+                "name": r["file_name"],
+                "param": "print_id",
+                "value": int(r["id"]),
+                "meta": {
+                    "images_count": len(imgs),
+                    "design_id": r.get("design_id"),
+                }
+            })
+    return out
 
 # ---------------------------------------------------------------------------
 # Rendu des messages
@@ -332,6 +368,13 @@ PHRASES = {
         "Photo à ajouter pour le groupe « {name} ».",
         "Pensez à illustrer le groupe « {name} ».",
     ],
+    "print_photo_without_design": [
+        "Photo présente mais design non lié : « {name} » ({images_count} image(s)). Associez un design.",
+        "« {name} » a une photo mais aucun design associé. Renseignez le design_id.",
+        "Design manquant pour « {name} » alors qu’une photo existe ({images_count}).",
+        "Liez un design à « {name} » : photo déjà uploadée.",
+        "« {name} » : visuel OK, design_id absent.",
+    ],
 }
 
 def render_message(point: AttentionPoint) -> str:
@@ -371,6 +414,7 @@ def collect_attention_points() -> Dict[str, List[AttentionPoint]]:
         "spool_almost_empty": _collect_spools_almost_empty(),
         "print_without_photo": _collect_prints_without_photo(),
         "group_without_photo": _collect_groups_without_photo(),
+        "print_photo_without_design": _collect_prints_photo_without_design(),
     }
 
 def sample_for_home(per_category_max: int = 3) -> List[AttentionPoint]:
@@ -399,6 +443,7 @@ CATEGORY_LABELS: Dict[str, str] = {
     "spool_almost_empty": "Bobines presque vides",
     "print_without_photo": "Impressions sans photo",
     "group_without_photo": "Groupes sans photo",
+    "print_photo_without_design": "Photos sans design",
 }
 
 
