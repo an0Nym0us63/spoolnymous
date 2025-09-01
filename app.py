@@ -3627,4 +3627,185 @@ def set_design_id_group():
         update_print_history_field(print_id, "design_id",design_id)  # à toi d’implémenter
     return redirect(request.referrer or url_for("prints"))
 
+@app.route("/history/print/<int:print_id>")
+def print_detail(print_id: int):
+    # Charger le print unique avec ses usages de filament et tags
+    filters = {"__ref_print_id": print_id}
+    raw = get_prints_with_filament(filters=filters, search=None)
+    if not raw:
+        flash(f"Impression #{print_id} introuvable.", "danger")
+        return redirect_with_context("print_history")
+    p = raw[0]
+    # Enrichissements alignés sur /print_history
+    p["duration"] = float(p.get("duration") or 0.0) / 3600
+    p["electric_cost"] = p.get("electric_cost", 0.0)
+    p["tags"] = get_tags_for_print(p["id"])
+    p["translated_name"] = p.get("translated_name", "")
+    p["total_price"] = p.get("sold_price_total", 0)
+    p["number_of_items"] = p.get("number_of_items", 1)
+    p["model_file"] = None
+
+    if p.get("image_file", "").endswith(".png"):
+        model_file = p["image_file"].replace(".png", ".3mf")
+        model_path = os.path.join(app.static_folder, 'prints', model_file)
+        if os.path.isfile(model_path):
+            p["model_file"] = model_file
+
+    # Map spools
+    spool_list = fetch_spools(archived=True)
+    spools_by_id = {spool["id"]: spool for spool in spool_list}
+    for filament in p.get("filament_usage", []):
+        if filament.get("spool_id"):
+            filament["spool"] = spools_by_id.get(filament["spool_id"])
+        filament.setdefault("cost", 0.0)
+        filament.setdefault("normal_cost", 0.0)
+
+    # Compteur objets liés
+    counts = get_object_counts_by_parent("print", [p["id"]])
+    p["used_units"] = max(0, int(counts.get(p["id"], 0)))
+
+    return render_template(
+        "print_detail.html",
+        print=p,
+        currencysymbol="€",
+        args=filtered_args_for_template(),
+        page_title=f"Impression #{print_id}"
+    )
+
+
+@app.route("/history/group/<int:group_id>")
+def group_detail(group_id: int):
+    # Charger tous les prints du groupe
+    filters = {"__ref_group_id": group_id}
+    raw_prints = get_prints_with_filament(filters=filters, search=None)
+    if not raw_prints:
+        flash(f"Groupe #{group_id} introuvable.", "danger")
+        return redirect_with_context("print_history")
+
+    # Spools map
+    spool_list = fetch_spools(archived=True)
+    spools_by_id = {spool["id"]: spool for spool in spool_list}
+
+    # Tags par print
+    all_print_ids = [p["id"] for p in raw_prints]
+    tags_by_print = get_tags_for_prints(all_print_ids)
+
+    # Agrégation façon /print_history
+    entry = {
+        "type": "group",
+        "id": group_id,
+        "name": None,
+        "prints": [],
+        "total_duration": 0,
+        "latest_date": None,
+        "thumbnail": None,
+        "filament_usage": {},
+        "number_of_items": 1,
+        "primary_print_id": None,
+        "total_cost": 0,
+        "electric_cost": 0,
+        "total_normal_cost": 0,
+        "total_weight": 0,
+        "total_price": 0,
+        "full_cost": 0,
+        "full_normal_cost": 0,
+        "full_cost_by_item": 0,
+        "full_normal_cost_by_item": 0,
+        "max_print_id": 0,
+        "tags": set(),
+        "images": [],
+        "images_count": 0,
+        "has_images": False,
+        "design_id": None,
+    }
+
+    for p in raw_prints:
+        p["duration"] = float(p.get("duration") or 0.0) / 3600
+        p["electric_cost"] = p.get("electric_cost", 0.0)
+        p["tags"] = tags_by_print.get(p["id"], [])
+        p["translated_name"] = p.get("translated_name", "")
+        p["total_price"] = p.get("sold_price_total", 0)
+        p["number_of_items"] = p.get("number_of_items", 1)
+        p["model_file"] = None
+
+        if p.get("image_file", "").endswith(".png"):
+            model_file = p["image_file"].replace(".png", ".3mf")
+            model_path = os.path.join(app.static_folder, 'prints', model_file)
+            if os.path.isfile(model_path):
+                p["model_file"] = model_file
+                if not entry["thumbnail"]:
+                    entry["thumbnail"] = p["image_file"]
+
+        # Update group-level aggregations
+        entry["prints"].append(p)
+        entry["max_print_id"] = max(entry["max_print_id"], p["id"])
+        entry["latest_date"] = max(entry["latest_date"], p["print_date"]) if entry["latest_date"] else p["print_date"]
+        entry["name"] = p.get("group_name") or entry["name"] or f"Groupe {group_id}"
+        entry["number_of_items"] = p.get("group_number_of_items") or entry["number_of_items"]
+        entry["primary_print_id"] = p.get("group_primary_print_id") or entry["primary_print_id"]
+
+        entry["total_duration"] += float(p.get("duration_seconds") or 0.0)
+        entry["total_cost"] += float(p.get("total_cost") or 0.0)
+        entry["total_normal_cost"] += float(p.get("total_normal_cost") or 0.0)
+        entry["electric_cost"] += float(p.get("electric_cost") or 0.0)
+        entry["total_weight"] += float(p.get("total_weight") or 0.0)
+        entry["total_price"] += float(p.get("sold_price_total") or 0.0)
+        entry["full_cost"] += float(p.get("full_cost") or 0.0)
+        entry["full_normal_cost"] += float(p.get("full_normal_cost") or 0.0)
+        entry["full_cost_by_item"] = float(p.get("full_cost_by_item") or entry["full_cost_by_item"] or 0.0)
+        entry["full_normal_cost_by_item"] = float(p.get("full_normal_cost_by_item") or entry["full_normal_cost_by_item"] or 0.0)
+
+        # Design id / thumbnail / images
+        if not entry["design_id"]:
+            entry["design_id"] = p.get("design_id")
+
+        # filaments aggregation per group
+        for filament in p.get("filament_usage", []):
+            key = filament.get("spool_id") or f"{filament.get('filament_type')}-{filament.get('color')}"
+            if filament.get("spool_id"):
+                filament["spool"] = spools_by_id.get(filament["spool_id"])
+            filament.setdefault("cost", 0.0)
+            filament.setdefault("normal_cost", 0.0)
+
+            if key not in entry["filament_usage"]:
+                entry["filament_usage"][key] = {
+                    "grams_used": filament["grams_used"],
+                    "cost": filament.get("cost", 0.0),
+                    "normal_cost": filament.get("normal_cost", 0.0),
+                    "spool": filament.get("spool"),
+                    "spool_id": filament.get("spool_id"),
+                    "filament_type": filament.get("filament_type"),
+                    "color": filament.get("color")
+                }
+            else:
+                u = entry["filament_usage"][key]
+                u["grams_used"] += filament["grams_used"]
+                u["cost"] += filament.get("cost", 0.0)
+                u["normal_cost"] += filament.get("normal_cost", 0.0)
+
+        # accumulate tags
+        for t in p.get("tags", []):
+            entry["tags"].add(t)
+
+    # Images at group level
+    entry["images"] = list_group_images(group_id)
+    entry["images_count"] = len(entry["images"])
+    entry["has_images"] = bool(entry["images"])
+
+    # Compteurs d'objets pour le groupe
+    counts_group = get_object_counts_by_parent("group", [group_id])
+    entry["used_units"] = max(0, int(counts_group.get(group_id, 0)))
+
+    # badge per-print used
+    counts_print = get_object_counts_by_parent("print", [p["id"] for p in entry["prints"]])
+    for p in entry["prints"]:
+        p["used_units"] = max(0, int(counts_print.get(p["id"], 0)))
+
+    return render_template(
+        "group_detail.html",
+        entry=entry,
+        currencysymbol="€",
+        args=filtered_args_for_template(),
+        page_title=f"Groupe #{group_id}"
+    )
 app.register_blueprint(auth_bp)

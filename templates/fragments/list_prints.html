@@ -2,12 +2,17 @@
   {% for entry in entries %}
     {% if entry.type == "group" %}
       <div class="card shadow-sm object-card">
-        <div class="card-header d-flex justify-content-between align-items-center clickable px-2 py-1"
-             data-bs-toggle="collapse"
-             data-bs-target="#group_{{ entry.id }}"
-             data-bs-parent="#printAccordion"
-             aria-expanded="{{ focus_group_id == entry.id|int }}"
-             aria-controls="group_{{ entry.id }}">
+        {% set _mode = card_mode if card_mode is defined else "list" %}
+
+
+<div class="card-header d-flex justify-content-between align-items-center clickable px-2 py-1 position-relative"
+{% if _mode != "detail" %}
+data-bs-toggle="collapse"
+data-bs-target="#group_{{ entry.id }}"
+data-bs-parent="#printAccordion"
+aria-expanded="{{ focus_group_id == entry.id|int }}"
+aria-controls="group_{{ entry.id }}"
+{% endif %}>
 <div class="d-flex flex-column text-start small position-relative">
   <span class="position-relative d-inline-block" style="font-size: 1rem; line-height: 1;">
     <span class="emoji-folder" style="position: relative; display: inline-block;">
@@ -77,7 +82,11 @@
 </div>
         </div>
 
-        <div id="group_{{ entry.id }}" class="collapse {% if focus_group_id == entry.id|int %}show{% endif %}" data-bs-parent="#printAccordion">
+        {% if _mode == "detail" %}
+<div id="group_{{ entry.id }}" class="collapse show" data-bs-parent="#printAccordion">
+{% else %}
+<div id="group_{{ entry.id }}" class="collapse {% if focus_group_id == entry.id|int %}show{% endif %}" data-bs-parent="#printAccordion">
+{% endif %}
           <div class="card-body small">
 			<div class="dropdown float-end mt-1" data-requires-write>
   <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
