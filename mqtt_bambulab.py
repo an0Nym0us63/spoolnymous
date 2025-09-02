@@ -852,11 +852,11 @@ def safe_update_status(data):
         logger.debug("Milestones snapshot: erreur non bloquante", exc_info=True)
 
     # ---------- Détection fin/échec (antirebond) ----------
-    job_id = data.get("job_id")
     # Prendre le status dans la vue fusionnée (peut être absent du delta)
     status = ((merged_fields.get("status") or "") if isinstance(merged_fields, dict)
               else (fields.get("status") or "")).upper()
-
+    job_id = ((merged_fields.get("job_id") or "") if isinstance(merged_fields, dict)
+              else (fields.get("job_id") or ""))
     if job_id and status in {"FINISH", "FAILED"}:
         now = time.time()
         if job_id not in PROCESSED_JOBS:
