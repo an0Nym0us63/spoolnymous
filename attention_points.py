@@ -568,7 +568,6 @@ PHRASES = {
         "Aucun visuel enregistré pour « {name} ».",
         "« {name} » mérite une photo !",
     ],
-})
 }
 
 def render_message(point: AttentionPoint) -> str:
