@@ -574,16 +574,22 @@
         <div class="attn-body">
           <ul class="attn-list">
             {% for p in points %}
-              <li class="attn-item">
-                <div class="attn-dot"></div>
-                <div class="attn-msg">{{ p.message|safe }}</div>
+              <li class="attn-item"
+    data-cat="{{ cat }}"
+    data-param="{{ p.param or 'name' }}"
+    data-val="{{ p.value if p.value is not none else p.name }}">
+  <div class="attn-dot"></div>
+  <div class="attn-msg">{{ p.message|safe }}</div>
+  {% if p.param and p.value %}
+  <div class="attn-meta">
+    <code>{{ p.param }}</code> = <span>{{ p.value }}</span>
+  </div>
+  {% endif %}
 
-                {% if p.param and p.value %}
-                <div class="attn-meta">
-                  <code>{{ p.param }}</code> = <span>{{ p.value }}</span>
-                </div>
-                {% endif %}
-              </li>
+  <div style="grid-column:2; display:flex; gap:.4rem; margin-top:.25rem;">
+    <button type="button" class="btn btn-sm btn-outline-secondary attn-dismiss">Ignorer</button>
+  </div>
+</li>
             {% endfor %}
           </ul>
         </div>
@@ -1001,6 +1007,40 @@ if (data.vt_tray_data) {
 
   window.addEventListener('beforeunload', () => { stop(); mo.disconnect(); });
 })();
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.attn-dismiss');
+  if (!btn) return;
+
+  const li = btn.closest('.attn-item');
+  if (!li) return;
+
+  const category  = li.dataset.cat;
+  const key_param = li.dataset.param;
+  const key_value = li.dataset.val;
+
+  try {
+    const res = await fetch('/attention/dismiss', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category, key_param, key_value })
+    });
+    const payload = await res.json();
+    if (!res.ok || !payload.ok) throw new Error(payload.error || 'dismiss failed');
+
+    // Retire l’élément de l’UI immédiatement
+    li.style.transition = 'opacity .2s ease';
+    li.style.opacity = '0';
+    setTimeout(() => li.remove(), 200);
+
+    // Si la carte n’a plus d’items, tu peux retirer la tuile :
+    const ul = document.querySelector('.attn-list');
+    // (ou cherche le UL dans la même tuile que li)
+  } catch (err) {
+    console.error('dismiss error', err);
+    btn.disabled = false;
+  }
+});
 </script>
 
 {% endblock %}

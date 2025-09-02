@@ -46,7 +46,7 @@ from switcher import switch_bp
 from objects import get_available_units, create_objects_from_source, list_objects, get_tags_for_objects, rename_object, delete_object,get_object_counts_by_parent,update_object_sale,clear_object_sale,update_object_comment,summarize_objects, list_accessories, get_accessory, create_accessory, add_accessory_stock, link_accessory_to_object, unlink_accessory_from_object, list_object_accessories,remove_accessory_stock, delete_accessory,set_accessory_image_path,list_objects_using_accessory,rename_accessory, create_object_group, rename_object_group, assign_object_to_group, remove_object_from_group, search_object_groups, list_object_groups_with_counts,get_object_groups,set_desired_price,get_object,set_group_desired_price,get_tags_for_objects, add_object_tag as dal_add_object_tag, remove_object_tag as dal_remove_object_tag, get_tags_for_object_groups, add_tag_to_object_group as dal_add_tag_to_object_group, remove_tag_from_object_group as dal_remove_tag_from_object_group,list_object_images,list_group_object_images
 from camera import serve_snapshot, svg_fallback
 from catalog_sync import CatalogSync
-from attention_points import get_attention_context
+from attention_points import get_attention_context, dismiss_point, restore_point 
 logging.basicConfig(
     level=logging.DEBUG,  # ou DEBUG si tu veux plus de détails
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -3629,5 +3629,38 @@ def set_design_id_group():
     for print_id in prints:
         update_print_history_field(print_id, "design_id",design_id)  # à toi d’implémenter
     return redirect(request.referrer or url_for("prints"))
+    
+@app.route("/attention/dismiss", methods=["POST"])
+def api_dismiss():
+    """
+    JSON attendu: { category: str, key_param: str, key_value: str, ttl_days?: int }
+    """
+    data = request.get_json(silent=True) or {}
+    category  = (data.get("category") or "").strip()
+    key_param = (data.get("key_param") or "").strip()
+    key_value = str(data.get("key_value") or "").strip()
+    ttl_days  = data.get("ttl_days")
+
+    if not category or not key_param or key_value == "":
+        return jsonify({"ok": False, "error": "missing fields"}), 400
+
+    try:
+        ttl = int(ttl_days) if ttl_days is not None else None
+    except Exception:
+        ttl = None
+
+    dismiss_point(category, key_param, key_value, ttl_days=ttl)
+    return jsonify({"ok": True})
+
+@app.route("/attention/restore", methods=["POST"])
+def api_restore():
+    data = request.get_json(silent=True) or {}
+    category  = (data.get("category") or "").strip()
+    key_param = (data.get("key_param") or "").strip()
+    key_value = str(data.get("key_value") or "").strip()
+    if not category or not key_param or key_value == "":
+        return jsonify({"ok": False, "error": "missing fields"}), 400
+    restore_point(category, key_param, key_value)
+    return jsonify({"ok": True})
 
 app.register_blueprint(auth_bp)

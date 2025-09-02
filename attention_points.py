@@ -10,6 +10,7 @@ ATTENTION_SPOOL_EMPTY_THRESHOLD_PCT: float = 0.15 # seuil en pourcentage (0.10 =
 
 from filaments import fetch_spools
 from print_history import db_config, list_print_images, list_group_images, get_print_groups
+from datetime import datetime, timedelta
 
 # Type uniforme pour un "point d'attention"
 AttentionPoint = Dict[str, Any]
@@ -22,6 +23,108 @@ def _get_conn() -> sqlite3.Connection:
     conn = sqlite3.connect(db_config["db_path"])
     conn.row_factory = sqlite3.Row
     return conn
+
+_DISMISS_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS attention_dismissed (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  category TEXT NOT NULL,
+  key_param TEXT NOT NULL,
+  key_value TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NULL,
+  UNIQUE(category, key_param, key_value)
+);
+"""
+
+def _ensure_dismiss_table() -> None:
+    conn = _get_conn()
+    try:
+        conn.execute(_DISMISS_TABLE_SQL)
+        conn.commit()
+    finally:
+        conn.close()
+
+def _purge_expired_dismiss() -> None:
+    conn = _get_conn()
+    try:
+        conn.execute("DELETE FROM attention_dismissed WHERE expires_at IS NOT NULL AND expires_at < ?", (datetime.utcnow().isoformat(),))
+        conn.commit()
+    finally:
+        conn.close()
+
+def _point_identity(p: AttentionPoint) -> tuple[str, str, str]:
+    """
+    Retourne (category, key_param, key_value) pour identifier de façon stable un point.
+    Convention : on utilise p['param'] et p['value'] s’ils existent, sinon on retombe
+    sur ('name') histoire d’avoir une clé (moins robuste).
+    """
+    cat = str(p.get("category") or "")
+    key_param = str(p.get("param") or "name")
+    key_val = p.get("value")
+    if key_val is None:
+        key_val = p.get("name") or ""
+    return cat, str(key_param), str(key_val)
+
+def dismiss_point(category: str, key_param: str, key_value: str, *, ttl_days: Optional[int] = None) -> None:
+    """
+    Marque un point comme 'dismissed'. ttl_days=None => pas d’expiration.
+    """
+    _ensure_dismiss_table()
+    _purge_expired_dismiss()
+    now = datetime.utcnow()
+    exp = (now + timedelta(days=int(ttl_days))) if isinstance(ttl_days, int) and ttl_days > 0 else None
+
+    conn = _get_conn()
+    try:
+        conn.execute(
+            "INSERT OR REPLACE INTO attention_dismissed (category, key_param, key_value, created_at, expires_at) VALUES (?,?,?,?,?)",
+            (str(category), str(key_param), str(key_value), now.isoformat(), exp.isoformat() if exp else None),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+def restore_point(category: str, key_param: str, key_value: str) -> None:
+    """Annule le dismiss d’un point."""
+    _ensure_dismiss_table()
+    conn = _get_conn()
+    try:
+        conn.execute("DELETE FROM attention_dismissed WHERE category=? AND key_param=? AND key_value=?",
+                     (str(category), str(key_param), str(key_value)))
+        conn.commit()
+    finally:
+        conn.close()
+
+def _load_dismissed_index() -> set[tuple[str, str, str]]:
+    """
+    Retourne un set de triples (category, key_param, key_value) actifs.
+    """
+    _ensure_dismiss_table()
+    _purge_expired_dismiss()
+    conn = _get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT category, key_param, key_value FROM attention_dismissed")
+        rows = cur.fetchall()
+        return {(str(r["category"]), str(r["key_param"]), str(r["key_value"])) for r in rows}
+    finally:
+        conn.close()
+
+def _filter_buckets_dismissed(buckets: Dict[str, List[AttentionPoint]]) -> Dict[str, List[AttentionPoint]]:
+    """
+    Filtre les points qui ont été dismiss (toutes catégories).
+    """
+    dismissed = _load_dismissed_index()
+    out: Dict[str, List[AttentionPoint]] = {}
+    for cat, items in (buckets or {}).items():
+        kept: List[AttentionPoint] = []
+        for p in items or []:
+            k = _point_identity(p)
+            if k in dismissed:
+                continue
+            kept.append(p)
+        out[cat] = kept
+    return out
 
 def _row_to_dict(row: sqlite3.Row) -> dict:
     return {k: row[k] for k in row.keys()}
@@ -309,11 +412,8 @@ def _collect_prints_photo_without_design(limit: int = 500) -> List[AttentionPoin
 
 PHRASES = {
     "spool_almost_empty": [
-        "Bobine à finir : {name} est presque vide ({remaining_g:.0f} g restants{pct_txt}). Essayez de planifier une petite impression pour la terminer.",
+        "{name} est presque vide ({remaining_g:.0f} g restants{pct_txt}). Essayez de planifier une petite impression pour la terminer.",
         "{name} arrive en fin de bobine ({remaining_g:.0f} g{pct_txt}). C’est le moment de l’utiliser sur une petite pièce.",
-        "Presque vide : {name} (≈ {remaining_g:.0f} g restants{pct_txt}).",
-        "Plus beaucoup sur {name} : ~{remaining_g:.0f} g{pct_txt}. Pensez à la terminer.",
-        "{name} passe sous le seuil ({remaining_g:.0f} g{pct_txt}). À finir rapidement.",
         "Attention, {name} est faible ({remaining_g:.0f} g{pct_txt}).",
         "{name} est presque au bout ({remaining_g:.0f} g{pct_txt}).",
         "Stock faible sur {name} : {remaining_g:.0f} g{pct_txt} restants.",
@@ -417,12 +517,27 @@ def collect_attention_points() -> Dict[str, List[AttentionPoint]]:
         "print_photo_without_design": _collect_prints_photo_without_design(),
     }
 
-def sample_for_home(per_category_max: int = 3) -> List[AttentionPoint]:
+def sample_for_home(per_category_max: int = 3, *, exclude_dismissed: bool = True) -> List[AttentionPoint]:
     """
-    Récupère directement les points via collect_attention_points et sélectionne
-    aléatoirement jusqu’à N points par catégorie.
+    Récupère collect_attention_points(), filtre éventuellement les points dismiss,
+    puis sélectionne aléatoirement jusqu’à N points par catégorie.
     """
     buckets = collect_attention_points()
+
+    # Option : filtrer ici
+    if exclude_dismissed:
+        dismissed = _load_dismissed_index()  # set[(category, key_param, key_value)]
+        def kept(points: List[AttentionPoint]) -> List[AttentionPoint]:
+            out: List[AttentionPoint] = []
+            for p in points:
+                cat, key_param, key_val = _point_identity(p)
+                if (cat, key_param, key_val) in dismissed:
+                    continue
+                out.append(p)
+            return out
+        buckets = {cat: kept(items or []) for cat, items in buckets.items()}
+
+    # Échantillonnage par catégorie
     out: List[AttentionPoint] = []
     for cat, items in buckets.items():
         if not items:
@@ -478,8 +593,9 @@ def get_attention_context(per_category_max: int = 3, *, sample_buckets: bool = T
         sample_buckets: si True, **échantillonne** aussi les listes par catégorie; sinon, renvoie toutes les entrées
     """
     buckets = collect_attention_points()
+    filtered_buckets = _filter_buckets_dismissed(raw_buckets)
     buckets_rendered = build_buckets_with_messages(
-        buckets,
+        filtered_buckets,
         sample_per_category=per_category_max if sample_buckets else None,
     )
 
