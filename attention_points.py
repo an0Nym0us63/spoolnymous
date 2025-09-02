@@ -593,7 +593,7 @@ def get_attention_context(per_category_max: int = 3, *, sample_buckets: bool = T
         sample_buckets: si True, **échantillonne** aussi les listes par catégorie; sinon, renvoie toutes les entrées
     """
     buckets = collect_attention_points()
-    filtered_buckets = _filter_buckets_dismissed(raw_buckets)
+    filtered_buckets = _filter_buckets_dismissed(buckets)
     buckets_rendered = build_buckets_with_messages(
         filtered_buckets,
         sample_per_category=per_category_max if sample_buckets else None,
