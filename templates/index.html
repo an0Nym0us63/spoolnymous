@@ -146,6 +146,81 @@
 #ams-card- .px-3 .w-2.h-5 {                 /* ou ta classe exacte */
   background-clip: padding-box;             /* même raison */
 }
+ /* --- Points d’attention : tuiles par catégorie --- */
+  .attn-grid{
+    display:grid; gap:1rem;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+  .attn-card{
+    position:relative;
+    border-radius: .95rem;
+    border: 1px solid rgba(255,255,255,.10);
+    background: linear-gradient(135deg, rgba(40,45,60,0.85), rgba(20,25,40,0.75));
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow: inset 0 0 2px rgba(255,255,255,0.05);
+    overflow: hidden;
+    color:#e5e7eb;
+  }
+  .attn-card::before{
+    /* liseré/halo de catégorie via variable CSS */
+    content:"";
+    position:absolute; inset:0;
+    background: linear-gradient(135deg, var(--attn-from,#22d3ee), var(--attn-to,#64748b));
+    opacity:.14; pointer-events:none;
+  }
+  .attn-head{
+    position:relative; z-index:1;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:.65rem .85rem .55rem;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .attn-left{ display:flex; align-items:center; gap:.55rem; min-width:0; }
+  .attn-icon{
+    width:1.85rem; height:1.85rem; border-radius:.6rem;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:1.05rem;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
+    background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+  }
+  .attn-title{
+    font-weight:700; letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .attn-badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:.15rem .5rem; border-radius:999px;
+    font-size:.72rem; font-weight:700;
+    color:#fff;
+    background: linear-gradient(135deg, var(--attn-from,#22d3ee), var(--attn-to,#64748b));
+    border:1px solid rgba(0,0,0,.25);
+    box-shadow: 0 1px 2px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.08);
+  }
+  .attn-body{ position:relative; z-index:1; padding:.65rem .85rem .8rem; }
+
+  .attn-list{ display:flex; flex-direction:column; gap:.45rem; margin:0; padding:0; list-style:none; }
+  .attn-item{
+    display:grid; grid-template-columns:auto 1fr; column-gap:.55rem; row-gap:.15rem;
+    align-items:start;
+    padding:.45rem .5rem; border-radius:.6rem;
+    background: linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.08);
+  }
+  .attn-dot{
+    width:.55rem; height:.55rem; border-radius:999px; margin-top:.2rem;
+    background: var(--attn-from,#22d3ee);
+    box-shadow: 0 0 0 2px rgba(255,255,255,.08), 0 0 8px var(--attn-from,#22d3ee);
+  }
+  .attn-msg{ font-size:.9rem; line-height:1.25; }
+  .attn-meta{
+    grid-column:2; font-size:.75rem; opacity:.8;
+  }
+  .attn-meta code{
+    background: rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.08);
+    padding:.05rem .3rem; border-radius:.4rem; font-size:.72rem;
+  }
+
+  /* Petites variantes de couleurs par catégorie : on renseigne via style="--attn-from:...;--attn-to:..." */
+  /* Rien de plus ici : la palette vient du HTML */
 </style>
 <div x-data="{ open: false }"
      class="mb-4 rounded-xl overflow-hidden shadow-md"
@@ -459,33 +534,62 @@
   </div>
 </div>
 {% if attention_buckets %}
+{# Palette & icônes par catégorie (tu peux ajuster à ta guise) #}
+{% set CAT_ICON = {
+  'filament': '🧵', 'temperature': '🌡️', 'humidity': '💧', 'ams': '🧰',
+  'nozzle': '🔥', 'bed': '🛏️', 'chamber': '🏠', 'hardware': '🛠️',
+  'warning': '⚠️', 'quality': '🧱', 'misc': '🔎'
+} %}
+{% set CAT_COLORS = {
+  'filament':   ('#06b6d4', '#3b82f6'),
+  'temperature':('#f59e0b', '#ef4444'),
+  'humidity':   ('#22d3ee', '#06b6d4'),
+  'ams':        ('#8b5cf6', '#06b6d4'),
+  'nozzle':     ('#ef4444', '#f97316'),
+  'bed':        ('#84cc16', '#22c55e'),
+  'chamber':    ('#14b8a6', '#06b6d4'),
+  'hardware':   ('#a3a3a3', '#737373'),
+  'warning':    ('#f97316', '#ef4444'),
+  'quality':    ('#22c55e', '#16a34a'),
+  'misc':       ('#64748b', '#94a3b8')
+} %}
+
 <div class="mt-4" data-requires-write>
-  <div class="card shadow-sm border-0 rounded-3">
-    <div class="card-header border-0">
-      <h5 class="mb-0">Points d’attention</h5>
-      <small class="text-muted">Résumé par catégorie</small>
-    </div>
-    <div class="card-body pt-0">
+  <div class="attn-grid">
+    {% for cat, points in attention_buckets.items() if points %}
+      {% set label = category_labels.get(cat, cat.replace('_',' ')|capitalize) %}
+      {% set ico   = CAT_ICON.get(cat, '🔎') %}
+      {% set from  = (CAT_COLORS.get(cat) or CAT_COLORS['misc'])[0] %}
+      {% set to    = (CAT_COLORS.get(cat) or CAT_COLORS['misc'])[1] %}
 
-      {% for cat, points in attention_buckets.items() if points %}
-      <div class="mb-3">
-        <h6 class="fw-bold mb-2">
-          {{ category_labels.get(cat, cat.replace('_',' ')|capitalize) }}
-        </h6>
-        <ul class="list-group list-group-flush">
-          {% for p in points %}
-          <li class="list-group-item" style="background:transparent">
-            <div class="fw-semibold">{{ p.message|safe }}</div>
-            <div class="text-muted small">
-              {% if p.param and p.value %}{{ p.param }}={{ p.value }}{% endif %}
-            </div>
-          </li>
-          {% endfor %}
-        </ul>
+      <div class="attn-card" style="--attn-from: {{ from }}; --attn-to: {{ to }};">
+        <div class="attn-head">
+          <div class="attn-left">
+            <div class="attn-icon">{{ ico }}</div>
+            <div class="attn-title">{{ label }}</div>
+          </div>
+          <span class="attn-badge">{{ points|length }}</span>
+        </div>
+
+        <div class="attn-body">
+          <ul class="attn-list">
+            {% for p in points %}
+              <li class="attn-item">
+                <div class="attn-dot"></div>
+                <div class="attn-msg">{{ p.message|safe }}</div>
+
+                {% if p.param and p.value %}
+                <div class="attn-meta">
+                  <code>{{ p.param }}</code> = <span>{{ p.value }}</span>
+                </div>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
       </div>
-      {% endfor %}
 
-    </div>
+    {% endfor %}
   </div>
 </div>
 {% endif %}
