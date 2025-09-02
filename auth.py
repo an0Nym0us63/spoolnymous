@@ -344,7 +344,7 @@ def autologin_token(token):
                 return render_template("redirect_with_theme.html", query=request.query_string.decode())
     return "Token invalide ou expiré", 403
 
-@auth_bp.route("/guest/gallery/<token>")
+@auth_bp.route("/auth/gallery/<token>")
 def guest_gallery_autologin(token):
     # Validate token using your existing storage
     tokens = _load_guest_tokens()
