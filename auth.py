@@ -345,21 +345,28 @@ def autologin_token(token):
 
 @auth_bp.route("/guest/gallery/<token>")
 def guest_gallery_autologin(token):
+    # Validate token using your existing storage
     tokens = _load_guest_tokens()
     meta = tokens.get(token)
 
-    # must exist, be a guest, be 'gallery' scoped, and still be valid
-    if not meta or meta.get("role") != "guest" or meta.get("scope") != "gallery" or not _is_guest_token_valid(token):
+    # Accept only valid, non-revoked, non-expired tokens
+    if not _is_guest_token_valid(token):
         abort(404)
 
-    # login exactly like the regular guest autologin does
-    user = User(username=f"guest:{token}", role="guest")
+    # Optional: enforce scope "gallery" if you want to keep it strict
+    # If your stored guest tokens don't always have a scope, loosen this check.
+    if isinstance(meta, dict) and meta.get("scope") not in (None, "gallery"):
+        abort(404)
+
+    # Build the user exactly how your user_loader expects it
+    role = (meta or {}).get("role", "guest")
+    user = User(username=f"guest:{token}", role=role)
+
+    # Log the user in for this session
     login_user(user, remember=False)
 
-    # tag this session as the special gallery-invite guest ⇒ navbar can react
-    session["guest_scope"] = "gallery"
-
-    # land strictly on the gallery
+    # Redirect to the actual gallery endpoint name in your app.
+    # If your route is @app.route("/gallery") def gallery(): ... then:
     return redirect(url_for("gallery_all"))
 
 @auth_bp.route("/settings/gallery_guest_link", methods=["GET"])
