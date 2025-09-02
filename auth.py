@@ -64,14 +64,14 @@ def get_or_create_gallery_guest_token() -> str:
     tokens = _load_guest_tokens()
     # réutiliser si déjà présent
     for t, meta in tokens.items():
-        if isinstance(meta, dict) and meta.get("scope") == "gallery":
+        if isinstance(meta, dict) and meta.get("guest_scope") == "gallery":
             return t
     # sinon créer
     tok = secrets.token_urlsafe(20)
     tokens[tok] = {
         "created_at": datetime.utcnow().isoformat(),
         "role": "guest",
-        "scope": "gallery",
+        "guest_scope": "gallery",
         "label": "Invité Galerie",
     }
     _save_guest_tokens(tokens)
@@ -80,7 +80,7 @@ def get_or_create_gallery_guest_token() -> str:
 def regenerate_gallery_guest_token() -> str:
     tokens = _load_guest_tokens()
     # purge anciens tokens de scope gallery
-    to_del = [t for t, m in tokens.items() if isinstance(m, dict) and m.get("scope") == "gallery"]
+    to_del = [t for t, m in tokens.items() if isinstance(m, dict) and m.get("guest_scope") == "gallery"]
     for t in to_del:
         tokens.pop(t, None)
     _save_guest_tokens(tokens)
@@ -122,14 +122,15 @@ def list_guest_links():
     tokens = _load_guest_tokens()
     out = []
     for tok, meta in tokens.items():
-        out.append({
-            "token": tok,
-            "label": meta.get("label"),
-            "created_at": meta.get("created_at"),
-            "expires_at": meta.get("expires_at"),
-            "revoked": meta.get("revoked", False),
-            "role": meta.get("role", "guest"),  # ⇦ nouveau
-        })
+        if meta.get("guest_scope","") != "gallery":
+            out.append({
+                "token": tok,
+                "label": meta.get("label"),
+                "created_at": meta.get("created_at"),
+                "expires_at": meta.get("expires_at"),
+                "revoked": meta.get("revoked", False),
+                "role": meta.get("role", "guest"),  # ⇦ nouveau
+            })
     return out
 
 def revoke_guest_link(token: str) -> bool:
@@ -361,9 +362,10 @@ def guest_gallery_autologin(token):
     # Build the user exactly how your user_loader expects it
     role = (meta or {}).get("role", "guest")
     user = User(username=f"guest:{token}", role=role)
-
     # Log the user in for this session
     login_user(user, remember=False)
+    
+    session["guest_scope"] = "gallery"
 
     # Redirect to the actual gallery endpoint name in your app.
     # If your route is @app.route("/gallery") def gallery(): ... then:
