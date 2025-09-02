@@ -757,7 +757,7 @@ def safe_update_status(data):
 
     ####----snapshot-----
     try:
-        job_id = data.get("job_id")
+        job_id = merged_fields.get("job_id")
         if not job_id:
             # Frames sans job_id : on fusionne quand même le delta pour PRINTER_STATUS,
             # puis on sort (pas de milestones à calculer ici).
@@ -783,8 +783,6 @@ def safe_update_status(data):
         st = _state(job_id)
 
         # Nouveau run ? (appel avec vue complète)
-        _maybe_reset_state_for_new_print(job_id, st, merged_fields)
-        # À la première observation d’un job en cours, on fige l'état bas
         _maybe_reset_state_for_new_print(job_id, st, merged_fields)
 
         # Attache milieu d'impression ?
