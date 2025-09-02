@@ -360,7 +360,7 @@ def guest_gallery_autologin(token):
     session["guest_scope"] = "gallery"
 
     # land strictly on the gallery
-    return redirect(url_for("gallery"))
+    return redirect(url_for("gallery_all"))
 
 @auth_bp.route("/settings/gallery_guest_link", methods=["GET"])
 def settings_gallery_guest_link():

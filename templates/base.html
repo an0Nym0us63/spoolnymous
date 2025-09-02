@@ -90,16 +90,29 @@
 </style>
 </head>
 
-{% set is_gallery_guest = current_user.is_authenticated and (current_user.is_guest or current_user.role == 'guest') 
-   and (current_user.meta and current_user.meta.get('scope') == 'gallery') %}
+{% set is_gallery_guest = current_user.is_authenticated and current_user.is_guest and session.get('guest_scope') == 'gallery' %}
 <body>
 <header class="mb-3 border-bottom sticky-header bg-body shadow-sm">
 
   <nav class="navbar navbar-expand-lg">
+  
 {% if is_gallery_guest %}
+	 <div class="d-flex flex-column align-items-start">
+  <a class="navbar-brand d-flex align-items-center" href="{{ url_for('gallery_all') }}">
+    <img src="{{ asset_url('logo.png') }}" alt="Logo" width="24" height="24" class="me-2">
+    {% if page_title %}
+      <span class="fw-bold">{{ PRINTER_MODEL["model"] }} - {{ page_title or '' }}</span>
+    {% else %}
+      <span class="fw-bold">{{ PRINTER_MODEL["model"] }}</span>
+    {% endif %}
+    {% if current_user.is_authenticated and current_user.is_guest %}
+      <span title="Accès invité — lecture seule" style="font-size: 1.2rem; margin-left: .5rem;">👤</span>
+    {% endif %}
+  </a>
+</div>
   <ul class="navbar-nav ms-auto">
     <li class="nav-item">
-      <a href="{{ url_for('gallery') }}" class="nav-link">🖼️ Galerie</a>
+      <a href="{{ url_for('gallery_all') }}" class="nav-link">🖼️ Galerie</a>
     </li>
     <li class="nav-item">
       <a href="{{ url_for('filaments_gallery') }}" class="nav-link">🧵 Galerie des filaments</a>
