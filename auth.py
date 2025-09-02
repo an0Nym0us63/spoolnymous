@@ -60,6 +60,32 @@ def get_user_token(username):
         return data[username].get("token")
     return None
 
+def get_or_create_gallery_guest_token() -> str:
+    tokens = _load_guest_tokens()
+    # réutiliser si déjà présent
+    for t, meta in tokens.items():
+        if isinstance(meta, dict) and meta.get("scope") == "gallery":
+            return t
+    # sinon créer
+    tok = secrets.token_urlsafe(20)
+    tokens[tok] = {
+        "created_at": datetime.utcnow().isoformat(),
+        "role": "guest",
+        "scope": "gallery",
+        "label": "Invité Galerie",
+    }
+    _save_guest_tokens(tokens)
+    return tok
+
+def regenerate_gallery_guest_token() -> str:
+    tokens = _load_guest_tokens()
+    # purge anciens tokens de scope gallery
+    to_del = [t for t, m in tokens.items() if isinstance(m, dict) and m.get("scope") == "gallery"]
+    for t in to_del:
+        tokens.pop(t, None)
+    _save_guest_tokens(tokens)
+    return get_or_create_gallery_guest_token()
+
 # ----- INVITÉS (guest) -----  # NEW
 def _load_guest_tokens():
     if os.path.exists(GUEST_FILE):
@@ -316,6 +342,41 @@ def autologin_token(token):
                 login_user(user, remember=True)
                 return render_template("redirect_with_theme.html", query=request.query_string.decode())
     return "Token invalide ou expiré", 403
+
+@auth_bp.route("/guest/gallery/<token>")
+def guest_gallery_autologin(token):
+    tokens = _load_guest_tokens()
+    meta = tokens.get(token)
+    if not isinstance(meta, dict) or meta.get("role") != "guest" or meta.get("scope") != "gallery":
+        abort(404)
+    # construit un User invité depuis le token, comme le fait /guest/<token>
+    u = User(
+        id=f"guest:{token}",
+        name=meta.get("label") or "Invité",
+        role="guest",
+        meta=meta,
+        is_guest=True,
+    )
+    login_user(u, remember=False, fresh=True)
+    # redirection stricte vers la galerie
+    return redirect(url_for("gallery"))
+
+@auth_bp.route("/settings/gallery_guest_link", methods=["GET"])
+def settings_gallery_guest_link():
+    tok = get_or_create_gallery_guest_token()
+    # On renvoie l’URL prête à partager
+    return jsonify({
+        "ok": True,
+        "url": url_for("auth.guest_gallery_autologin", token=tok, _external=True)
+    })
+
+@auth_bp.route("/settings/gallery_guest_regen", methods=["POST"])
+def settings_gallery_guest_regen():
+    tok = regenerate_gallery_guest_token()
+    return jsonify({
+        "ok": True,
+        "url": url_for("auth.guest_gallery_autologin", token=tok, _external=True)
+    })
 
 # =========================
 # Sécurité lecture seule

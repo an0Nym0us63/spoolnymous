@@ -222,6 +222,21 @@
     {% else %}
       <div class="text-muted fst-italic">Aucun lien invité créé pour le moment.</div>
     {% endif %}
+	<div class="card mt-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>🔗 Lien invité « Galerie »</span>
+    <button id="regen-gallery-link" class="btn btn-sm btn-outline-danger">
+      Regénérer
+    </button>
+  </div>
+  <div class="card-body">
+    <div class="input-group">
+      <input id="gallery-link-input" type="text" class="form-control" readonly>
+      <button id="copy-gallery-link" class="btn btn-outline-secondary">Copier</button>
+    </div>
+    <small class="text-muted">Ce lien connecte un invité en lecture seule et l’emmène directement sur la galerie.</small>
+  </div>
+</div>
   </section>
 
   <!-- 🌐 Installations externes -->
@@ -505,5 +520,27 @@ document.addEventListener("DOMContentLoaded", function() {
     hidden.value = JSON.stringify(arr);
   });
 })();
+
+(async function initGalleryLink() {
+  const res = await fetch("{{ url_for('auth.settings_gallery_guest_link') }}");
+  const data = await res.json();
+  if (data.ok) document.getElementById('gallery-link-input').value = data.url;
+})();
+
+document.getElementById('regen-gallery-link').addEventListener('click', async () => {
+  if (!confirm("Regénérer le lien et invalider l’ancien ?")) return;
+  const res = await fetch("{{ url_for('auth.settings_gallery_guest_regen') }}", { method:'POST' });
+  const data = await res.json();
+  if (data.ok) {
+    document.getElementById('gallery-link-input').value = data.url;
+  } else {
+    alert("Échec de régénération.");
+  }
+});
+
+document.getElementById('copy-gallery-link').addEventListener('click', async () => {
+  const v = document.getElementById('gallery-link-input').value;
+  try { await navigator.clipboard.writeText(v); } catch(e){}
+});
 </script>
 {% endblock %}
