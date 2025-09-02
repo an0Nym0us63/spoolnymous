@@ -350,13 +350,14 @@ def guest_gallery_autologin(token):
     if not isinstance(meta, dict) or meta.get("role") != "guest" or meta.get("scope") != "gallery":
         abort(404)
     # construit un User invité depuis le token, comme le fait /guest/<token>
-    u = User(
-        id=f"guest:{token}",
-        name=meta.get("label") or "Invité",
-        role="guest",
-        meta=meta,
-        is_guest=True,
-    )
+    payload = {
+        "uid": str(guest_id),
+        "username": "Invité galerie",
+        "roles": ["guest"],
+        "guest": True,
+        "scopes": ["gallery:view", "filaments:view"],
+    }
+    u = User.from_session_dict(payload) 
     login_user(u, remember=False, fresh=True)
     # redirection stricte vers la galerie
     return redirect(url_for("gallery"))
