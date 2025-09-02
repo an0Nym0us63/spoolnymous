@@ -234,6 +234,120 @@ def _parse_color_field(raw: Optional[Any]) -> Dict[str, Any]:
     meta["color_name"] = str(raw)
     return meta
 
+def _first_print_image_url(print_id: int) -> Optional[str]:
+    """
+    Retourne une URL/chemin utilisable pour afficher la 1ère image uploadée d’un print,
+    ou None si aucune. Tolère plusieurs formats renvoyés par list_print_images().
+    """
+    try:
+        imgs = list_print_images(print_id) or []
+    except Exception:
+        imgs = []
+
+    if not imgs:
+        return None
+
+    first = imgs[0]
+    # Cas dict: essaie des clés courantes
+    if isinstance(first, dict):
+        for k in ("url", "path", "filepath", "file", "relpath", "name"):
+            v = first.get(k)
+            if isinstance(v, str) and v.strip():
+                return v
+        # fallback: str(dict) pas utile pour un <img>
+        return None
+
+    # Cas string direct (chemin relatif /static/... ou complet)
+    if isinstance(first, str) and first.strip():
+        return first
+
+    return None
+
+
+def _get_print_thumbnail(print_id: int) -> Optional[str]:
+    """
+    Essaie de récupérer une miniature 'slicer' pour un print depuis la table 'prints'.
+    On tente plusieurs colonnes possibles ('thumbnail', 'thumbnail_file', ...).
+    Si la colonne n'existe pas → retourne None (tolérance).
+    """
+    cols_try = ("thumbnail", "thumbnail_file", "thumb", "thumbnail_path")
+    try:
+        conn = _get_conn()
+        cur = conn.cursor()
+        # Récupère la liste de colonnes disponibles
+        cur.execute("PRAGMA table_info(prints)")
+        cols = {row["name"] for row in cur.fetchall()}
+
+        cand = [c for c in cols_try if c in cols]
+        if not cand:
+            conn.close()
+            return None
+
+        col = cand[0]
+        cur.execute(f"SELECT {col} FROM prints WHERE id = ?", (int(print_id),))
+        row = cur.fetchone()
+        conn.close()
+        if not row:
+            return None
+        val = row[0]
+        if isinstance(val, str) and val.strip():
+            return val
+    except Exception:
+        pass
+    return None
+
+
+def _pick_group_rep_thumbnail(group: Dict[str, Any]) -> Optional[str]:
+    """
+    Tente de choisir une miniature représentative pour un groupe :
+      1) id de référence si présent dans le dict (keys fréquentes)
+      2) sinon le dernier print du groupe (prints/items/print_ids)
+    Puis retourne _get_print_thumbnail(print_id) si dispo.
+    """
+    # 1) clées “référence”
+    for key in ("reference_print_id", "ref_print_id", "ref_id", "primary_print_id"):
+        if key in group and group[key]:
+            try:
+                pid = int(group[key])
+                thumb = _get_print_thumbnail(pid)
+                if thumb:
+                    return thumb
+            except Exception:
+                pass
+
+    # 2) sinon parcours des listes
+    def _iter_group_print_ids(g: Dict[str, Any]):
+        # print_ids (liste d'int)
+        if isinstance(g.get("print_ids"), (list, tuple)):
+            for x in g["print_ids"]:
+                try:
+                    yield int(x)
+                except Exception:
+                    pass
+        # prints/items (liste de dicts)
+        for key in ("prints", "items"):
+            if isinstance(g.get(key), (list, tuple)):
+                for it in g[key]:
+                    if not isinstance(it, dict):
+                        continue
+                    if "id" in it:
+                        try: yield int(it["id"])
+                        except Exception: pass
+                    if "print_id" in it:
+                        try: yield int(it["print_id"])
+                        except Exception: pass
+
+    last_pid = None
+    for pid in _iter_group_print_ids(group):
+        last_pid = pid
+
+    if last_pid is not None:
+        thumb = _get_print_thumbnail(last_pid)
+        if thumb:
+            return thumb
+
+    return None
+
 
 def _swatch_html_from_meta(meta: Dict[str, Any], size: int = 12, radius: int = 3) -> str:
     """Construit une vignette HTML inline (span) :
@@ -271,25 +385,29 @@ def _collect_no_photo_combined(limit_prints: int = 500) -> List[AttentionPoint]:
     """
     Combine "prints sans photo" et "groupes sans photo" en une seule catégorie 'no_photo'.
     Exclut les prints qui appartiennent à un groupe (dans ce cas on affiche le groupe uniquement).
+    Enrichit meta:
+      - kind: 'print' ou 'group'
+      - thumbnail: miniature 'slicer' (si disponible)
     """
-    # 2.a) Groupes sans photo
+    # Groupes sans photo
     groups = get_print_groups()
     group_points: List[AttentionPoint] = []
-    groups_without_photo_ids: set[int] = set()
     for g in groups:
         g_id = int(g["id"])
         imgs = list_group_images(g_id)
         if not imgs:
-            groups_without_photo_ids.add(g_id)
             group_points.append({
                 "category": "no_photo",
                 "name": g.get("name") or f"Groupe #{g_id}",
                 "param": "group_id",
                 "value": g_id,
-                "meta": {"kind": "group"},
+                "meta": {
+                    "kind": "group",
+                    "thumbnail": _pick_group_rep_thumbnail(g),  # peut être None
+                },
             })
 
-    # 2.b) Prints sans photo, en excluant ceux présents dans *n'importe quel* groupe
+    # Prints sans photo, en excluant ceux présents dans un groupe
     prints_in_groups = _extract_group_print_ids(groups)
     conn = _get_conn()
     cur = conn.cursor()
@@ -306,7 +424,6 @@ def _collect_no_photo_combined(limit_prints: int = 500) -> List[AttentionPoint]:
     for r in rows:
         pid = int(r["id"])
         if pid in prints_in_groups:
-            # Impliqué dans un groupe → on NE duplique pas au niveau print
             continue
         imgs = list_print_images(pid)
         if not imgs:
@@ -315,10 +432,12 @@ def _collect_no_photo_combined(limit_prints: int = 500) -> List[AttentionPoint]:
                 "name": r["file_name"],
                 "param": "print_id",
                 "value": pid,
-                "meta": {"kind": "print"},
+                "meta": {
+                    "kind": "print",
+                    "thumbnail": _get_print_thumbnail(pid),  # peut être None
+                },
             })
 
-    # 2.c) Fusion
     return group_points + print_points
 
 def _collect_unassigned_filament_usage() -> List[AttentionPoint]:
@@ -364,12 +483,17 @@ def _collect_filaments_without_swatch() -> List[AttentionPoint]:
     )
     rows = [dict(r) for r in cur.fetchall()]
     conn.close()
+
     out: List[AttentionPoint] = []
     for r in rows:
         name_parts = [p for p in [r.get("manufacturer"), r.get("name"), r.get("material")] if p]
         disp = " — ".join(name_parts) if name_parts else f"Filament #{r['id']}"
+
+        # couleur(s) pour pastille
         color_meta = _parse_color_field(r.get("color"))
-        meta = {**color_meta}
+        # on garde aussi swatch_html si tu l'utilises dans les PHRASES
+        meta = {**color_meta, "swatch_html": _swatch_html_from_meta(color_meta)}
+
         out.append({
             "category": "filament_without_swatch",
             "name": disp,
@@ -378,6 +502,7 @@ def _collect_filaments_without_swatch() -> List[AttentionPoint]:
             "meta": meta,
         })
     return out
+
 
 def _collect_spools_almost_empty() -> List[AttentionPoint]:
     th_g = float(ATTENTION_SPOOL_EMPTY_THRESHOLD_G)
@@ -400,18 +525,23 @@ def _collect_spools_almost_empty() -> List[AttentionPoint]:
         is_low_by_pct = (pct is not None and pct <= th_pct)
 
         if is_low_by_g or is_low_by_pct:
+            # couleur(s) pour pastille depuis filament.color/color_hex
+            color_meta = _parse_color_field(fil.get("color") or fil.get("color_hex"))
+            meta = {
+                "remaining_g": float(rem_g) if rem_g is not None else None,
+                "pct": float(pct) if pct is not None else None,
+                "total_g": float(total_g) if total_g is not None else None,
+                "threshold_g": th_g,
+                "threshold_pct": th_pct,
+                # pour l'UI
+                **color_meta,
+            }
             out.append({
                 "category": "spool_almost_empty",
                 "name": _fmt_spool_name(s),
                 "param": "spool_id",
                 "value": int(s.get("id") or s.get("spool_id") or 0),
-                "meta": {
-                    "remaining_g": float(rem_g) if rem_g is not None else None,
-                    "pct": float(pct) if pct is not None else None,
-                    "total_g": float(total_g) if total_g is not None else None,
-                    "threshold_g": th_g,
-                    "threshold_pct": th_pct,
-                }
+                "meta": meta,
             })
     return out
 
@@ -487,6 +617,7 @@ def _collect_prints_photo_without_design(limit: int = 500) -> List[AttentionPoin
                 "meta": {
                     "images_count": len(imgs),
                     "design_id": r.get("design_id"),
+                    "first_image": _first_print_image_url(int(r["id"])),  # aperçu
                 }
             })
     return out

@@ -234,6 +234,28 @@
     padding:.2rem .5rem; font-size:.72rem; border-radius:.5rem;
   }
   .attn-dismiss.btn:hover{ background:var(--btn-bg-hover); }
+    /* Visuels attention tiles */
+  .attn-item {
+    grid-template-columns: auto 1fr auto; /* inchangé */
+  }
+  .attn-visual{
+    width:2.25rem; height:2.25rem;
+    border-radius:.5rem; overflow:hidden;
+    background: rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.10);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .attn-thumb{
+    width:100%; height:100%; object-fit:cover; display:block;
+  }
+  .attn-chip.color-chip.small{
+    width:2rem; height:1rem; border-radius:.35rem;
+  }
+  .attn-dot{ /* ne s’affiche que s’il n’y a pas de visuel/couleur */
+    width:.5rem; height:.5rem; border-radius:999px; margin-top:.25rem;
+    background: rgba(255,255,255,.55);
+    box-shadow: 0 0 0 2px rgba(255,255,255,.08);
+  }
 </style>
 <div x-data="{ open: false }"
      class="mb-4 rounded-xl overflow-hidden shadow-md"
@@ -572,24 +594,57 @@
           <ul class="attn-list">
             {% for p in points %}
               <li class="attn-item"
-                  data-cat="{{ cat }}"
-                  data-param="{{ p.param or 'name' }}"
-                  data-val="{{ p.value if p.value is not none else p.name }}">
-                <div class="attn-dot"></div>
+    data-cat="{{ cat }}"
+    data-param="{{ p.param or 'name' }}"
+    data-val="{{ p.value if p.value is not none else p.name }}">
 
-                <div>
-                  <div class="attn-msg">{{ p.message|safe }}</div>
-                  {% if p.param and p.value %}
-                  <div class="attn-meta">
-                    <code>{{ p.param }}</code> = <span>{{ p.value }}</span>
-                  </div>
-                  {% endif %}
-                </div>
+  {# ==== Colonne 1 : visuel (thumbnail / photo / pastille), sinon dot ==== #}
+  {# Prépare une liste de couleurs sans '#' pour le macro color_chip_bg #}
+  {% set colors_clean = [] %}
+  {% if p.meta and p.meta.colors %}
+    {% set colors_clean = p.meta.colors | map('replace','#','') | list %}
+  {% elif p.meta and p.meta.color_hex %}
+    {% set colors_clean = [p.meta.color_hex|replace('#','')] %}
+  {% endif %}
 
-                <div class="attn-actions">
-                  <button type="button" class="btn attn-dismiss">Ignorer</button>
-                </div>
-              </li>
+  {% set has_chip = colors_clean|length > 0 %}
+  {% set has_no_photo_thumb = (cat == 'no_photo') and (p.meta and p.meta.thumbnail) %}
+  {% set has_design_photo = (cat == 'print_photo_without_design') and (p.meta and p.meta.first_image) %}
+
+  {% if has_no_photo_thumb %}
+    <div class="attn-visual">
+      <img class="attn-thumb" src="{{ p.meta.thumbnail }}" alt="" loading="lazy">
+    </div>
+  {% elif has_design_photo %}
+    <div class="attn-visual">
+      <img class="attn-thumb" src="{{ p.meta.first_image }}" alt="" loading="lazy">
+    </div>
+  {% elif has_chip and (cat in ['filament_without_swatch', 'spool_almost_empty']) %}
+    <div class="attn-visual" style="background:none;border:none;">
+      <span class="color-chip small {{ 'mono' if colors_clean|length == 1 else '' }}"
+            style="{{ color_chip_bg(colors_clean if colors_clean|length>1 else colors_clean[0]) }}"
+            title="{{ (colors_clean|join(', ')) if colors_clean|length>1 else colors_clean[0] }}">
+      </span>
+    </div>
+  {% else %}
+    <div class="attn-dot"></div>
+  {% endif %}
+
+  {# ==== Colonne 2 : message + meta ==== #}
+  <div>
+    <div class="attn-msg">{{ p.message|safe }}</div>
+    {% if p.param and p.value %}
+      <div class="attn-meta">
+        <code>{{ p.param }}</code> = <span>{{ p.value }}</span>
+      </div>
+    {% endif %}
+  </div>
+
+  {# ==== Colonne 3 : actions ==== #}
+  <div class="attn-actions">
+    <button type="button" class="btn attn-dismiss">Ignorer</button>
+  </div>
+</li>
             {% endfor %}
           </ul>
         </div>
