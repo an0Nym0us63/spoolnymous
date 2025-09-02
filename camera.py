@@ -218,6 +218,25 @@ def svg_fallback(message: str) -> Response:
     r.headers["X-Camera-Status"] = "fallback"
     return r
 
+def _snapshot_once(url: str, timeout_s: float = _FFMPEG_TIMEOUTS) -> bytes:
+    cmd = [
+        "ffmpeg",
+        "-nostdin", "-hide_banner", "-loglevel", "error",
+        "-rtsp_transport", "tcp",
+        "-i", url,
+        "-frames:v", "1",
+        "-f", "image2pipe",
+        "-vcodec", "mjpeg",
+        "pipe:1",
+    ]
+    out = subprocess.run(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        timeout=timeout_s, check=True
+    )
+    if not out.stdout:
+        raise RuntimeError("ffmpeg returned no data")
+    return out.stdout
+
 def _snapshot_once_auto(urls: list[str]) -> bytes:
     """
     Capture une image en choisissant automatiquement le provider (RTSP/TLS6000)
@@ -425,3 +444,5 @@ def snapshot_to_print_file(print_id: str | int, filename_no_ext: str) -> tuple[s
     # 4) URL statique
     rel_url = f"/static/uploads/prints/{print_id}/{basename}.jpg"
     return str(target_path), rel_url
+
+
