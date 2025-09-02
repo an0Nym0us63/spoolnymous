@@ -146,69 +146,74 @@
 #ams-card- .px-3 .w-2.h-5 {                 /* ou ta classe exacte */
   background-clip: padding-box;             /* même raison */
 }
- /* --- Points d’attention : tuiles par catégorie --- */
+  /* --- Points d’attention : mêmes couleurs/finition que les cards AMS --- */
   .attn-grid{
     display:grid; gap:1rem;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   }
+
   .attn-card{
     position:relative;
-    border-radius: .95rem;
-    border: 1px solid rgba(255,255,255,.10);
+    border-radius:.95rem;
+    /* ⇩ identique aux cards AMS */
     background: linear-gradient(135deg, rgba(40,45,60,0.85), rgba(20,25,40,0.75));
+    border: 1px solid rgba(255,255,255,0.08);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     box-shadow: inset 0 0 2px rgba(255,255,255,0.05);
-    overflow: hidden;
+    overflow:hidden;
     color:#e5e7eb;
   }
-  .attn-card::before{
-    /* liseré/halo de catégorie via variable CSS */
-    content:"";
-    position:absolute; inset:0;
-    background: linear-gradient(135deg, var(--attn-from,#22d3ee), var(--attn-to,#64748b));
-    opacity:.14; pointer-events:none;
-  }
+  /* on retire la surcouche colorée par catégorie */
+  .attn-card::before{ content:none; }
+
   .attn-head{
-    position:relative; z-index:1;
     display:flex; align-items:center; justify-content:space-between;
-    padding:.65rem .85rem .55rem;
-    border-bottom:1px solid rgba(255,255,255,.08);
+    padding:.55rem .85rem;
+    background: #1f2937;             /* bg-gray-800 */
+    border-bottom:1px solid #374151;  /* border-gray-700 */
   }
   .attn-left{ display:flex; align-items:center; gap:.55rem; min-width:0; }
   .attn-icon{
-    width:1.85rem; height:1.85rem; border-radius:.6rem;
+    width:1.6rem; height:1.6rem; border-radius:.5rem;
     display:inline-flex; align-items:center; justify-content:center;
-    font-size:1.05rem;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
+    font-size:1rem;
+    /* petite plaque verre, comme ailleurs */
     background: linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
   }
   .attn-title{
-    font-weight:700; letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    font-weight:700; letter-spacing:.01em;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
+
+  /* Badge = même esprit que le badge "location" AMS (bg-primary) */
   .attn-badge{
     display:inline-flex; align-items:center; justify-content:center;
-    padding:.15rem .5rem; border-radius:999px;
-    font-size:.72rem; font-weight:700;
-    color:#fff;
-    background: linear-gradient(135deg, var(--attn-from,#22d3ee), var(--attn-to,#64748b));
-    border:1px solid rgba(0,0,0,.25);
+    padding:.15rem .55rem;
+    border-radius:999px;
+    font-size:.72rem; font-weight:700; color:#fff;
+    background: var(--bs-primary, #0d6efd);
+    border: 1px solid rgba(0,0,0,.25);
     box-shadow: 0 1px 2px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.08);
   }
-  .attn-body{ position:relative; z-index:1; padding:.65rem .85rem .8rem; }
 
-  .attn-list{ display:flex; flex-direction:column; gap:.45rem; margin:0; padding:0; list-style:none; }
+  .attn-body{ padding:.7rem .85rem .85rem; }
+
+  .attn-list{ display:flex; flex-direction:column; gap:.5rem; margin:0; padding:0; list-style:none; }
   .attn-item{
-    display:grid; grid-template-columns:auto 1fr; column-gap:.55rem; row-gap:.15rem;
+    display:grid; grid-template-columns:auto 1fr auto; column-gap:.6rem; row-gap:.15rem;
     align-items:start;
-    padding:.45rem .5rem; border-radius:.6rem;
+    padding:.55rem .6rem;
+    border-radius:.65rem;
     background: linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
     border:1px solid rgba(255,255,255,.08);
   }
+  /* pastille neutre (plus de couleur par catégorie) */
   .attn-dot{
-    width:.55rem; height:.55rem; border-radius:999px; margin-top:.2rem;
-    background: var(--attn-from,#22d3ee);
-    box-shadow: 0 0 0 2px rgba(255,255,255,.08), 0 0 8px var(--attn-from,#22d3ee);
+    width:.5rem; height:.5rem; border-radius:999px; margin-top:.25rem;
+    background: rgba(255,255,255,.55);
+    box-shadow: 0 0 0 2px rgba(255,255,255,.08);
   }
   .attn-msg{ font-size:.9rem; line-height:1.25; }
   .attn-meta{
@@ -219,8 +224,16 @@
     padding:.05rem .3rem; border-radius:.4rem; font-size:.72rem;
   }
 
-  /* Petites variantes de couleurs par catégorie : on renseigne via style="--attn-from:...;--attn-to:..." */
-  /* Rien de plus ici : la palette vient du HTML */
+  /* Bouton "Ignorer" harmonisé */
+  .attn-actions{ grid-column:3; display:flex; gap:.4rem; align-items:center; }
+  .attn-dismiss.btn{
+    --btn-bg: transparent;
+    --btn-bd: rgba(255,255,255,.25);
+    --btn-bg-hover: rgba(255,255,255,.06);
+    color:#e5e7eb; border:1px solid var(--btn-bd); background:var(--btn-bg);
+    padding:.2rem .5rem; font-size:.72rem; border-radius:.5rem;
+  }
+  .attn-dismiss.btn:hover{ background:var(--btn-bg-hover); }
 </style>
 <div x-data="{ open: false }"
      class="mb-4 rounded-xl overflow-hidden shadow-md"
@@ -534,24 +547,10 @@
   </div>
 </div>
 {% if attention_buckets %}
-{# Palette & icônes par catégorie (tu peux ajuster à ta guise) #}
 {% set CAT_ICON = {
-  'filament': '🧵', 'temperature': '🌡️', 'humidity': '💧', 'ams': '🧰',
-  'nozzle': '🔥', 'bed': '🛏️', 'chamber': '🏠', 'hardware': '🛠️',
-  'warning': '⚠️', 'quality': '🧱', 'misc': '🔎'
-} %}
-{% set CAT_COLORS = {
-  'filament':   ('#06b6d4', '#3b82f6'),
-  'temperature':('#f59e0b', '#ef4444'),
-  'humidity':   ('#22d3ee', '#06b6d4'),
-  'ams':        ('#8b5cf6', '#06b6d4'),
-  'nozzle':     ('#ef4444', '#f97316'),
-  'bed':        ('#84cc16', '#22c55e'),
-  'chamber':    ('#14b8a6', '#06b6d4'),
-  'hardware':   ('#a3a3a3', '#737373'),
-  'warning':    ('#f97316', '#ef4444'),
-  'quality':    ('#22c55e', '#16a34a'),
-  'misc':       ('#64748b', '#94a3b8')
+  'filament': '🧵','temperature':'🌡️','humidity':'💧','ams':'🧰',
+  'nozzle':'🔥','bed':'🛏️','chamber':'🏠','hardware':'🛠️',
+  'warning':'⚠️','quality':'🧱','misc':'🔎'
 } %}
 
 <div class="mt-4" data-requires-write>
@@ -559,10 +558,8 @@
     {% for cat, points in attention_buckets.items() if points %}
       {% set label = category_labels.get(cat, cat.replace('_',' ')|capitalize) %}
       {% set ico   = CAT_ICON.get(cat, '🔎') %}
-      {% set from  = (CAT_COLORS.get(cat) or CAT_COLORS['misc'])[0] %}
-      {% set to    = (CAT_COLORS.get(cat) or CAT_COLORS['misc'])[1] %}
 
-      <div class="attn-card" style="--attn-from: {{ from }}; --attn-to: {{ to }};">
+      <div class="attn-card">
         <div class="attn-head">
           <div class="attn-left">
             <div class="attn-icon">{{ ico }}</div>
@@ -575,21 +572,24 @@
           <ul class="attn-list">
             {% for p in points %}
               <li class="attn-item"
-    data-cat="{{ cat }}"
-    data-param="{{ p.param or 'name' }}"
-    data-val="{{ p.value if p.value is not none else p.name }}">
-  <div class="attn-dot"></div>
-  <div class="attn-msg">{{ p.message|safe }}</div>
-  {% if p.param and p.value %}
-  <div class="attn-meta">
-    <code>{{ p.param }}</code> = <span>{{ p.value }}</span>
-  </div>
-  {% endif %}
+                  data-cat="{{ cat }}"
+                  data-param="{{ p.param or 'name' }}"
+                  data-val="{{ p.value if p.value is not none else p.name }}">
+                <div class="attn-dot"></div>
 
-  <div style="grid-column:2; display:flex; gap:.4rem; margin-top:.25rem;">
-    <button type="button" class="btn btn-sm btn-outline-secondary attn-dismiss">Ignorer</button>
-  </div>
-</li>
+                <div>
+                  <div class="attn-msg">{{ p.message|safe }}</div>
+                  {% if p.param and p.value %}
+                  <div class="attn-meta">
+                    <code>{{ p.param }}</code> = <span>{{ p.value }}</span>
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div class="attn-actions">
+                  <button type="button" class="btn attn-dismiss">Ignorer</button>
+                </div>
+              </li>
             {% endfor %}
           </ul>
         </div>
@@ -1029,13 +1029,47 @@ document.addEventListener('click', async (e) => {
     if (!res.ok || !payload.ok) throw new Error(payload.error || 'dismiss failed');
 
     // Retire l’élément de l’UI immédiatement
-    li.style.transition = 'opacity .2s ease';
-    li.style.opacity = '0';
-    setTimeout(() => li.remove(), 200);
+    // Retire l’élément de l’UI immédiatement + MAJ badge + clean card/section
+li.style.transition = 'opacity .18s ease, transform .18s ease';
+li.style.opacity = '0';
+li.style.transform = 'translateY(-2px)';
 
-    // Si la carte n’a plus d’items, tu peux retirer la tuile :
-    const ul = document.querySelector('.attn-list');
-    // (ou cherche le UL dans la même tuile que li)
+setTimeout(() => {
+  const card = li.closest('.attn-card');
+  const grid = card?.closest('.attn-grid');
+  const list = li.closest('.attn-list'); // liste dans cette tuile, pas globale
+  li.remove();
+
+  // 1) MAJ badge
+  if (card) {
+    const badge = card.querySelector('.attn-badge');
+    if (badge) {
+      const n = Math.max(0, (parseInt(badge.textContent || '0', 10) || 0) - 1);
+      badge.textContent = String(n);
+    }
+  }
+
+  // 2) Si plus d’items dans CETTE tuile → animation + remove
+  const hasItems = !!list && list.querySelectorAll('.attn-item').length > 0;
+  if (card && !hasItems) {
+    card.style.transition = 'transform .15s ease, opacity .15s ease';
+    card.style.opacity = '0';
+    card.style.transform = 'scale(.98)';
+    setTimeout(() => {
+      card.remove();
+
+      // 3) Si plus AUCUNE tuile → retirer la section complète
+      if (grid && grid.querySelectorAll('.attn-card').length === 0) {
+        const section = grid.closest('[data-requires-write]') || grid.parentElement;
+        if (section) {
+          section.style.transition = 'opacity .15s ease';
+          section.style.opacity = '0';
+          setTimeout(() => section.remove(), 150);
+        }
+      }
+    }, 150);
+  }
+}, 180);
   } catch (err) {
     console.error('dismiss error', err);
     btn.disabled = false;
