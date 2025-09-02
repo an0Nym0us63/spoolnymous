@@ -1449,7 +1449,7 @@ def reajust_print_history(print_id):
 @app.route("/history/<int:print_id>/filaments", methods=["GET"])
 def get_print_filaments(print_id):
     filament_usages = get_filament_for_print(print_id)
-
+    searchname=''
     enriched = []
     for usage in filament_usages:
         spool_id = usage["spool_id"]
