@@ -143,6 +143,39 @@ def _snapshot_once_tls6000(timeout_s: float = 5.0) -> bytes:
         except Exception:
             pass
 
+def _select_providers_for_model(model: str, urls: list[str]):
+    """
+    Retourne une liste de callables 'providers' à essayer dans l'ordre pour le modèle donné.
+    Chaque provider() doit renvoyer des bytes JPEG ou lever une exception.
+    """
+    model_up = (model or "").upper()
+
+    def _try_rtsp():
+        last = None
+        for u in urls:
+            try:
+                return _snapshot_once(u, timeout_s=_FFMPEG_TIMEOUTS)
+            except Exception as e:
+                last = e
+                continue
+        raise last or RuntimeError("RTSP providers failed")
+
+    def _try_tls():
+        return _snapshot_once_tls6000(timeout_s=5.0)
+
+    if "P1P" in model_up:
+        # Pas de caméra de chambre sur P1P
+        return []
+
+    # Alignement avec serve_snapshot :
+    if any(x in model_up for x in ["H2D", "X1", "X1 CARBON", "X1E"]):
+        return [_try_rtsp]
+    elif any(x in model_up for x in ["P1S", "A1", "A1 MINI"]):
+        return [_try_tls]
+    else:
+        # Modèle non catégorisé → tenter RTSP puis TLS
+        return [_try_rtsp, _try_tls]
+
 def get_camera_urls():
     """
     Construit la/les URL(s) de la caméra à partir de la config appli.
@@ -185,24 +218,34 @@ def svg_fallback(message: str) -> Response:
     r.headers["X-Camera-Status"] = "fallback"
     return r
 
-def _snapshot_once(url: str, timeout_s: float = _FFMPEG_TIMEOUTS) -> bytes:
-    cmd = [
-        "ffmpeg",
-        "-nostdin", "-hide_banner", "-loglevel", "error",
-        "-rtsp_transport", "tcp",
-        "-i", url,
-        "-frames:v", "1",
-        "-f", "image2pipe",
-        "-vcodec", "mjpeg",
-        "pipe:1",
-    ]
-    out = subprocess.run(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        timeout=timeout_s, check=True
-    )
-    if not out.stdout:
-        raise RuntimeError("ffmpeg returned no data")
-    return out.stdout
+def _snapshot_once_auto(urls: list[str]) -> bytes:
+    """
+    Capture une image en choisissant automatiquement le provider (RTSP/TLS6000)
+    selon le modèle d’imprimante. Lève en cas d’échec.
+    """
+    model = _get_printer_model_name()
+    providers = _select_providers_for_model(model, urls)
+
+    if not providers:
+        # Cas P1P (ou autre sans caméra)
+        raise RuntimeError("Model without chamber camera")
+
+    last_exc = None
+    for provider in providers:
+        try:
+            return provider()
+        except subprocess.TimeoutExpired as e:
+            last_exc = e
+            logger.warning("snapshot auto timeout: %s", e)
+        except subprocess.CalledProcessError as e:
+            stderr = (e.stderr.decode("utf-8", "ignore") if getattr(e, "stderr", None) else "").strip()
+            last_exc = RuntimeError(stderr or "ffmpeg error")
+            logger.warning("snapshot auto ffmpeg error: %s", stderr or e)
+        except Exception as e:
+            last_exc = e
+            logger.warning("snapshot auto provider error: %s", e)
+
+    raise RuntimeError(f"Snapshot failed on all providers: {last_exc}")
 
 def serve_snapshot() -> Response:
     """
@@ -360,7 +403,7 @@ def snapshot_to_print_file(print_id: str | int, filename_no_ext: str) -> tuple[s
     last_exc = None
     for u in urls:
         try:
-            data = _snapshot_once(u, timeout_s=_FFMPEG_TIMEOUTS)
+            data = _snapshot_once_auto(urls)
             break
         except Exception as e:
             last_exc = e
