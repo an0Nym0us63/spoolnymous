@@ -3,6 +3,8 @@ import random
 import sqlite3
 from typing import Any, Dict, List, Optional
 import re
+import os
+
 
 # Pas de paramètres en DB pour le moment : tout est dans ce fichier.
 ATTENTION_SPOOL_EMPTY_THRESHOLD_G: float = 150.0   # seuil en grammes
@@ -14,7 +16,7 @@ from datetime import datetime, timedelta
 
 # Type uniforme pour un "point d'attention"
 AttentionPoint = Dict[str, Any]
-
+_PHOTO_RE = re.compile(r"^photo", re.IGNORECASE)
 # ---------------------------------------------------------------------------
 # Helpers DB & formatage
 # ---------------------------------------------------------------------------
@@ -109,6 +111,45 @@ def _load_dismissed_index() -> set[tuple[str, str, str]]:
         return {(str(r["category"]), str(r["key_param"]), str(r["key_value"])) for r in rows}
     finally:
         conn.close()
+
+def _is_user_photo(entry: Any) -> bool:
+    """
+    True si l'entrée correspond à une photo 'utilisateur' :
+    - on récupère le nom de fichier (dernier segment)
+    - on teste s'il commence par 'Photo' (case-insensitive)
+    """
+    # dict -> chercher une clé plausible contenant le chemin
+    if isinstance(entry, dict):
+        for k in ("url", "path", "filepath", "file", "relpath", "name"):
+            v = entry.get(k)
+            if isinstance(v, str) and v.strip():
+                base = os.path.basename(v.strip())
+                return bool(_PHOTO_RE.match(base))
+        return False
+    # str direct
+    if isinstance(entry, str) and entry.strip():
+        base = os.path.basename(entry.strip())
+        return bool(_PHOTO_RE.match(base))
+    return False
+
+def _first_user_photo_url_from_list(items: List[Any]) -> Optional[str]:
+    """
+    Retourne l'URL/chemin de la première image 'Photo*' dans une liste brute.
+    """
+    for it in items or []:
+        if _is_user_photo(it):
+            if isinstance(it, dict):
+                for k in ("url", "path", "filepath", "file", "relpath", "name"):
+                    v = it.get(k)
+                    if isinstance(v, str) and v.strip():
+                        return v
+                continue
+            if isinstance(it, str) and it.strip():
+                return it
+    return None
+
+def _has_user_photo_in_list(items: List[Any]) -> bool:
+    return _first_user_photo_url_from_list(items) is not None
 
 def _filter_buckets_dismissed(buckets: Dict[str, List[AttentionPoint]]) -> Dict[str, List[AttentionPoint]]:
     """
@@ -236,32 +277,13 @@ def _parse_color_field(raw: Optional[Any]) -> Dict[str, Any]:
 
 def _first_print_image_url(print_id: int) -> Optional[str]:
     """
-    Retourne une URL/chemin utilisable pour afficher la 1ère image uploadée d’un print,
-    ou None si aucune. Tolère plusieurs formats renvoyés par list_print_images().
+    Première image 'Photo*' uploadée pour ce print, sinon None.
     """
     try:
         imgs = list_print_images(print_id) or []
     except Exception:
         imgs = []
-
-    if not imgs:
-        return None
-
-    first = imgs[0]
-    # Cas dict: essaie des clés courantes
-    if isinstance(first, dict):
-        for k in ("url", "path", "filepath", "file", "relpath", "name"):
-            v = first.get(k)
-            if isinstance(v, str) and v.strip():
-                return v
-        # fallback: str(dict) pas utile pour un <img>
-        return None
-
-    # Cas string direct (chemin relatif /static/... ou complet)
-    if isinstance(first, str) and first.strip():
-        return first
-
-    return None
+    return _first_user_photo_url_from_list(imgs)
 
 
 def _get_print_thumbnail(print_id: int) -> Optional[str]:
@@ -382,20 +404,13 @@ def _swatch_html_from_meta(meta: Dict[str, Any], size: int = 12, radius: int = 3
 # ---------------------------------------------------------------------------
 
 def _collect_no_photo_combined(limit_prints: int = 500) -> List[AttentionPoint]:
-    """
-    Combine "prints sans photo" et "groupes sans photo" en une seule catégorie 'no_photo'.
-    Exclut les prints qui appartiennent à un groupe (dans ce cas on affiche le groupe uniquement).
-    Enrichit meta:
-      - kind: 'print' ou 'group'
-      - thumbnail: miniature 'slicer' (si disponible)
-    """
-    # Groupes sans photo
+    # Groupes sans photo 'Photo*'
     groups = get_print_groups()
     group_points: List[AttentionPoint] = []
     for g in groups:
         g_id = int(g["id"])
         imgs = list_group_images(g_id)
-        if not imgs:
+        if not _has_user_photo_in_list(imgs):   # ← change ici
             group_points.append({
                 "category": "no_photo",
                 "name": g.get("name") or f"Groupe #{g_id}",
@@ -403,11 +418,11 @@ def _collect_no_photo_combined(limit_prints: int = 500) -> List[AttentionPoint]:
                 "value": g_id,
                 "meta": {
                     "kind": "group",
-                    "thumbnail": _pick_group_rep_thumbnail(g),  # peut être None
+                    "thumbnail": _pick_group_rep_thumbnail(g),  # facultatif, n'entre pas dans le critère
                 },
             })
 
-    # Prints sans photo, en excluant ceux présents dans un groupe
+    # Prints sans photo 'Photo*', en excluant ceux présents dans un groupe
     prints_in_groups = _extract_group_print_ids(groups)
     conn = _get_conn()
     cur = conn.cursor()
@@ -425,8 +440,8 @@ def _collect_no_photo_combined(limit_prints: int = 500) -> List[AttentionPoint]:
         pid = int(r["id"])
         if pid in prints_in_groups:
             continue
-        imgs = list_print_images(pid)
-        if not imgs:
+        # on ne considère que les 'Photo*'
+        if _first_print_image_url(pid) is None:
             print_points.append({
                 "category": "no_photo",
                 "name": r["file_name"],
@@ -434,7 +449,7 @@ def _collect_no_photo_combined(limit_prints: int = 500) -> List[AttentionPoint]:
                 "value": pid,
                 "meta": {
                     "kind": "print",
-                    "thumbnail": _get_print_thumbnail(pid),  # peut être None
+                    "thumbnail": _get_print_thumbnail(pid),  # visuel complémentaire
                 },
             })
 
@@ -586,13 +601,8 @@ def _collect_groups_without_photo() -> List[AttentionPoint]:
     return out
    
 def _collect_prints_photo_without_design(limit: int = 500) -> List[AttentionPoint]:
-    """
-    Sélectionne les impressions qui ont au moins une photo uploadée manuellement
-    (via list_print_images) mais dont design_id est vide / nul / 0.
-    """
     conn = _get_conn()
     cur = conn.cursor()
-    # On couvre: NULL, 0, '', '  '
     cur.execute(f"""
         SELECT p.id, p.file_name, p.design_id
         FROM prints p
@@ -607,17 +617,19 @@ def _collect_prints_photo_without_design(limit: int = 500) -> List[AttentionPoin
 
     out: List[AttentionPoint] = []
     for r in rows:
-        imgs = list_print_images(r["id"])
-        if imgs:  # => il y a bien une (vraie) photo côté uploads
+        pid = int(r["id"])
+        first_user = _first_print_image_url(pid)  # ← n'importe qu'une 'Photo*'
+        if first_user:  # → uniquement si une vraie "Photo*" existe
+            imgs = list_print_images(pid)  # facultatif si tu veux toujours images_count
             out.append({
                 "category": "print_photo_without_design",
                 "name": r["file_name"],
                 "param": "print_id",
-                "value": int(r["id"]),
+                "value": pid,
                 "meta": {
-                    "images_count": len(imgs),
+                    "images_count": len(imgs) if isinstance(imgs, list) else 1,
                     "design_id": r.get("design_id"),
-                    "first_image": _first_print_image_url(int(r["id"])),  # aperçu
+                    "first_image": first_user,
                 }
             })
     return out
