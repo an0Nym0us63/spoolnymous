@@ -753,7 +753,8 @@ def detect_webview():
 EXEMPT_ENDPOINTS = {
     "auth.login",
     "auth.autologin_token",
-    "auth.guest_autologin",
+    "auth.guest_autologin",         # /guest/<token> si tu l’utilises
+    "auth.guest_gallery_autologin",
     "static",
     "healthz",
 }
@@ -761,7 +762,7 @@ EXEMPT_ENDPOINTS = {
 # Chemins exemptés par préfixe (API publiques et snapshot si on veut public)
 EXEMPT_PATH_PREFIXES = (
     "/api/public/",
-    "/camera/snapshot",   # <- garde si tu exposes le snapshot sans auth
+    "/camera/snapshot",
 )
 
 @app.route("/healthz")

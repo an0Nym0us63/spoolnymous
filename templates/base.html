@@ -258,7 +258,7 @@
 </header>
 
 
-<main class="container">
+<main class="container" data-requires-write>
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
     {% set last = messages[-1] %} {# last = (category, message) #}
@@ -572,7 +572,7 @@ window.openGalleryFromEntry = function(images, title) {
   });
 })();
 </script>
-<div class="update-toast-container">
+<div class="update-toast-container" data-requires-write>
   <div id="updateToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
     <div class="d-flex">
       <div class="toast-body">
