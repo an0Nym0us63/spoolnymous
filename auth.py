@@ -178,6 +178,7 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         if validate_credentials(username, password):
+            session.pop("guest_scope", None)
             user = User(username, role="user")
             login_user(user, remember=True)
             return redirect(url_for('home'))
@@ -188,6 +189,7 @@ def login():
 @auth_bp.route('/logout')
 @login_required
 def logout():
+    session.pop("guest_scope", None)
     logout_user()
     return redirect(url_for('auth.login'))
 
@@ -202,6 +204,7 @@ def guest_autologin(token):
         role = meta.get("role", "guest")
         user = User(username=f"guest:{token}", role=role)
         login_user(user, remember=False)
+        session.pop("guest_scope", None)
         # Reutilise ta page de redirection pour garder les thèmes/params
         return render_template("redirect_with_theme.html", query=request.query_string.decode())
     return "Lien invité invalide, expiré ou révoqué", 403

@@ -258,13 +258,13 @@
 </header>
 
 
-<main class="container" data-requires-write>
+<main class="container" >
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
     {% set last = messages[-1] %} {# last = (category, message) #}
     {% set category = last[0] %}
     {% set message  = last[1] %}
-    <div class="container mt-2">
+    <div class="container mt-2" data-requires-write>
       <div id="flash-alert"
            class="alert alert-{{ 'warning' if category == 'message' else category }} alert-dismissible fade show"
            role="alert"
@@ -278,7 +278,7 @@
   {% endif %}
 {% endwith %}
   {% if success_message %}
-  <div class="alert alert-success alert-dismissible fade show" role="alert">
+  <div class="alert alert-success alert-dismissible fade show" role="alert" data-requires-write
     <strong>Success!</strong> {{ success_message }}
     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   </div>
