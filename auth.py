@@ -1,6 +1,6 @@
 # auth.py
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify  # NEW: abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify,session  # NEW: abort
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
@@ -347,19 +347,19 @@ def autologin_token(token):
 def guest_gallery_autologin(token):
     tokens = _load_guest_tokens()
     meta = tokens.get(token)
-    if not isinstance(meta, dict) or meta.get("role") != "guest" or meta.get("scope") != "gallery":
+
+    # must exist, be a guest, be 'gallery' scoped, and still be valid
+    if not meta or meta.get("role") != "guest" or meta.get("scope") != "gallery" or not _is_guest_token_valid(token):
         abort(404)
-    # construit un User invité depuis le token, comme le fait /guest/<token>
-    payload = {
-        "uid": str(guest_id),
-        "username": "Invité galerie",
-        "roles": ["guest"],
-        "guest": True,
-        "scopes": ["gallery:view", "filaments:view"],
-    }
-    u = User.from_session_dict(payload) 
-    login_user(u, remember=False, fresh=True)
-    # redirection stricte vers la galerie
+
+    # login exactly like the regular guest autologin does
+    user = User(username=f"guest:{token}", role="guest")
+    login_user(user, remember=False)
+
+    # tag this session as the special gallery-invite guest ⇒ navbar can react
+    session["guest_scope"] = "gallery"
+
+    # land strictly on the gallery
     return redirect(url_for("gallery"))
 
 @auth_bp.route("/settings/gallery_guest_link", methods=["GET"])

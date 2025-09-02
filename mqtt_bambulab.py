@@ -870,7 +870,7 @@ def safe_update_status(data):
                         if status == 'FAILED':
                             with suppress(Exception):
                                 pct = int((merged_fields.get("progress") or 0))
-                            snapshot_milestone(job_id, pct, basename=f"Impression-{pct}-echec")
+                                snapshot_milestone(job_id, pct, basename=f"Impression-{pct}-echec")
                         update_print_field_with_job_id(job_id, "status", final_status)
                         PROCESSED_JOBS.add(job_id)
                         PENDING_JOBS.pop(job_id, None)
