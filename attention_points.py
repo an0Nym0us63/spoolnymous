@@ -126,6 +126,37 @@ def _filter_buckets_dismissed(buckets: Dict[str, List[AttentionPoint]]) -> Dict[
         out[cat] = kept
     return out
 
+def _extract_group_print_ids(groups: List[Dict[str, Any]]) -> set[int]:
+    """
+    Essaie de récupérer tous les print_id présents dans les groupes, en étant
+    tolérant au format retourné par get_print_groups().
+
+    Supporte notamment :
+      - g['print_ids'] = [1,2,...]
+      - g['prints']    = [{'id': 1}, ...]  ou [{'print_id': 1}, ...]
+      - g['items']     = [{'print_id': 1}, ...] (ou 'prints' dans 'items')
+    """
+    ids: set[int] = set()
+    for g in groups or []:
+        # 1) Liste d'ids directe
+        if isinstance(g.get("print_ids"), (list, tuple)):
+            for x in g["print_ids"]:
+                try: ids.add(int(x))
+                except Exception: pass
+
+        # 2) Liste de dicts 'prints' ou 'items'
+        for key in ("prints", "items"):
+            if isinstance(g.get(key), (list, tuple)):
+                for it in g[key]:
+                    if isinstance(it, dict):
+                        if "id" in it:
+                            try: ids.add(int(it["id"]))
+                            except Exception: pass
+                        if "print_id" in it:
+                            try: ids.add(int(it["print_id"]))
+                            except Exception: pass
+    return ids
+
 def _row_to_dict(row: sqlite3.Row) -> dict:
     return {k: row[k] for k in row.keys()}
 
@@ -235,6 +266,60 @@ def _swatch_html_from_meta(meta: Dict[str, Any], size: int = 12, radius: int = 3
 # ---------------------------------------------------------------------------
 # Collecteurs par catégorie
 # ---------------------------------------------------------------------------
+
+def _collect_no_photo_combined(limit_prints: int = 500) -> List[AttentionPoint]:
+    """
+    Combine "prints sans photo" et "groupes sans photo" en une seule catégorie 'no_photo'.
+    Exclut les prints qui appartiennent à un groupe (dans ce cas on affiche le groupe uniquement).
+    """
+    # 2.a) Groupes sans photo
+    groups = get_print_groups()
+    group_points: List[AttentionPoint] = []
+    groups_without_photo_ids: set[int] = set()
+    for g in groups:
+        g_id = int(g["id"])
+        imgs = list_group_images(g_id)
+        if not imgs:
+            groups_without_photo_ids.add(g_id)
+            group_points.append({
+                "category": "no_photo",
+                "name": g.get("name") or f"Groupe #{g_id}",
+                "param": "group_id",
+                "value": g_id,
+                "meta": {"kind": "group"},
+            })
+
+    # 2.b) Prints sans photo, en excluant ceux présents dans *n'importe quel* groupe
+    prints_in_groups = _extract_group_print_ids(groups)
+    conn = _get_conn()
+    cur = conn.cursor()
+    cur.execute(f"""
+        SELECT p.id, p.file_name
+        FROM prints p
+        ORDER BY p.id DESC
+        LIMIT {int(limit_prints)}
+    """)
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+
+    print_points: List[AttentionPoint] = []
+    for r in rows:
+        pid = int(r["id"])
+        if pid in prints_in_groups:
+            # Impliqué dans un groupe → on NE duplique pas au niveau print
+            continue
+        imgs = list_print_images(pid)
+        if not imgs:
+            print_points.append({
+                "category": "no_photo",
+                "name": r["file_name"],
+                "param": "print_id",
+                "value": pid,
+                "meta": {"kind": "print"},
+            })
+
+    # 2.c) Fusion
+    return group_points + print_points
 
 def _collect_unassigned_filament_usage() -> List[AttentionPoint]:
     conn = _get_conn()
@@ -475,6 +560,15 @@ PHRASES = {
         "Liez un design à « {name} » : photo déjà uploadée.",
         "« {name} » : visuel OK, design_id absent.",
     ],
+    "no_photo": [
+        # On spécialise dans render_message en fonction de meta["kind"], mais ces templates marchent pour les 2
+        "Photo manquante : « {name} ».",
+        "Ajoutez une image pour « {name} ».",
+        "Pas d’aperçu pour « {name} ». Pensez à une photo.",
+        "Aucun visuel enregistré pour « {name} ».",
+        "« {name} » mérite une photo !",
+    ],
+})
 }
 
 def render_message(point: AttentionPoint) -> str:
@@ -483,7 +577,7 @@ def render_message(point: AttentionPoint) -> str:
     tpl = random.choice(tpls) if isinstance(tpls, list) and tpls else tpls
     meta = point.get("meta") or {}
 
-    # Ajout contextuel : vignette/gradient au sein de la phrase pour les filaments sans swatch
+    # Ajout contextuel : vignette/gradient pour filaments sans swatch
     if cat == "filament_without_swatch":
         swatch_html = _swatch_html_from_meta(meta)
     else:
@@ -501,6 +595,14 @@ def render_message(point: AttentionPoint) -> str:
         if d.get("remaining_g") is None:
             d["remaining_g"] = 0.0
 
+    # Affinage wording pour no_photo
+    if cat == "no_photo":
+        kind = (meta.get("kind") or "").lower()
+        if kind == "group":
+            # Remplace quelques variantes pour un groupe
+            # (on force une courte phrase explicite, sinon on garde tpl générique)
+            return f"Photo manquante pour le groupe « {d['name']} »."
+
     return tpl.format(**d)
 
 # ---------------------------------------------------------------------------
@@ -512,8 +614,7 @@ def collect_attention_points() -> Dict[str, List[AttentionPoint]]:
         "print_usage_unassigned": _collect_unassigned_filament_usage(),
         "filament_without_swatch": _collect_filaments_without_swatch(),
         "spool_almost_empty": _collect_spools_almost_empty(),
-        "print_without_photo": _collect_prints_without_photo(),
-        "group_without_photo": _collect_groups_without_photo(),
+        "no_photo": _collect_no_photo_combined(),  # ← fusion des 2 anciennes
         "print_photo_without_design": _collect_prints_photo_without_design(),
     }
 
@@ -556,8 +657,7 @@ CATEGORY_LABELS: Dict[str, str] = {
     "print_usage_unassigned": "Affectations manquantes",
     "filament_without_swatch": "Filaments sans swatch",
     "spool_almost_empty": "Bobines presque vides",
-    "print_without_photo": "Impressions sans photo",
-    "group_without_photo": "Groupes sans photo",
+    "no_photo": "Sans photo (prints & groupes)",
     "print_photo_without_design": "Photos sans design",
 }
 
