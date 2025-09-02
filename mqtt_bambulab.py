@@ -745,6 +745,9 @@ def safe_update_status(data):
         fields["remaining_time_str"] = (
             f"{hours}h {minutes:02d}min" if hours > 0 else f"{minutes}min"
         )
+    job_id = data.get("job_id")
+    if job_id:
+        fields["job_id"] = str(job_id)
 
     # ---------- Vue fusionnée (prev ⊕ delta) pour raisonnement robuste ----------
     try:
