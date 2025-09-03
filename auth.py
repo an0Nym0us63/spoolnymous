@@ -32,6 +32,34 @@ class User(UserMixin):
     def is_guest(self):
         return self.role == "guest"
 
+def resolve_api_token(token: str):
+    """
+    Valide un token d’autologin (admin ou invité).
+    Retourne (user, meta) si valide, (None, None) sinon.
+    meta contient au minimum {"role": "..."} et éventuellement d'autres infos invité.
+    """
+    if not token:
+        return None, None
+
+    # 1) Tokens "admin" stockés dans users.json
+    users = get_stored_user()
+    if users:
+        for username, info in users.items():
+            if info.get("token") == token:
+                # Utilisateur "classique"
+                return User(username, role="user"), {"role": "user", "type": "admin-token"}
+
+    # 2) Tokens "guest" stockés dans guest_tokens.json
+    tokens = _load_guest_tokens()
+    meta = tokens.get(token)
+    if meta and _is_guest_token_valid(token):
+        role = meta.get("role", "guest")
+        # on encode l'identité comme ailleurs : guest:<token>
+        return User(username=f"guest:{token}", role=role), (meta or {"role": role, "type": "guest-token"})
+
+    return None, None
+
+
 # =========================
 # Utilitaires stockage
 # =========================

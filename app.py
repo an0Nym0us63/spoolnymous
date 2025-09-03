@@ -27,7 +27,7 @@ import tempfile
 
 from flask_login import LoginManager, login_required,current_user
 from flask_cors import CORS
-from auth import auth_bp, User, get_stored_user,_is_guest_token_valid
+from auth import auth_bp, User, get_stored_user,_is_guest_token_valid,resolve_api_token
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app,render_template_string
 
 from werkzeug.utils import secure_filename
@@ -765,6 +765,48 @@ EXEMPT_PATH_PREFIXES = (
     "/camera/snapshot",
 )
 
+TOKEN_AUTH_ENDPOINTS = {
+    # Exemples :
+    # "api_local_overview",
+    # "api_public_overview",  # si tu veux quand même exiger un token ici
+}
+
+TOKEN_AUTH_PATH_PREFIXES = (
+    # Exemples :
+    # "/api/local/overview",
+    # "/api/snapshots/",
+)
+
+def _extract_api_token():
+    # 1) Authorization: Bearer <token>  |  Authorization: Token <token>
+    auth = (request.headers.get("Authorization") or "").strip()
+    if auth:
+        m = re.match(r"^\s*(?:Bearer|Token)\s+(.+)$", auth, re.IGNORECASE)
+        if m:
+            return m.group(1).strip()
+
+    # 2) X-Autologin-Token: <token>
+    h = (request.headers.get("X-Autologin-Token") or "").strip()
+    if h:
+        return h
+
+    # 3) ?api_token=<token>  (fallback pratique)
+    q = (request.args.get("api_token") or request.args.get("token") or "").strip()
+    if q:
+        return q
+
+    return None
+
+
+def _endpoint_matches_token_auth(endpoint_name: str, path: str) -> bool:
+    if endpoint_name and endpoint_name in TOKEN_AUTH_ENDPOINTS:
+        return True
+    if path:
+        for pref in TOKEN_AUTH_PATH_PREFIXES:
+            if pref and path.startswith(pref):
+                return True
+    return False
+
 @app.route("/healthz")
 def healthz():
     return jsonify(status="ok"), 200
@@ -772,21 +814,50 @@ def healthz():
 @app.before_request
 def require_login():
     p = request.path or ""
-    # 1) Whitelist par préfixe (IMPORTANT pour éviter les redirections API)
+    endpoint = request.endpoint
+
+    # 1) Whitelist par préfixe (publics)
     if any(p.startswith(prefix) for prefix in EXEMPT_PATH_PREFIXES):
         return None
 
-    # 2) Whitelist par endpoint
-    if request.endpoint in EXEMPT_ENDPOINTS:
+    # 2) Whitelist par endpoint (login, autologin, static, healthz, ...)
+    if endpoint in EXEMPT_ENDPOINTS:
         return None
 
-    # 3) Si pas connecté :
-    if not current_user.is_authenticated:
-        # Pour les API: PAS de redirection, renvoie JSON 401
-        if p.startswith("/api/"):
-            return jsonify({"error": "unauthorized"}), 401
-        # Pour le reste: redirection standard vers login
-        return redirect(url_for("auth.login"))
+    # 3) Déjà connecté -> OK
+    if current_user.is_authenticated:
+        return None
+
+    # 4) Pas connecté : branche API vs UI
+    if p.startswith("/api/"):
+        # 4.a) Essayer l'auth par token
+        token = _extract_api_token()
+        if token:
+            user, meta = resolve_api_token(token)
+            if user:
+                # Admin token -> accès API complet
+                if getattr(user, "role", "user") == "user" and not str(user.id).startswith("guest:"):
+                    login_user(user, remember=False)
+                    g.api_auth = {"ok": True, "type": meta.get("type", "admin-token")}
+                    return None
+
+                # Guest token -> accès conditionnel aux endpoints whitelistes
+                if _endpoint_matches_token_auth(endpoint, p):
+                    login_user(user, remember=False)
+                    g.api_auth = {"ok": True, "type": meta.get("type", "guest-token")}
+                    return None
+
+                # Guest token mais endpoint non autorisé
+                return jsonify({"error": "forbidden", "reason": "guest_token_not_permitted"}), 403
+
+        # 4.b) API sans token valide -> 401 JSON (jamais de redirect)
+        #     Si l'endpoint est dans la liste token-only, on précise le motif
+        if _endpoint_matches_token_auth(endpoint, p):
+            return jsonify({"error": "unauthorized", "reason": "invalid_or_missing_api_token"}), 401
+        return jsonify({"error": "unauthorized"}), 401
+
+    # 5) UI -> redirection standard vers /login
+    return redirect(url_for("auth.login"))
 
 @app.after_request
 def add_cache_headers(response):
