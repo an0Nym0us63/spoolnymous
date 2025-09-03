@@ -25,7 +25,7 @@ import math
 import subprocess
 import tempfile
 
-from flask_login import LoginManager, login_required,current_user
+from flask_login import LoginManager, login_required,current_user,login_user
 from flask_cors import CORS
 from auth import auth_bp, User, get_stored_user,_is_guest_token_valid,resolve_api_token
 from flask import flash,Flask, request, render_template, redirect, url_for,jsonify,g, make_response,send_from_directory, abort,stream_with_context, Response, abort,current_app,render_template_string
@@ -791,9 +791,10 @@ def _extract_api_token():
         return h
 
     # 3) ?api_token=<token>  (fallback pratique)
-    q = (request.args.get("api_token") or request.args.get("token") or "").strip()
-    if q:
-        return q
+    for param in ("api", "api_token", "token", "key"):
+        qv = request.args.get(param)
+        if qv:
+            return qv.strip()
 
     return None
 
