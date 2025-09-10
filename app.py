@@ -2197,8 +2197,8 @@ def api_printer_status():
         spool_list = fetch_spools()
 
         # External spool
-        augmentTrayData(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID))
-        issue = bool(vt_tray_data.get("issue"))
+        #augmentTrayData(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID))
+        #issue = bool(vt_tray_data.get("issue"))
 
         # Trays AMS
         for ams in ams_data:
