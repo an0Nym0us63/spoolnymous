@@ -910,7 +910,6 @@ def on_message(client, userdata, msg):
           PRINTER_STATE_LAST = copy.deepcopy(PRINTER_STATE)
       
     # Save external spool tray data
-    logger.debug(json.dumps(data))
     if "print" in data and "vt_tray" in data["print"]:
       LAST_AMS_CONFIG["vt_tray"] = data["print"]["vt_tray"]
     
