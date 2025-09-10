@@ -688,7 +688,7 @@ def safe_update_status(data):
                 if tray_id == tray_now_val:
                     cands.append((ams_id, tray_id))
         return cands
-
+    logger.debug(json.dumps(data))
     if tray_now is not None and isinstance(ams_list, list) and tray_now != 255:
         candidate_trays = _collect_candidate_trays(tray_now)
 
