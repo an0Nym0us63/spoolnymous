@@ -919,24 +919,30 @@ def on_message(client, userdata, msg):
                 logger.debug("[async] processMessage déjà en cours — skip")
           PRINTER_STATE_LAST = copy.deepcopy(PRINTER_STATE)
       
-    # Save external spool tray data
-    if "print" in data and "vt_tray" in data["print"]:
-      LAST_AMS_CONFIG["vt_tray"] = data["print"]["vt_tray"]
+    # Sauvegarde des bobines externes
+    if "print" in data:
+        if "vt_tray" in data["print"]:
+            # Format legacy : un seul spool externe
+            LAST_AMS_CONFIG["vt_tray"] = [{
+                "id": 255,
+                "tray": [data["print"]["vt_tray"]]
+            }]
+        elif "vir_slot" in data["print"]:
+            # Format moderne : un AMS virtuel par buse
+            LAST_AMS_CONFIG["vt_tray"] = [
+                {
+                    "id": int(entry.get("id", 255)),
+                    "tray": [entry]
+                }
+                for entry in data["print"]["vir_slot"]
+            ]
     
-    elif "print" in data and "vir_slot" in data["print"]:
-      LAST_AMS_CONFIG["vt_tray"] = data["print"]["vir_slot"]
-    
-    # Save ams spool data
     if "print" in data and "ams" in data["print"] and "ams" in data["print"]["ams"]:
-      vt_tray_data = LAST_AMS_CONFIG.get("vt_tray", [])
-      if not isinstance(vt_tray_data, list):
-          vt_tray_data = [vt_tray_data]
-      
-      # Création de l'AMS virtuel
-      virtual_ams = {
-          "id": 255,
-          "tray": vt_tray_data
-      }
+      ams_list = data["print"]["ams"]["ams"]
+      vt_ams_list = LAST_AMS_CONFIG.get("vt_tray", [])
+      if isinstance(vt_ams_list, dict):
+          vt_ams_list = [vt_ams_list]
+      ams_list.extend(vt_ams_list)
       
       # Ajout à la liste des AMS
       data["print"]["ams"]["ams"].append(virtual_ams)
