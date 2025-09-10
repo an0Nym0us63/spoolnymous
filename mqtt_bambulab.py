@@ -945,7 +945,7 @@ def on_message(client, userdata, msg):
             tray_color = tray["tray_color"]
             tag='n/a'
             filament_id='n/a'
-            if tray_uuid == '' and tray_info_idx == '':
+            if (tray_uuid == '' or tray_uuid='00000000000000000000000000000000') and tray_info_idx == '':
                 continue
             mapped_spool_id = get_tray_spool_map(tray_uuid, tray_info_idx, tray_color)
 
