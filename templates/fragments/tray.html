@@ -14,11 +14,7 @@
   >
     <div class="flex-1">
       <div class="font-semibold text-white">
-        {% if ams_id|int != EXTERNAL_SPOOL_AMS_ID %}
           {{ (tray_data.id|int + 1) }}
-        {% else %}
-          Externe
-        {% endif %}
         {% if tray_data.name %}
           - <span id="tray-name-{{ ams_id|string }}_{{ tray_data.id|string }}"><!-- [LIVE-ID] name -->
             {{ tray_data.name }}
@@ -108,7 +104,7 @@
             </div>
             {% endif %}
 
-            {% if tray_data.remain != -1 %}
+            {% if tray_data.tray_uuid != "00000000000000000000000000000000" %}
             <div class="flex items-center justify-between" data-remain-wrapper><!-- [LIVE-ID] wrapper -->
               <span class="text-gray-400 flex items-center gap-1">
                 <span>⏳️</span>
