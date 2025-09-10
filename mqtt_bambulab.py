@@ -935,7 +935,7 @@ def on_message(client, userdata, msg):
         #logger.info(f"AMS [{num2letter(ams['id'])}] (hum: {ams['humidity_raw']}, temp: {ams['temp']}ºC)")
         spools = fetch_spools()
         for tray in ams["tray"]:
-          if "tray_sub_brands" in tray:
+          if "tray_sub_brands" in tray and tray["tray_sub_brands"] != '':
             #logger.info(f"    - [{num2letter(ams['id'])}{tray['id']}] {tray['tray_sub_brands']} {tray['tray_color']} ({str(tray['remain']).zfill(3)}%) [[{tray['tray_uuid']}]] [[{tray['tray_info_idx']}]]")
 
             foundspool = None
