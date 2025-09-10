@@ -339,10 +339,14 @@
   <div class="flex items-center">
     <span class="inline-flex items-center text-[0.45rem] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-primary text-white shadow text-center max-w-[5.5rem] leading-tight break-words whitespace-normal">
       {% if ams.location %}
-        {{ ams.location }}
-      {% else %}
-        AMS{% if ams_data|length > 1 %} {{ ams.id|int + 1 }}{% endif %}
-      {% endif %}
+  {{ ams.location }}
+{% else %}
+  {% if ams.id|int > 200 %}
+    Externe {{ ams.id|int }}
+  {% else %}
+    AMS{% if ams_data|length > 1 %} {{ ams.id|int + 1 }}{% endif %}
+  {% endif %}
+{% endif %}
     </span>
   </div>
 
