@@ -1132,24 +1132,32 @@ def home():
     if AMS_ORDER != '':
         mapping = {int(k): int(v) for k, v in (item.split(":") for item in AMS_ORDER.split(";"))}
         
-        # Initialiser une liste vide de même longueur
-        reordered = [None] * len(ams_data)
+        # Nombre total d'éléments
+        n = len(ams_data)
         
-        # Placer les éléments définis dans le mapping
+        # Initialisation de la liste avec les bons index
+        reordered = [None] * n
+        placed_dst_indexes = set()
         placed_src_indexes = set()
+        
+        # Placement des éléments définis dans le mapping
         for src_index, dst_index in mapping.items():
-            if 0 <= src_index < len(ams_data) and 0 <= dst_index < len(reordered):
+            if 0 <= src_index < n and 0 <= dst_index < n:
                 reordered[dst_index] = ams_data[src_index]
+                placed_dst_indexes.add(dst_index)
                 placed_src_indexes.add(src_index)
         
-        # Récupérer les éléments non placés
-        remaining_items = [ams_data[i] for i in range(len(ams_data)) if i not in placed_src_indexes]
+        # Récupérer les éléments non mappés
+        remaining_items = [ams_data[i] for i in range(n) if i not in placed_src_indexes]
         
-        # Remplir les trous (None) avec les éléments restants dans l’ordre d’origine
-        reordered = [
-            item if item is not None else remaining_items.pop(0)
-            for item in reordered
-        ]
+        # Remplir les slots vides dans l'ordre
+        fill_index = 0
+        for i in range(n):
+            if reordered[i] is None:
+                reordered[i] = remaining_items[fill_index]
+                fill_index += 1
+        
+        ams_data = reordered
     latest = get_latest_print()
     if latest:
         status_copy["printName"] = latest["file_name"]
