@@ -389,7 +389,7 @@
   </div>
 
   <!-- Température & humidité avec emojis -->
-  {% if ams.temp != "0.0" %}
+  {% if (ams.temp and ams.temp != "0.0") or ams.humidity_raw %}
   <div class="text-xs text-gray-300 flex flex-col items-end space-y-1 whitespace-nowrap">
     <div class="flex items-center gap-1">💧 {{ ams.humidity_raw }}%</div>
     <div class="flex items-center gap-1">🌡️ {{ ams.temp }}°C</div>
@@ -421,44 +421,6 @@
   </div>
 </div>
 {% endfor %}
-
-  
-  <!-- External Spool -->
-<div class="{% if ams_data|length > 1 %}col-12{% else %}col-lg-6{% endif %} mb-4">
-  <div
-  id="ams-card-external"
-  class="rounded-xl overflow-hidden shadow-md hover:border-primary transition"
-  style="
-    background: linear-gradient(135deg, rgba(40,45,60,0.85), rgba(20,25,40,0.75));
-    border: 1px solid rgba(255,255,255,0.08);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    box-shadow: inset 0 0 2px rgba(255,255,255,0.05);
-  ">
-
-<!-- En-tête External -->
-<div class="flex justify-between items-center pl-2 pr-4 py-2 bg-gray-800 border-b border-gray-700">
-  <div class="flex items-center">
-    <span class="inline-flex items-center text-[0.45rem] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-primary text-white shadow text-center max-w-[5.5rem] leading-tight break-words whitespace-normal">
-      Externe
-    </span>
-  </div>
-</div>
-
-    <!-- Contenu aligné avec les AMS -->
-    <div class="p-3 bg-gray-900 text-white">
-      <div class="row justify-center">
-        <div class="col-sm-6 mb-3 mx-auto">
-          {% with tray_data=vt_tray_data, ams_id=EXTERNAL_SPOOL_AMS_ID, pick_tray=False, tray_id=EXTERNAL_SPOOL_ID %}
-            {% include 'fragments/tray.html' %}
-          {% endwith %}
-        </div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
 </div>
 
 <!-- Alpine.js requis -->
