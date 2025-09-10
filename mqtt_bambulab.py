@@ -689,7 +689,7 @@ def safe_update_status(data):
                     cands.append((ams_id, tray_id))
         return cands
     logger.debug(json.dumps(data))
-    if tray_now is not None and isinstance(ams_list, list) and tray_now != 255:
+    if tray_now is not None and isinstance(ams_list, list) and tray_now != 255 and tray_now != 254:
         candidate_trays = _collect_candidate_trays(tray_now)
 
         if not candidate_trays:
@@ -727,9 +727,22 @@ def safe_update_status(data):
                 fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
 
     elif tray_now is not None and isinstance(ams_list, list) and tray_now == 255:
-        # Bobine externe
-        fields["tray_ams_id"] = 255
-        fields["tray_local_id"] = 0
+        # 🔍 Cas spécial : bobine externe → lire le mapping par "snow" si dispo
+        dev_extr_info = data.get("device", {}).get("extruder", {}).get("info")
+        if isinstance(dev_extr_info, list):
+            for entry in dev_extr_info:
+                if not isinstance(entry, dict):
+                    continue
+                if _to_int_safe(entry.get("id")) == active_nozzle_index and "snow" in entry:
+                    snow_val = _to_int_safe(entry["snow"])
+                    if snow_val is not None:
+                        fields["tray_ams_id"] = snow_val >> 8
+                        fields["tray_local_id"] = snow_val & 0x3
+                        break
+        # 🛑 Si aucun "snow" trouvé, fallback dur
+        if fields["tray_ams_id"] is None:
+            fields["tray_ams_id"] = 255
+            fields["tray_local_id"] = 0
 
     # ---------- Temps restant / ETA ----------
     remaining = fields.get("remaining_time")
