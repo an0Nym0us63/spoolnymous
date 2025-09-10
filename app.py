@@ -2199,12 +2199,12 @@ def api_printer_status():
         # External spool
         #augmentTrayData(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID))
         #issue = bool(vt_tray_data.get("issue"))
-
+        issue = False
         # Trays AMS
         for ams in ams_data:
             for tray in ams.get("tray", []) or []:
                 augmentTrayData(spool_list, tray, trayUid(ams["id"], tray["id"]))
-                issue |= bool(tray.get("issue"))
+                issue = bool(tray.get("issue"))
 
         # Locations (si configurées)
         LOCATION_MAPPING = get_app_setting("AMS_LOCATION_MAPPING", "")
