@@ -941,11 +941,9 @@ def on_message(client, userdata, msg):
       ams_list = data["print"]["ams"]["ams"]
       vt_ams_list = LAST_AMS_CONFIG.get("vt_tray", [])
       if isinstance(vt_ams_list, dict):
-          vt_ams_list = [vt_ams_list]
-      ams_list.extend(vt_ams_list)
+        vt_ams_list = [vt_ams_list]
+      data["print"]["ams"]["ams"].extend(vt_ams_list)
       
-      # Ajout à la liste des AMS
-      data["print"]["ams"]["ams"].append(virtual_ams)
       LAST_AMS_CONFIG["ams"] = data["print"]["ams"]["ams"]
       for ams in data["print"]["ams"]["ams"]:
         #logger.info(f"AMS [{num2letter(ams['id'])}] (hum: {ams['humidity_raw']}, temp: {ams['temp']}ºC)")
