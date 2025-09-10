@@ -916,9 +916,21 @@ def on_message(client, userdata, msg):
     
     elif "print" in data and "vir_slot" in data["print"]:
       LAST_AMS_CONFIG["vt_tray"] = data["print"]["vir_slot"]
-
+    
     # Save ams spool data
     if "print" in data and "ams" in data["print"] and "ams" in data["print"]["ams"]:
+      vt_tray_data = LAST_AMS_CONFIG.get("vt_tray", [])
+      if not isinstance(vt_tray_data, list):
+          vt_tray_data = [vt_tray_data]
+      
+      # Création de l'AMS virtuel
+      virtual_ams = {
+          "id": 255,
+          "tray": vt_tray_data
+      }
+      
+      # Ajout à la liste des AMS
+      data["print"]["ams"]["ams"].append(virtual_ams)
       LAST_AMS_CONFIG["ams"] = data["print"]["ams"]["ams"]
       for ams in data["print"]["ams"]["ams"]:
         #logger.info(f"AMS [{num2letter(ams['id'])}] (hum: {ams['humidity_raw']}, temp: {ams['temp']}ºC)")
