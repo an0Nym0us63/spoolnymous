@@ -689,16 +689,32 @@ def safe_update_status(data):
                     cands.append((ams_id, tray_id))
         return cands
     logger.debug(json.dumps(data))
-    if tray_now is not None and isinstance(ams_list, list) and tray_now != 255 and tray_now != 254:
+    fields["tray_local_id"] = None
+    fields["tray_ams_id"] = None
+    
+    # Mapping AMS ↔️ extrudeur (dual heads)
+    dev_extr_info = data.get("device", {}).get("extruder", {}).get("info")
+    
+    if isinstance(dev_extr_info, list):
+        for entry in dev_extr_info:
+            if not isinstance(entry, dict):
+                continue
+            if _to_int_safe(entry.get("id")) == active_nozzle_index and "snow" in entry:
+                snow_val = _to_int_safe(entry["snow"])
+                if snow_val is not None:
+                    fields["tray_ams_id"] = snow_val >> 8
+                    fields["tray_local_id"] = snow_val & 0x3
+                    break
+    
+    # Fallback legacy : si aucun mapping snow trouvé, essayer tray_now (mono-buse ou firmwares anciens)
+    if fields["tray_ams_id"] is None and tray_now is not None:
         candidate_trays = _collect_candidate_trays(tray_now)
-
+    
         if not candidate_trays:
-            # --- Fallback: normaliser un index "global" en (ams_id, tray_local)
             derived_ams_id = tray_now // 4
             derived_tray_local = tray_now % 4
-
-            # Si un AMS avec cet id existe et expose ce tray local, on l'ajoute.
             has_exact = False
+    
             for ams in ams_list:
                 ams_id = _to_int_safe(ams.get("id"))
                 if ams_id == derived_ams_id:
@@ -707,14 +723,12 @@ def safe_update_status(data):
                         candidate_trays.append((derived_ams_id, derived_tray_local))
                         has_exact = True
                     break
-
-            # Cas pratique : un seul AMS présent mais son id ≠ derived_ams_id
+    
             if not has_exact and len(ams_list) == 1:
                 sole_ams_id = _to_int_safe(ams_list[0].get("id"))
                 if sole_ams_id is not None:
                     candidate_trays.append((sole_ams_id, derived_tray_local))
-
-        # Sélection finale
+    
         if len(ams_list) == 1 and candidate_trays:
             fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
         elif len(ams_list) > 1 and candidate_trays:
@@ -725,42 +739,25 @@ def safe_update_status(data):
                     break
             if fields["tray_ams_id"] is None:
                 fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
-
-    elif tray_now is not None and isinstance(ams_list, list) and tray_now == 255:
-        # 🔍 Cas spécial : bobine externe → lire le mapping par "snow" si dispo
-        dev_extr_info = data.get("device", {}).get("extruder", {}).get("info")
-        if isinstance(dev_extr_info, list):
-            for entry in dev_extr_info:
-                if not isinstance(entry, dict):
-                    continue
-                if _to_int_safe(entry.get("id")) == active_nozzle_index and "snow" in entry:
-                    snow_val = _to_int_safe(entry["snow"])
-                    if snow_val is not None:
-                        fields["tray_ams_id"] = snow_val >> 8
-                        fields["tray_local_id"] = snow_val & 0x3
-                        break
-        # 🛑 Si aucun "snow" trouvé, fallback dur
-        if fields["tray_ams_id"] is None:
-            fields["tray_ams_id"] = 255
-            fields["tray_local_id"] = 0
-
-    # ---------- Temps restant / ETA ----------
-    remaining = fields.get("remaining_time")
-    if isinstance(remaining, (int, float)):
-        if remaining > 0:
-            estimated_end = datetime.now() + timedelta(minutes=remaining)
-            fields["estimated_end"] = estimated_end.strftime("%H:%M")
-            finish_delta = (estimated_end.date() - datetime.now().date()).days
-            fields["finish_delta"] = max(finish_delta, 0)  # sécurité, évite négatif
-
-        hours = int(remaining // 60)
-        minutes = int(remaining % 60)
-        fields["remaining_time_str"] = (
-            f"{hours}h {minutes:02d}min" if hours > 0 else f"{minutes}min"
-        )
-    job_id = data.get("job_id")
-    if job_id:
-        fields["job_id"] = str(job_id)
+    
+    
+        # ---------- Temps restant / ETA ----------
+        remaining = fields.get("remaining_time")
+        if isinstance(remaining, (int, float)):
+            if remaining > 0:
+                estimated_end = datetime.now() + timedelta(minutes=remaining)
+                fields["estimated_end"] = estimated_end.strftime("%H:%M")
+                finish_delta = (estimated_end.date() - datetime.now().date()).days
+                fields["finish_delta"] = max(finish_delta, 0)  # sécurité, évite négatif
+    
+            hours = int(remaining // 60)
+            minutes = int(remaining % 60)
+            fields["remaining_time_str"] = (
+                f"{hours}h {minutes:02d}min" if hours > 0 else f"{minutes}min"
+            )
+        job_id = data.get("job_id")
+        if job_id:
+            fields["job_id"] = str(job_id)
 
     # ---------- Vue fusionnée (prev ⊕ delta) pour raisonnement robuste ----------
     try:
