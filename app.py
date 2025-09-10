@@ -1128,13 +1128,28 @@ def home():
       ams['dry_time']=0
       if "ams" in status_copy and int(ams["id"]) in status_copy["ams"] and "dry_time" in status_copy["ams"][int(ams["id"])]:
         ams['dry_time']=status_copy["ams"][int(ams["id"])]["dry_time"]
-    AMS_ORDER=get_app_setting("AMS_ORDER","")
+    AMS_ORDER = get_app_setting("AMS_ORDER", "")
     if AMS_ORDER != '':
-      mapping = {int(k): int(v) for k, v in (item.split(":") for item in AMS_ORDER.split(";"))}
-      reordered = [None] * len(ams_data)
-      for src_index, dst_index in mapping.items():
-          reordered[dst_index] = ams_data[src_index]
-      ams_data=reordered
+        mapping = {int(k): int(v) for k, v in (item.split(":") for item in AMS_ORDER.split(";"))}
+        
+        # Initialiser une liste vide de même longueur
+        reordered = [None] * len(ams_data)
+        
+        # Placer les éléments définis dans le mapping
+        placed_src_indexes = set()
+        for src_index, dst_index in mapping.items():
+            if 0 <= src_index < len(ams_data) and 0 <= dst_index < len(reordered):
+                reordered[dst_index] = ams_data[src_index]
+                placed_src_indexes.add(src_index)
+        
+        # Récupérer les éléments non placés
+        remaining_items = [ams_data[i] for i in range(len(ams_data)) if i not in placed_src_indexes]
+        
+        # Remplir les trous (None) avec les éléments restants dans l’ordre d’origine
+        reordered = [
+            item if item is not None else remaining_items.pop(0)
+            for item in reordered
+        ]
     latest = get_latest_print()
     if latest:
         status_copy["printName"] = latest["file_name"]
