@@ -2242,7 +2242,6 @@ def api_printer_status():
         payload = dict(status_copy)
         payload.update({
             "ams_data": ams_data,
-            "vt_tray_data": vt_tray_data,
             "issue": issue,
         })
         return jsonify(payload)
