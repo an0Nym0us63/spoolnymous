@@ -913,6 +913,9 @@ def on_message(client, userdata, msg):
     logger.debug(json.dumps(data))
     if "print" in data and "vt_tray" in data["print"]:
       LAST_AMS_CONFIG["vt_tray"] = data["print"]["vt_tray"]
+    
+    elif "print" in data and "vir_slot" in data["print"]:
+      LAST_AMS_CONFIG["vt_tray"] = data["print"]["vir_slot"]
 
     # Save ams spool data
     if "print" in data and "ams" in data["print"] and "ams" in data["print"]["ams"]:
