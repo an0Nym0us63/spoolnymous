@@ -1001,6 +1001,7 @@ def on_message(client, userdata, msg):
                                         foundMode = 'Profile'
                                         foundspool = spool
             if foundspool == None:
+              logger.debug(json.dumps(tray))
               logger.info("      - Not found. Update spool tag or filament_id and color!")
               clearActiveTray(ams['id'], tray["id"])
             else:
