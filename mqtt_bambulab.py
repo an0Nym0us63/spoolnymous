@@ -918,24 +918,26 @@ def on_message(client, userdata, msg):
             else:
                 logger.debug("[async] processMessage déjà en cours — skip")
           PRINTER_STATE_LAST = copy.deepcopy(PRINTER_STATE)
-      
+
     # Sauvegarde des bobines externes
     if "print" in data:
         if "vt_tray" in data["print"]:
-            # Format legacy : un seul spool externe
+            tray = dict(data["print"]["vt_tray"])  # copie défensive
+            tray["id"] = 0  # forcer pour compatibilité
             LAST_AMS_CONFIG["vt_tray"] = [{
                 "id": 255,
-                "tray": [data["print"]["vt_tray"]]
+                "tray": [tray]
             }]
         elif "vir_slot" in data["print"]:
-            # Format moderne : un AMS virtuel par buse
-            LAST_AMS_CONFIG["vt_tray"] = [
-                {
-                    "id": int(entry.get("id", 255)),
-                    "tray": [entry]
-                }
-                for entry in data["print"]["vir_slot"]
-            ]
+            LAST_AMS_CONFIG["vt_tray"] = []
+            for entry in data["print"]["vir_slot"]:
+                tray = dict(entry)     # copie défensive
+                tray["id"] = 0         # forcer id du tray
+                ams_id = int(entry.get("id", 255))
+                LAST_AMS_CONFIG["vt_tray"].append({
+                    "id": ams_id,
+                    "tray": [tray]
+                })
     
     if "print" in data and "ams" in data["print"] and "ams" in data["print"]["ams"]:
       ams_list = data["print"]["ams"]["ams"]
