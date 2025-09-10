@@ -14,7 +14,7 @@
   >
     <div class="flex-1">
       <div class="font-semibold text-white">
-          {{ (tray_data.id|int) }}
+          {{ (tray_data.id | int) if (tray_data.id | int) > 100 else (tray_data.id | int) + 1 }}
         {% if tray_data.name %}
           - <span id="tray-name-{{ ams_id|string }}_{{ tray_data.id|string }}"><!-- [LIVE-ID] name -->
             {{ tray_data.name }}
