@@ -688,7 +688,6 @@ def safe_update_status(data):
                 if tray_id == tray_now_val:
                     cands.append((ams_id, tray_id))
         return cands
-    logger.debug(json.dumps(data))
     fields["tray_local_id"] = None
     fields["tray_ams_id"] = None
     
