@@ -291,6 +291,9 @@
     {% if fil.swatch == 1 %}
       <span class="ms-1" title="Swatch disponible" aria-label="Swatch disponible">🎨</span>
     {% endif %}
+	 {% if fil.to_order == 1 %}
+      <span class="ms-1" title="À commander (wishlist)" aria-label="À commander (wishlist)">🛒</span>
+    {% endif %}
   </span>
 </div>
     <div class="line2 small fst-italic text-muted">
