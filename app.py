@@ -1104,7 +1104,6 @@ def home():
     logger.debug(json.dumps(status_copy))
     last_ams_config = getLastAMSConfig()
     ams_data = last_ams_config.get("ams", [])
-    logger.debug(json.dumps(ams_data))
     spool_list = fetch_spools()
     success_message = request.args.get("success_message")
     
@@ -1169,7 +1168,6 @@ def home():
         status_copy["thumbnail"] = None
         status_copy["printName"] = None
     # Nouveau : si ?webview=1 → on met le cookie
-    logger.debug(json.dumps(ams_data))
     resp = make_response(render_template(
         'index.html',
         success_message=success_message,
