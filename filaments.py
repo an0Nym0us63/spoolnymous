@@ -977,7 +977,6 @@ def list_filaments(
         params.append(material)
     if str(wishlist).strip() in ('1', 'true', 'True'):
         where.append("to_order = 1")  # pas de param inutile
-        params.append(1 if w in ('1','true','True') else 0)
     if search:
         like = f"%{search}%"
         where.append("(name LIKE ? OR manufacturer LIKE ? OR material LIKE ? OR color LIKE ?)")
