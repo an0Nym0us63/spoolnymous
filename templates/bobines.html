@@ -506,19 +506,19 @@ async function setFilamentWishlist(filamentId, toOrder = 1) {
     const d = await r.json();
     if (!r.ok || !d.ok) throw new Error(d?.message || 'Échec mise à jour');
 
-    // ✅ SweetAlert feedback
-    Swal.fire({
+    // ✅ SweetAlert2 centré
+    await Swal.fire({
       icon: 'success',
       title: toOrder ? 'Ajouté à la wishlist' : 'Retiré de la wishlist',
-      toast: true,
-      position: 'top-end',
       showConfirmButton: false,
-      timer: 2000,
-      timerProgressBar: true
+      timer: 1500,
+      timerProgressBar: true,
+      allowOutsideClick: false,
+      allowEscapeKey: false
     });
 
-    // reload léger après un petit délai pour laisser voir le feedback
-    setTimeout(() => location.reload(), 800);
+    // reload après la fermeture auto
+    location.reload();
 
   } catch (e) {
     console.error(e);
@@ -530,5 +530,6 @@ async function setFilamentWishlist(filamentId, toOrder = 1) {
     });
   }
 }
+
 </script>
 {% endblock %}
