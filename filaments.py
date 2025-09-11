@@ -2127,16 +2127,16 @@ def augmentTrayData(spool_list, tray_data, tray_id):
     tray_data["issue"] = bool(tray_data.get("tray_type")) and not tray_data["matched"]
 
     # Si non matché -> purger l'affichage pour éviter les reliquat
-    #if not tray_data["matched"]:
-    #    tray_data["name"] = ""
-    #    tray_data["vendor"] = ""
-    #    tray_data["tray_type"] = ""
-    #    tray_data["tray_sub_brands"] = ""
-    #    tray_data["remaining_weight"] = None
-    #    tray_data["tray_color"] = None
-    #    tray_data["tray_color_orientation"] = None
-    #    tray_data["last_used"] = "-"
-    #    tray_data["foundMode"] = None
+    if not tray_data["matched"]:
+        tray_data["name"] = ""
+        tray_data["vendor"] = ""
+        tray_data["tray_type"] = ""
+        tray_data["tray_sub_brands"] = ""
+        tray_data["remaining_weight"] = None
+        tray_data["tray_color"] = None
+        tray_data["tray_color_orientation"] = None
+        tray_data["last_used"] = "-"
+        tray_data["foundMode"] = None
 
 def getAMSFromTray(n):
     return n // 4
