@@ -950,7 +950,6 @@ def get_filament(filament_id: int) -> Optional[sqlite3.Row]:
     finally:
         conn.close()
 
-
 def list_filaments(
     *,
     manufacturer: Optional[str] = None,

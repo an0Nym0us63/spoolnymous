@@ -3072,6 +3072,7 @@ def filaments_catalog():
     avg_weight = round(sum(weights) / len(weights), 0) if weights else None
     
     filaments_page = attach_spool_counts(filaments_page)
+    total_order = sum(1 for f in rows if int(f.get("to_order") or 0) == 1)
     return render_template(
         "filaments.html",
         filaments=filaments_page,
@@ -3081,6 +3082,7 @@ def filaments_catalog():
         swatch=swatch,
         manufacturer=manufacturer,
         material=material,
+        total_order=total_order,
         wishlist=wishlist,
         all_manufacturers=sorted(mans),
         all_materials=sorted(mats),
