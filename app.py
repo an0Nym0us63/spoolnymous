@@ -1104,7 +1104,7 @@ def home():
     logger.debug(json.dumps(status_copy))
     last_ams_config = getLastAMSConfig()
     ams_data = last_ams_config.get("ams", [])
-    vt_tray_data = last_ams_config.get("vt_tray", {})
+    logger.debug(json.dumps(ams_data))
     spool_list = fetch_spools()
     success_message = request.args.get("success_message")
     
@@ -1169,11 +1169,11 @@ def home():
         status_copy["thumbnail"] = None
         status_copy["printName"] = None
     # Nouveau : si ?webview=1 → on met le cookie
+    logger.debug(json.dumps(ams_data))
     resp = make_response(render_template(
         'index.html',
         success_message=success_message,
         ams_data=ams_data,
-        vt_tray_data=vt_tray_data,
         issue=issue,
         page_title="Accueil",
         printer_status=status_copy
