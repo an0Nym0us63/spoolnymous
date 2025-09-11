@@ -3003,9 +3003,10 @@ def filaments_catalog():
     selected_family = (request.args.get("color") or "").strip() or None
     sort = request.args.get("sort", "default")
     swatch = (request.args.get("swatch") or "").strip() or None
+    wishlist = (request.args.get("wishlist") or "0").strip()
 
     # 1) Récupération SQL (Rows immuables)
-    rows = list_filaments(manufacturer=manufacturer, material=material, search=search, swatch=swatch)
+    rows = list_filaments(manufacturer=manufacturer, material=material, search=search, swatch=swatch,wishlist=wishlist)
 
     # 👉 Convertir en dictionnaires MUTABLES
     rows = [dict(r) for r in rows]
@@ -3080,6 +3081,7 @@ def filaments_catalog():
         swatch=swatch,
         manufacturer=manufacturer,
         material=material,
+        wishlist=wishlist,
         all_manufacturers=sorted(mans),
         all_materials=sorted(mats),
         all_families=sorted(all_families),

@@ -169,7 +169,8 @@ def ensure_schema() -> None:
                 reference_id         TEXT,                        -- ref libre interne/externe
                 profile_id           TEXT,                        -- ref libre interne/externe
                 swatch           INTEGER NOT NULL DEFAULT 0,                        -- ref libre interne/externe
-                transparent           INTEGER NOT NULL DEFAULT 0                         -- ex: extra.filament_id (profil matériau)
+                transparent           INTEGER NOT NULL DEFAULT 0,                         -- ex: extra.filament_id (profil matériau)
+                to_order           INTEGER NOT NULL DEFAULT 0                         -- ex: extra.filament_id (profil matériau)
             )
             """
         )
@@ -236,6 +237,7 @@ def ensure_schema() -> None:
         _maybe_add("filaments", "multicolor_type", "TEXT DEFAULT 'monochrome'")
         _maybe_add("filaments", "swatch", "INTEGER NOT NULL DEFAULT 0")
         _maybe_add("filaments", "transparent", "INTEGER NOT NULL DEFAULT 0")
+        _maybe_add("filaments", "to_order", "INTEGER NOT NULL DEFAULT 0")
         _maybe_add("filaments", "translated_name", "TEXT")
         backfill_missing_translations()
         _maybe_add("bobines", "external_spool_id", "TEXT")
@@ -729,6 +731,7 @@ def ui_create_filament(payload: dict) -> int:
     colors = payload.get("colors") or []
     transparent = (payload.get("transparent") or 0)
     swatch = (payload.get("swatch") or 0)
+    to_order    = 1 if str(payload.get("to_order", 0)).lower() in ("1","true","on") or payload.get("to_order") is True else 0
 
     color, colors_csv = _normalize_colors_array(colors)
     if _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv,transparent):
@@ -747,11 +750,11 @@ def ui_create_filament(payload: dict) -> int:
             INSERT INTO filaments
             (created_at, updated_at, name, manufacturer, material,
              multicolor_type, color, colors_array,
-             filament_weight_g, spool_weight_g, profile_id, comment, price, transparent, swatch)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             filament_weight_g, spool_weight_g, profile_id, comment, price, transparent, swatch, to_order)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (now, now, name, manufacturer, material,
               multicolor_type, color, colors_csv,
-              filament_weight_g, spool_weight_g, profile_id, comment, price, transparent, swatch))
+              filament_weight_g, spool_weight_g, profile_id, comment, price, transparent, swatch,to_order))
         new_id = cur.lastrowid
         _launch_background_translation(int(new_id), name)
         return new_id
@@ -768,6 +771,7 @@ def ui_update_filament(filament_id: int, payload: dict) -> None:
     colors = payload.get("colors") or []
     transparent = payload.get("transparent") or 0
     swatch = payload.get("swatch") or 0
+    to_order = 1 if str(payload.get("to_order", 0)).lower() in ("1","true","on") or payload.get("to_order") is True else 0
     
     color, colors_csv = _normalize_colors_array(colors)
     if _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv,transparent, exclude_id=filament_id):
@@ -789,12 +793,12 @@ def ui_update_filament(filament_id: int, payload: dict) -> None:
                    name = ?, manufacturer = ?, material = ?,
                    multicolor_type = ?, color = ?, colors_array = ?,
                    filament_weight_g = ?, spool_weight_g = ?, profile_id = ?, comment = ?,
-                   price = ?, transparent =?, swatch=?
+                   price = ?, transparent =?, swatch=?, to_order = ?
              WHERE id = ?
         """, (now, name, manufacturer, material,
               multicolor_type, color, colors_csv,
               filament_weight_g, spool_weight_g, profile_id, comment,
-              price,transparent, swatch ,filament_id))
+              price,transparent, swatch ,to_order, filament_id))
     if (name or "") != (old_name or ""):
         _launch_background_translation(int(filament_id), name or "")
 
@@ -953,6 +957,7 @@ def list_filaments(
     material: Optional[str] = None,
     search: Optional[str] = None,
     swatch: Optional[str] = None,  # recherchera sur name/manufacturer/material/color
+    wishlist: Optional[str] = None,
     limit: Optional[int] = None,
     offset: int = 0,
     order_by: str = "created_at DESC",
@@ -970,6 +975,10 @@ def list_filaments(
     if material:
         where.append("material = ?")
         params.append(material)
+    if wishlist is not None and wishlist != '':
+        where.append("to_order = ?")
+        w = str(wishlist).strip()
+    params.append(1 if w in ('1','true','True') else 0)
     if search:
         like = f"%{search}%"
         where.append("(name LIKE ? OR manufacturer LIKE ? OR material LIKE ? OR color LIKE ?)")

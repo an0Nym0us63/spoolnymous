@@ -104,7 +104,7 @@
   </div>
   <div class="offcanvas-body">
     <form method="get" class="row g-2 align-items-end">
-      {{ macros.render_filtered_args(args, ['search','color','sort','page','manufacturer','material','swatch']) }}
+      {{ macros.render_filtered_args(args, ['search','color','sort','page','manufacturer','material','swatch','wishlist']) }}
 
       <div class="col-md-4">
         <input type="text" name="search" class="form-control"
@@ -153,6 +153,13 @@
     <option value=""  {% if (swatch is not defined) or (swatch is string and swatch == '') %}selected{% endif %}>Tous</option>
     <option value="1" {% if swatch|string == '1' %}selected{% endif %}>Avec Swatch</option>
     <option value="0" {% if swatch|string == '0' %}selected{% endif %}>Sans Swatch</option>
+  </select>
+</div>
+<div class="col-md-2">
+  <select name="wishlist" class="form-select">
+    <option value=""  {% if (wishlist is not defined) or (wishlist is string and wishlist == '') %}selected{% endif %}>Tous</option>
+    <option value="1" {% if wishlist|string == '1' %}selected{% endif %}>Wishlist uniquement</option>
+    <option value="0" {% if (wishlist is not defined) or (wishlist|string == '0') %}selected{% endif %}>Sans wishlist</option>
   </select>
 </div>
 
@@ -497,6 +504,10 @@
 <div class="form-check mt-2">
   <input class="form-check-input" type="checkbox" id="swatch" name="swatch" value="1">
   <label class="form-check-label" for="swatch"> Swatch</label>
+</div>
+<div class="form-check mt-2">
+  <input class="form-check-input" type="checkbox" id="to_order" name="to_order" value="1">
+  <label class="form-check-label" for="to_order"> À commander (wishlist)</label>
 </div>
           <div class="row g-3 mt-3">
             <div class="col-md-6">
@@ -919,6 +930,8 @@ if (importBtn) {
 	document.getElementById('transparent').checked = filament?.transparent == 1;
 	
 document.getElementById('swatch').checked      = filament?.swatch == 1;
+
+document.getElementById('to_order').checked  = filament?.to_order == 1;
     // poids
     document.getElementById('filament_weight_g').value = filament?.filament_weight_g ?? 1000;
     document.getElementById('spool_weight_g').value = filament?.spool_weight_g ?? 200;
@@ -946,6 +959,7 @@ document.getElementById('swatch').checked      = filament?.swatch == 1;
 	  price: document.getElementById('price').value,
 	  swatch: document.getElementById('swatch').checked ? 1 : 0,
 	  transparent: document.getElementById('transparent').checked ? 1 : 0,
+		to_order:    document.getElementById('to_order').checked ? 1 : 0,
       comment: document.getElementById('comment').value || null,
     };
 
