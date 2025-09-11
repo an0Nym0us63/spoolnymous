@@ -738,25 +738,24 @@ def safe_update_status(data):
                     break
             if fields["tray_ams_id"] is None:
                 fields["tray_ams_id"], fields["tray_local_id"] = candidate_trays[0]
-    
-    
+
         # ---------- Temps restant / ETA ----------
-        remaining = fields.get("remaining_time")
-        if isinstance(remaining, (int, float)):
-            if remaining > 0:
-                estimated_end = datetime.now() + timedelta(minutes=remaining)
-                fields["estimated_end"] = estimated_end.strftime("%H:%M")
-                finish_delta = (estimated_end.date() - datetime.now().date()).days
-                fields["finish_delta"] = max(finish_delta, 0)  # sécurité, évite négatif
+    remaining = fields.get("remaining_time")
+    if isinstance(remaining, (int, float)):
+        if remaining > 0:
+            estimated_end = datetime.now() + timedelta(minutes=remaining)
+            fields["estimated_end"] = estimated_end.strftime("%H:%M")
+            finish_delta = (estimated_end.date() - datetime.now().date()).days
+            fields["finish_delta"] = max(finish_delta, 0)  # sécurité, évite négatif
     
-            hours = int(remaining // 60)
-            minutes = int(remaining % 60)
-            fields["remaining_time_str"] = (
-                f"{hours}h {minutes:02d}min" if hours > 0 else f"{minutes}min"
-            )
-        job_id = data.get("job_id")
-        if job_id:
-            fields["job_id"] = str(job_id)
+        hours = int(remaining // 60)
+        minutes = int(remaining % 60)
+        fields["remaining_time_str"] = (
+            f"{hours}h {minutes:02d}min" if hours > 0 else f"{minutes}min"
+        )
+    job_id = data.get("job_id")
+    if job_id:
+        fields["job_id"] = str(job_id)
 
     # ---------- Vue fusionnée (prev ⊕ delta) pour raisonnement robuste ----------
     try:
