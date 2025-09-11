@@ -496,31 +496,38 @@ if (resetBtn) {
     if (window.$) $('.select2').val(null).trigger('change');
   });
 }
-async function setFilamentWishlist(filamentId, toOrder = 1){
+async function setFilamentWishlist(filamentId, toOrder = 1) {
   try {
     const r = await fetch(`/api/filaments/${filamentId}/wishlist`, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ to_order: toOrder ? 1 : 0 })
     });
     const d = await r.json();
     if (!r.ok || !d.ok) throw new Error(d?.message || 'Échec mise à jour');
 
-    // Optionnel: petit feedback visuel
-    if (window.toast) {
-      toast.success(toOrder ? 'Ajouté à la wishlist' : 'Retiré de la wishlist');
-    } else {
-      alert(toOrder ? 'Ajouté à la wishlist' : 'Retiré de la wishlist');
-    }
+    // ✅ SweetAlert feedback
+    Swal.fire({
+      icon: 'success',
+      title: toOrder ? 'Ajouté à la wishlist' : 'Retiré de la wishlist',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 2000,
+      timerProgressBar: true
+    });
 
-    // Option 1: recharger pour refléter l’état partout (simple)
-    // location.reload();
+    // reload léger après un petit délai pour laisser voir le feedback
+    setTimeout(() => location.reload(), 800);
 
-    // Option 2: mise à jour locale (si tu affiches l’état dans la ligne)
-    // - par ex. désactiver/renommer l’item du menu…
   } catch (e) {
     console.error(e);
-    alert('Erreur: ' + (e?.message || e));
+    Swal.fire({
+      icon: 'error',
+      title: 'Erreur',
+      text: e?.message || e || 'Une erreur est survenue',
+      confirmButtonText: 'OK'
+    });
   }
 }
 </script>
