@@ -32,7 +32,7 @@ from flask import flash,Flask, request, render_template, redirect, url_for,jsoni
 
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine,attach_spool_counts,remove_filament,update_bobine_tag,update_filament,get_filaments_for_gallery,remove_bobine
+from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine,attach_spool_counts,remove_filament,update_bobine_tag,update_filament,get_filaments_for_gallery,remove_bobine,set_filament_to_order
 
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
@@ -3723,5 +3723,19 @@ def set_design_id_group():
     for print_id in prints:
         update_print_history_field(print_id, "design_id",design_id)  # à toi d’implémenter
     return redirect(request.referrer or url_for("prints"))
+
+@app.post("/api/filaments/<int:filament_id>/wishlist")
+def api_set_filament_wishlist(filament_id: int):
+    """
+    Marque ou retire 'À commander' (to_order) pour le filament.
+    Payload JSON optionnel: {"to_order": 1|0} ; par défaut 1.
+    """
+    payload = request.get_json(silent=True) or {}
+    raw = str(payload.get("to_order", 1)).lower()
+    val = 1 if raw in ("1", "true", "on", "yes") else 0
+
+    ok = set_filament_to_order(filament_id, val)
+    status = 200 if ok else 404
+    return jsonify({"ok": ok, "filament_id": filament_id, "to_order": val}), status
 
 app.register_blueprint(auth_bp)

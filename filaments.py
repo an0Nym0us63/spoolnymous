@@ -717,6 +717,17 @@ def _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_c
         row = cur.execute(q, params).fetchone()
     return row is not None
 
+def set_filament_to_order(filament_id: int, to_order: int = 1) -> bool:
+    """
+    Met à jour le flag 'to_order' d'un filament.
+    Retourne True si au moins une ligne a été modifiée, False sinon (id inconnu).
+    """
+    with _tx() as cur:
+        cur.execute(
+            "UPDATE filaments SET to_order = ? WHERE id = ?",
+            (1 if to_order else 0, filament_id),
+        )
+        return cur.rowcount > 0
 
 def ui_create_filament(payload: dict) -> int:
     """
@@ -1854,6 +1865,7 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
         f.colors_array    AS f_colors_array,
         f.swatch AS f_swatch,
         f.transparent AS f_transparent,
+        f.to_order AS f_to_order,
         f.multicolor_type AS f_multicolor_type
       FROM bobines b
       JOIN filaments f ON f.id = b.filament_id
@@ -1931,6 +1943,7 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
                 "multi_color_hexes": multi_list,
                 "multi_color_direction": r["f_multicolor_type"],
                 "swatch": r["f_swatch"],
+                "to_order": r["f_to_order"],
                 "vendor": {
                     "name": r["f_manufacturer"]  # même si None, l'objet existe → pas d’UndefinedError
                 },
@@ -1980,6 +1993,7 @@ def fetch_spool_by_id(spool_id: int) -> Optional[Dict[str, Any]]:
         f.colors_array    AS f_colors_array,
         f.swatch AS f_swatch,
         f.transparent AS f_transparent,
+        f.to_order AS f_to_order,
         f.multicolor_type AS f_multicolor_type
       FROM bobines b
       JOIN filaments f ON f.id = b.filament_id
@@ -2049,6 +2063,7 @@ def fetch_spool_by_id(spool_id: int) -> Optional[Dict[str, Any]]:
             "multi_color_hexes": multi_list,
             "multi_color_direction": row["f_multicolor_type"],
             "swatch": row["f_swatch"],
+            "to_order": row["f_to_order"],
             "vendor": {
                 "name": row["f_manufacturer"]
             },
