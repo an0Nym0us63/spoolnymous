@@ -3003,7 +3003,7 @@ def filaments_catalog():
     selected_family = (request.args.get("color") or "").strip() or None
     sort = request.args.get("sort", "default")
     swatch = (request.args.get("swatch") or "").strip() or None
-    wishlist = (request.args.get("wishlist") or "0").strip()
+    wishlist = (request.args.get("wishlist") or "").strip()
 
     # 1) Récupération SQL (Rows immuables)
     rows = list_filaments(manufacturer=manufacturer, material=material, search=search, swatch=swatch,wishlist=wishlist)

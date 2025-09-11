@@ -159,7 +159,6 @@
   <select name="wishlist" class="form-select">
     <option value=""  {% if (wishlist is not defined) or (wishlist is string and wishlist == '') %}selected{% endif %}>Tous</option>
     <option value="1" {% if wishlist|string == '1' %}selected{% endif %}>Wishlist uniquement</option>
-    <option value="0" {% if (wishlist is not defined) or (wishlist|string == '0') %}selected{% endif %}>Sans wishlist</option>
   </select>
 </div>
 
