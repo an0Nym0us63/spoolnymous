@@ -496,7 +496,6 @@ if (resetBtn) {
     if (window.$) $('.select2').val(null).trigger('change');
   });
 }
-<script>
 async function setFilamentWishlist(filamentId, toOrder = 1){
   try {
     const r = await fetch(`/api/filaments/${filamentId}/wishlist`, {
