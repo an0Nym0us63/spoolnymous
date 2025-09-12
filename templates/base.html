@@ -1,732 +1,594 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
-{% block styles %}{% endblock %}
+<html lang="fr" data-bs-theme="dark">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <!-- Viewport unique + support bordures (gesture bar) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta charset="utf-8">
 
-<meta name="color-scheme" content="dark light">
+  <!-- PWA / Système : dark cohérent et stable -->
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#000000">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#000000">
 
-<!-- Trois variantes pour éviter les heuristiques Edge/Chromium -->
-<meta name="theme-color" content="#000000">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#000000">
+  <!-- iOS & Android installables -->
+  <link rel="manifest" href="{{ url_for('manifest') }}?v={{ APP_VERSION|default('1') }}">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="SpoolNymous">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
 
-<!-- Critical CSS inline pour éviter tout “flash clair” -->
-<style>
-  html, body { margin:0; min-height:100%; background:#000; }
-  /* assure une base sombre sous la zone gestuelle (Android 10+) */
-  body { padding-bottom: env(safe-area-inset-bottom); }
-  /* si ton app a un wrapper root, fonce-le aussi immédiatement */
-  #app, #root { background:#000; min-height:100vh; }
+  <title>
+    SpoolNymous
+    {% if page_title %} - {{ page_title or '' }}{% endif %}
+    {% if request.args.get('current_label') %} - {{ request.args.get('current_label')}}{% endif %}
+  </title>
 
-  /* Option : si tu as un header clair, garde la zone top sombre quand l’OS
-     “regarde” la bordure pour décider de la status bar */
-  .pwa-top-scrim {
-    position: fixed; inset: 0 0 auto 0; height: 8px; background:#000; pointer-events:none; z-index:2147483647;
-  }
-  /* Option : idem pour le bas, utile chez certains OEM/Edge */
-  .pwa-bottom-scrim {
-    position: fixed; inset: auto 0 0 0; height: calc(8px + env(safe-area-inset-bottom)); 
-    background:#000; pointer-events:none; z-index:2147483647;
-  }
-</style>
+  <!-- Favicon / CSS tiers -->
+  <link rel="icon" href="{{ asset_url('favicon.ico') }}">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="{{ asset_url('css/style.css') }}" rel="stylesheet">
+  <link href="{{ asset_url('css/bootstrap-icons.css') }}" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css">
+  <link rel="apple-touch-icon" href="{{ asset_url('logo.png') }}">
 
-<script>
-  // “Early paint” : verrouille la theme-color au plus tôt
-  (function() {
-    var dark = '#000000';
-    var metas = document.querySelectorAll('meta[name="theme-color"]');
-    if (metas.length === 0) {
-      var m = document.createElement('meta');
-      m.setAttribute('name', 'theme-color');
-      m.setAttribute('content', dark);
-      document.head.prepend(m);
-    } else {
-      metas.forEach(m => m.setAttribute('content', dark));
+  <!-- Base dark sans décaler la navbar -->
+  <style>
+    :root { color-scheme: dark light; }
+    html, body { margin:0; min-height:100%; background:#000; }
+    /* Respecte la zone gestuelle en bas (Android/iOS) sans toucher le haut */
+    body { padding-bottom: env(safe-area-inset-bottom, 0); }
+    /* Si tu utilises un wrapper app/root */
+    #app, #root { background:#000; min-height:100vh; }
+
+    /* Navbar fix/sticky sans décalage */
+    .sticky-header { position: sticky; top: 0; z-index: 1020; }
+
+    .bi { vertical-align: -.125em; fill: currentColor; }
+    .bd-mode-toggle .dropdown-menu .active .bi { display: block !important; }
+    .navbar-toggler { padding: 0.25rem 0.5rem; font-size: 0.875rem; line-height: 1; }
+    .navbar-toggler-icon { width: 1rem; height: 1rem; background-size: 1rem 1rem; }
+
+    {% if current_user.is_authenticated and current_user.is_guest %}
+    [data-requires-write] { display: none !important; }
+    {% endif %}
+
+    /* --- Toast MAJ : taille fluide + césure --- */
+    #updateToast {
+      max-width: 420px;
+      width: clamp(280px, 90vw, 420px);
+      border-radius: .75rem;
+    }
+    #updateToast .toast-body {
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
 
-    // Certains Edge recalculent la couleur à la visibilité : réimpose-la
-    document.addEventListener('visibilitychange', function(){
-      metas = document.querySelectorAll('meta[name="theme-color"]');
-      metas.forEach(m => m.setAttribute('content', dark));
-    });
-  })();
-</script>
-<meta charset="utf-8">
-<link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="SpoolNymous">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>SpoolNymous
-{% if page_title %}
-- {{ page_title or '' }}
-{% endif %}
-{% if request.args.get('current_label') %}
-- {{ request.args.get('current_label')}}
-{% endif %}
-</title>
+    /* Conteneur du toast */
+    .update-toast-container {
+      position: fixed;
+      right: 1rem;
+      bottom: 1rem;
+      z-index: 1080;
+    }
 
-<link rel="icon" href="{{asset_url('favicon.ico') }}">
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="{{ asset_url('css/style.css') }}" rel="stylesheet">
-<link href="{{ asset_url('css/bootstrap-icons.css') }}" rel="stylesheet">
-<link rel="apple-touch-icon" href="{{ asset_url('logo.png') }}">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css">
-<link rel="manifest" href="/manifest.webmanifest?v={{ APP_VERSION|default('1') }}">
-<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
-<style>
-  :root { color-scheme: dark light; }
-  html, body { background-color:#000; }
-  /* Assure 100% de hauteur pour éviter un fond “blanc” derrière */
-  html, body { min-height: 100%; }
-</style>
+    /* --- Mobile : sticky viewport, pleine largeur --- */
+    @media (max-width: 576px) {
+      .update-toast-container {
+        position: fixed;
+        left: 0; right: 0;
+        bottom: calc(env(safe-area-inset-bottom, 0) + .0rem);
+        padding: .5rem .5rem calc(env(safe-area-inset-bottom, 0) + .5rem);
+        z-index: 1080;
+      }
+      #updateToast {
+        max-width: none; width: 100%; margin: 0;
+        border-radius: .75rem .75rem 0 0; /* look “sheet” */
+      }
+    }
+  </style>
 
-<style>
-.bi {
-  vertical-align: -.125em;
-  fill: currentColor;
-}
-.bd-mode-toggle .dropdown-menu .active .bi {
-  display: block !important;
-}
-.navbar-toggler {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
-  line-height: 1;
-}
-
-.navbar-toggler-icon {
-  width: 1rem;
-  height: 1rem;
-  background-size: 1rem 1rem;
-}
-{% if current_user.is_authenticated and current_user.is_guest %}
-  [data-requires-write] {
-    display: none !important;
-  }
-{% endif %}
-/* --- Toast MAJ : taille fluide + césure --- */
-#updateToast {
-  max-width: 420px;
-  width: clamp(280px, 90vw, 420px);
-  border-radius: .75rem;
-}
-#updateToast .toast-body {
-  overflow-wrap: anywhere; /* évite le débordement sur noms de branches/versions longs */
-  word-break: break-word;
-}
-
-/* Conteneur positionné en bas à droite (desktop) */
-.update-toast-container {
-  position: fixed;
-  right: 1rem;
-  bottom: 1rem;
-  z-index: 1080;
-}
-
-/* --- Mobile : sticky au viewport, pleine largeur --- */
-@media (max-width: 576px) {
-  .update-toast-container {
-    position: fixed;         /* sticky viewport */
-    left: 0;
-    right: 0;
-    /* colle au bas de l’écran, en respectant le safe-area iOS */
-    bottom: calc(env(safe-area-inset-bottom, 0) + .0rem);
-    padding: .5rem .5rem calc(env(safe-area-inset-bottom, 0) + .5rem);
-    z-index: 1080;
-  }
-  #updateToast {
-    max-width: none;
-    width: 100%;
-    margin: 0;
-    border-radius: .75rem .75rem 0 0; /* look “sheet” */
-  }
-}
-html, body { margin:0; min-height:100%; background:#000; }
-body { padding-bottom: env(safe-area-inset-bottom); }
-#app, #root { background:#000; min-height:100vh; }
-
-</style>
+  {% block styles %}{% endblock %}
 </head>
 
 {% set is_gallery_guest = current_user.is_authenticated and current_user.is_guest and session.get('guest_scope') == 'gallery' %}
 <body>
-<header class="mb-3 border-bottom sticky-header bg-body shadow-sm">
-
-  <nav class="navbar navbar-expand-lg">
-  
-{% if is_gallery_guest %}
-	 <div class="d-flex flex-column align-items-start">
-  <a class="navbar-brand d-flex align-items-center" href="{{ url_for('gallery_all') }}">
-    <img src="{{ asset_url('logo.png') }}" alt="Logo" width="24" height="24" class="me-2">
-    {% if page_title %}
-      <span class="fw-bold">{{ PRINTER_MODEL["model"] }} - {{ page_title or '' }}</span>
-    {% else %}
-      <span class="fw-bold">{{ PRINTER_MODEL["model"] }}</span>
-    {% endif %}
-    {% if current_user.is_authenticated and current_user.is_guest %}
-      <span title="Accès invité — lecture seule" style="font-size: 1.2rem; margin-left: .5rem;">👤</span>
-    {% endif %}
-  </a>
-</div>
-  <ul class="navbar-nav ms-auto">
-    <li class="nav-item">
-      <a href="{{ url_for('gallery_all') }}" class="nav-link">🖼️ Galerie</a>
-    </li>
-    <li class="nav-item">
-      <a href="{{ url_for('filaments_gallery') }}" class="nav-link">🧵 Filaments</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">🚪 Déconnexion</a>
-    </li>
-  </ul>
-{% else %}
-
-
-    <div class="container-fluid">
-	 <div class="d-flex flex-column align-items-start">
-  <a class="navbar-brand d-flex align-items-center" href="{{ url_for('home') }}">
-    <img src="{{ asset_url('logo.png') }}" alt="Logo" width="24" height="24" class="me-2">
-    {% if page_title %}
-      <span class="fw-bold">{{ PRINTER_MODEL["model"] }} - {{ page_title or '' }}</span>
-    {% else %}
-      <span class="fw-bold">{{ PRINTER_MODEL["model"] }}</span>
-    {% endif %}
-    {% if current_user.is_authenticated and current_user.is_guest %}
-      <span title="Accès invité — lecture seule" style="font-size: 1.2rem; margin-left: .5rem;">👤</span>
-    {% endif %}
-  </a>
-
-  {# bouton retour (sous le nom) #}
-  {% set origin_url = request.args.get('origin') %}
-  {% if origin_url %}
-    {% set origin_label  = request.args.get('origin_label','Mon installation') %}
-    {% set current_label = request.args.get('current_label','Installation distante') %}
-    {% set sep           = '&' if '?' in origin_url else '?' %}
-    {% set origin_link   = origin_url%}
-
-    <a href="{{ origin_link | safe }}"
-       class="btn btn-sm btn-primary rounded-pill px-2 py-0 mt-1"
-       title="Revenir à {{ origin_label }}">
-      🚪 {{ current_label }}
-    </a>
-  {% endif %}
-</div>
-
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
-  <li class="nav-item">
-    <a href="{{ url_for('home') }}" class="nav-link">🏠 Accueil</a>
-  </li>
-  <!-- <li class="nav-item">
-    <a href="{{ url_for('assign_tag') }}" class="nav-link">📛 Assign NFC Tag</a>
-  </li>-->  <li class="nav-item dropdown">
-    <a class="nav-link dropdown-toggle" href="#" id="printsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-      🖨️ Impressions
-    </a>
-    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filamentsDropdown">
-      
-  <li class="nav-item">
-    <a href="{{ url_for('print_history') }}" class="nav-link">🖨️ Historique</a>
-  </li>
-<li class="nav-item">
-  <a href="{{ url_for('gallery_all') }}" class="nav-link">🖼️ Galerie</a>
-</li>
-    </ul>
-  </li>
-  {# --- MENU FILAMENTS : Catalogue + Bobines --- #}
-  <li class="nav-item dropdown">
-    <a class="nav-link dropdown-toggle" href="#" id="filamentsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-      🧵 Filaments
-    </a>
-    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filamentsDropdown">
-      <li class="nav-item">
-        <a class="nav-link" href="{{ url_for('filaments_catalog') }}">📚 Catalogue</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="{{ url_for('filaments') }}">🌀 Bobines</a>
-      </li>
-<li class="nav-item">
-  <a href="{{ url_for('filaments_gallery') }}" class="nav-link">🖼️ Galerie</a>
-</li>
-    </ul>
-  </li>
-
-  {# --- MENU INVENTAIRE : Objets + Accessoires (write only) --- #}
-  <li class="nav-item dropdown" data-requires-write>
-    <a class="nav-link dropdown-toggle" href="#" id="inventoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-      🧺 Inventaire
-    </a>
-    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="inventoryDropdown" style="min-width: 260px;">
-      <li class="nav-item" data-requires-write>
-        <a class="nav-link" href="{{ url_for('objects_page') }}">📦 Objets</a>
-      </li>
-      <li class="nav-item" data-requires-write>
-        <a class="nav-link" href="{{ url_for('accessories_list') }}">🧰 Accessoires</a>
-      </li>
-    </ul>
-  </li>
-  <li class="nav-item">
-    <a href="{{ url_for('stats') }}" class="nav-link">📊 Statistiques</a>
-  </li>
-  {% if current_user.is_authenticated and installations and installations|length > 0 %}
-  <li class="nav-item dropdown" data-requires-write>
-    <a class="nav-link dropdown-toggle" href="#" id="instDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-      🌐 Installations
-    </a>
-    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="instDropdown" style="min-width: 260px;">
-      {% for inst in installations %}
-        <li class="nav-item">
-          <a class="nav-link"
-             href="{{ url_for('switch.switch_install', install_id=inst.id) }}">
-            👤 {{ inst.label or ('Installation #' ~ inst.id) }}
+  <header class="mb-3 border-bottom sticky-header bg-body shadow-sm">
+    <nav class="navbar navbar-expand-lg">
+      {% if is_gallery_guest %}
+        <div class="d-flex flex-column align-items-start">
+          <a class="navbar-brand d-flex align-items-center" href="{{ url_for('gallery_all') }}">
+            <img src="{{ asset_url('logo.png') }}" alt="Logo" width="24" height="24" class="me-2">
+            {% if page_title %}
+              <span class="fw-bold">{{ PRINTER_MODEL["model"] }} - {{ page_title or '' }}</span>
+            {% else %}
+              <span class="fw-bold">{{ PRINTER_MODEL["model"] }}</span>
+            {% endif %}
+            {% if current_user.is_authenticated and current_user.is_guest %}
+              <span title="Accès invité — lecture seule" style="font-size: 1.2rem; margin-left: .5rem;">👤</span>
+            {% endif %}
           </a>
-        </li>
-      {% endfor %}
-	   <li><hr class="dropdown-divider"></li>
-    <li class="nav-item">
-      <a class="nav-link" href="{{ url_for('installations_overview') }}">
-        📡 Vue Globale
-      </a>
-    </li>
-    </ul>
-  </li>
-{% endif %}
-
-  {% if current_user.is_authenticated %}
-    <li class="nav-item">
-      <a class="nav-link" href="{{ url_for('auth.settings') }}" data-requires-write>⚙️ Paramètres</a>
-    </li>
-	{% if not g.is_webview %}
-    <li class="nav-item">
-      <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">🚪 Déconnexion</a>
-    </li>
-	{% endif %}
-  {% endif %}
-{% if g.is_webview %}
-  <li class="nav-item">
-    <a href="#" class="nav-link" onclick="openNativeSettings()">📱 Mobile</a>
-  </li>
-{% endif %}
-</ul>
-
-      </div>
-    </div>
-{% endif %}
-  </nav>
-</header>
-
-
-<main class="container" >
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    {% set last = messages[-1] %} {# last = (category, message) #}
-    {% set category = last[0] %}
-    {% set message  = last[1] %}
-    <div class="container mt-2" data-requires-write>
-      <div id="flash-alert"
-           class="alert alert-{{ 'warning' if category == 'message' else category }} alert-dismissible fade show"
-           role="alert"
-           data-autohide="true"
-           data-autohide-delay="4000" 
-           aria-live="polite">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
-      </div>
-    </div>
-  {% endif %}
-{% endwith %}
-  {% if success_message %}
-  <div class="alert alert-success alert-dismissible fade show" role="alert" data-requires-write
-    <strong>Success!</strong> {{ success_message }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-  </div>
-  {% endif %}
-  {% block content %}{% endblock %}
- 
-</main>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  const alertEl = document.querySelector('#flash-alert[data-autohide="true"]');
-  if (!alertEl) return;
-  const delayAttr = parseInt(alertEl.getAttribute('data-autohide-delay'), 10);
-  const AUTO_HIDE_MS = Number.isFinite(delayAttr) ? delayAttr : 8000;
-  const bsAlert = bootstrap.Alert.getOrCreateInstance(alertEl);
-  let timer = setTimeout(() => bsAlert.close(), AUTO_HIDE_MS);
-  alertEl.addEventListener("mouseenter", () => { if (timer) { clearTimeout(timer); timer = null; }});
-  alertEl.addEventListener("mouseleave", () => { if (!timer) timer = setTimeout(() => bsAlert.close(), 3000); });
-});
-</script>
-
-{% block scripts %}
-<script>
-(function(){
-  function setNavHeightVar(){
-    let h = 0;
-    document.querySelectorAll('.navbar.fixed-top, .navbar.sticky-top').forEach(el => {
-      h = Math.max(h, el.offsetHeight || 0);
-    });
-    document.documentElement.style.setProperty('--nav-h', h + 'px');
-  }
-  document.addEventListener('DOMContentLoaded', setNavHeightVar);
-  window.addEventListener('resize', setNavHeightVar);
-  document.addEventListener('show.bs.modal', setNavHeightVar);
-})();
-</script>
-{% endblock %}
-
-<!-- Inputs fichiers globaux -->
-<input id="__hidden_photo_input_gallery__" type="file" accept="image/*" class="d-none" multiple>
-<input id="__hidden_photo_input_camera__"  type="file" accept="image/*" capture="environment" class="d-none">
-
-<!-- Modale choix photo -->
-<div class="modal fade" id="photoChoiceModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-sm">
-    <div class="modal-content">
-      <div class="modal-header py-2">
-        <h6 class="modal-title">Ajouter une photo</h6>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
-      </div>
-      <div class="modal-body d-grid gap-2">
-        <button type="button" class="btn btn-primary"  id="btnPhotoCapture">📷 Prendre une photo</button>
-        <button type="button" class="btn btn-outline-secondary" id="btnPhotoGallery">🖼️ Choisir depuis la galerie</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-  function normalizeTarget(arg) {
-    if (typeof arg === 'number') return { type: 'prints', id: arg };
-    if (arg && typeof arg === 'object' &&
-        (arg.type === 'prints' || arg.type === 'groups' || arg.type === 'objects' || arg.type === 'filaments') &&  // ⬅️ + objects
-        Number.isFinite(arg.id)) {
-      return { type: arg.type, id: arg.id };
-    }
-    return null;
-  }
-
-  window.__isUploading__ = false;
-  window.__currentPhotoTarget__ = null;
-
-  window.triggerPhotoUpload = function (target) {
-    if (window.__isUploading__) return;
-    const norm = normalizeTarget(target);
-    if (!norm) return;
-    window.__currentPhotoTarget__ = norm;
-    const input = document.getElementById('__hidden_photo_input_gallery__');
-    if (!input) return;
-    input.value = '';
-    input.click();
-  };
-
-  window.triggerPhotoCapture = function (target) {
-    if (window.__isUploading__) return;
-    const norm = normalizeTarget(target);
-    if (!norm) return;
-    window.__currentPhotoTarget__ = norm;
-    const input = document.getElementById('__hidden_photo_input_camera__');
-    if (!input) return;
-    input.value = '';
-    input.click();
-  };
-
-window.triggerPhotoUnified = function (target) {
-  if (window.__isUploading__) return;
-
-  const norm = normalizeTarget(target);
-  if (!norm) return;
-
-  function isTrueMobileDevice() {
-    const ua = navigator.userAgent || '';
-    const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
-    const screenSmall = Math.min(window.innerWidth, window.innerHeight) < 768;
-
-    const isAppleDevice = /iphone|ipad|ipod/i.test(ua);
-    const isWindows = /windows/i.test(ua);
-    
-    // Mobile = tactile + petit écran + pas device Apple ou Windows
-    return coarse && screenSmall && !isAppleDevice && !isWindows;
-  }
-
-  if (isTrueMobileDevice()) {
-    window.__currentPhotoTarget__ = norm;
-    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('photoChoiceModal'));
-    modal.show();
-  } else {
-    window.triggerPhotoUpload(norm);
-  }
-};
-
-  async function uploadFiles(files) {
-    const target = window.__currentPhotoTarget__;
-    if (!files || !files.length || !target) return;
-    try {
-      window.__isUploading__ = true;
-      const fd = new FormData();
-	  const toSend = (target.type === 'filaments') ? [files[0]] : files;
-      for (const f of toSend) fd.append('photos', f);
-      let resp = await fetch(`/upload_photo/${encodeURIComponent(target.type)}/${encodeURIComponent(target.id)}`, {
-        method: 'POST',
-        body: fd
-      });
-      if (resp.status === 404 && target.type === 'prints') {
-        resp = await fetch(`/upload_photo/${encodeURIComponent(target.id)}`, { method: 'POST', body: fd });
-      }
-      if (!resp.ok) {
-        console.error('Upload failed', resp.status);
-      } else {
-        location.reload();
-      }
-    } catch (e) {
-      console.error('Upload error', e);
-    } finally {
-      window.__isUploading__ = false;
-      window.__currentPhotoTarget__ = null;
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    const gal   = document.getElementById('__hidden_photo_input_gallery__');
-    const cam   = document.getElementById('__hidden_photo_input_camera__');
-    const modalEl = document.getElementById('photoChoiceModal');
-
-    const btnCap = document.getElementById('btnPhotoCapture');
-    const btnGal = document.getElementById('btnPhotoGallery');
-
-    if (btnCap) btnCap.addEventListener('click', () => { if (cam) { cam.value = ''; cam.click(); } });
-    if (btnGal) btnGal.addEventListener('click', () => { if (gal) { gal.value = ''; gal.click(); } });
-
-    if (gal) gal.addEventListener('change', () => {
-      uploadFiles(Array.from(gal.files || []));
-      gal.value = '';
-      if (modalEl) { const m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
-    }, { passive: true });
-
-    if (cam) cam.addEventListener('change', () => {
-      uploadFiles(Array.from(cam.files || []));
-      cam.value = '';
-      if (modalEl) { const m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
-    }, { passive: true });
-  });
-document.addEventListener('click', async (e) => {
-  const btn = e.target.closest('.js-del-photo');
-  if (!btn) return;
-
-  // On récupère l’URL du fichier depuis data-url (ex: /static/uploads/<entity>/<id>/<file>)
-  const fileUrl = btn.dataset.url || '';
-  try {
-    const u = new URL(fileUrl, window.location.origin);
-    const parts = u.pathname.split('/').filter(Boolean); // ['static','uploads',entity,id,filename]
-    const upIdx = parts.indexOf('uploads');
-    if (upIdx < 0 || parts.length < upIdx + 4) {
-      console.error('URL invalide pour suppression:', fileUrl);
-      return;
-    }
-    const entity   = parts[upIdx + 1];
-    const entityId = parts[upIdx + 2];
-    const filename = parts.slice(upIdx + 3).join('/');
-
-    // Bloquer .3mf
-    if (filename.toLowerCase().endsWith('.3mf')) {
-      return; // Pas de suppression des .3mf
-    }
-
-    // Confirmation
-    const ask = await Swal.fire({
-      title: "Supprimer la photo ?",
-      text: filename,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Oui, supprimer",
-      cancelButtonText: "Annuler",
-      confirmButtonColor: "#d33"
-    });
-    if (!ask.isConfirmed) return;
-
-    const fd = new FormData();
-    fd.append('filename', filename);
-
-    const resp = await fetch(`/delete_photo/${encodeURIComponent(entity)}/${encodeURIComponent(entityId)}`, {
-      method: 'POST',
-      body: fd
-    });
-
-    if (!resp.ok) {
-      Swal.fire("Erreur", "La suppression a échoué.", "error");
-      return;
-    }
-
-    // Simple: recharger la page ; ou bien retirer l'item du DOM si tu préfères
-    location.reload();
-
-  } catch (err) {
-    console.error('Suppression: erreur', err);
-  }
-});
-window.openGalleryFromEntry = function(images, title) {
-  try {
-    const mapped = (images || [])
-      .filter(Boolean)
-      .map(x => ({ url: x.url || x.href || x.src || '', name: x.name || '' }))
-      .filter(x => x.url);
-
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/gallery';
-
-    const iImgs = document.createElement('input');
-    iImgs.type = 'hidden';
-    iImgs.name = 'images';
-    iImgs.value = JSON.stringify(mapped);
-
-    const iTitle = document.createElement('input');
-    iTitle.type = 'hidden';
-    iTitle.name = 'title';
-    iTitle.value = title || '';
-
-    form.appendChild(iImgs);
-    form.appendChild(iTitle);
-
-    document.body.appendChild(form);
-    form.submit();
-    form.remove();
-  } catch (e) {
-    console.error('openGalleryFromEntry failed', e);
-  }
-};
-(function(){
-  // Initialise la barre "nom + Galerie" pour un carrousel donné
-  function setupCarouselMeta(pid){
-    const car = document.getElementById(`carousel-${pid}`);
-    const nameEl = document.getElementById(`cname-${pid}`);
-    if (!car || !nameEl) return;
-
-    function updateFromActive(){
-      const active = car.querySelector('.carousel-item.active');
-      const name = active?.getAttribute('data-name') || '';
-      nameEl.textContent = name || '';
-    }
-
-    // Valeur initiale
-    updateFromActive();
-
-    // MAJ après transition
-    car.addEventListener('slid.bs.carousel', updateFromActive);
-  }
-
-  // Auto-init pour tous les carrousels de prints présents
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.print-carousel[id^="carousel-"]').forEach(el => {
-      const pid = el.id.replace('carousel-','');
-      setupCarouselMeta(pid);
-    });
-  });
-})();
-</script>
-<div class="update-toast-container" data-requires-write>
-  <div id="updateToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
-    <div class="d-flex">
-      <div class="toast-body">
-        🚀 Une nouvelle version est disponible sur la branche <strong id="update-branch"></strong>.<br>
-        <small id="update-info"></small>
-        <div class="mt-2 d-flex gap-2">
-          <button type="button" class="btn btn-light btn-sm" id="btn-open-release">Notes de version</button>
         </div>
-        <div class="mt-2 small text-white-50" id="release-snippet" style="display:none;"></div>
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a href="{{ url_for('gallery_all') }}" class="nav-link">🖼️ Galerie</a></li>
+          <li class="nav-item"><a href="{{ url_for('filaments_gallery') }}" class="nav-link">🧵 Filaments</a></li>
+          <li class="nav-item"><a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">🚪 Déconnexion</a></li>
+        </ul>
+      {% else %}
+        <div class="container-fluid">
+          <div class="d-flex flex-column align-items-start">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('home') }}">
+              <img src="{{ asset_url('logo.png') }}" alt="Logo" width="24" height="24" class="me-2">
+              {% if page_title %}
+                <span class="fw-bold">{{ PRINTER_MODEL["model"] }} - {{ page_title or '' }}</span>
+              {% else %}
+                <span class="fw-bold">{{ PRINTER_MODEL["model"] }}</span>
+              {% endif %}
+              {% if current_user.is_authenticated and current_user.is_guest %}
+                <span title="Accès invité — lecture seule" style="font-size: 1.2rem; margin-left: .5rem;">👤</span>
+              {% endif %}
+            </a>
+
+            {# bouton retour (sous le nom) #}
+            {% set origin_url = request.args.get('origin') %}
+            {% if origin_url %}
+              {% set origin_label  = request.args.get('origin_label','Mon installation') %}
+              {% set current_label = request.args.get('current_label','Installation distante') %}
+              {% set origin_link   = origin_url %}
+              <a href="{{ origin_link | safe }}"
+                 class="btn btn-sm btn-primary rounded-pill px-2 py-0 mt-1"
+                 title="Revenir à {{ origin_label }}">
+                🚪 {{ current_label }}
+              </a>
+            {% endif %}
+          </div>
+
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#navbarNav" aria-controls="navbarNav"
+                  aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+
+          <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+              <li class="nav-item"><a href="{{ url_for('home') }}" class="nav-link">🏠 Accueil</a></li>
+
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="printsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  🖨️ Impressions
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filamentsDropdown">
+                  <li class="nav-item"><a href="{{ url_for('print_history') }}" class="nav-link">🖨️ Historique</a></li>
+                  <li class="nav-item"><a href="{{ url_for('gallery_all') }}" class="nav-link">🖼️ Galerie</a></li>
+                </ul>
+              </li>
+
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="filamentsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  🧵 Filaments
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filamentsDropdown">
+                  <li class="nav-item"><a class="nav-link" href="{{ url_for('filaments_catalog') }}">📚 Catalogue</a></li>
+                  <li class="nav-item"><a class="nav-link" href="{{ url_for('filaments') }}">🌀 Bobines</a></li>
+                  <li class="nav-item"><a href="{{ url_for('filaments_gallery') }}" class="nav-link">🖼️ Galerie</a></li>
+                </ul>
+              </li>
+
+              <li class="nav-item dropdown" data-requires-write>
+                <a class="nav-link dropdown-toggle" href="#" id="inventoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  🧺 Inventaire
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="inventoryDropdown" style="min-width: 260px;">
+                  <li class="nav-item" data-requires-write><a class="nav-link" href="{{ url_for('objects_page') }}">📦 Objets</a></li>
+                  <li class="nav-item" data-requires-write><a class="nav-link" href="{{ url_for('accessories_list') }}">🧰 Accessoires</a></li>
+                </ul>
+              </li>
+
+              <li class="nav-item"><a href="{{ url_for('stats') }}" class="nav-link">📊 Statistiques</a></li>
+
+              {% if current_user.is_authenticated and installations and installations|length > 0 %}
+              <li class="nav-item dropdown" data-requires-write>
+                <a class="nav-link dropdown-toggle" href="#" id="instDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  🌐 Installations
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="instDropdown" style="min-width: 260px;">
+                  {% for inst in installations %}
+                    <li class="nav-item">
+                      <a class="nav-link" href="{{ url_for('switch.switch_install', install_id=inst.id) }}">
+                        👤 {{ inst.label or ('Installation #' ~ inst.id) }}
+                      </a>
+                    </li>
+                  {% endfor %}
+                  <li><hr class="dropdown-divider"></li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('installations_overview') }}">📡 Vue Globale</a>
+                  </li>
+                </ul>
+              </li>
+              {% endif %}
+
+              {% if current_user.is_authenticated %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.settings') }}" data-requires-write>⚙️ Paramètres</a></li>
+                {% if not g.is_webview %}
+                  <li class="nav-item"><a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">🚪 Déconnexion</a></li>
+                {% endif %}
+              {% endif %}
+
+              {% if g.is_webview %}
+                <li class="nav-item"><a href="#" class="nav-link" onclick="openNativeSettings()">📱 Mobile</a></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% set last = messages[-1] %}
+        {% set category = last[0] %}
+        {% set message  = last[1] %}
+        <div class="container mt-2" data-requires-write>
+          <div id="flash-alert"
+               class="alert alert-{{ 'warning' if category == 'message' else category }} alert-dismissible fade show"
+               role="alert"
+               data-autohide="true"
+               data-autohide-delay="4000"
+               aria-live="polite">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+          </div>
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% if success_message %}
+      <div class="alert alert-success alert-dismissible fade show" role="alert" data-requires-write>
+        <strong>Success!</strong> {{ success_message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>
-	  <button type="button" class="btn-close btn-close-white me-2 m-auto d-none d-sm-block" data-bs-dismiss="toast" aria-label="Fermer"></button>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Inputs fichiers globaux -->
+  <input id="__hidden_photo_input_gallery__" type="file" accept="image/*" class="d-none" multiple>
+  <input id="__hidden_photo_input_camera__"  type="file" accept="image/*" capture="environment" class="d-none">
+
+  <!-- Modale choix photo -->
+  <div class="modal fade" id="photoChoiceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content">
+        <div class="modal-header py-2">
+          <h6 class="modal-title">Ajouter une photo</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body d-grid gap-2">
+          <button type="button" class="btn btn-primary"  id="btnPhotoCapture">📷 Prendre une photo</button>
+          <button type="button" class="btn btn-outline-secondary" id="btnPhotoGallery">🖼️ Choisir depuis la galerie</button>
+        </div>
+      </div>
     </div>
   </div>
-</div>
 
-<script>
-(async function checkUpdate(){
-  try {
-    // On n’affiche que sur la page d’accueil
-    if (location.pathname !== "/") return;
+  <!-- Toast mise à jour -->
+  <div class="update-toast-container" data-requires-write>
+    <div id="updateToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          🚀 Une nouvelle version est disponible sur la branche <strong id="update-branch"></strong>.<br>
+          <small id="update-info"></small>
+          <div class="mt-2 d-flex gap-2">
+            <button type="button" class="btn btn-light btn-sm" id="btn-open-release">Notes de version</button>
+          </div>
+          <div class="mt-2 small text-white-50" id="release-snippet" style="display:none;"></div>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto d-none d-sm-block" data-bs-dismiss="toast" aria-label="Fermer"></button>
+      </div>
+    </div>
+  </div>
 
-    const r = await fetch("/api/update_status");
-    if (!r.ok) return;
-    const d = await r.json();
+  <!-- JS tiers -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
 
-    if (!d.update_available) return;
+  <!-- Auto-hide alert -->
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const alertEl = document.querySelector('#flash-alert[data-autohide="true"]');
+    if (!alertEl) return;
+    const delayAttr = parseInt(alertEl.getAttribute('data-autohide-delay'), 10);
+    const AUTO_HIDE_MS = Number.isFinite(delayAttr) ? delayAttr : 8000;
+    const bsAlert = bootstrap.Alert.getOrCreateInstance(alertEl);
+    let timer = setTimeout(() => bsAlert.close(), AUTO_HIDE_MS);
+    alertEl.addEventListener("mouseenter", () => { if (timer) { clearTimeout(timer); timer = null; }});
+    alertEl.addEventListener("mouseleave", () => { if (!timer) timer = setTimeout(() => bsAlert.close(), 3000); });
+  });
+  </script>
 
-    document.getElementById("update-branch").textContent = d.branch || "";
-    document.getElementById("update-info").textContent =
-      `Actuel: ${(d.current || "?")} • Nouveau: ${(d.latest || "?")}`;
-
-    const el = document.getElementById("updateToast");
-    // Nécessite Bootstrap JS (déjà inclus si tu utilises les components)
-    if (el && window.bootstrap && bootstrap.Toast) {
-      const t = new bootstrap.Toast(el, { delay: 8000 });
-      t.show();
-    } else {
-      // Fallback très simple si Bootstrap JS n’est pas chargé
-      el.style.display = "block";
+  {% block scripts %}
+  <script>
+  (function(){
+    function setNavHeightVar(){
+      let h = 0;
+      document.querySelectorAll('.navbar.fixed-top, .navbar.sticky-top').forEach(el => {
+        h = Math.max(h, el.offsetHeight || 0);
+      });
+      document.documentElement.style.setProperty('--nav-h', h + 'px');
     }
-  } catch(e) {
-    console.warn("Update toast: échec de vérification", e);
-  }
-})();
-function showReleaseModalFromGitHub(opts){
-  const modalEl = document.getElementById('releaseNotesModal');
-  const bodyEl  = document.getElementById('rel-body');
-  if (!modalEl || !bodyEl) return;
+    document.addEventListener('DOMContentLoaded', setNavHeightVar);
+    window.addEventListener('resize', setNavHeightVar);
+    document.addEventListener('show.bs.modal', setNavHeightVar);
+  })();
+  </script>
+  {% endblock %}
 
-  // Affiche la modale immédiatement (UX fluide)
-  if (window.bootstrap && bootstrap.Modal) {
-    bootstrap.Modal.getOrCreateInstance(modalEl).show();
-  } else {
-    modalEl.style.display = 'block';
-  }
+  <!-- Upload & actions (inchangé) -->
+  <script>
+    function normalizeTarget(arg) {
+      if (typeof arg === 'number') return { type: 'prints', id: arg };
+      if (arg && typeof arg === 'object' &&
+          (arg.type === 'prints' || arg.type === 'groups' || arg.type === 'objects' || arg.type === 'filaments') &&
+          Number.isFinite(arg.id)) {
+        return { type: arg.type, id: arg.id };
+      }
+      return null;
+    }
 
-  // Placeholder de chargement
-  bodyEl.innerHTML = `<div class="text-muted">Chargement…</div>`;
+    window.__isUploading__ = false;
+    window.__currentPhotoTarget__ = null;
 
-  // Paramètres optionnels (chemin/branche)
-  const params = new URLSearchParams();
-  if (opts?.branch) params.set('branch', opts.branch);
-  if (opts?.path)   params.set('path',   opts.path);
+    window.triggerPhotoUpload = function (target) {
+      if (window.__isUploading__) return;
+      const norm = normalizeTarget(target);
+      if (!norm) return;
+      window.__currentPhotoTarget__ = norm;
+      const input = document.getElementById('__hidden_photo_input_gallery__');
+      if (!input) return;
+      input.value = '';
+      input.click();
+    };
 
-  fetch(`/release_fragment${params.toString() ? '?' + params.toString() : ''}`)
-    .then(r => r.ok ? r.text() : Promise.reject(r))
-    .then(html => { bodyEl.innerHTML = html; })
-    .catch(() => {
-      bodyEl.innerHTML = `<div class="text-danger">Impossible de charger les notes de version.</div>`;
+    window.triggerPhotoCapture = function (target) {
+      if (window.__isUploading__) return;
+      const norm = normalizeTarget(target);
+      if (!norm) return;
+      window.__currentPhotoTarget__ = norm;
+      const input = document.getElementById('__hidden_photo_input_camera__');
+      if (!input) return;
+      input.value = '';
+      input.click();
+    };
+
+    window.triggerPhotoUnified = function (target) {
+      if (window.__isUploading__) return;
+      const norm = normalizeTarget(target);
+      if (!norm) return;
+
+      function isTrueMobileDevice() {
+        const ua = navigator.userAgent || '';
+        const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
+        const screenSmall = Math.min(window.innerWidth, window.innerHeight) < 768;
+        const isAppleDevice = /iphone|ipad|ipod/i.test(ua);
+        const isWindows = /windows/i.test(ua);
+        return coarse && screenSmall && !isAppleDevice && !isWindows;
+      }
+
+      if (isTrueMobileDevice()) {
+        window.__currentPhotoTarget__ = norm;
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('photoChoiceModal'));
+        modal.show();
+      } else {
+        window.triggerPhotoUpload(norm);
+      }
+    };
+
+    async function uploadFiles(files) {
+      const target = window.__currentPhotoTarget__;
+      if (!files || !files.length || !target) return;
+      try {
+        window.__isUploading__ = true;
+        const fd = new FormData();
+        const toSend = (target.type === 'filaments') ? [files[0]] : files;
+        for (const f of toSend) fd.append('photos', f);
+
+        let resp = await fetch(`/upload_photo/${encodeURIComponent(target.type)}/${encodeURIComponent(target.id)}`, {
+          method: 'POST', body: fd
+        });
+        if (resp.status === 404 && target.type === 'prints') {
+          resp = await fetch(`/upload_photo/${encodeURIComponent(target.id)}`, { method: 'POST', body: fd });
+        }
+        if (!resp.ok) {
+          console.error('Upload failed', resp.status);
+        } else {
+          location.reload();
+        }
+      } catch (e) {
+        console.error('Upload error', e);
+      } finally {
+        window.__isUploading__ = false;
+        window.__currentPhotoTarget__ = null;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const gal   = document.getElementById('__hidden_photo_input_gallery__');
+      const cam   = document.getElementById('__hidden_photo_input_camera__');
+      const modalEl = document.getElementById('photoChoiceModal');
+
+      const btnCap = document.getElementById('btnPhotoCapture');
+      const btnGal = document.getElementById('btnPhotoGallery');
+
+      if (btnCap) btnCap.addEventListener('click', () => { if (cam) { cam.value = ''; cam.click(); } });
+      if (btnGal) btnGal.addEventListener('click', () => { if (gal) { gal.value = ''; gal.click(); } });
+
+      if (gal) gal.addEventListener('change', () => {
+        uploadFiles(Array.from(gal.files || []));
+        gal.value = '';
+        if (modalEl) { const m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
+      }, { passive: true });
+
+      if (cam) cam.addEventListener('change', () => {
+        uploadFiles(Array.from(cam.files || []));
+        cam.value = '';
+        if (modalEl) { const m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
+      }, { passive: true });
     });
-}
 
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('btn-open-release');
-  if (btn) {
-    btn.addEventListener('click', () => {
-      // tu peux passer un path spécifique ex: { path: "releases/1.8.0.html" }
-      showReleaseModalFromGitHub();
-    }, { passive: true });
+    document.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.js-del-photo');
+      if (!btn) return;
+      const fileUrl = btn.dataset.url || '';
+      try {
+        const u = new URL(fileUrl, window.location.origin);
+        const parts = u.pathname.split('/').filter(Boolean);
+        const upIdx = parts.indexOf('uploads');
+        if (upIdx < 0 || parts.length < upIdx + 4) { console.error('URL invalide pour suppression:', fileUrl); return; }
+        const entity   = parts[upIdx + 1];
+        const entityId = parts[upIdx + 2];
+        const filename = parts.slice(upIdx + 3).join('/');
+
+        if (filename.toLowerCase().endsWith('.3mf')) { return; }
+
+        const ask = await Swal.fire({
+          title: "Supprimer la photo ?", text: filename, icon: "warning",
+          showCancelButton: true, confirmButtonText: "Oui, supprimer",
+          cancelButtonText: "Annuler", confirmButtonColor: "#d33"
+        });
+        if (!ask.isConfirmed) return;
+
+        const fd = new FormData();
+        fd.append('filename', filename);
+
+        const resp = await fetch(`/delete_photo/${encodeURIComponent(entity)}/${encodeURIComponent(entityId)}`, {
+          method: 'POST', body: fd
+        });
+
+        if (!resp.ok) { Swal.fire("Erreur", "La suppression a échoué.", "error"); return; }
+        location.reload();
+
+      } catch (err) {
+        console.error('Suppression: erreur', err);
+      }
+    });
+
+    window.openGalleryFromEntry = function(images, title) {
+      try {
+        const mapped = (images || [])
+          .filter(Boolean)
+          .map(x => ({ url: x.url || x.href || x.src || '', name: x.name || '' }))
+          .filter(x => x.url);
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/gallery';
+
+        const iImgs = document.createElement('input');
+        iImgs.type = 'hidden'; iImgs.name = 'images'; iImgs.value = JSON.stringify(mapped);
+
+        const iTitle = document.createElement('input');
+        iTitle.type = 'hidden'; iTitle.name = 'title'; iTitle.value = title || '';
+
+        form.appendChild(iImgs); form.appendChild(iTitle);
+        document.body.appendChild(form); form.submit(); form.remove();
+      } catch (e) {
+        console.error('openGalleryFromEntry failed', e);
+      }
+    };
+
+    (function(){
+      function setupCarouselMeta(pid){
+        const car = document.getElementById(`carousel-${pid}`);
+        const nameEl = document.getElementById(`cname-${pid}`);
+        if (!car || !nameEl) return;
+        function updateFromActive(){
+          const active = car.querySelector('.carousel-item.active');
+          const name = active?.getAttribute('data-name') || '';
+          nameEl.textContent = name || '';
+        }
+        updateFromActive();
+        car.addEventListener('slid.bs.carousel', updateFromActive);
+      }
+      document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.print-carousel[id^="carousel-"]').forEach(el => {
+          const pid = el.id.replace('carousel-','');
+          setupCarouselMeta(pid);
+        });
+      });
+    })();
+  </script>
+
+  <!-- Toast release -->
+  <script>
+  (async function checkUpdate(){
+    try {
+      if (location.pathname !== "/") return;
+      const r = await fetch("/api/update_status");
+      if (!r.ok) return;
+      const d = await r.json();
+      if (!d.update_available) return;
+
+      document.getElementById("update-branch").textContent = d.branch || "";
+      document.getElementById("update-info").textContent =
+        `Actuel: ${(d.current || "?")} • Nouveau: ${(d.latest || "?")}`;
+
+      const el = document.getElementById("updateToast");
+      if (el && window.bootstrap && bootstrap.Toast) {
+        const t = new bootstrap.Toast(el, { delay: 8000 });
+        t.show();
+      } else {
+        el.style.display = "block";
+      }
+    } catch(e) {
+      console.warn("Update toast: échec de vérification", e);
+    }
+  })();
+
+  function showReleaseModalFromGitHub(opts){
+    const modalEl = document.getElementById('releaseNotesModal');
+    const bodyEl  = document.getElementById('rel-body');
+    if (!modalEl || !bodyEl) return;
+    if (window.bootstrap && bootstrap.Modal) {
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    } else {
+      modalEl.style.display = 'block';
+    }
+    bodyEl.innerHTML = `<div class="text-muted">Chargement…</div>`;
+    const params = new URLSearchParams();
+    if (opts?.branch) params.set('branch', opts.branch);
+    if (opts?.path)   params.set('path',   opts.path);
+    fetch(`/release_fragment${params.toString() ? '?' + params.toString() : ''}`)
+      .then(r => r.ok ? r.text() : Promise.reject(r))
+      .then(html => { bodyEl.innerHTML = html; })
+      .catch(() => { bodyEl.innerHTML = `<div class="text-danger">Impossible de charger les notes de version.</div>`; });
   }
-});
 
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('btn-open-release');
+    if (btn) {
+      btn.addEventListener('click', () => { showReleaseModalFromGitHub(); }, { passive: true });
+    }
+  });
+
+  // Enregistrement SW (à la racine, scope "/")
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("/service-worker.js?v={{ APP_VERSION|default('1') }}")
         .catch(console.error);
     });
   }
-</script>
+  </script>
 
-{% include 'fragments/release_version.html' %}
+  {% include 'fragments/release_version.html' %}
 </body>
 </html>
