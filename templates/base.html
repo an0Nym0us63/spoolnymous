@@ -25,7 +25,9 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css">
 <link rel="manifest" href="/manifest.webmanifest?v={{ APP_VERSION|default('1') }}">
-<meta name="theme-color" content="#0b1220">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b1220">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0b1220"><!-- ou une variante plus claire si tu veux -->
+<meta name="color-scheme" content="dark light"> <!-- pour l’UI par défaut (forms, etc.) -->
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
