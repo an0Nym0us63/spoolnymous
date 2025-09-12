@@ -2,28 +2,57 @@
 <html lang="en" data-bs-theme="dark">
 {% block styles %}{% endblock %}
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="initial-scale=1.2, shrink-to-fit=yes, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 
-<meta name="theme-color" content="#0b1220">
-<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b1220">
-<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0b1220"><!-- ou une variante plus claire si tu veux -->
-<meta name="color-scheme" content="dark light"> <!-- pour l’UI par défaut (forms, etc.) -->
+<meta name="color-scheme" content="dark light">
+
+<!-- Trois variantes pour éviter les heuristiques Edge/Chromium -->
+<meta name="theme-color" content="#000000">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#000000">
+
+<!-- Critical CSS inline pour éviter tout “flash clair” -->
+<style>
+  html, body { margin:0; min-height:100%; background:#000; }
+  /* assure une base sombre sous la zone gestuelle (Android 10+) */
+  body { padding-bottom: env(safe-area-inset-bottom); }
+  /* si ton app a un wrapper root, fonce-le aussi immédiatement */
+  #app, #root { background:#000; min-height:100vh; }
+
+  /* Option : si tu as un header clair, garde la zone top sombre quand l’OS
+     “regarde” la bordure pour décider de la status bar */
+  .pwa-top-scrim {
+    position: fixed; inset: 0 0 auto 0; height: 8px; background:#000; pointer-events:none; z-index:2147483647;
+  }
+  /* Option : idem pour le bas, utile chez certains OEM/Edge */
+  .pwa-bottom-scrim {
+    position: fixed; inset: auto 0 0 0; height: calc(8px + env(safe-area-inset-bottom)); 
+    background:#000; pointer-events:none; z-index:2147483647;
+  }
+</style>
+
 <script>
-  // “Early paint”: Edge/Chromium lisent parfois cette meta au tout premier rendu
+  // “Early paint” : verrouille la theme-color au plus tôt
   (function() {
     var dark = '#000000';
-    var meta = document.querySelector('meta[name="theme-color"]');
-    if (!meta) {
-      meta = document.createElement('meta');
-      meta.setAttribute('name', 'theme-color');
-      document.head.appendChild(meta);
+    var metas = document.querySelectorAll('meta[name="theme-color"]');
+    if (metas.length === 0) {
+      var m = document.createElement('meta');
+      m.setAttribute('name', 'theme-color');
+      m.setAttribute('content', dark);
+      document.head.prepend(m);
+    } else {
+      metas.forEach(m => m.setAttribute('content', dark));
     }
-    meta.setAttribute('content', dark);
-    // Si plusieurs <meta name="theme-color"> existent, harmonise-les
-    document.querySelectorAll('meta[name="theme-color"][media]').forEach(m => m.setAttribute('content', dark));
+
+    // Certains Edge recalculent la couleur à la visibilité : réimpose-la
+    document.addEventListener('visibilitychange', function(){
+      metas = document.querySelectorAll('meta[name="theme-color"]');
+      metas.forEach(m => m.setAttribute('content', dark));
+    });
   })();
 </script>
+<meta charset="utf-8">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SpoolNymous">
@@ -46,8 +75,6 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css">
 <link rel="manifest" href="/manifest.webmanifest?v={{ APP_VERSION|default('1') }}">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
 <style>
   :root { color-scheme: dark light; }
@@ -117,11 +144,25 @@
     border-radius: .75rem .75rem 0 0; /* look “sheet” */
   }
 }
+html, body { margin:0; min-height:100%; background:#000; }
+body { padding-bottom: env(safe-area-inset-bottom); }
+#app, #root { background:#000; min-height:100vh; }
+
+.pwa-top-scrim {
+  position: fixed; inset: 0 0 auto 0; height: 8px; background:#000;
+  pointer-events:none; z-index:2147483647;
+}
+.pwa-bottom-scrim {
+  position: fixed; inset: auto 0 0 0; height: calc(8px + env(safe-area-inset-bottom));
+  background:#000; pointer-events:none; z-index:2147483647;
+}
 </style>
 </head>
 
 {% set is_gallery_guest = current_user.is_authenticated and current_user.is_guest and session.get('guest_scope') == 'gallery' %}
 <body>
+  <div class="pwa-top-scrim"></div>
+  <div class="pwa-bottom-scrim"></div>
 <header class="mb-3 border-bottom sticky-header bg-body shadow-sm">
 
   <nav class="navbar navbar-expand-lg">
