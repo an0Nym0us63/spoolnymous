@@ -4,10 +4,10 @@
   "description": "Suivi bobines, filaments, impressions",
   "start_url": "/?utm_source=pwa",
   "scope": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "any",
   "background_color": "#0b1220",
-  "theme_color": "#0ea5e9",
+  "theme_color": "#0b1220",
   "id": "spoolnymous.app",
   "icons": [
     { "src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
