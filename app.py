@@ -757,6 +757,9 @@ EXEMPT_ENDPOINTS = {
     "auth.guest_gallery_autologin",
     "static",
     "healthz",
+    "manifest",          # cette fonction
+    "service_worker",    # cette fonction
+    "offline",
 }
 
 # Chemins exemptés par préfixe (API publiques et snapshot si on veut public)
