@@ -252,7 +252,7 @@
     padding: 0.2rem 0.4rem;
   }
 }
-* Force styles Select2 */
+/* Force styles Select2 */
 .select2-container--default .select2-selection--multiple {
     background-color: #212529;
     border: 1px solid #495057;
@@ -504,7 +504,7 @@
 
 /* Option confort : quand une modale est ouverte, on masque la navbar pour éviter tout chevauchement visuel. */
 /* Décommente si tu préfères */
-// .modal-open .navbar.fixed-top, .modal-open .navbar.sticky-top { visibility: hidden; }
+/* .modal-open .navbar.fixed-top, .modal-open .navbar.sticky-top { visibility: hidden; }
 
 /* Espacement entre les lignes */
 .accessory-item {
@@ -703,4 +703,4 @@
 .carousel-meta { margin-top:.35rem; }
 
 :root { color-scheme: dark light; }  /* widgets/formulaires adaptés */
-html, body { background-color: #0b1220; }
+html, body { margin:0; min-height:100%; background:#000; }
