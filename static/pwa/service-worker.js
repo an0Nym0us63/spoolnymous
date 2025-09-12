@@ -7,57 +7,75 @@ const RUNTIME = `runtime-${SW_VERSION}`;
 const PRECACHE_URLS = [
   "/",                // page d’accueil
   "/offline",         // fallback hors-ligne
-  "/static/css/main.css",
-  "/static/js/main.js",
+  "/static/css/style.css",
+  "/static/js/print_history.js",
   "/static/icons/icon-192.png",
   "/static/icons/icon-512.png"
 ].filter(Boolean);
-
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(PRECACHE).then((cache) => cache.addAll(PRECACHE_URLS))
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(PRECACHE);
+
+    // Utilise cache: 'reload' pour éviter de tomber sur des réponses opaques/anciennes
+    const requests = PRECACHE_URLS.map(
+      (u) => new Request(u, { cache: "reload" })
+    );
+
+    const results = await Promise.allSettled(
+      requests.map((req) => fetch(req))
+    );
+
+    const okRequests = [];
+    results.forEach((res, i) => {
+      if (res.status === "fulfilled" && res.value && res.value.ok && res.value.type === "basic") {
+        okRequests.push(requests[i]);
+      } else {
+        console.warn("[SW] Pré-cache ignoré (échec) →", requests[i].url, res);
+      }
+    });
+
+    // On met en cache uniquement les réponses valides
+    await cache.addAll(okRequests);
+  })());
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((key) => {
-        if (!key.includes(SW_VERSION)) return caches.delete(key);
-      }))
-    )
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => {
+      if (!key.includes(SW_VERSION)) return caches.delete(key);
+    }));
+    await self.clients.claim();
+  })());
 });
 
-// Stratégies de cache simples :
-// - HTML/navigation: Network-first avec fallback offline
-// - Static assets (CSS/JS/images): Stale-while-revalidate
+// Network-first pour HTML/navigation, SWR pour static
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // Ignorer les appels non-GET
   if (req.method !== "GET") return;
 
-  // API: Network-first (si tu as /api/..., ajuste ici)
+  // API (si tu en as) : réseau d’abord
   if (url.pathname.startsWith("/api/")) {
     event.respondWith(networkFirst(req));
     return;
   }
 
-  // Pages HTML -> navigation
+  // Navigation HTML
   if (req.mode === "navigate" || (req.headers.get("accept") || "").includes("text/html")) {
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(RUNTIME).then((cache) => cache.put(req, copy));
-          return res;
-        })
-        .catch(async () => (await caches.match(req)) || caches.match("/offline"))
-    );
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(req);
+        const cache = await caches.open(RUNTIME);
+        cache.put(req, fresh.clone());
+        return fresh;
+      } catch {
+        const cached = await caches.match(req);
+        return cached || caches.match("/offline");
+      }
+    })());
     return;
   }
 
@@ -67,7 +85,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Par défaut: SWR
+  // Par défaut
   event.respondWith(staleWhileRevalidate(req));
 });
 
@@ -80,7 +98,6 @@ async function networkFirst(req) {
   } catch {
     const cached = await caches.match(req);
     if (cached) return cached;
-    // Pour requêtes HTML, proposer la page offline
     if ((req.headers.get("accept") || "").includes("text/html")) {
       return caches.match("/offline");
     }
