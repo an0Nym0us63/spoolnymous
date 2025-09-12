@@ -4,7 +4,7 @@
   "description": "Suivi bobines, filaments, impressions",
   "start_url": "/?utm_source=pwa",
   "scope": "/",
-  "display": "fullscreen",
+  "display": "standalone",
   "orientation": "any",
   "background_color": "#0b1220",
   "theme_color": "#0b1220",
