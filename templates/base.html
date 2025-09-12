@@ -148,21 +148,11 @@ html, body { margin:0; min-height:100%; background:#000; }
 body { padding-bottom: env(safe-area-inset-bottom); }
 #app, #root { background:#000; min-height:100vh; }
 
-.pwa-top-scrim {
-  position: fixed; inset: 0 0 auto 0; height: 8px; background:#000;
-  pointer-events:none; z-index:2147483647;
-}
-.pwa-bottom-scrim {
-  position: fixed; inset: auto 0 0 0; height: calc(8px + env(safe-area-inset-bottom));
-  background:#000; pointer-events:none; z-index:2147483647;
-}
 </style>
 </head>
 
 {% set is_gallery_guest = current_user.is_authenticated and current_user.is_guest and session.get('guest_scope') == 'gallery' %}
 <body>
-  <div class="pwa-top-scrim"></div>
-  <div class="pwa-bottom-scrim"></div>
 <header class="mb-3 border-bottom sticky-header bg-body shadow-sm">
 
   <nav class="navbar navbar-expand-lg">
