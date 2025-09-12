@@ -981,7 +981,27 @@ def frontend_utilities():
 def handle_application_error(error):
     logger.error("ApplicationError capturée :\n%s", traceback.format_exc())
     return render_template("error.html", exception=str(error)), 500
-    
+
+# Manifest à /manifest.webmanifest avec le bon mimetype
+@app.route("/manifest.webmanifest")
+def manifest():
+    return send_from_directory("static/pwa", "manifest.webmanifest", mimetype="application/manifest+json")
+
+# Service worker à la racine pour scope "/"
+@app.route("/service-worker.js")
+def service_worker():
+    # Empêcher le reverse proxy/Cdn d’altérer le mimetype
+    response = send_from_directory("static/pwa", "service-worker.js")
+    response.headers["Content-Type"] = "application/javascript"
+    # Un léger no-cache pour faciliter les mises à jour contrôlées par la version SW
+    response.headers["Cache-Control"] = "no-cache"
+    return response
+
+# Page offline (utilisée par le SW)
+@app.route("/offline")
+def offline():
+    return current_app.jinja_env.get_or_select_template("offline.html").render()
+
 @app.route("/issue")
 def issue():
   if not isMqttClientConnected():
