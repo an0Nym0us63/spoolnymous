@@ -701,3 +701,6 @@
 }
 
 .carousel-meta { margin-top:.35rem; }
+
+:root { color-scheme: dark light; }  /* widgets/formulaires adaptés */
+html, body { background-color: #0b1220; }
