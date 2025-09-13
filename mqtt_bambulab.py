@@ -1009,7 +1009,7 @@ def on_message(client, userdata, msg):
                             if min_dist is not None:
                                 spool['color_dist'] = min_dist
                                 if foundspool is None:
-                                    if min_dist < 50:
+                                    if min_dist < 5000:
                                         foundMode = 'Profile'
                                         foundspool = spool
                                 else:
