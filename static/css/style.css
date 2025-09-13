@@ -704,3 +704,60 @@
 
 :root { color-scheme: dark light; }  /* widgets/formulaires adaptés */
 html, body { margin:0; min-height:100%; background:#000; }
+/* 1) Valeurs par défaut (navigateur + PWA) */
+.select2-container--default .select2-search--dropdown .select2-search__field {
+  background-color: #212529 !important;
+  color: #f8f9fa !important;
+  border: 1px solid #495057 !important;
+  border-radius: .375rem !important;
+  caret-color: #f8f9fa !important;
+}
+
+/* Placeholder lisible */
+.select2-container--default .select2-search--dropdown .select2-search__field::placeholder {
+  color: #adb5bd !important;
+  opacity: 1 !important;
+}
+
+/* Dropdown lui-même en dark, au cas où */
+.select2-container--default .select2-dropdown {
+  background-color: #1e293b !important;
+  color: #f8f9fa !important;
+  border: 1px solid #495057 !important;
+}
+
+/* Option survolée / active */
+.select2-container--default .select2-results__option--highlighted {
+  background-color: #334155 !important;
+  color: #fff !important;
+}
+
+/* 2) Cas WebAPK (PWA installée) : renforce via media query display-mode */
+@media (display-mode: standalone), (display-mode: minimal-ui) {
+  .select2-container--default .select2-search--dropdown .select2-search__field {
+    background-color: #212529 !important;
+    color: #f8f9fa !important;
+    border-color: #495057 !important;
+  }
+  .select2-container--default .select2-dropdown {
+    background-color: #1e293b !important;
+    color: #f8f9fa !important;
+    border-color: #495057 !important;
+  }
+}
+
+/* 3) Autofill Android/Chromium qui reforce un fond blanc */
+.select2-search__field:-webkit-autofill,
+.select2-search__field:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f8f9fa !important;
+  caret-color: #f8f9fa !important;
+  box-shadow: 0 0 0px 1000px #212529 inset !important; /* remplace le fond autofill */
+  transition: background-color 9999s ease-in-out 0s !important; /* hack anti-flash */
+}
+
+/* 4) Si tu utilises le thème Bootstrap 5 dark via data-bs-theme */
+[data-bs-theme="dark"] .select2-container--default .select2-search--dropdown .select2-search__field {
+  background-color: #212529 !important;
+  color: #f8f9fa !important;
+  border-color: #495057 !important;
+}
