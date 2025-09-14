@@ -15,7 +15,7 @@ import math
 from typing import Dict, Any
 from collections.abc import Mapping
 from logger import append_to_rotating_file
-from print_history import  insert_print, insert_filament_usage, update_filament_spool,update_print_field_with_job_id,get_tray_spool_map,delete_tray_spool_map_by_id,snapshot_milestone
+from print_history import  insert_print, insert_filament_usage,update_print_field_with_job_id,get_tray_spool_map,delete_tray_spool_map_by_id,snapshot_milestone
 from filaments import fetch_spools,clearActiveTray,setActiveTray,spendFilaments
 from globals import PRINTER_STATUS, PRINTER_STATUS_LOCK, PROCESSED_JOBS, PENDING_JOBS, update_status, current_status_snapshot, deep_merge
 import logging
