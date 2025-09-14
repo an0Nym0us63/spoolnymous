@@ -2181,15 +2181,23 @@ def resolve_tray_and_ams(entry):
     ams_id = getAMSFromTray(tray_id_global)
     tray_id_local = tray_id_global - ams_id * 4
     return tray_id_local, ams_id
+
+def clean_mapping(ams_mapping):
+    cleaned = []
+    for m in ams_mapping:
+        if isinstance(m, dict):
+            # Nouveau format : ignorer les slots invalides
+            if m.get("slot_id") != 255:
+                cleaned.append(m)
+        else:
+            # Ancien format : ignorer les -1
+            if m != -1:
+                cleaned.append(m)
+    return cleaned
     
 def spendFilaments(printdata):
-    mode=0
-    if printdata["ams_mapping2"]:
-        ams_mapping = printdata["ams_mapping2"]
-        mode=2
-    if printdata["ams_mapping"]:
+    if ams_mapping in printdata:
         ams_mapping = printdata["ams_mapping"]
-        mode=1
     else:
         ams_mapping = [EXTERNAL_SPOOL_ID]
     
@@ -2210,10 +2218,7 @@ def spendFilaments(printdata):
     ams_usage = []
     filamentOrder = printdata["filamentOrder"]
     #filament_id_to_amstray = {fid: tray for tray, fid in filamentOrder.items()}
-    if mode == 2:
-         cleaned_mapping = [m for m in ams_mapping if m["slot_id"] != 255]
-    else:
-        cleaned_mapping = [x for x in ams_mapping if x != -1]
+    cleaned_mapping = clean_mapping(ams_mapping)
     for filamentId, filament in printdata["filaments"].items():
         try:
             ams_mapping_idx = filamentId - 1

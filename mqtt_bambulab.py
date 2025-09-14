@@ -170,6 +170,8 @@ def processMessage(data):
       logger.debug(str(PENDING_PRINT_METADATA))
       print_id = insert_print(name, "cloud", PENDING_PRINT_METADATA["image"],None,PENDING_PRINT_METADATA["duration"],data["print"]["job_id"],data)
 
+      if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"] and 'ams_mapping2' in RINTER_STATE["print"]:
+        PENDING_PRINT_METADATA["ams_mapping"] = PRINTER_STATE["print"]["ams_mapping2"]
       if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"]:
         PENDING_PRINT_METADATA["ams_mapping"] = PRINTER_STATE["print"]["ams_mapping"]
       else:
