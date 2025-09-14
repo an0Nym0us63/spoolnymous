@@ -2196,7 +2196,7 @@ def clean_mapping(ams_mapping):
     return cleaned
     
 def spendFilaments(printdata):
-    if ams_mapping in printdata:
+    if 'ams_mapping' in printdata:
         ams_mapping = printdata["ams_mapping"]
     else:
         ams_mapping = [EXTERNAL_SPOOL_ID]
