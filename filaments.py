@@ -2162,9 +2162,34 @@ def augmentTrayData(spool_list, tray_data, tray_id):
 def getAMSFromTray(n):
     return n // 4
     
+def resolve_tray_and_ams(entry):
+    """
+    Retourne (tray_id, ams_id) pour les deux formats:
+      - ancien: entry = int (tray_id global)
+      - nouveau: entry = {"ams_id": int, "slot_id": int}
+    """
+    if isinstance(entry, dict):
+        # Nouveau format: valeurs déjà séparées
+        ams_id = entry.get("ams_id")
+        tray_id = entry.get("slot_id")
+        if ams_id is None or tray_id is None:
+            raise ValueError("Entrée ams_mapping2 invalide (ams_id/slot_id manquant).")
+        return tray_id, ams_id
+
+    # Ancien format: entry = tray_id global (0..15), on dérive ams_id et on corrige tray_id
+    tray_id_global = int(entry)
+    ams_id = getAMSFromTray(tray_id_global)
+    tray_id_local = tray_id_global - ams_id * 4
+    return tray_id_local, ams_id
+    
 def spendFilaments(printdata):
+    mode=0
+    if printdata["ams_mapping2"]:
+        ams_mapping = printdata["ams_mapping2"]
+        mode=2
     if printdata["ams_mapping"]:
         ams_mapping = printdata["ams_mapping"]
+        mode=1
     else:
         ams_mapping = [EXTERNAL_SPOOL_ID]
     
@@ -2185,15 +2210,16 @@ def spendFilaments(printdata):
     ams_usage = []
     filamentOrder = printdata["filamentOrder"]
     #filament_id_to_amstray = {fid: tray for tray, fid in filamentOrder.items()}
-    cleaned_mapping = [x for x in ams_mapping if x != -1]
+    if mode == 2:
+         cleaned_mapping = [m for m in ams_mapping if m["slot_id"] != 255]
+    else:
+        cleaned_mapping = [x for x in ams_mapping if x != -1]
     for filamentId, filament in printdata["filaments"].items():
         try:
-            logger.debug(filamentId)
-            logger.debug(json.dumps(cleaned_mapping))
             ams_mapping_idx = filamentId - 1
-            tray_id = cleaned_mapping[ams_mapping_idx]   # get tray_id from ams_mapping for filament
-            ams_id = getAMSFromTray(tray_id)        # caclulate ams_id from tray_id
-            tray_id = tray_id - ams_id * 4          # correct tray_id for ams
+            entry = cleaned_mapping[ams_mapping_idx]
+            tray_id, ams_id = resolve_tray_and_ams(entry)
+            
         except Exception as e:
             continue #filament not used
         
