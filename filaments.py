@@ -2188,6 +2188,7 @@ def spendFilaments(printdata):
     cleaned_mapping = [x for x in ams_mapping if x != -1]
     for filamentId, filament in printdata["filaments"].items():
         try:
+            logger.debug(filamentId)
             ams_mapping_idx = filamentId - 1
             tray_id = cleaned_mapping[ams_mapping_idx]   # get tray_id from ams_mapping for filament
             ams_id = getAMSFromTray(tray_id)        # caclulate ams_id from tray_id
@@ -2199,6 +2200,8 @@ def spendFilaments(printdata):
         #    ams_usage[trayUid(ams_id, tray_id)]["usedGrams"] += float(filament["used_g"])
         #else:
         ams_usage.append({"trayUid": trayUid(ams_id, tray_id), "id": filamentId, "usedGrams":float(filament["used_g"])})
+            
+    logger.debug(json.dumps(ams_usage))
     
     for spool in fetch_spools():
         #TODO: What if there is a mismatch between AMS and SpoolMan?
