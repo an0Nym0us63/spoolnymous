@@ -2189,6 +2189,7 @@ def spendFilaments(printdata):
     for filamentId, filament in printdata["filaments"].items():
         try:
             logger.debug(filamentId)
+            logger.debug(json.dumps(cleaned_mapping))
             ams_mapping_idx = filamentId - 1
             tray_id = cleaned_mapping[ams_mapping_idx]   # get tray_id from ams_mapping for filament
             ams_id = getAMSFromTray(tray_id)        # caclulate ams_id from tray_id
