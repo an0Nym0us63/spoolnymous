@@ -5,7 +5,8 @@ from datetime import datetime, timedelta
 import math
 from collections import defaultdict
 import operator
-from deep_translator import GoogleTranslator
+from deep_translator import GoogleTranslator,exceptions
+import time
 import re
 import config
 from config import get_app_setting,get_electric_rate_at
@@ -402,13 +403,22 @@ def update_translated_name(name: str) -> str:
     if not name.strip():
         return ""
 
-    # Traduction mot à mot
     forced_input = '\n'.join(name.split())
-    mot_a_mot = GoogleTranslator(source='auto', target='fr').translate(forced_input)
-    mot_a_mot = ' '.join(mot_a_mot.split('\n')).strip()
+    original = name.strip()
 
-    # Traduction contextuelle
-    contextuel = GoogleTranslator(source='auto', target='fr').translate(name.strip()).strip()
+    try:
+        # Une seule requête pour les deux traductions
+        results = GoogleTranslator(source='auto', target='fr').translate_batch([forced_input, original])
+        mot_a_mot, contextuel = results[0].strip(), results[1].strip()
+    except exceptions.TooManyRequests:
+        time.sleep(1)  # Léger délai, une seule fois
+        try:
+            results = GoogleTranslator(source='auto', target='fr').translate_batch([forced_input, original])
+            mot_a_mot, contextuel = results[0].strip(), results[1].strip()
+        except Exception:
+            return original
+    except Exception:
+        return original
 
     if contextuel.lower() == name.lower():
         return contextuel
