@@ -1,7 +1,7 @@
 {
   "name": "SpoolNymous",
   "short_name": "SpoolNymous",
-  "description": "Suivi bobines, filaments, impressions",
+  "description": "Suivi bobines, filaments, impressions etc ...",
   "start_url": "/?utm_source=pwa",
   "scope": "/",
   "display": "minimal-ui",
