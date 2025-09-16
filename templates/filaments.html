@@ -1196,7 +1196,9 @@ if (window.materialTS) {
 }
     document.getElementById('comment').value = 'Importé depuis catalogue';
 
-    const t = Array.isArray(f.color_hexes) && f.color_hexes.length ? (f.multi_color_direction || 'coaxial') : 'monochrome';
+    const t = Array.isArray(f.color_hexes) && f.color_hexes.length
+  ? ({ longitudinal: 'gradient', radial: 'coaxial' }[String(f.multi_color_direction||'').toLowerCase()] || 'gradient')
+  : 'monochrome';
     document.getElementById('multicolor_type').value =
       ['monochrome','coaxial','gradient'].includes(String(t).toLowerCase()) ? String(t).toLowerCase() : 'monochrome';
     if (typeof window.onFilamentTypeChange === 'function') window.onFilamentTypeChange();
