@@ -1827,57 +1827,48 @@ def _split_colors_array(s: Optional[str]) -> Optional[List[str]]:
 def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
     """
     Retourne la liste des bobines (spools) locales, chacune enrichie avec son filament,
-    et les champs dérivés attendus par l'ancien code fetchSpools().
-
-    Paramètres:
-      - archived:
-          False (par défaut) -> bobines actives uniquement
-          True               -> toutes les bobines (actives + archivées)
-
-    Sortie: liste de dicts JSON-compatibles, chaque spool contient aussi son `filament`.
+    avec indicateur si d'autres bobines actives existent pour le même filament.
     """
     base_sql = """
       SELECT
-        b.id              AS b_id,
-        b.filament_id     AS b_filament_id,
-        b.created_at      AS b_created_at,
-        b.first_used_at   AS b_first_used_at,
-        b.last_used_at    AS b_last_used_at,
-        b.price_override  AS b_price_override,
+        b.id                 AS b_id,
+        b.filament_id        AS b_filament_id,
+        b.created_at         AS b_created_at,
+        b.first_used_at      AS b_first_used_at,
+        b.last_used_at       AS b_last_used_at,
+        b.price_override     AS b_price_override,
         b.remaining_weight_g AS b_remaining_weight_g,
-        b.location        AS b_location,
-        b.tag_number      AS b_tag_number,
-        b.ams_tray        AS b_ams_tray,
-        b.archived        AS b_archived,
-        b.comment         AS b_comment,
-        b.external_spool_id AS b_external_spool_id,
-        b.foundMode AS b_foundMode,
+        b.location           AS b_location,
+        b.tag_number         AS b_tag_number,
+        b.ams_tray           AS b_ams_tray,
+        b.archived           AS b_archived,
+        b.comment            AS b_comment,
+        b.external_spool_id  AS b_external_spool_id,
+        b.foundMode          AS b_foundMode,
 
-        f.id              AS f_id,
-        f.name            AS f_name,
-        f.manufacturer    AS f_manufacturer,
-        f.profile_id        AS f_profile_id,
-        f.material        AS f_material,
-        f.color           AS f_color,
-        f.price           AS f_price,
-        f.filament_weight_g AS f_filament_weight_g,
-        f.spool_weight_g  AS f_spool_weight_g,
-        f.colors_array    AS f_colors_array,
-        f.swatch AS f_swatch,
-        f.transparent AS f_transparent,
-        f.to_order AS f_to_order,
-        f.multicolor_type AS f_multicolor_type
+        f.id                 AS f_id,
+        f.name               AS f_name,
+        f.manufacturer       AS f_manufacturer,
+        f.profile_id         AS f_profile_id,
+        f.material           AS f_material,
+        f.color              AS f_color,
+        f.price              AS f_price,
+        f.filament_weight_g  AS f_filament_weight_g,
+        f.spool_weight_g     AS f_spool_weight_g,
+        f.colors_array       AS f_colors_array,
+        f.swatch             AS f_swatch,
+        f.transparent        AS f_transparent,
+        f.to_order           AS f_to_order,
+        f.multicolor_type    AS f_multicolor_type
       FROM bobines b
       JOIN filaments f ON f.id = b.filament_id
     """
-
     if archived:
         sql = base_sql  # toutes les bobines
         params = ()
     else:
         sql = base_sql + " WHERE b.archived = 0"  # actives uniquement
         params = ()
-
     sql += " ORDER BY b.created_at DESC, b.id DESC"
 
     conn = _connect()
@@ -1885,6 +1876,16 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
         rows = conn.execute(sql, params).fetchall()
     finally:
         conn.close()
+
+    # Comptage des bobines actives par filament (indépendant du filtre d'affichage)
+    conn2 = _connect()
+    try:
+        rows_counts = conn2.execute(
+            "SELECT filament_id, COUNT(*) AS n FROM bobines WHERE archived = 0 GROUP BY filament_id"
+        ).fetchall()
+    finally:
+        conn2.close()
+    active_counts = {int(r["filament_id"]): int(r["n"]) for r in rows_counts}
 
     out: List[Dict[str, Any]] = []
     for r in rows:
@@ -1904,10 +1905,17 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
 
         multi_list = _split_colors_array(r["f_colors_array"])
 
+        # Calcul des autres bobines actives du même filament
+        _fid = int(r["b_filament_id"])
+        _is_archived = bool(r["b_archived"])
+        _active_total_for_filament = active_counts.get(_fid, 0)
+        active_sibling_count = max(0, _active_total_for_filament - (0 if _is_archived else 1))
+        has_other_active_same_filament = active_sibling_count > 0
+
         spool: Dict[str, Any] = {
             "id": int(r["b_id"]),
             "external_spool_id": r["b_external_spool_id"],
-            "filament_id": int(r["b_filament_id"]),
+            "filament_id": _fid,
             "created_at": r["b_created_at"],
             "first_used": r["b_first_used_at"],
             "last_used": r["b_last_used_at"],
@@ -1915,19 +1923,23 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
             "location": r["b_location"],
             "tag_number": r["b_tag_number"],
             "ams_tray": r["b_ams_tray"],
-            "archived": bool(r["b_archived"]),
+            "archived": _is_archived,
             "comment": r["b_comment"],
             "foundMode": r["b_foundMode"],
-
 
             "initial_weight": float(initial_weight) if initial_weight else 0.0,
             "price": float(price),
             "filament_price": float(filament_price),
             "cost_per_gram": float(cost_per_gram),
             "filament_cost_per_gram": float(filament_cost_per_gram),
-            "extra" :{
-                "tag":r["b_tag_number"],
-                "active_tray":r["b_ams_tray"]
+
+            # Nouveaux champs pour l'indicateur dans bobines.html
+            "active_sibling_count": active_sibling_count,
+            "has_other_active_same_filament": has_other_active_same_filament,
+
+            "extra": {
+                "tag": r["b_tag_number"],
+                "active_tray": r["b_ams_tray"],
             },
             "filament": {
                 "id": int(r["f_id"]),
@@ -1945,16 +1957,17 @@ def fetch_spools(*, archived: bool = False) -> List[Dict[str, Any]]:
                 "swatch": r["f_swatch"],
                 "to_order": r["f_to_order"],
                 "vendor": {
-                    "name": r["f_manufacturer"]  # même si None, l'objet existe → pas d’UndefinedError
+                    "name": r["f_manufacturer"]
                 },
-                "extra" :{
-                    "filament_id":r["f_profile_id"]
+                "extra": {
+                    "filament_id": r["f_profile_id"]
                 }
             }
         }
         out.append(spool)
 
     return out
+
 
 from typing import Any, Dict, Optional
 

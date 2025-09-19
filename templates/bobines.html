@@ -174,8 +174,12 @@
 
         <div class="flex-grow-1 text-start overflow-hidden">
           <div style="font-weight: 600;">
-            {{ spool.filament.material }} / {{ spool.filament.name }}
-          </div>
+  {{ spool.filament.material }} / {{ spool.filament.name }}
+  {% if spool.has_other_active_same_filament %}
+    <span class="badge text-bg-info rounded-pill ms-2"
+          title="Une autre bobine active du même filament est disponible">🧵+</span>
+  {% endif %}
+</div>
           <div style="font-size: 0.8rem; color: #cbd5e1;">
             {{ spool.filament.vendor.name }}
 			
