@@ -709,7 +709,7 @@ def _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_c
         (multicolor_type or "monochrome").strip(),
         (colors_csv or "").strip(),
         transparent or 0,
-        (name or "").strip(),
+        (name or "").strip(), 
     ]
     if exclude_id is not None:
         q += " AND id <> ?"
