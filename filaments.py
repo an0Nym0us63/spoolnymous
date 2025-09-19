@@ -692,7 +692,7 @@ def _normalize_colors_array(colors: list[str] | None):
     norm_sorted = sorted(set(norm))  # ordre ignoré pour les doublons
     return norm_sorted[0], ",".join(norm_sorted)
 
-def _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv, transparent, exclude_id=None) -> bool:
+def _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv, transparent, name, exclude_id=None) -> bool:
     q = """
         SELECT id
           FROM filaments
@@ -747,7 +747,7 @@ def ui_create_filament(payload: dict) -> int:
     to_order    = 1 if str(payload.get("to_order", 0)).lower() in ("1","true","on") or payload.get("to_order") is True else 0
 
     color, colors_csv = _normalize_colors_array(colors)
-    if _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv,transparent):
+    if _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv,transparent,name):
         raise ValueError("DUPLICATE_FILAMENT")
 
     filament_weight_g = int(payload.get("filament_weight_g") or 1000)
@@ -787,7 +787,7 @@ def ui_update_filament(filament_id: int, payload: dict) -> None:
     to_order = 1 if str(payload.get("to_order", 0)).lower() in ("1","true","on") or payload.get("to_order") is True else 0
     
     color, colors_csv = _normalize_colors_array(colors)
-    if _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv,transparent, exclude_id=filament_id):
+    if _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_csv,transparent,name, exclude_id=filament_id):
         raise ValueError("DUPLICATE_FILAMENT")
 
     filament_weight_g = int(payload.get("filament_weight_g") or 1000)
