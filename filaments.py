@@ -698,6 +698,7 @@ def _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_c
           FROM filaments
          WHERE lower(coalesce(manufacturer,''))   = lower(?)
            AND lower(coalesce(material,''))       = lower(?)
+           AND lower(coalesce(name,''))       = lower(?)
            AND lower(coalesce(multicolor_type,''))= lower(?)
            AND lower(coalesce(colors_array,''))   = lower(?)
            AND transparent   = ?
@@ -705,6 +706,7 @@ def _filament_duplicate_exists(manufacturer, material, multicolor_type, colors_c
     params = [
         (manufacturer or "").strip(),
         (material or "").strip(),
+        (name or "").strip(),
         (multicolor_type or "monochrome").strip(),
         (colors_csv or "").strip(),
         transparent or 0
