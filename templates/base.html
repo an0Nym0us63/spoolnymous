@@ -34,25 +34,39 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.bootstrap5.min.css">
   <link rel="apple-touch-icon" href="{{ asset_url('logo.png') }}">
+<style>
+  /* Mode dark cohérent + variables safe-area */
+  :root {
+    color-scheme: dark light;
+    --sat: env(safe-area-inset-top, 0px);      /* Safe Area Top (notch iOS)   */
+    --sab: env(safe-area-inset-bottom, 0px);   /* Safe Area Bottom (gesture)  */
+  }
 
-  <!-- Base dark sans décaler la navbar -->
-  <style>
-    :root { color-scheme: dark light; }
-    html, body { margin:0; min-height:100%; background:#000; }
-    /* Respecte la zone gestuelle en bas (Android/iOS) sans toucher le haut */
-    body { padding-bottom: env(safe-area-inset-bottom, 0); }
-    /* Si tu utilises un wrapper app/root */
-    #app, #root { background:#000; min-height:100vh; }
+  html, body { margin: 0; min-height: 100%; background: #000; }
 
-    /* Navbar fix/sticky sans décalage */
-    .sticky-header { position: sticky; top: 0; z-index: 1020; }
+  /* IMPORTANT : pousser tout le contenu sous la barre de statut iOS */
+  body {
+    padding-top: var(--sat);        /* ← corrige iOS (black-translucent) */
+    padding-bottom: var(--sab);     /* ← tu l’avais déjà pour le bas     */
+  }
 
-    .bi { vertical-align: -.125em; fill: currentColor; }
-    .bd-mode-toggle .dropdown-menu .active .bi { display: block !important; }
-    .navbar-toggler { padding: 0.25rem 0.5rem; font-size: 0.875rem; line-height: 1; }
-    .navbar-toggler-icon { width: 1rem; height: 1rem; background-size: 1rem 1rem; }
+  /* Remplacer 100vh pour éviter les sauts d’affichage sur mobile */
+  #app, #root {
+    background: #000;
+    min-height: 100dvh;              /* viewport ‘réel’ mobile */
+    min-height: 100svh;              /* fallback Safari iOS */
+    min-height: -webkit-fill-available; /* vieux iOS */
+  }
 
-    {% if current_user.is_authenticated and current_user.is_guest %}
+  /* Navbar sticky OK, on ne met PAS top: env(...) (sinon double marge) */
+  .sticky-header { position: sticky; top: 0; z-index: 1020; }
+
+  .bi { vertical-align: -.125em; fill: currentColor; }
+  .bd-mode-toggle .dropdown-menu .active .bi { display: block !important; }
+  .navbar-toggler { padding: .25rem .5rem; font-size: .875rem; line-height: 1; }
+  .navbar-toggler-icon { width: 1rem; height: 1rem; background-size: 1rem 1rem; }
+
+   {% if current_user.is_authenticated and current_user.is_guest %}
     [data-requires-write] { display: none !important; }
     {% endif %}
 
@@ -89,7 +103,8 @@
         border-radius: .75rem .75rem 0 0; /* look “sheet” */
       }
     }
-  </style>
+</style>
+
 
   {% block styles %}{% endblock %}
 </head>
