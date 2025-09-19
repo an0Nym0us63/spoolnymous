@@ -313,6 +313,23 @@
 	<span class="badge badge-sx">
     🧵 {{ fil.active_spools_count or 0 }}/{{ fil.spools_count or 0 }}
   </span>
+   {% set total = (filament.total_remaining_active_g or 0) | float %}
+  <span
+    class="badge rounded-pill ms-1 {{ 'text-bg-secondary' if total == 0 else 'text-bg-success' }}"
+    title="Quantité totale restante (bobines non archivées)"
+    style="font-size: 0.75rem;"
+  >
+    {% if total > 0 %}
+      {# format simple: g ou kg au-delà de 1000g #}
+      {% if total >= 1000 %}
+        {{ (total / 1000.0) | round(2) }} kg
+      {% else %}
+        {{ total | round(0, 'floor') | int }} g
+      {% endif %}
+    {% else %}
+      🪫
+    {% endif %}
+  </span>
   </div>
 </div>
           </button>

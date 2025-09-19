@@ -2502,4 +2502,36 @@ def get_filaments_for_gallery(args: Dict[str, Any]) -> Dict[str, Any]:
         "page_size": page_size,
     }
 
+def get_active_totals_by_filament() -> Dict[int, Dict[str, Any]]:
+    """
+    Calcule, pour chaque filament_id, la quantité totale restante (en g) sur les bobines non archivées,
+    ainsi que le nombre de bobines actives.
+    Retour: { filament_id: { 'total_remaining_active_g': float, 'active_spool_count': int } }
+    """
+    sql = """
+        SELECT
+            f.id AS filament_id,
+            COALESCE(SUM(CASE WHEN b.archived = 0 THEN COALESCE(b.remaining_weight_g, 0) ELSE 0 END), 0) AS total_remaining_active_g,
+            COALESCE(SUM(CASE WHEN b.archived = 0 THEN 1 ELSE 0 END), 0) AS active_spool_count
+        FROM filaments f
+        LEFT JOIN bobines b ON b.filament_id = f.id
+        GROUP BY f.id
+    """
+    conn = _connect()
+    try:
+        rows = conn.execute(sql).fetchall()
+    finally:
+        conn.close()
+
+    out: Dict[int, Dict[str, Any]] = {}
+    for r in rows:
+        fid = int(r["filament_id"])
+        total_g = float(r["total_remaining_active_g"] or 0)
+        count_active = int(r["active_spool_count"] or 0)
+        out[fid] = {
+            "total_remaining_active_g": total_g,
+            "active_spool_count": count_active,
+        }
+    return out
+
 ensure_schema()

@@ -32,7 +32,7 @@ from flask import flash,Flask, request, render_template, redirect, url_for,jsoni
 
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
-from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine,attach_spool_counts,remove_filament,update_bobine_tag,update_filament,get_filaments_for_gallery,remove_bobine,set_filament_to_order
+from filaments import sync_from_spoolman, fetch_spools, augmentTrayData,trayUid,fetch_spool_by_id,consume_weight,archive_bobine,refill_weight,update_bobine,list_filaments, count_filaments,ui_create_filament, ui_update_filament,list_filaments,add_bobine,get_bobine,attach_spool_counts,remove_filament,update_bobine_tag,update_filament,get_filaments_for_gallery,remove_bobine,set_filament_to_order,get_active_totals_by_filament  
 
 from config import AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME,get_app_setting,set_app_setting
 from filament import generate_filament_brand_code, generate_filament_temperatures
@@ -3096,6 +3096,15 @@ def filaments_catalog():
     
     filaments_page = attach_spool_counts(filaments_page)
     total_order = sum(1 for f in rows if int(f.get("to_order") or 0) == 1)
+    totals_by_fid = get_active_totals_by_filament()
+
+    for f in filaments_page:
+        fid = int(f.get("id") or f.get("f_id"))
+        totals = totals_by_fid.get(fid, {"total_remaining_active_g": 0.0, "active_spool_count": 0})
+        # On injecte directement sur l’objet envoyé au template
+        f["total_remaining_active_g"] = totals["total_remaining_active_g"]
+        f["active_spool_count"] = totals["active_spool_count"]
+        
     return render_template(
         "filaments.html",
         filaments=filaments_page,
