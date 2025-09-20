@@ -20,9 +20,7 @@
             {{ tray_data.name }}
           </span>
         {% endif %}
-          {% if tray_data.issue 
-      or (tray_data.tray_uuid != "00000000000000000000000000000000" 
-          and tray_data.foundMode != "Tag") %}
+          {% if tray_data.issue%}
     - {{ '<i class="bi bi-exclamation-circle text-danger me-2"></i>' | safe }}
 {% endif %}
       </div>
