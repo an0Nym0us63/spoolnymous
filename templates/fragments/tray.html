@@ -19,13 +19,12 @@
           - <span id="tray-name-{{ ams_id|string }}_{{ tray_data.id|string }}"><!-- [LIVE-ID] name -->
             {{ tray_data.name }}
           </span>
-        {% else %}
+        {% endif %}
           {% if tray_data.issue 
       or (tray_data.tray_uuid != "00000000000000000000000000000000" 
           and tray_data.foundMode != "Tag") %}
     - {{ '<i class="bi bi-exclamation-circle text-danger me-2"></i>' | safe }}
 {% endif %}
-        {% endif %}
       </div>
 
       <!-- Ligne meta type / subbrand / vendor -->
