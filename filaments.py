@@ -2161,7 +2161,7 @@ def augmentTrayData(spool_list, tray_data, tray_id):
 
     # S'il y a une config (type) mais qu'on n'a rien trouvé: flag issue
     tray_data["issue"] = bool(tray_data.get("tray_type")) and not tray_data["matched"]
-    if tray_data["tray_uuid"] != "00000000000000000000000000000000" and "foundMode" in tray_data and tray_data["foundMode"] != "Tag":
+    if "tray_uuid" in tray_data and tray_data["tray_uuid"] != "00000000000000000000000000000000" and "foundMode" in tray_data and tray_data["foundMode"] != "Tag":
         tray_data["issue"] = True
 
     # Si non matché -> purger l'affichage pour éviter les reliquat
