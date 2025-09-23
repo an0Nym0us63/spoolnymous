@@ -197,6 +197,7 @@ def get_camera_urls():
 
     urls = [
         f"rtsps://bblp:{code}@{ip}:322/streaming/live/1",
+        f"rtsps://bblp:{code}@{ip}:322/streaming/live/0",
         # Tu peux en rajouter ici si besoin, p.ex. un RTSP alternatif en fallback
         # f"rtsp://bblp:{code}@{ip}:322/streaming/live/1",
     ]
@@ -377,7 +378,11 @@ def serve_snapshot() -> Response:
     with _SNAP_LOCK:
         _SNAP["ok"] = False
         _SNAP["fail_count"] = min(_SNAP["fail_count"] + 1, 999999)
-        base = min(_FAIL_BASE * (2 ** (_SNAP["fail_count"] - 1)), _FAIL_MAX)
+
+        # Limite de fail_count pour éviter OverflowError lors de 2 ** x
+        safe_fail_count = min(_SNAP["fail_count"], 32)
+        base = min(_FAIL_BASE * (2 ** (safe_fail_count - 1)), _FAIL_MAX)
+        
         jitter = base * _FAIL_JITTER * (2 * random.random() - 1.0)
         wait_s = max(1.0, base + jitter)
         _SNAP["retry_at"] = time.monotonic() + wait_s
