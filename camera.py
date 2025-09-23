@@ -197,7 +197,6 @@ def get_camera_urls():
 
     urls = [
         f"rtsps://bblp:{code}@{ip}:322/streaming/live/1",
-        f"rtsps://bblp:{code}@{ip}:322/streaming/live/0",
         # Tu peux en rajouter ici si besoin, p.ex. un RTSP alternatif en fallback
         # f"rtsp://bblp:{code}@{ip}:322/streaming/live/1",
     ]
