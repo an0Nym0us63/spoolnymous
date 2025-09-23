@@ -32,7 +32,7 @@ _SNAP_TTL_OK     = 0.8   # s : TTL en cas de succès (front ~1 Hz → ~1 capture
 _FAIL_BASE       = 10.0  # s : premier palier de backoff en cas d'échec
 _FAIL_MAX        = 120.0 # s : plafond de backoff
 _FAIL_JITTER     = 0.20  # ±20% de jitter
-_FFMPEG_TIMEOUTS = 6.0   # délai pour ffmpeg
+_FFMPEG_TIMEOUTS = 12.0   # délai pour ffmpeg
 
 def _get_printer_model_name() -> str:
     """Récupère le nom modèle via mqtt_bambulab.getPrinterModel()."""
