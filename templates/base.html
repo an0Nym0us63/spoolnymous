@@ -103,6 +103,17 @@
         border-radius: .75rem .75rem 0 0; /* look “sheet” */
       }
     }
+	
+	/* --- Réordonnage upload --- */
+.thumb      { width:86px; height:86px; object-fit:cover; border-radius:.5rem; }
+.thumb-wrap { position:relative; user-select:none; }
+.thumb-badge{
+  position:absolute; top:0; left:0; transform:translate(-30%, -30%);
+  background:#ffc107; color:#000; border-radius:999px; padding:.1rem .45rem; font-weight:700; font-size:.8rem;
+  box-shadow:0 0 .4rem rgba(0,0,0,.45);
+}
+.draggable  { cursor:grab; }
+.dragging   { opacity:.6; cursor:grabbing; }
 </style>
 
 
@@ -295,6 +306,28 @@
       </div>
     </div>
   </div>
+  
+  <!-- Modale réordonnage avant envoi -->
+<div class="modal fade" id="reorderModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title">Ordre d’envoi</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <div class="small text-white-50 mb-2">
+          Faites glisser pour réordonner. Le <strong>#1</strong> deviendra l’image principale si le filament n’a pas encore de swatch.
+        </div>
+        <div id="reorderList" class="d-flex flex-wrap gap-2"></div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary btn-sm" id="reorderConfirm">Envoyer</button>
+      </div>
+    </div>
+  </div>
+</div>
 
   <!-- Toast mise à jour -->
   <div class="update-toast-container" data-requires-write>
@@ -421,7 +454,7 @@
     showUploadIndicator();
 
     const fd = new FormData();
-    const toSend = (target.type === 'filaments') ? [files[0]] : files; // 1 seule photo pour filaments
+    const toSend=files; // 1 seule photo pour filaments
     for (const f of toSend) fd.append('photos', f);
 
     let resp = await fetch(`/upload_photo/${encodeURIComponent(target.type)}/${encodeURIComponent(target.id)}`, {
@@ -462,10 +495,27 @@
       if (btnGal) btnGal.addEventListener('click', () => { if (gal) { gal.value = ''; gal.click(); } });
 
       if (gal) gal.addEventListener('change', () => {
-        uploadFiles(Array.from(gal.files || []));
-        gal.value = '';
-        if (modalEl) { const m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); }
-      }, { passive: true });
+  const files = Array.from(gal.files || []);
+  gal.value = '';
+
+  // Fermer éventuellement la modale de choix (mobile)
+  const choiceModal = document.getElementById('photoChoiceModal');
+  if (choiceModal) {
+    const m = bootstrap.Modal.getInstance(choiceModal);
+    if (m) m.hide();
+  }
+
+  if (!files.length) return;
+
+  // Caméra = une seule photo -> pas de réordonnage
+  if (files.length === 1) {
+    uploadFiles(files);
+    return;
+  }
+
+  // Plusieurs fichiers : on propose de réordonner
+  openReorderModal(files, window.__currentPhotoTarget__);
+}, { passive:true });
 
       if (cam) cam.addEventListener('change', () => {
         uploadFiles(Array.from(cam.files || []));
@@ -633,6 +683,100 @@ function hideUploadIndicator() {
 document.addEventListener('DOMContentLoaded', () => {
   hideUploadIndicator(); // garantit caché au premier paint
 });
+
+function openReorderModal(fileList, target) {
+  // files = Array pour permettre un réordonnage
+  const files = Array.from(fileList || []);
+  const modalEl = document.getElementById('reorderModal');
+  const container = document.getElementById('reorderList');
+  const confirmBtn = document.getElementById('reorderConfirm');
+
+  if (!modalEl || !container || !confirmBtn) {
+    // fallback : si la modale n’existe pas (ne devrait pas arriver)
+    uploadFiles(files);
+    return;
+  }
+
+  // Reset conteneur
+  container.innerHTML = '';
+
+  // Construire les vignettes ordonnées
+  files.forEach((f, i) => {
+    const url = URL.createObjectURL(f);
+    const el = document.createElement('div');
+    el.className = 'thumb-wrap draggable';
+    el.draggable = true;
+    el.dataset.index = String(i);
+    el.innerHTML = `
+      <img class="thumb" src="${url}" alt="Photo ${i+1}">
+      <span class="thumb-badge">${i+1}</span>
+    `;
+    container.appendChild(el);
+  });
+
+  // DnD natif
+  let dragEl = null;
+
+  container.addEventListener('dragstart', (e) => {
+    const item = e.target.closest('.draggable');
+    if (!item) return;
+    dragEl = item;
+    item.classList.add('dragging');
+  }, { once:false });
+
+  container.addEventListener('dragend', () => {
+    if (dragEl) dragEl.classList.remove('dragging');
+    dragEl = null;
+    renumber();
+  }, { once:false });
+
+  container.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const after = getDragAfterElement(container, e.clientX, e.clientY);
+    const dragging = container.querySelector('.dragging');
+    if (!dragging) return;
+    if (!after) container.appendChild(dragging);
+    else container.insertBefore(dragging, after);
+  }, { once:false });
+
+  function getDragAfterElement(container, x, y) {
+    const els = [...container.querySelectorAll('.draggable:not(.dragging)')];
+    return els.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      // Distance euclidienne au centre de la vignette
+      const cx = box.left + box.width/2;
+      const cy = box.top  + box.height/2;
+      const dist = Math.hypot(x - cx, y - cy);
+      return (dist < closest.dist) ? { dist, el: child } : closest;
+    }, { dist: Number.POSITIVE_INFINITY, el: null }).el;
+  }
+
+  function renumber(){
+    [...container.children].forEach((el, idx) => {
+      const b = el.querySelector('.thumb-badge');
+      if (b) b.textContent = String(idx+1);
+    });
+  }
+
+  // Nettoyage des ObjectURL quand la modale se ferme
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    [...container.querySelectorAll('img.thumb')].forEach(img => {
+      try { URL.revokeObjectURL(img.src); } catch(_) {}
+    });
+    container.innerHTML = '';
+  }, { once:true });
+
+  // Confirmer => récupérer l’ordre visuel et envoyer DANS CET ORDRE
+  confirmBtn.onclick = () => {
+    const ordered = [...container.children].map(el => files[Number(el.dataset.index)]);
+    window.__currentPhotoTarget__ = target || window.__currentPhotoTarget__;
+    uploadFiles(ordered);
+    bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+  };
+
+  // Afficher la modale
+  bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
   </script>
 
   {% include 'fragments/release_version.html' %}
