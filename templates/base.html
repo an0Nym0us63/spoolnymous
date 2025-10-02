@@ -104,7 +104,7 @@
       }
     }
 	#uploadIndicator {
-  display: none !important; /* toujours caché par défaut */
+  display: none; /* toujours caché par défaut */
 }
 </style>
 
@@ -435,7 +435,7 @@
     if (!resp.ok) {
       console.error('Upload failed', resp.status);
     } else {
-      location.reload();
+		setTimeout(() => location.reload(), 800); // petit délai pour que le hide passe
     }
   } catch (e) {
     console.error('Upload error', e);
