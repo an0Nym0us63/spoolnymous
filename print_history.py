@@ -69,7 +69,7 @@ COLOR_FAMILIES = {
     'Purple': (160, 32, 240), 
     'Dark Purple': (90, 60, 120), # violet foncé
 }
-
+_IMPRESSION_RE_CLEAN = re.compile(r".*impression", re.IGNORECASE)
 _IMPRESSION_RE = re.compile(r"^Impression[-_\s]*(\d+)%?$", re.IGNORECASE)
 
 def sort_pie_data(pie):
@@ -1803,7 +1803,7 @@ def list_print_images(print_id: str | int | None = None, include_progress: bool 
             seen.add(key)
             uniq.append(r)
     if not include_progress:
-        uniq = [r for r in uniq if not _IMPRESSION_RE.match(r["name"] or "")]
+        uniq = [r for r in uniq if not _IMPRESSION_RE_CLEAN.match(r["name"] or "")]
     # tri personnalisé
     def sort_key(item):
         m = _IMPRESSION_RE.match(item["name"])
