@@ -160,6 +160,10 @@
               </a>
             {% endif %}
           </div>
+		  <div class="d-flex align-items-center ms-3" id="uploadIndicator" style="display:none;">
+  <div class="spinner-border spinner-border-sm text-warning me-2" role="status"></div>
+  <span class="d-none d-sm-inline text-warning">Upload...</span>
+</div>
 
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                   data-bs-target="#navbarNav" aria-controls="navbarNav"
@@ -409,32 +413,35 @@
     };
 
     async function uploadFiles(files) {
-      const target = window.__currentPhotoTarget__;
-      if (!files || !files.length || !target) return;
-      try {
-        window.__isUploading__ = true;
-        const fd = new FormData();
-        const toSend = (target.type === 'filaments') ? [files[0]] : files;
-        for (const f of toSend) fd.append('photos', f);
+  const target = window.__currentPhotoTarget__;
+  if (!files || !files.length || !target) return;
+  try {
+    window.__isUploading__ = true;
+    showUploadIndicator();   // ← ICI
+    
+    const fd = new FormData();
+    const toSend = (target.type === 'filaments') ? [files[0]] : files;
+    for (const f of toSend) fd.append('photos', f);
 
-        let resp = await fetch(`/upload_photo/${encodeURIComponent(target.type)}/${encodeURIComponent(target.id)}`, {
-          method: 'POST', body: fd
-        });
-        if (resp.status === 404 && target.type === 'prints') {
-          resp = await fetch(`/upload_photo/${encodeURIComponent(target.id)}`, { method: 'POST', body: fd });
-        }
-        if (!resp.ok) {
-          console.error('Upload failed', resp.status);
-        } else {
-          location.reload();
-        }
-      } catch (e) {
-        console.error('Upload error', e);
-      } finally {
-        window.__isUploading__ = false;
-        window.__currentPhotoTarget__ = null;
-      }
+    let resp = await fetch(`/upload_photo/${encodeURIComponent(target.type)}/${encodeURIComponent(target.id)}`, {
+      method: 'POST', body: fd
+    });
+    if (resp.status === 404 && target.type === 'prints') {
+      resp = await fetch(`/upload_photo/${encodeURIComponent(target.id)}`, { method: 'POST', body: fd });
     }
+    if (!resp.ok) {
+      console.error('Upload failed', resp.status);
+    } else {
+      location.reload();
+    }
+  } catch (e) {
+    console.error('Upload error', e);
+  } finally {
+    window.__isUploading__ = false;
+    window.__currentPhotoTarget__ = null;
+    hideUploadIndicator();   // ← ET ICI
+  }
+}
 
     document.addEventListener('DOMContentLoaded', function () {
       const gal   = document.getElementById('__hidden_photo_input_gallery__');
@@ -602,6 +609,15 @@
         .catch(console.error);
     });
   }
+  
+  function showUploadIndicator() {
+  document.getElementById('uploadIndicator').style.display = 'flex';
+}
+
+function hideUploadIndicator() {
+  document.getElementById('uploadIndicator').style.display = 'none';
+}
+
   </script>
 
   {% include 'fragments/release_version.html' %}
