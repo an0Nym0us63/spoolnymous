@@ -1863,7 +1863,7 @@ def list_group_images(group_id: str | int | None = None, include_progress: bool 
         print_ids = []
 
     for pid in print_ids:
-        for img in (list_print_images(pid) or []):
+        for img in (list_print_images(pid,include_progress) or []):
             name = img.get("name") or ""
             if _IMPRESSION_RE.match(name):
                 progress_results.append({
