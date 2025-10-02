@@ -142,20 +142,62 @@
   </span></div>
 {% endif %}
             </div>
-{% if entry.images and entry.images|length > 0 %}
-  {% set gid = entry.id %}
-  <div id="carousel-group-{{ gid }}" class="carousel slide print-carousel mb-3" data-bs-ride="false" data-bs-touch="true" data-bs-interval="false">
+{# --- CARROUSEL GROUPE : Photos → 3mf → Progress --- #}
+{% set gid = entry.id %}
+{% set imgs = entry.images or [] %}
+
+{# Sépare photos vs progress ("Impression" dans le nom) #}
+{% set P = namespace(photos=[], progress=[]) %}
+{% for img in imgs %}
+  {% if 'impression' in ((img.name or '')|lower) %}
+    {% set _ = P.progress.append(img) %}
+  {% else %}
+    {% set _ = P.photos.append(img) %}
+  {% endif %}
+{% endfor %}
+
+{# 3mf du groupe via la miniature d’en-tête #}
+{% if entry.thumbnail %}
+  {% set group_3mf = url_for('static', filename='prints/' ~ entry.thumbnail) %}
+{% else %}
+  {% set group_3mf = None %}
+{% endif %}
+
+{% set total_slides = (P.photos|length) + (1 if group_3mf else 0) + (P.progress|length) %}
+{% if total_slides > 0 %}
+  <div id="carousel-group-{{ gid }}" class="carousel slide print-carousel mb-3"
+       data-bs-ride="false" data-bs-touch="true" data-bs-interval="false">
     <div class="carousel-inner rounded">
-      {% for img in entry.images %}
+
+      {# 1) PHOTOS (active = 1re photo) #}
+      {% for img in P.photos %}
         <div class="carousel-item {% if loop.first %}active{% endif %}" data-name="{{ img.name }}">
           <div class="preview-frame d-flex align-items-center justify-content-center">
-  <img src="{{ img.url }}" alt="{{ img.name }}" class="preview-img" loading="lazy">
-</div>
+            <img src="{{ img.url }}" alt="{{ img.name }}" class="preview-img" loading="lazy">
+          </div>
+        </div>
+      {% endfor %}
+
+      {# 2) 3MF (active si aucune photo) #}
+      {% if group_3mf %}
+        <div class="carousel-item {% if P.photos|length == 0 %}active{% endif %}" data-name="3mf">
+          <div class="preview-frame d-flex align-items-center justify-content-center">
+            <img src="{{ group_3mf }}" alt="3mf" class="preview-img" loading="lazy">
+          </div>
+        </div>
+      {% endif %}
+
+      {# 3) PROGRESS (Impression XX%) #}
+      {% for img in P.progress %}
+        <div class="carousel-item {% if P.photos|length == 0 and not group_3mf and loop.first %}active{% endif %}" data-name="{{ img.name }}">
+          <div class="preview-frame d-flex align-items-center justify-content-center">
+            <img src="{{ img.url }}" alt="{{ img.name }}" class="preview-img" loading="lazy">
+          </div>
         </div>
       {% endfor %}
     </div>
 
-    {% if entry.images|length > 1 %}
+    {% if total_slides > 1 %}
       <button class="carousel-control-prev" type="button" data-bs-target="#carousel-group-{{ gid }}" data-bs-slide="prev">
         <span class="carousel-control-prev-icon" aria-hidden="true"></span>
         <span class="visually-hidden">Précédent</span>
@@ -165,25 +207,35 @@
         <span class="visually-hidden">Suivant</span>
       </button>
 
+      {# Indicateurs : d’abord photos, puis 3mf, puis progress #}
       <div class="carousel-indicators">
-        {% for _ in entry.images %}
-          <button type="button" data-bs-target="#carousel-group-{{ gid }}" data-bs-slide-to="{{ loop.index0 }}" class="{% if loop.first %}active{% endif %}" aria-current="{% if loop.first %}true{% else %}false{% endif %}"></button>
+        {% for _ in P.photos %}
+          <button type="button" data-bs-target="#carousel-group-{{ gid }}" data-bs-slide-to="{{ loop.index0 }}"
+                  class="{% if loop.first %}active{% endif %}"></button>
+        {% endfor %}
+        {% if group_3mf %}
+          <button type="button" data-bs-target="#carousel-group-{{ gid }}" data-bs-slide-to="{{ P.photos|length }}"
+                  class="{% if P.photos|length == 0 %}active{% endif %}"></button>
+        {% endif %}
+        {% for _ in P.progress %}
+          <button type="button" data-bs-target="#carousel-group-{{ gid }}"
+                  data-bs-slide-to="{{ (P.photos|length) + (1 if group_3mf else 0) + loop.index0 }}"
+                  class="{% if P.photos|length == 0 and not group_3mf and loop.first %}active{% endif %}"></button>
         {% endfor %}
       </div>
     {% endif %}
   </div>
-{# Barre nom centré + bouton Galerie à droite #}
-{% if entry.images and (entry.images|length) > 0 %}
-  <div class="d-flex justify-content-center align-items-center mt-2 position-relative carousel-meta" data-pid="group-{{ gid }}">
-    <small id="cname-group-{{ gid }}" class="caption-badge text-center">3mf</small>
 
+  {# Barre nom + Galerie (même ordre) #}
+  {% set gallery_imgs = P.photos + ([{'url': group_3mf, 'name': '3mf'}] if group_3mf else []) + P.progress %}
+  <div class="d-flex justify-content-center align-items-center mt-2 position-relative carousel-meta" data-pid="group-{{ gid }}">
+    <small id="cname-group-{{ gid }}" class="caption-badge text-center">
+      {{ (P.photos[0].name if P.photos|length > 0 else ( '3mf' if group_3mf else (P.progress[0].name if P.progress|length > 0 else ''))) }}
+    </small>
     <button type="button" class="btn btn-gallery position-absolute end-0 me-2"
-            onclick='openGalleryFromEntry({{ (entry.images or [])|tojson }}, {{ (entry.name or ("Groupe #" ~ entry.id))|tojson }})'
-            title="Ouvrir la galerie">
-      🖼
-    </button>
+            onclick='openGalleryFromEntry({{ (gallery_imgs or [])|tojson }}, {{ (entry.name or ("Groupe #" ~ entry.id))|tojson }})'
+            title="Ouvrir la galerie">🖼</button>
   </div>
-{% endif %}
 {% endif %}
 <div style="height: 0.2rem;"></div>
             <div class="mb-3 mt-2">
