@@ -617,7 +617,9 @@
 function hideUploadIndicator() {
   document.getElementById('uploadIndicator').style.display = 'none';
 }
-
+document.addEventListener('DOMContentLoaded', () => {
+  hideUploadIndicator();  // assure qu'il est caché au chargement
+});
   </script>
 
   {% include 'fragments/release_version.html' %}
