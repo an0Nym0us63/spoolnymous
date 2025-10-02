@@ -199,69 +199,62 @@
   </div>
 </div>
 {% if o.thumbnail %}
-	  <div class="text-center">{% set imgs = obj_images.get(o.id, []) if obj_images is defined else [] %}
-{% if imgs %}
-  <div id="carousel-object-{{ o.id }}"
-       class="carousel slide print-carousel mb-3"
-       data-bs-ride="false" data-bs-touch="true" data-bs-interval="false">
+  {% set imgs = obj_images.get(o.id, []) if obj_images is defined else [] %}
+  {% if imgs %}
+    <div class="text-center">
+      <div id="carousel-object-{{ o.id }}"
+           class="carousel slide print-carousel mb-3"
+           data-bs-ride="false" data-bs-touch="true" data-bs-interval="false">
 
-    <div class="carousel-inner rounded">
-	
-    {# Slide 0 : miniature (PNG) comme avant #}
-    <div class="carousel-item active" data-name="3mf">
-      <div class="preview-frame d-flex align-items-center justify-content-center">
-          <img
-            src="{{ o.thumbnail }}"
-            alt="3mf"
-            class="preview-img"
-            loading="lazy"
-          >
-      </div>
-    </div>
-      {% for img in imgs %}
-        <div class="carousel-item {% if loop.first %}active{% endif %}" data-name="{{ img.name }}">
-          <div class="preview-frame d-flex align-items-center justify-content-center">
-            <img src="{{ img.url }}" alt="{{ img.name }}" class="preview-img" loading="lazy">
+        <div class="carousel-inner rounded">
+          <div class="carousel-item active" data-name="3mf">
+            <div class="preview-frame d-flex align-items-center justify-content-center">
+              <img src="{{ o.thumbnail }}" alt="3mf" class="preview-img" loading="lazy">
+            </div>
           </div>
+          {% for img in imgs %}
+            <div class="carousel-item" data-name="{{ img.name }}">
+              <div class="preview-frame d-flex align-items-center justify-content-center">
+                <img src="{{ img.url }}" alt="{{ img.name }}" class="preview-img" loading="lazy">
+              </div>
+            </div>
+          {% endfor %}
         </div>
-      {% endfor %}
-    </div>
 
-    {% if imgs|length > 1 %}
-      <button class="carousel-control-prev" type="button"
-              data-bs-target="#carousel-object-{{ o.id }}" data-bs-slide="prev">
-        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Précédent</span>
-      </button>
-      <button class="carousel-control-next" type="button"
-              data-bs-target="#carousel-object-{{ o.id }}" data-bs-slide="next">
-        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Suivant</span>
-      </button>
-
-      <div class="carousel-indicators">
-        {% for _ in imgs %}
-          <button type="button" data-bs-target="#carousel-object-{{ o.id }}"
-                  data-bs-slide-to="{{ loop.index0 }}"
-                  class="{% if loop.first %}active{% endif %}"
-                  aria-current="{% if loop.first %}true{% else %}false{% endif %}">
+        {% set total_slides = (imgs|length) + 1 %}
+        {% if total_slides > 1 %}
+          <button class="carousel-control-prev" type="button"
+                  data-bs-target="#carousel-object-{{ o.id }}" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Précédent</span>
           </button>
-        {% endfor %}
-      </div>
-    {% endif %}
-  </div>
-{# Barre nom centré + bouton Galerie à droite #}
-{% if imgs and (imgs|length) > 0 %}
-  <div class="d-flex justify-content-center align-items-center mt-2 position-relative carousel-meta" data-pid="{{ pid }}">
-    <small id="cname-{{ pid }}" class="caption-badge text-center">3mf</small>
+          <button class="carousel-control-next" type="button"
+                  data-bs-target="#carousel-object-{{ o.id }}" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Suivant</span>
+          </button>
 
-    <button type="button" class="btn btn-gallery position-absolute end-0 me-2"
-            onclick='openGalleryFromEntry({{ (imgs or [])|tojson }}, {{ (o.name or ("Objet #" ~ o.id))|tojson }})'
-            title="Ouvrir la galerie">
-      🖼
-    </button>
-  </div>
-{% endif %}
+          <div class="carousel-indicators">
+            <button type="button" data-bs-target="#carousel-object-{{ o.id }}"
+                    data-bs-slide-to="0" class="active" aria-current="true"></button>
+            {% for img in imgs %}
+              <button type="button" data-bs-target="#carousel-object-{{ o.id }}"
+                      data-bs-slide-to="{{ loop.index }}"></button>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      {% if total_slides > 1 %}
+        <div class="d-flex justify-content-center align-items-center mt-2 position-relative carousel-meta">
+          <small id="cname-object-{{ o.id }}" class="caption-badge text-center">3mf</small>
+          <button type="button" class="btn btn-gallery position-absolute end-0 me-2"
+                  onclick='openGalleryFromEntry({{ (imgs or [])|tojson }}, {{ (o.name or ("Objet #" ~ o.id))|tojson }})'
+                  title="Ouvrir la galerie">🖼</button>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
 {% endif %}
       </div>
       {% endif %}

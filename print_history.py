@@ -1768,7 +1768,7 @@ def snapshot_milestone(job_id: str, pct: int, basename: str | None = None) -> No
         logger.warning("Snapshot milestone %s (job_id=%s, print_id=%s) ÉCHEC: %s", basename, job_id, print_id, e)
         raise
 
-def list_print_images(print_id: str | int | None = None):
+def list_print_images(print_id: str | int | None = None, include_progress: bool = True):
     """
     Retourne une liste de dicts {url, name} des images trouvées pour ce print.
     - Priorité aux fichiers dont le nom commence par 'Impression XX%'
@@ -1802,7 +1802,8 @@ def list_print_images(print_id: str | int | None = None):
         if key not in seen:
             seen.add(key)
             uniq.append(r)
-
+    if not include_progress:
+        uniq = [r for r in uniq if not _IMPRESSION_RE.match(r["name"] or "")]
     # tri personnalisé
     def sort_key(item):
         m = _IMPRESSION_RE.match(item["name"])
@@ -1814,7 +1815,7 @@ def list_print_images(print_id: str | int | None = None):
 
     return sorted(uniq, key=sort_key)
 
-def list_group_images(group_id: str | int | None = None):
+def list_group_images(group_id: str | int | None = None, include_progress: bool = True):
     """
     Retourne une liste de dicts {url, name} pour un groupe, en concaténant :
       1) Images propres au groupe:                static/uploads/groups/<group_id>/
@@ -1891,16 +1892,15 @@ def list_group_images(group_id: str | int | None = None):
     progress_results = sorted(progress_results, key=sort_key_progress)
 
     # --- Dédoublonnage global et concat ordre strict ---
-    seen = set()
     out = []
-
-    for coll in (group_results, photos_results, progress_results):
+    seen = set()
+    collections = (group_results, photos_results, progress_results) if include_progress else (group_results, photos_results)
+    for coll in collections:
         for r in coll:
             key = (r["url"], r["name"])
             if key not in seen:
                 seen.add(key)
                 out.append(r)
-
     return out
 
 def _seq_from_name(name: str) -> int:

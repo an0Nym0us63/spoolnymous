@@ -1383,7 +1383,7 @@ def print_history():
                     usage["grams_used"] += filament["grams_used"]
                     usage["cost"] += filament.get("cost", 0.0)
                     usage["normal_cost"] += filament.get("normal_cost", 0.0)
-            entry["images"] = list_group_images(entry["id"])
+            entry["images"] = list_group_images(entry["id"], include_progress=False) 
             entry["images_count"] = len(entry["images"])
             entry["has_images"] = bool(entry["images"])
 

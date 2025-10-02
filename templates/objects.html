@@ -338,8 +338,8 @@
   </div>
   {# Barre nom centré + bouton Galerie à droite #}
 {% if imgs and (imgs|length) > 0 %}
-  <div class="d-flex justify-content-center align-items-center mt-2 position-relative carousel-meta" data-pid="{{ pid }}">
-    <small id="cname-{{ pid }}" class="caption-badge text-center">3mf</small>
+  <div class="d-flex justify-content-center align-items-center mt-2 position-relative carousel-meta" data-pid="group-objects-{{ it.group.id }}">
+    <small id="cname-group-objects-{{ it.group.id }}" class="caption-badge text-center">3mf</small>
 
     <button type="button" class="btn btn-gallery position-absolute end-0 me-2"
             onclick='openGalleryFromEntry({{ (imgs or [])|tojson }}, {{ (g.name or ("Groupe Objets #" ~ g.id))|tojson }})'

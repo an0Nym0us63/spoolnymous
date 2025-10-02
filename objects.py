@@ -1747,9 +1747,9 @@ def list_object_images(object_id: int | str | None) -> List[Dict[str, str]]:
     ref_imgs: List[Dict[str, str]] = []
 
     if parent_type == "print" and parent_id is not None:
-        ref_imgs = list_print_images(parent_id) or []
+        ref_imgs = list_print_images(parent_id, include_progress=False) or []
     elif parent_type == "group" and parent_id is not None:
-        ref_imgs = list_group_images(parent_id) or []
+        ref_imgs = list_group_images(parent_id, include_progress=False) or []
 
     # Préfixer noms et dispatcher en buckets
     ref_photos: List[Dict[str, str]] = []
