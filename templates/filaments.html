@@ -410,14 +410,39 @@
                 <li><strong>Fabricant :</strong> {{ fil.manufacturer or '—' }}</li>
                 <li><strong>Matériau :</strong> {{ fil.material or '—' }}</li>
                 <li><strong>Couleur(s) :</strong>
-                  {% if fil.colors_array %}
-                    <span class="hex-pill" style="width:22px;height:22px;vertical-align:-5px;background: linear-gradient(90deg,{% for c in colors %}#{{ c|trim|replace('#','') }}{% if not loop.last %}, {% endif %}{% endfor %});"></span>
-                    <span class="ms-2">{% for c in colors %}#{{ c|trim|replace('#','') }}{% if not loop.last %} / {% endif %}{% endfor %}</span>
-                  {% elif fil.color %}
-                    <span class="hex-pill" style="width:22px;height:22px;vertical-align:-5px;background:#{{ fil.color|replace('#','') }}"></span>
-                    <span class="ms-2">#{{ fil.color|replace('#','') }}</span>
-                  {% else %} — {% endif %}
-                </li>
+  {% if fil.colors_array %}
+    {# colors = liste ['FFAA00','112233', ...] #}
+    {% set colors = fil.colors_array.split(',') if fil.colors_array is string else fil.colors_array %}
+
+    {# pastille dégradée #}
+    <span class="hex-pill"
+          style="width:22px;height:22px;vertical-align:-5px;
+                 background: linear-gradient(90deg,{% for c in colors %}#{{ c|trim|replace('#','') }}{% if not loop.last %}, {% endif %}{% endfor %});">
+    </span>
+
+    <span class="ms-2">
+      {% for c in colors %}
+        {% set hex = (c|trim|replace('#','')) %}
+        {% set r = hex[0:2]|int(base=16) %}
+        {% set g = hex[2:4]|int(base=16) %}
+        {% set b = hex[4:6]|int(base=16) %}
+        #{{ hex|upper }} ({{ r }}, {{ g }}, {{ b }}){% if not loop.last %} / {% endif %}
+      {% endfor %}
+    </span>
+
+  {% elif fil.color %}
+    {% set hex = fil.color|replace('#','') %}
+    {% set r = hex[0:2]|int(base=16) %}
+    {% set g = hex[2:4]|int(base=16) %}
+    {% set b = hex[4:6]|int(base=16) %}
+    <span class="hex-pill"
+          style="width:22px;height:22px;vertical-align:-5px;background:#{{ hex }}"></span>
+    <span class="ms-2">#{{ hex|upper }} ({{ r }}, {{ g }}, {{ b }})</span>
+
+  {% else %}
+    —
+  {% endif %}
+</li>
 				<li><strong>Type couleur :</strong>{{ (fil.multicolor_type or 'monochrome')|capitalize }}</li>
 				
 			{% if fil.transparent == 1  %}
