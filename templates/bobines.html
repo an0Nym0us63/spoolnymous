@@ -342,24 +342,46 @@
     — 
   {% endif %}</li>
             <li><strong>Localisation :</strong> {{ spool.location or "—" }}</li>
-            <li><strong>Couleur :</strong>
-              {% if spool.filament.multi_color_hexes %}
-                {% set colors =
-                    spool.filament.multi_color_hexes.split(",") if spool.filament.multi_color_hexes is string
-                    else spool.filament.multi_color_hexes %}
-                <span style="display:inline-block;width:20px;height:20px;vertical-align:middle;background:linear-gradient(90deg{% for c in colors %}, #{{c.strip()}}{% endfor %});border-radius:4px;border:1px solid #ccc;"></span>
-                <span class="ms-2">{% for c in colors %}#{{ c.strip() }}{% if not loop.last %} / {% endif %}{% endfor %}</span>
-              {% else %}
-                <span style="display:inline-block;width:20px;height:20px;vertical-align:middle;background-color:#{{ spool.filament.color_hex }};border-radius:4px;border:1px solid #ccc;"></span>
-                <span class="ms-2">
-                  #{{ spool.filament.color_hex }} 
-                  {% set hex = spool.filament.color_hex %}
-                  {% if hex|length == 6 %}
-                    ({{ [hex[0:2], hex[2:4], hex[4:6]]|map('int', 16)|join(', ') }})
-                  {% endif %}
-                </span>
-              {% endif %}
-            </li>
+            <li><strong>Couleur(s) :</strong>
+  {% if spool.filament.multi_color_hexes %}
+    {% set colors = spool.filament.multi_color_hexes.split(',') if spool.filament.multi_color_hexes is string else spool.filament.multi_color_hexes %}
+
+    {# pastille dégradée #}
+    <span class="hex-pill"
+          style="width:22px;height:22px;vertical-align:-5px;
+                 background: linear-gradient(90deg,{% for c in colors %}#{{ c|trim|replace('#','') }}{% if not loop.last %}, {% endif %}{% endfor %});">
+    </span>
+
+    <span class="ms-2">
+      {% for c in colors %}
+        {% set hex = (c|trim|replace('#','')) %}
+        {# support éventuel #RGB -> #RRGGBB #}
+        {% if hex|length == 3 %}
+          {% set hex = hex[0]*2 ~ hex[1]*2 ~ hex[2]*2 %}
+        {% endif %}
+        {% set r = hex[0:2]|int(base=16) %}
+        {% set g = hex[2:4]|int(base=16) %}
+        {% set b = hex[4:6]|int(base=16) %}
+        #{{ hex|upper }} ({{ r }}, {{ g }}, {{ b }}){% if not loop.last %} / {% endif %}
+      {% endfor %}
+    </span>
+
+  {% elif spool.filament.color_hex %}
+    {% set hex = spool.filament.color_hex|replace('#','') %}
+    {% if hex|length == 3 %}
+      {% set hex = hex[0]*2 ~ hex[1]*2 ~ hex[2]*2 %}
+    {% endif %}
+    <span class="hex-pill"
+          style="width:22px;height:22px;vertical-align:-5px;background:#{{ hex }}"></span>
+    <span class="ms-2">
+      #{{ hex|upper }}
+      ({{ hex[0:2]|int(base=16) }}, {{ hex[2:4]|int(base=16) }}, {{ hex[4:6]|int(base=16) }})
+    </span>
+
+  {% else %}
+    —
+  {% endif %}
+</li>
 			{% if spool.filament.transparent == 1  %}
             <li><strong>Translucide :</strong> Oui</li>
 			
