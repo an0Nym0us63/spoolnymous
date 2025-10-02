@@ -105,9 +105,9 @@
     }
 	
 	/* --- Réordonnage upload --- */
-.thumb      { width:86px; height:86px; object-fit:cover; border-radius:.5rem; }
-.thumb-wrap { position:relative; user-select:none; }
-.thumb-badge{
+.thumbbase      { width:86px; height:86px; object-fit:cover; border-radius:.5rem; }
+.thumbbase-wrap { position:relative; user-select:none; }
+.thumbbase-badge{
   position:absolute; top:0; left:0; transform:translate(-30%, -30%);
   background:#ffc107; color:#000; border-radius:999px; padding:.1rem .45rem; font-weight:700; font-size:.8rem;
   box-shadow:0 0 .4rem rgba(0,0,0,.45);
@@ -704,12 +704,12 @@ function openReorderModal(fileList, target) {
   files.forEach((f, i) => {
     const url = URL.createObjectURL(f);
     const el = document.createElement('div');
-    el.className = 'thumb-wrap draggable';
+    el.className = 'thumbbase-wrap draggable';
     el.draggable = true;
     el.dataset.index = String(i);
     el.innerHTML = `
-      <img class="thumb" src="${url}" alt="Photo ${i+1}">
-      <span class="thumb-badge">${i+1}</span>
+      <img class="thumbbase" src="${url}" alt="Photo ${i+1}">
+      <span class="thumbbase-badge">${i+1}</span>
     `;
     container.appendChild(el);
   });
@@ -753,14 +753,14 @@ function openReorderModal(fileList, target) {
 
   function renumber(){
     [...container.children].forEach((el, idx) => {
-      const b = el.querySelector('.thumb-badge');
+      const b = el.querySelector('.thumbbase-badge');
       if (b) b.textContent = String(idx+1);
     });
   }
 
   // Nettoyage des ObjectURL quand la modale se ferme
   modalEl.addEventListener('hidden.bs.modal', () => {
-    [...container.querySelectorAll('img.thumb')].forEach(img => {
+    [...container.querySelectorAll('img.thumbbase')].forEach(img => {
       try { URL.revokeObjectURL(img.src); } catch(_) {}
     });
     container.innerHTML = '';
