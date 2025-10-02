@@ -103,9 +103,6 @@
         border-radius: .75rem .75rem 0 0; /* look “sheet” */
       }
     }
-	#uploadIndicator {
-  display: none; /* toujours caché par défaut */
-}
 </style>
 
 
@@ -163,8 +160,8 @@
               </a>
             {% endif %}
           </div>
-		  <div class="d-flex align-items-center ms-3" id="uploadIndicator" style="display:none;">
-  <div class="spinner-border spinner-border-sm text-warning me-2" role="status"></div>
+<div id="uploadIndicator" class="d-none align-items-center ms-3">
+  <div class="spinner-border spinner-border-sm text-warning me-2" role="status" aria-label="Upload en cours"></div>
   <span class="d-none d-sm-inline text-warning">Upload...</span>
 </div>
 
@@ -418,31 +415,38 @@
     async function uploadFiles(files) {
   const target = window.__currentPhotoTarget__;
   if (!files || !files.length || !target) return;
+
   try {
     window.__isUploading__ = true;
-    showUploadIndicator();   // ← ICI
-    
+    showUploadIndicator();
+
     const fd = new FormData();
-    const toSend = (target.type === 'filaments') ? [files[0]] : files;
+    const toSend = (target.type === 'filaments') ? [files[0]] : files; // 1 seule photo pour filaments
     for (const f of toSend) fd.append('photos', f);
 
     let resp = await fetch(`/upload_photo/${encodeURIComponent(target.type)}/${encodeURIComponent(target.id)}`, {
-      method: 'POST', body: fd
+      method: 'POST',
+      body: fd
     });
+
     if (resp.status === 404 && target.type === 'prints') {
       resp = await fetch(`/upload_photo/${encodeURIComponent(target.id)}`, { method: 'POST', body: fd });
     }
+
     if (!resp.ok) {
       console.error('Upload failed', resp.status);
-    } else {
-		setTimeout(() => location.reload(), 800); // petit délai pour que le hide passe
+      return;
     }
+
+    // Donne le temps au hide + reflow avant reload (sinon flash résiduel possible)
+    setTimeout(() => location.reload(), 800);
+
   } catch (e) {
     console.error('Upload error', e);
   } finally {
     window.__isUploading__ = false;
     window.__currentPhotoTarget__ = null;
-    hideUploadIndicator();   // ← ET ICI
+    hideUploadIndicator();
   }
 }
 
@@ -613,15 +617,21 @@
     });
   }
   
-  function showUploadIndicator() {
-  document.getElementById('uploadIndicator').style.display = 'flex';
+ function showUploadIndicator() {
+  const el = document.getElementById('uploadIndicator');
+  if (!el) return;
+  el.classList.remove('d-none');
+  el.classList.add('d-flex');
 }
 
 function hideUploadIndicator() {
-  document.getElementById('uploadIndicator').style.display = 'none';
+  const el = document.getElementById('uploadIndicator');
+  if (!el) return;
+  el.classList.remove('d-flex');
+  el.classList.add('d-none');
 }
 document.addEventListener('DOMContentLoaded', () => {
-  hideUploadIndicator();  // assure qu'il est caché au chargement
+  hideUploadIndicator(); // garantit caché au premier paint
 });
   </script>
 
