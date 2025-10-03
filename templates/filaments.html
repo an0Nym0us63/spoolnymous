@@ -368,6 +368,19 @@
     📸 Uploader échantillon
   </a>
 </li>
+<li>
+  {% if fil.to_order == 1 %}
+    <button class="dropdown-item"
+            onclick="setFilamentWishlist({{ fil.id }}, 0)">
+      ❌ Retirer de la wishlist
+    </button>
+  {% else %}
+    <button class="dropdown-item"
+            onclick="setFilamentWishlist({{ fil.id }}, 1)">
+      🛒 Marquer à commander
+    </button>
+  {% endif %}
+</li>
 {% if (fil.spools_count or 0) > 0 %}
     <li>
       <button class="dropdown-item disabled text-muted" title="Impossible : des bobines sont rattachées" type="button">
@@ -1309,5 +1322,36 @@ if (window.materialTS) {
     }
   });
 })();
+
+if (typeof setFilamentWishlist !== 'function') {
+  async function setFilamentWishlist(filamentId, toOrder = 1) {
+    try {
+      const r = await fetch(`/api/filaments/${filamentId}/wishlist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to_order: toOrder ? 1 : 0 })
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.ok) throw new Error(d?.message || 'Échec mise à jour');
+
+      await Swal.fire({
+        icon: 'success',
+        title: toOrder ? 'Ajouté à la wishlist' : 'Retiré de la wishlist',
+        showConfirmButton: false,
+        timer: 1200,
+        timerProgressBar: true
+      });
+
+      location.reload();
+    } catch (e) {
+      console.error(e);
+      Swal.fire({
+        icon: 'error',
+        title: 'Erreur',
+        text: e?.message || 'Une erreur est survenue'
+      });
+    }
+  }
+}
 </script>
 {% endblock %}
