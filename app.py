@@ -698,15 +698,12 @@ def _pad_width(n: int) -> int:
     return max(2, len(str(n)))
 
 def _is_reserved_name(name: str, entity: str) -> bool:
-    """
-    True si ce fichier ne doit PAS être renommé/réordonné.
-    Exigence : pour les prints, tout ce qui commence par 'Impression ' (ou variantes).
-    """
     n = (name or "").lower()
+    if n.endswith(".3mf"):
+        return True
     if entity == "prints":
-        # gère "Impression " + encodages simples/variantes
         return n.startswith("impression ") or n.startswith("impression%20") \
-               or n.startswith("impression_") or n.startswith("impression-")
+            or n.startswith("impression_") or n.startswith("impression-")
     return False
 
 def _apply_reorder(entity: str, entity_id: int, ordered_names: list[str]) -> list[dict]:

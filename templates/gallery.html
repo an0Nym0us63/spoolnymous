@@ -371,11 +371,12 @@
       };
     } catch(_) { return null; }
   }
-  function isReservedFilename(name){
+function isReservedFilename(name){
   const n = (name || '').toLowerCase();
-  // variantes courantes : espace, encodé, underscore, tiret
-  return n.startsWith('impression ') || n.startsWith('impression%20')
-      || n.startsWith('impression_') || n.startsWith('impression-');
+  const isImpression = n.startsWith('impression ') || n.startsWith('impression%20')
+                    || n.startsWith('impression_') || n.startsWith('impression-');
+  const is3mf = n.startsWith('3mf');
+  return isImpression || is3mf;
 }
 
   // on ajoute un badge d'ordre sur chaque tuile
