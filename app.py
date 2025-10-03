@@ -171,61 +171,44 @@ def __is_animated_sequence(in_path: Path) -> bool:
         return in_path.suffix.lower() in {".mp4", ".m4v", ".mov", ".webm", ".gif"}
 
 def __is_animated_sequence(in_path: Path) -> bool:
-    """
-    True si le média a >1 frame (GIF animé, MP4, etc.). Fallback sur extension.
-    """
     try:
         out = subprocess.check_output(
-            [
-                "ffprobe", "-v", "error",
-                "-select_streams", "v:0",
-                "-count_frames",
-                "-show_entries", "stream=nb_read_frames",
-                "-of", "default=nokey=1:noprint_wrappers=1",
-                str(in_path),
-            ],
-            stderr=subprocess.DEVNULL,
-            text=True,
+            ["ffprobe","-v","error","-select_streams","v:0","-count_frames",
+             "-show_entries","stream=nb_read_frames",
+             "-of","default=nokey=1:noprint_wrappers=1", str(in_path)],
+            stderr=subprocess.DEVNULL, text=True
         ).strip()
         n = int(out) if out.isdigit() else 1
         return n > 1
     except Exception:
-        return in_path.suffix.lower() in {".mp4", ".m4v", ".mov", ".webm", ".gif"}
+        return in_path.suffix.lower() in {".mp4",".m4v",".mov",".webm",".gif"}
 
 def _ffmpeg_compress(in_path: Path, out_path: Path, to_webp: bool = True,
-                     max_w: int = 1600, max_h: int = 1600, quality: int = 80) -> None:
-    """
-    Compresse/convertit via ffmpeg (sans deps Python).
-    - Applique l’orientation EXIF (transpose) détectée par __probe_rotation_degrees.
-    - Redimensionne à max_w×max_h (ratio conservé) + setsar=1.
-    - Image fixe  -> 1 frame (WEBP statique si to_webp=True, sinon JPEG).
-    - Séquence    -> WEBP animé (gif/mp4) si to_webp=True, sinon MP4.
-    - Métadonnées supprimées.
-    """
+                     max_w: int = 800, max_h: int = 800, quality: int = 80) -> None:
     in_path  = Path(in_path)
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Rotation EXIF explicite (pas de -autorotate)
+    # Rotation EXIF explicite
     rot = __probe_rotation_degrees(in_path)
     rot_filter = ""
-    if rot == 90:
-        rot_filter = "transpose=1"
-    elif rot == 180:
-        rot_filter = "transpose=1,transpose=1"
-    elif rot == 270:
-        rot_filter = "transpose=2"
+    if rot == 90:   rot_filter = "transpose=1"
+    elif rot == 180: rot_filter = "transpose=1,transpose=1"
+    elif rot == 270: rot_filter = "transpose=2"
 
-    scale = f"scale='min(iw,{max_w})':'min(ih,{max_h})':force_original_aspect_ratio=decrease"
-    vf_parts = [p for p in (rot_filter, scale, "setsar=1") if p]
+    # Chaîne de filtres commune
+    vf_parts = [p for p in (rot_filter,
+                            f"scale='min(iw,{max_w})':'min(ih,{max_h})':force_original_aspect_ratio=decrease",
+                            "setsar=1") if p]
+    is_seq = __is_animated_sequence(in_path)
+    if is_seq:
+        # ✅ impose le framerate ici (au lieu de -r) pour éviter le conflit avec -vsync
+        vf_parts.append("fps=12")
+
     vf = ",".join(vf_parts)
 
-    is_seq = __is_animated_sequence(in_path)
-
     common = [
-        "ffmpeg",
-        "-y", "-hide_banner", "-loglevel", "error",
-        "-nostdin",
+        "ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-nostdin",
         "-i", str(in_path),
         "-vf", vf,
         "-map_metadata", "-1",
@@ -234,10 +217,8 @@ def _ffmpeg_compress(in_path: Path, out_path: Path, to_webp: bool = True,
 
     if is_seq:
         if to_webp:
-            # MP4/GIF -> WEBP animé
+            # MP4/GIF -> WEBP animé (boucle infinie)
             cmd = common + [
-                "-vsync", "0",
-                "-r", "12",
                 "-c:v", "libwebp",
                 "-q:v", str(quality),
                 "-compression_level", "6",
@@ -247,7 +228,6 @@ def _ffmpeg_compress(in_path: Path, out_path: Path, to_webp: bool = True,
                 str(out_path.with_suffix(".webp")),
             ]
         else:
-            # Fallback MP4
             cmd = common + [
                 "-c:v", "libx264",
                 "-crf", "23",
@@ -256,7 +236,7 @@ def _ffmpeg_compress(in_path: Path, out_path: Path, to_webp: bool = True,
                 str(out_path.with_suffix(".mp4")),
             ]
     else:
-        # Image fixe -> frame unique
+        # Image fixe -> 1 frame
         if to_webp:
             cmd = common + [
                 "-frames:v", "1",
