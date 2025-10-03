@@ -656,6 +656,35 @@
 {% block scripts %}
 {{ super() }}
 <script>
+window.setFilamentWishlist = window.setFilamentWishlist || (async function setFilamentWishlist(filamentId, toOrder = 1) {
+  try {
+    const r = await fetch(`/api/filaments/${filamentId}/wishlist`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to_order: toOrder ? 1 : 0 })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.ok) throw new Error(d?.message || 'Échec mise à jour');
+
+    if (window.Swal) {
+      await Swal.fire({
+        icon: 'success',
+        title: toOrder ? 'Ajouté à la wishlist' : 'Retiré de la wishlist',
+        showConfirmButton: false,
+        timer: 1200,
+        timerProgressBar: true
+      });
+    }
+    location.reload();
+  } catch (e) {
+    console.error(e);
+    if (window.Swal) {
+      Swal.fire({ icon: 'error', title: 'Erreur', text: e?.message || 'Une erreur est survenue' });
+    } else {
+      alert('Erreur: impossible de mettre à jour la wishlist.');
+    }
+  }
+});
 function setSelectValue(tsOrEl, value){
   if (!value) return;
   const v = String(value).trim();
@@ -1323,35 +1352,5 @@ if (window.materialTS) {
   });
 })();
 
-if (typeof setFilamentWishlist !== 'function') {
-  async function setFilamentWishlist(filamentId, toOrder = 1) {
-    try {
-      const r = await fetch(`/api/filaments/${filamentId}/wishlist`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to_order: toOrder ? 1 : 0 })
-      });
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok || !d.ok) throw new Error(d?.message || 'Échec mise à jour');
-
-      await Swal.fire({
-        icon: 'success',
-        title: toOrder ? 'Ajouté à la wishlist' : 'Retiré de la wishlist',
-        showConfirmButton: false,
-        timer: 1200,
-        timerProgressBar: true
-      });
-
-      location.reload();
-    } catch (e) {
-      console.error(e);
-      Swal.fire({
-        icon: 'error',
-        title: 'Erreur',
-        text: e?.message || 'Une erreur est survenue'
-      });
-    }
-  }
-}
 </script>
 {% endblock %}
