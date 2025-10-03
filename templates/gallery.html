@@ -384,17 +384,9 @@ function isReservedFilename(name){
   let k = 0;
   [...container.children].forEach((el) => {
     let b = el.querySelector('.order-badge');
-    if (!b) {
-      b = document.createElement('span');
-      b.className = 'order-badge';
-      el.appendChild(b);
-    }
-    if (el.dataset.locked === '1') {
-      b.textContent = '';          // pas de numéro sur les verrouillées
-    } else {
-      k += 1;
-      b.textContent = String(k);   // numérote seulement les réordonnables
-    }
+    if (!b) { b = document.createElement('span'); b.className = 'order-badge'; el.appendChild(b); }
+    if (el.dataset.locked === '1') b.textContent = '';
+    else b.textContent = String(++k);
   });
 }
 
@@ -474,31 +466,90 @@ function isReservedFilename(name){
 
   // enrichit les tuiles existantes (dataset + badge)
   [...grid.children].forEach(card => {
-  const url = card.getAttribute('data-url') || '';
+  const url  = card.getAttribute('data-url') || '';
   const meta = parseUploadPath(url);
+
   if (meta) {
     card.dataset.entity   = meta.entity;
     card.dataset.entityId = String(meta.id);
     card.dataset.filename = meta.filename;
+  } else {
+    // URL hors /static/uploads/... => non réordonnable
+    card.dataset.locked = '1';
+    card.classList.add('locked');
+    const lock = document.createElement('span');
+    lock.className = 'lock-badge'; lock.textContent = '🔒';
+    card.appendChild(lock);
+  }
 
-    // 🔒 verrouille “Impression …”
-    if (isReservedFilename(meta.filename)) {
-      card.dataset.locked = '1';
-      card.classList.add('locked');
+  // Verrouille aussi les fichiers réservés (Impression…, .3mf)
+  if (isReservedFilename(card.dataset.filename || '')) {
+    card.dataset.locked = '1';
+    card.classList.add('locked');
+    if (!card.querySelector('.lock-badge')) {
       const lock = document.createElement('span');
-      lock.className = 'lock-badge';
-      lock.textContent = '🔒';
+      lock.className = 'lock-badge'; lock.textContent = '🔒';
       card.appendChild(lock);
     }
   }
-  // badge ordre (affiché seulement en mode réordonnancement)
-  let badge = card.querySelector('.order-badge');
-  if (!badge) {
-    badge = document.createElement('span');
-    badge.className = 'order-badge';
-    card.appendChild(badge);
+
+  // Badge ordre (affiché en mode réordonnancement)
+  if (!card.querySelector('.order-badge')) {
+    const b = document.createElement('span');
+    b.className = 'order-badge';
+    card.appendChild(b);
   }
 });
+(function deriveEntityInfo(){
+  // priorité à un hint via querystring ?entity=&id=
+  const hint = getEntityHint();
+  if (hint) {
+    grid.dataset.entity = hint.entity;
+    grid.dataset.entityId = String(hint.id);
+  }
+  // Sinon, prends la 1re vignette réordonnable comme référence
+  if (!grid.dataset.entity || !grid.dataset.entityId) {
+    for (const el of grid.children) {
+      if (el.dataset.locked === '1') continue;
+      if (el.dataset.entity && el.dataset.entityId) {
+        grid.dataset.entity = el.dataset.entity;
+        grid.dataset.entityId = el.dataset.entityId;
+        break;
+      }
+    }
+  }
+  // Si on a une référence, on verrouille tout ce qui ne matche pas
+  if (grid.dataset.entity && grid.dataset.entityId) {
+    for (const el of grid.children) {
+      const match = (el.dataset.entity === grid.dataset.entity) &&
+                    (el.dataset.entityId === grid.dataset.entityId) &&
+                    !!el.dataset.filename &&
+                    el.dataset.locked !== '1';
+      if (!match) {
+        el.dataset.locked = '1';
+        el.classList.add('locked');
+        if (!el.querySelector('.lock-badge')) {
+          const lock = document.createElement('span');
+          lock.className = 'lock-badge'; lock.textContent = '🔒';
+          el.appendChild(lock);
+        }
+      }
+    }
+  } else {
+    // Aucune référence déductible → tout verrouiller et masquer le bouton
+    for (const el of grid.children) {
+      el.dataset.locked = '1';
+      el.classList.add('locked');
+      if (!el.querySelector('.lock-badge')) {
+        const lock = document.createElement('span');
+        lock.className = 'lock-badge'; lock.textContent = '🔒';
+        el.appendChild(lock);
+      }
+    }
+    const btn = document.getElementById('btnReorder');
+    btn && btn.classList.add('d-none');
+  }
+})();
 
   const btnReorder      = document.getElementById('btnReorder');
   const rActions        = document.getElementById('reorderActions');
@@ -509,17 +560,36 @@ function isReservedFilename(name){
   let reorderOn = false;
 
   function allSameEntityInfo(){
-    // déduit entity/id à partir de la 1ère tuile
-    const first = grid.firstElementChild;
-    if (!first) return null;
-    const ent = first.dataset.entity, id = Number(first.dataset.entityId);
-    if (!ent || !Number.isFinite(id)) return null;
-    // vérifie cohérence
-    for (const el of grid.children) {
-      if (el.dataset.entity !== ent || Number(el.dataset.entityId) !== id) return null;
-    }
-    return { entity: ent, id };
-  }
+  const ent = grid.dataset.entity;
+  const id  = Number(grid.dataset.entityId);
+  if (!ent || !Number.isFinite(id)) return null;
+  const movable = [...grid.children].filter(el => el.dataset.locked !== '1');
+  return movable.length ? { entity: ent, id } : null;
+}
+  function getEntityHint(){
+  const p = new URLSearchParams(location.search);
+  const entity = (p.get('entity') || '').trim().toLowerCase();
+  const id = Number(p.get('id') || p.get('entity_id') || NaN);
+  return (entity && Number.isFinite(id)) ? { entity, id } : null;
+}
+
+function isReservedFilename(name){
+  const n = (name || '').toLowerCase();
+  const isImpression = n.startsWith('impression ') || n.startsWith('impression%20')
+                    || n.startsWith('impression_') || n.startsWith('impression-');
+  const is3mf = n.endsWith('.3mf');
+  return isImpression || is3mf;
+}
+
+function parseUploadPath(url){
+  try {
+    const u = new URL(url, window.location.origin);
+    const parts = u.pathname.split('/').filter(Boolean);
+    const upIdx = parts.indexOf('uploads');
+    if (upIdx < 0 || parts.length < upIdx+4) return null;
+    return { entity: parts[upIdx+1], id: Number(parts[upIdx+2]), filename: parts.slice(upIdx+3).join('/') };
+  } catch(_) { return null; }
+}
 
   function enterReorder(){
     const info = allSameEntityInfo();
@@ -545,84 +615,70 @@ function isReservedFilename(name){
   }
 
   async function saveReorder(){
-    const info = allSameEntityInfo();
-    if (!info) { leaveReorder(); return; }
-    const filenames = [...grid.children]
-  .filter(el => el.dataset.locked !== '1')
-  .map(el => el.dataset.filename)
-  .filter(Boolean);
-    if (!filenames.length) { leaveReorder(); return; }
+  const info = allSameEntityInfo();
+  if (!info) { leaveReorder(); return; }
+  const filenames = [...grid.children]
+    .filter(el => el.dataset.locked !== '1')
+    .map(el => el.dataset.filename)
+    .filter(Boolean);
+  if (filenames.length < 2) { leaveReorder(); return; }
 
-    try{
-      const r = await fetch(`/api/${encodeURIComponent(info.entity)}/${encodeURIComponent(info.id)}/images/order`, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json' },
-        body: JSON.stringify({ order: filenames })
+  try{
+    const r = await fetch(`/api/${encodeURIComponent(info.entity)}/${encodeURIComponent(info.id)}/images/order`, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ order: filenames })
+    });
+    if (!r.ok) throw new Error(String(r.status));
+    const d = await r.json();
+    const files = (d && d.files) || [];
+
+    // reconstruit la grille en réappliquant les règles de lock
+    grid.innerHTML = '';
+    files.forEach((f, i) => {
+      const card = document.createElement('div');
+      card.className = 'g-thumb';
+      card.setAttribute('data-url', f.url);
+      card.dataset.entity   = info.entity;
+      card.dataset.entityId = String(info.id);
+      card.dataset.filename = f.filename;
+
+      // lock si réservé (Impression…, .3mf)
+      if (isReservedFilename(f.filename)) {
+        card.dataset.locked = '1'; card.classList.add('locked');
+        const lock = document.createElement('span'); lock.className = 'lock-badge'; lock.textContent='🔒';
+        card.appendChild(lock);
+      }
+
+      const del = document.createElement('button');
+      del.type='button'; del.className='btn btn-sm btn-outline-light del js-del-photo';
+      del.title='Supprimer'; del.setAttribute('data-url', f.url); del.setAttribute('data-requires-write','');
+      del.innerHTML='<i class="bi bi-x-lg"></i>';
+
+      const img = document.createElement('img'); img.src=f.url; img.alt=f.filename;
+      const name= document.createElement('div'); name.className='name'; name.textContent=f.filename;
+      const badge=document.createElement('span'); badge.className='order-badge'; badge.textContent=String(i+1);
+
+      card.append(del, img, name, badge);
+      card.addEventListener('click', function(e){
+        if (reorderOn) return;
+        if (e.target.closest('.js-del-photo')) return;
+        const idx = [...grid.children].indexOf(card);
+        if (idx >= 0) openLightbox(idx);
       });
-      if (!r.ok) throw new Error(String(r.status));
-      const d = await r.json();
+      grid.appendChild(card);
+    });
 
-      // MAJ locale : remplace la grille selon la réponse
-      const files = (d && d.files) || [];
-      grid.innerHTML = '';
-      files.forEach((f, i) => {
-        const card = document.createElement('div');
-        card.className = 'g-thumb';
-        card.setAttribute('data-url', f.url);
-        card.dataset.entity   = info.entity;
-        card.dataset.entityId = String(info.id);
-        card.dataset.filename = f.filename;
-		if (isReservedFilename(f.filename)) {
-  card.dataset.locked = '1';
-  card.classList.add('locked');
-  const lock = document.createElement('span');
-  lock.className = 'lock-badge';
-  lock.textContent = '🔒';
-  card.appendChild(lock);
-}
-
-        const del = document.createElement('button');
-        del.type = 'button';
-        del.className = 'btn btn-sm btn-outline-light del js-del-photo';
-        del.title = 'Supprimer';
-        del.setAttribute('data-url', f.url);
-        del.setAttribute('data-requires-write','');
-        del.innerHTML = '<i class="bi bi-x-lg"></i>';
-
-        const img = document.createElement('img');
-        img.src = f.url; img.alt = f.filename;
-
-        const name = document.createElement('div');
-        name.className = 'name'; name.textContent = f.filename;
-
-        const badge = document.createElement('span');
-        badge.className = 'order-badge'; badge.textContent = String(i+1);
-
-        card.append(del, img, name, badge);
-        // en mode normal, clique ouvre la lightbox
-        card.addEventListener('click', function(e){
-          if (reorderOn) return; // pas de lightbox en réordonnancement
-          if (e.target.closest('.js-del-photo')) return;
-          // localise l'index
-          const idx = [...grid.children].indexOf(card);
-          if (idx >= 0) openLightbox(idx);
-        });
-
-        grid.appendChild(card);
-      });
-
-      // MAJ compte (si présent)
-      const countEl = document.getElementById('jsCount');
-      if (countEl) countEl.textContent = String(files.length);
-
-      Swal?.fire?.("OK", "Ordre appliqué.", "success");
-    }catch(e){
-      console.error(e);
-      Swal?.fire?.("Erreur", "Impossible d'appliquer l'ordre.", "error");
-    }finally{
-      leaveReorder();
-    }
+    const countEl = document.getElementById('jsCount');
+    if (countEl) countEl.textContent = String(files.length);
+    Swal?.fire?.("OK", "Ordre appliqué.", "success");
+  } catch(e) {
+    console.error(e);
+    Swal?.fire?.("Erreur", "Impossible d'appliquer l'ordre.", "error");
+  } finally {
+    leaveReorder();
   }
+}
 
   if (btnReorder)      btnReorder.addEventListener('click', enterReorder);
   if (btnReorderSave)  btnReorderSave.addEventListener('click', saveReorder);
