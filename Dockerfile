@@ -17,6 +17,7 @@ RUN useradd -u 1000 -m app \
 
 WORKDIR $APP_HOME
 
+
 # Dépendances Python (wheels dispo sur 3.12)
 COPY --chown=app:app requirements.txt .
 RUN python -m venv $VIRTUAL_ENV \
