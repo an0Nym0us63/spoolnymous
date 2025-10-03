@@ -97,7 +97,7 @@
 @media (max-width: 576px) {
   /* 3 colonnes strictes */
   .g-grid { 
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
   /* permettre au grid de calculer la largeur -> carrés via aspect-ratio */
   .g-thumb { 
@@ -105,6 +105,10 @@
     min-height: 0; 
   }
   .lb-index { display: none; }
+}
+.g-grid.reorder-on,
+.g-grid.reorder-on * {
+  touch-action: none;
 }
   </style>
 {% endblock %}
@@ -445,73 +449,100 @@ function isReservedFilename(name){
 
   // --- Pointer-reorder (mobile OK) ---
   function enableGridPointerReorder(container){
-    let dragging=null, placeholder=null, offsetX=0, offsetY=0;
-    let moveH=null, upH=null;
+  let dragging = null, placeholder = null, offsetX = 0, offsetY = 0, pid = null;
 
-    function getClosest(x, y, excludeA, excludeB){
-      const items = [...container.children].filter(el => el !== excludeA && el !== excludeB);
-      let best=null, dist=Infinity;
-      for(const el of items){
-        const b = el.getBoundingClientRect();
-        const cx = b.left + b.width/2, cy = b.top + b.height/2;
-        const d = (x-cx)*(x-cx)+(y-cy)*(y-cy);
-        if (d < dist) { dist = d; best = el; }
-      }
-      return best;
+  function getClosest(x, y, excludeA, excludeB){
+    const items = [...container.children].filter(el => el !== excludeA && el !== excludeB);
+    let best = null, dist = Infinity;
+    for (const el of items) {
+      const b = el.getBoundingClientRect();
+      const cx = b.left + b.width/2, cy = b.top + b.height/2;
+      const d = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+      if (d < dist) { dist = d; best = el; }
     }
+    return best;
+  }
 
-    function onPointerDown(e){
-      const item = e.target.closest('.g-thumb');
-      if (!item) return;
-	  if (item.dataset.locked === '1') { e.preventDefault(); return; }
-      // évite d’ouvrir la lightbox
-      e.preventDefault();
+  function onPointerDown(e){
+    const item = e.target.closest('.g-thumb');
+    if (!item) return;
 
-      const r = item.getBoundingClientRect();
-      offsetX = e.clientX - r.left; offsetY = e.clientY - r.top;
+    // ⚠️ ne pas drag les vignettes verrouillées
+    if (item.dataset.locked === '1') { e.preventDefault(); return; }
 
-      placeholder = document.createElement('div');
-      placeholder.className = 'g-thumb';
-      placeholder.style.width = r.width+'px';
-      placeholder.style.height= r.height+'px';
-      container.insertBefore(placeholder, item.nextSibling);
+    // Empêche le scroll/zoom
+    e.preventDefault();
 
-      dragging = item;
-      dragging.classList.add('dragging');
-      dragging.style.position = 'fixed';
-      dragging.style.width = r.width+'px';
-      dragging.style.height= r.height+'px';
-      dragging.style.left   = (e.clientX - offsetX)+'px';
-      dragging.style.top    = (e.clientY - offsetY)+'px';
-      dragging.style.pointerEvents = 'none';
-      dragging.style.willChange = 'transform,left,top';
+    // Pointer capture = on reçoit tous les pointermove même si le doigt sort de l'élément
+    pid = e.pointerId;
+    try { item.setPointerCapture(pid); } catch(_) {}
 
-      moveH = (ev) => {
-        if (!dragging) return;
-        dragging.style.left = (ev.clientX - offsetX)+'px';
-        dragging.style.top  = (ev.clientY - offsetY)+'px';
-        const near = getClosest(ev.clientX, ev.clientY, dragging, placeholder);
-        if (!near) container.appendChild(placeholder);
-        else container.insertBefore(placeholder, near);
-      };
-      upH = () => {
-        if (!dragging) return;
+    const r = item.getBoundingClientRect();
+    offsetX = e.clientX - r.left;
+    offsetY = e.clientY - r.top;
+
+    placeholder = document.createElement('div');
+    placeholder.className = 'g-thumb';
+    placeholder.style.width  = r.width  + 'px';
+    placeholder.style.height = r.height + 'px';
+    container.insertBefore(placeholder, item.nextSibling);
+
+    dragging = item;
+    dragging.classList.add('dragging');
+    dragging.style.position = 'fixed';
+    dragging.style.left     = (e.clientX - offsetX) + 'px';
+    dragging.style.top      = (e.clientY - offsetY) + 'px';
+    dragging.style.width    = r.width  + 'px';
+    dragging.style.height   = r.height + 'px';
+    dragging.style.pointerEvents = 'none';
+    dragging.style.willChange    = 'left, top';
+
+    // NOTE: écoute sur l'item capturant → plus fiable que window sur iOS
+    const onMove = (ev) => {
+      // Bloque tout comportement par défaut (scroll) sur les moves
+      ev.preventDefault();
+      if (!dragging) return;
+
+      dragging.style.left = (ev.clientX - offsetX) + 'px';
+      dragging.style.top  = (ev.clientY - offsetY) + 'px';
+
+      const near = getClosest(ev.clientX, ev.clientY, dragging, placeholder);
+      if (!near) container.appendChild(placeholder);
+      else container.insertBefore(placeholder, near);
+    };
+
+    const onUpOrCancel = () => {
+      if (dragging) {
         placeholder.replaceWith(dragging);
         dragging.removeAttribute('style');
         dragging.classList.remove('dragging');
-        dragging = null; placeholder = null;
-        ensureOrderBadges(container);
-        window.removeEventListener('pointermove', moveH, {passive:true});
-        window.removeEventListener('pointerup',   upH,   {passive:true});
-      };
+      }
+      try { item.releasePointerCapture(pid); } catch(_) {}
+      dragging = null; placeholder = null; pid = null;
 
-      window.addEventListener('pointermove', moveH, {passive:true});
-      window.addEventListener('pointerup',   upH,   {passive:true});
-    }
+      // Renumérote les badges des vignettes déplaçables
+      ensureOrderBadges(container);
 
-    container.addEventListener('pointerdown', onPointerDown, {passive:false});
-    return () => container.removeEventListener('pointerdown', onPointerDown, {passive:false});
+      item.removeEventListener('pointermove', onMove, {capture:false});
+      item.removeEventListener('pointerup', onUpOrCancel, {capture:false});
+      item.removeEventListener('pointercancel', onUpOrCancel, {capture:false});
+    };
+
+    // IMPORTANT: listeners NON-passive pour pouvoir preventDefault()
+    item.addEventListener('pointermove', onMove, {passive:false});
+    item.addEventListener('pointerup', onUpOrCancel, {passive:false});
+    item.addEventListener('pointercancel', onUpOrCancel, {passive:false});
   }
+
+  // Listener principal (non-passive pour pouvoir preventDefault au down)
+  container.addEventListener('pointerdown', onPointerDown, {passive:false});
+
+  // cleanup
+  return () => {
+    container.removeEventListener('pointerdown', onPointerDown, {passive:false});
+  };
+}
+
 
   // --- Intégration UI ---
   const grid = document.getElementById('grid');
