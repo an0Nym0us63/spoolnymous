@@ -1,38 +1,29 @@
-FROM python:3.14.0rc3-alpine3.22 AS python-builder
+FROM python:3.12-slim AS app
 
-# Environnement
 ENV APP_HOME=/home/app
 ENV VIRTUAL_ENV=$APP_HOME/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# su-exec est packagé sur Alpine → pas besoin de compiler
-RUN apk add --no-cache curl shadow su-exec
+# Paquets système: ffmpeg + libheif pour HEIC, gosu si tu veux dropper root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ffmpeg libheif1 ca-certificates curl tzdata gosu \
+    && rm -rf /var/lib/apt/lists/*
 
-# Add local user so we don't run as root
-RUN groupmod -g 1000 users \
-    && useradd -u 1000 -U app \
-    && usermod -G users app \
-    && mkdir -p $APP_HOME/static/prints $APP_HOME/static/uploads \
-    && mkdir -p $APP_HOME/logs \
-    && mkdir -p /var/log/flask-app \
-    && touch /var/log/flask-app/flask-app.err.log \
-    && touch /var/log/flask-app/flask-app.out.log
+# Utilisateur non-root
+RUN useradd -u 1000 -m app \
+ && mkdir -p $APP_HOME/static/prints $APP_HOME/static/uploads $APP_HOME/logs /var/log/flask-app \
+ && touch /var/log/flask-app/flask-app.err.log /var/log/flask-app/flask-app.out.log \
+ && chown -R app:app $APP_HOME /var/log/flask-app
 
 WORKDIR $APP_HOME
 
-# Dépendances système (ffmpeg + libheif pour HEIC)
-RUN apk add --no-cache \
-      ca-certificates curl tzdata \
-      ffmpeg libheif
-
-# Dépendances Python
+# Dépendances Python (wheels dispo sur 3.12)
 COPY --chown=app:app requirements.txt .
-RUN python -m venv $VIRTUAL_ENV && \
-    . $VIRTUAL_ENV/bin/activate && \
-    pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN python -m venv $VIRTUAL_ENV \
+ && pip install --upgrade pip wheel setuptools \
+ && pip install --no-cache-dir -r requirements.txt
 
-# Code applicatif
+# Code
 COPY --chown=app:app . .
 
 # Entrée
@@ -40,4 +31,6 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 8000
+# Si ton entrypoint utilise su-exec, remplace-le par gosu, ou lance direct en USER app :
+USER app
 ENTRYPOINT ["/entrypoint.sh"]
