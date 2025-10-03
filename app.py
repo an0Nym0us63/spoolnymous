@@ -523,6 +523,14 @@ DISABLE_UPDATE_CHECK = os.getenv("DISABLE_UPDATE_CHECK", "0") == "1"
 
 APP_BUILD_BRANCH = os.getenv("BUILD_BRANCH", "release")
 
+# Lecture des fichiers posés par l'entrypoint (optionnel)
+def _read_file(path: str) -> str | None:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return (f.read() or "").strip() or None
+    except Exception:
+        return None
+
 def _from_env_path_or_value(env_var: str, default_file: str) -> str:
     """
     - si l'env contient un SHA (7–40 hex) → on le retourne tel quel
@@ -535,7 +543,6 @@ def _from_env_path_or_value(env_var: str, default_file: str) -> str:
             return v
         return _read_file(v) or "unknown"
     return _read_file(default_file) or "unknown"
-
 
 APP_COMMIT_SHA = _from_env_path_or_value("IMAGE_COMMIT_FILE", "/etc/image_commit_sha")
 APP_BUILD_DATE = _from_env_path_or_value("IMAGE_BUILD_DATE_FILE", "/etc/image_build_date")
