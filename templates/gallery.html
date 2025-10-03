@@ -282,65 +282,103 @@
 
   // --- Suppression ---
   async function deleteByUrl(fileUrl) {
-    try {
-      var u = new URL(fileUrl, window.location.origin);
-      var parts = u.pathname.split('/').filter(Boolean);
-      var upIdx = parts.indexOf('uploads');
-      if (upIdx < 0 || parts.length < upIdx + 4) return false;
+  try {
+    const abs = new URL(fileUrl, window.location.origin).href;
 
-      var entity   = parts[upIdx + 1];
-      var entityId = parts[upIdx + 2];
-      var filename = parts[upIdx + 3];
-      if (filename.toLowerCase().endsWith('.3mf')) return false;
+    const u = new URL(fileUrl, window.location.origin);
+    const parts = u.pathname.split('/').filter(Boolean);
+    const upIdx = parts.indexOf('uploads');
+    if (upIdx < 0 || parts.length < upIdx + 4) return false;
 
-      const ask = await Swal.fire({
-        title: 'Supprimer la photo ?',
-        text: filename,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Oui, supprimer',
-        cancelButtonText: 'Annuler',
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#6c757d'
-      });
-      if (!ask.isConfirmed) return false;
+    const entity   = parts[upIdx + 1];
+    const entityId = parts[upIdx + 2];
+    const filename = parts.slice(upIdx + 3).join('/');
+    if (filename.toLowerCase().endsWith('.3mf')) return false;
 
-      var fd = new FormData();
-      fd.append('filename', filename);
-      var resp = await fetch('/delete_photo/' + encodeURIComponent(entity) + '/' + encodeURIComponent(entityId), {
-        method: 'POST',
-        body: fd
-      });
-      if (!resp.ok) {
-        Swal.fire('Erreur', 'La suppression a échoué.', 'error');
-        return false;
-      }
+    const ask = await Swal.fire({
+      title: 'Supprimer la photo ?',
+      text: filename,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Oui, supprimer',
+      cancelButtonText: 'Annuler',
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6c757d'
+    });
+    if (!ask.isConfirmed) return false;
 
-      // MAJ locale
-      var idx = -1;
-      for (var j=0;j<images.length;j++) if (images[j].url === fileUrl) { idx = j; break; }
-      if (idx >= 0) {
-        images.splice(idx, 1);
-        // retire la vignette sans template literal
-        var sel = '.g-thumb[data-url="' + fileUrl.replace(/"/g, '\\"') + '"]';
-        var tile = grid.querySelector(sel);
-        if (tile) tile.remove();
-        if (countEl) countEl.textContent = images.length;
-        if (lbTot)   lbTot.textContent   = String(images.length);
-        if (images.length === 0) closeLightbox();
-        else {
-          if (index >= images.length) index = images.length - 1;
-          render();
-        }
-      }
+    const fd = new FormData();
+    fd.append('filename', filename);
 
-      Swal.fire('Supprimé', 'La photo a été supprimée.', 'success');
-      return true;
-    } catch (err) {
-      Swal.fire('Erreur', 'Une erreur est survenue.', 'error');
+    const resp = await fetch('/delete_photo/' + encodeURIComponent(entity) + '/' + encodeURIComponent(entityId), {
+      method: 'POST',
+      body: fd
+    });
+    if (!resp.ok) {
+      Swal.fire('Erreur', 'La suppression a échoué.', 'error');
       return false;
     }
+
+    // --- MAJ du modèle images (robuste absolu/relatif) ---
+    const sameURL = (a,b) => {
+      try { return new URL(a, location.origin).href === new URL(b, location.origin).href; }
+      catch(_) { return a === b; }
+    };
+    let idx = images.findIndex(it =>
+      sameURL(it.url, fileUrl) ||
+      (function(){
+        try {
+          const A = new URL(it.url, location.origin);
+          const B = new URL(fileUrl, location.origin);
+          return A.pathname === B.pathname;
+        } catch { return false; }
+      })()
+    );
+    if (idx >= 0) images.splice(idx, 1);
+
+    // --- Retrait de la tuile dans le DOM (sans sélecteur CSS fragile) ---
+    let tile = null;
+    [...grid.querySelectorAll('.g-thumb')].some(el => {
+      const du = el.getAttribute('data-url') || '';
+      try {
+        if (new URL(du, location.origin).href === abs) { tile = el; return true; }
+      } catch {
+        if (du === fileUrl) { tile = el; return true; }
+      }
+      // fallback par filename
+      const meta = (function(){
+        try {
+          const uu = new URL(du, location.origin);
+          const p  = uu.pathname.split('/').filter(Boolean);
+          const i  = p.indexOf('uploads');
+          if (i < 0 || p.length < i+4) return null;
+          return p.slice(i+3).join('/');
+        } catch { return null; }
+      })();
+      if (meta && meta === filename) { tile = el; return true; }
+      return false;
+    });
+    if (tile) tile.remove();
+
+    // Compteurs + lightbox
+    if (countEl) countEl.textContent = String(images.length);
+    if (lbTot)   lbTot.textContent   = String(images.length);
+    if (images.length === 0) {
+      closeLightbox();
+    } else {
+      if (typeof index === 'number' && index >= images.length) index = images.length - 1;
+      render();
+    }
+
+    Swal.fire('Supprimé', 'La photo a été supprimée.', 'success');
+    return true;
+
+  } catch (err) {
+    console.error(err);
+    Swal.fire('Erreur', 'Une erreur est survenue.', 'error');
+    return false;
   }
+}
 
   document.addEventListener('click', function(e){
     var btn = e.target.closest('.js-del-photo');
@@ -614,63 +652,54 @@ function parseUploadPath(url){
     if (rActions)   rActions.classList.add('d-none');
   }
 
-  async function saveReorder(){
-  const info = allSameEntityInfo();
+ async function saveReorder(){
+  // 1) déduire l’entité/id (tu as déjà allSameEntityInfo, sinon lis dataset du grid)
+  const info = (function(){
+    const ent = grid.dataset.entity;
+    const id  = Number(grid.dataset.entityId);
+    if (!ent || !Number.isFinite(id)) return null;
+    return { entity: ent, id };
+  })();
   if (!info) { leaveReorder(); return; }
-  const filenames = [...grid.children]
-    .filter(el => el.dataset.locked !== '1')
-    .map(el => el.dataset.filename)
-    .filter(Boolean);
-  if (filenames.length < 2) { leaveReorder(); return; }
+
+  // 2) ordre à envoyer = uniquement les filenames des tuiles NON verrouillées dans l’ordre visuel
+  const movableTiles = [...grid.children].filter(el => el.dataset.locked !== '1' && el.dataset.filename);
+  const order = movableTiles.map(el => el.dataset.filename);
+  if (order.length < 2) { leaveReorder(); return; }
 
   try{
     const r = await fetch(`/api/${encodeURIComponent(info.entity)}/${encodeURIComponent(info.id)}/images/order`, {
       method: 'POST',
       headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({ order: filenames })
+      body: JSON.stringify({ order })
     });
     if (!r.ok) throw new Error(String(r.status));
     const d = await r.json();
-    const files = (d && d.files) || [];
 
-    // reconstruit la grille en réappliquant les règles de lock
-    grid.innerHTML = '';
-    files.forEach((f, i) => {
-      const card = document.createElement('div');
-      card.className = 'g-thumb';
-      card.setAttribute('data-url', f.url);
-      card.dataset.entity   = info.entity;
-      card.dataset.entityId = String(info.id);
-      card.dataset.filename = f.filename;
+    // 3) le serveur renvoie la liste finale; on en extrait les NOUVEAUX noms/urls des éléments déplaçables
+    const finalFiles = (d && d.files) || [];
+    const finalMovable = finalFiles.filter(f => !isReservedFilename(f.filename));
 
-      // lock si réservé (Impression…, .3mf)
-      if (isReservedFilename(f.filename)) {
-        card.dataset.locked = '1'; card.classList.add('locked');
-        const lock = document.createElement('span'); lock.className = 'lock-badge'; lock.textContent='🔒';
-        card.appendChild(lock);
-      }
+    // 4) on met à jour chaque tuile déplaçable (même position DOM) avec le nouveau nom + URL
+    for (let i = 0; i < movableTiles.length && i < finalMovable.length; i++) {
+      const tile     = movableTiles[i];
+      const newMeta  = finalMovable[i];
 
-      const del = document.createElement('button');
-      del.type='button'; del.className='btn btn-sm btn-outline-light del js-del-photo';
-      del.title='Supprimer'; del.setAttribute('data-url', f.url); del.setAttribute('data-requires-write','');
-      del.innerHTML='<i class="bi bi-x-lg"></i>';
+      tile.dataset.filename = newMeta.filename;
+      tile.setAttribute('data-url', newMeta.url);
 
-      const img = document.createElement('img'); img.src=f.url; img.alt=f.filename;
-      const name= document.createElement('div'); name.className='name'; name.textContent=f.filename;
-      const badge=document.createElement('span'); badge.className='order-badge'; badge.textContent=String(i+1);
+      const img = tile.querySelector('img');
+      if (img) { img.src = newMeta.url; img.alt = newMeta.filename; }
 
-      card.append(del, img, name, badge);
-      card.addEventListener('click', function(e){
-        if (reorderOn) return;
-        if (e.target.closest('.js-del-photo')) return;
-        const idx = [...grid.children].indexOf(card);
-        if (idx >= 0) openLightbox(idx);
-      });
-      grid.appendChild(card);
-    });
+      const del = tile.querySelector('.js-del-photo');
+      if (del) del.setAttribute('data-url', newMeta.url);
 
-    const countEl = document.getElementById('jsCount');
-    if (countEl) countEl.textContent = String(files.length);
+      const name = tile.querySelector('.name');
+      if (name) name.textContent = newMeta.filename;
+    }
+
+    // 5) renumérote les badges et sors du mode
+    ensureOrderBadges(grid);
     Swal?.fire?.("OK", "Ordre appliqué.", "success");
   } catch(e) {
     console.error(e);
