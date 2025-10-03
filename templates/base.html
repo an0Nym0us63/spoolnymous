@@ -114,6 +114,9 @@
 }
 .draggable  { cursor:grab; }
 .dragging   { opacity:.6; cursor:grabbing; }
+#reorderList, .thumbbase-wrap { touch-action: none; -webkit-user-select: none; user-select: none; }
+.thumbbase-wrap.placeholder { outline: 2px dashed rgba(255,255,255,.2); border-radius:.5rem; }
+.thumbbase-wrap.dragging { opacity:.85; transform: scale(.98); z-index:1056; }
 </style>
 
 
@@ -317,7 +320,7 @@
       </div>
       <div class="modal-body">
         <div class="small text-white-50 mb-2">
-          Faites glisser pour réordonner. Le <strong>#1</strong> deviendra l’image principale si le filament n’a pas encore de swatch.
+          Faites glisser pour réordonner.
         </div>
         <div id="reorderList" class="d-flex flex-wrap gap-2"></div>
       </div>
@@ -685,88 +688,50 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function openReorderModal(fileList, target) {
-  // files = Array pour permettre un réordonnage
   const files = Array.from(fileList || []);
-  const modalEl = document.getElementById('reorderModal');
-  const container = document.getElementById('reorderList');
-  const confirmBtn = document.getElementById('reorderConfirm');
+  const modalEl     = document.getElementById('reorderModal');
+  const containerEl = document.getElementById('reorderList');
+  const confirmBtn  = document.getElementById('reorderConfirm');
 
-  if (!modalEl || !container || !confirmBtn) {
-    // fallback : si la modale n’existe pas (ne devrait pas arriver)
+  if (!modalEl || !containerEl || !confirmBtn || !files.length) {
     uploadFiles(files);
     return;
   }
 
-  // Reset conteneur
-  container.innerHTML = '';
+  // 🔁 Reset conteneur (évite les doublons d'écouteurs si on rouvre la modale)
+  const container = containerEl.cloneNode(false);
+  container.id = 'reorderList';
+  container.className = containerEl.className;
+  container.setAttribute('role', 'list');
+  containerEl.replaceWith(container);
 
-  // Construire les vignettes ordonnées
+  // 🧱 Vignettes (pas de DnD HTML5 ; on utilise Pointer Events)
   files.forEach((f, i) => {
     const url = URL.createObjectURL(f);
     const el = document.createElement('div');
     el.className = 'thumbbase-wrap draggable';
-    el.draggable = true;
+    el.setAttribute('role', 'listitem');
+    el.draggable = false;
     el.dataset.index = String(i);
     el.innerHTML = `
-      <img class="thumbbase" src="${url}" alt="Photo ${i+1}">
+      <img class="thumbbase" src="${url}" alt="Photo ${i+1}" draggable="false">
       <span class="thumbbase-badge">${i+1}</span>
     `;
     container.appendChild(el);
   });
 
-  // DnD natif
-  let dragEl = null;
+  // 🖐️ Init reorder pointer (mobile + desktop)
+  setupPointerReorder(container, modalEl);
 
-  container.addEventListener('dragstart', (e) => {
-    const item = e.target.closest('.draggable');
-    if (!item) return;
-    dragEl = item;
-    item.classList.add('dragging');
-  }, { once:false });
-
-  container.addEventListener('dragend', () => {
-    if (dragEl) dragEl.classList.remove('dragging');
-    dragEl = null;
-    renumber();
-  }, { once:false });
-
-  container.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    const after = getDragAfterElement(container, e.clientX, e.clientY);
-    const dragging = container.querySelector('.dragging');
-    if (!dragging) return;
-    if (!after) container.appendChild(dragging);
-    else container.insertBefore(dragging, after);
-  }, { once:false });
-
-  function getDragAfterElement(container, x, y) {
-    const els = [...container.querySelectorAll('.draggable:not(.dragging)')];
-    return els.reduce((closest, child) => {
-      const box = child.getBoundingClientRect();
-      // Distance euclidienne au centre de la vignette
-      const cx = box.left + box.width/2;
-      const cy = box.top  + box.height/2;
-      const dist = Math.hypot(x - cx, y - cy);
-      return (dist < closest.dist) ? { dist, el: child } : closest;
-    }, { dist: Number.POSITIVE_INFINITY, el: null }).el;
-  }
-
-  function renumber(){
-    [...container.children].forEach((el, idx) => {
-      const b = el.querySelector('.thumbbase-badge');
-      if (b) b.textContent = String(idx+1);
-    });
-  }
-
-  // Nettoyage des ObjectURL quand la modale se ferme
+  // 🧼 Nettoyage des ObjectURL quand on ferme
   modalEl.addEventListener('hidden.bs.modal', () => {
     [...container.querySelectorAll('img.thumbbase')].forEach(img => {
       try { URL.revokeObjectURL(img.src); } catch(_) {}
     });
     container.innerHTML = '';
-  }, { once:true });
+  }, { once: true });
 
-  // Confirmer => récupérer l’ordre visuel et envoyer DANS CET ORDRE
+  // ✅ Envoi dans l'ordre visuel
   confirmBtn.onclick = () => {
     const ordered = [...container.children].map(el => files[Number(el.dataset.index)]);
     window.__currentPhotoTarget__ = target || window.__currentPhotoTarget__;
@@ -774,8 +739,103 @@ function openReorderModal(fileList, target) {
     bootstrap.Modal.getOrCreateInstance(modalEl).hide();
   };
 
-  // Afficher la modale
   bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
+
+/* ===== Helpers ===== */
+
+function setupPointerReorder(container, modalEl){
+  let dragging = null;
+  let placeholder = null;
+  let offsetX = 0, offsetY = 0;
+  let moveHandler = null, upHandler = null;
+
+  const onPointerDown = (e) => {
+    const item = e.target.closest('.draggable');
+    if (!item) return;
+
+    const r = item.getBoundingClientRect();
+    offsetX = e.clientX - r.left;
+    offsetY = e.clientY - r.top;
+
+    // Placeholder prend la place dans la grille
+    placeholder = document.createElement('div');
+    placeholder.className = 'thumbbase-wrap placeholder';
+    placeholder.style.width  = r.width + 'px';
+    placeholder.style.height = r.height + 'px';
+    container.insertBefore(placeholder, item.nextSibling);
+
+    // Élément flottant sous le doigt
+    dragging = item;
+    dragging.classList.add('dragging');
+    dragging.style.position = 'fixed';
+    dragging.style.width = r.width + 'px';
+    dragging.style.height = r.height + 'px';
+    dragging.style.left = (e.clientX - offsetX) + 'px';
+    dragging.style.top  = (e.clientY - offsetY) + 'px';
+    dragging.style.pointerEvents = 'none';
+    dragging.style.willChange = 'transform, left, top';
+
+    // Écoute globale (indispensable pour iOS)
+    moveHandler = (ev) => {
+      if (!dragging) return;
+      dragging.style.left = (ev.clientX - offsetX) + 'px';
+      dragging.style.top  = (ev.clientY - offsetY) + 'px';
+
+      const near = getClosestItem(container, ev.clientX, ev.clientY, dragging, placeholder);
+      if (near) container.insertBefore(placeholder, near);
+      else container.appendChild(placeholder);
+    };
+
+    upHandler = () => {
+      if (!dragging) return;
+      // Insérer à la place du placeholder
+      placeholder.replaceWith(dragging);
+      dragging.removeAttribute('style');
+      dragging.classList.remove('dragging');
+      dragging = null;
+      placeholder = null;
+      renumber(container);
+      // Nettoyage des handlers globaux
+      window.removeEventListener('pointermove', moveHandler, { passive: true });
+      window.removeEventListener('pointerup',   upHandler,   { passive: true });
+    };
+
+    window.addEventListener('pointermove', moveHandler, { passive: true });
+    window.addEventListener('pointerup',   upHandler,   { passive: true });
+
+    e.preventDefault(); // empêche le scroll/selection pendant le drag
+  };
+
+  container.addEventListener('pointerdown', onPointerDown, { passive: false });
+
+  // Quand la modale se ferme, retirer les handlers (sécurité)
+  modalEl.addEventListener('hidden.bs.modal', () => {
+    container.removeEventListener('pointerdown', onPointerDown, { passive: false });
+    if (moveHandler) window.removeEventListener('pointermove', moveHandler, { passive: true });
+    if (upHandler)   window.removeEventListener('pointerup',   upHandler,   { passive: true });
+  }, { once: true });
+}
+
+function getClosestItem(container, x, y, excludeA, excludeB){
+  const items = [...container.children].filter(el => el !== excludeA && el !== excludeB);
+  let best = null, bestDist = Infinity;
+  for (const el of items) {
+    const b = el.getBoundingClientRect();
+    const cx = b.left + b.width / 2;
+    const cy = b.top  + b.height / 2;
+    const d  = (x - cx) * (x - cx) + (y - cy) * (y - cy); // distance au carré (évite sqrt)
+    if (d < bestDist) { bestDist = d; best = el; }
+  }
+  return best;
+}
+
+function renumber(container){
+  [...container.children].forEach((el, idx) => {
+    el.dataset.pos = String(idx);
+    const b = el.querySelector('.thumbbase-badge');
+    if (b) b.textContent = String(idx + 1);
+  });
 }
   </script>
 
