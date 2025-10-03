@@ -697,7 +697,6 @@ def _release_lock(lockpath: Path):
 def _pad_width(n: int) -> int:
     return max(2, len(str(n)))
 
- À mettre avec les helpers de réordonnancement
 def _is_reserved_name(name: str, entity: str) -> bool:
     """
     True si ce fichier ne doit PAS être renommé/réordonné.
