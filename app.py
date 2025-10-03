@@ -531,8 +531,8 @@ def _read_file(path: str) -> str | None:
     except Exception:
         return None
 
-APP_COMMIT_SHA = os.getenv("COMMIT_SHA") or _read_file("/etc/image_commit_sha") or "unknown"
-APP_BUILD_DATE = os.getenv("BUILD_DATE")  or _read_file("/etc/image_build_date") or "unknown"
+APP_COMMIT_SHA = os.getenv("IMAGE_COMMIT_FILE") or _read_file("/etc/image_commit_sha") or "unknown"
+APP_BUILD_DATE = os.getenv("IMAGE_BUILD_DATE_FILE")  or _read_file("/etc/image_build_date") or "unknown"
 
 # Repo en dur
 _GH_OWNER = "an0Nym0us63"
