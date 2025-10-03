@@ -120,6 +120,7 @@ run_as_app() {
   fi
 }
 
+
 # --- Lancement Gunicorn ---
 echo "[ENTRYPOINT] Lancement Gunicorn: workers=${GWORKERS} threads=${GTHREADS} timeout=${GTIMEOUT} bind=${GBIND}"
 export PYTHONUNBUFFERED=1
