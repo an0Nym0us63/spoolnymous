@@ -74,15 +74,42 @@
       :root { --thumb-size: 140px; }
       .lb-index { display: none; }
     }
+	/* Réordonnancement dans la grille */
+.g-grid.reorder-on .g-thumb { cursor: grab; }
+.g-thumb.dragging { opacity:.85; transform: scale(.98); z-index: 5; }
+.g-thumb .order-badge{
+  position:absolute; top:.4rem; left:.4rem;
+  background:#ffc107; color:#000; border-radius:999px;
+  padding:.1rem .45rem; font-weight:700; font-size:.8rem;
+  box-shadow:0 0 .4rem rgba(0,0,0,.45); display:none;
+}
+.g-grid.reorder-on .order-badge{ display:block; }
+/* Verrouillage des vignettes non réordonnables (Impression …) */
+.g-thumb.locked { opacity: .55; cursor: not-allowed; }
+.g-thumb.locked .order-badge { display: none; }
+.g-thumb .lock-badge {
+  position: absolute; bottom: .4rem; right: .4rem;
+  background: rgba(0,0,0,.6); color:#fff; padding:.1rem .35rem; border-radius:.35rem; font-size:.75rem;
+}
   </style>
 {% endblock %}
 
 {% block content %}
 
-
-    <div class="text-end small text-body-secondary">
+<div class="gallery-header py-2">
+  <div class="container d-flex justify-content-between align-items-center">
+    <div class="small text-body-secondary">
       <span id="jsCount">0</span> photo(s)
     </div>
+    <div class="d-flex gap-2" data-requires-write>
+      <button id="btnReorder" class="btn btn-sm btn-outline-light">🔀 Réorganiser</button>
+      <div id="reorderActions" class="d-none">
+        <button id="btnReorderSave" class="btn btn-sm btn-primary">Enregistrer</button>
+        <button id="btnReorderCancel" class="btn btn-sm btn-secondary">Annuler</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <main class="container py-3">
   <div id="grid" class="g-grid"></div>
@@ -327,6 +354,284 @@
     var it = images[index];
     if (it) deleteByUrl(it.url);
   });
+
+})();
+(function(){
+  // --- outils communs ---
+  function parseUploadPath(url){
+    try {
+      const u = new URL(url, window.location.origin);
+      const parts = u.pathname.split('/').filter(Boolean);
+      const upIdx = parts.indexOf('uploads');
+      if (upIdx < 0 || parts.length < upIdx+4) return null;
+      return {
+        entity: parts[upIdx + 1],
+        id:     Number(parts[upIdx + 2]),
+        filename: parts.slice(upIdx + 3).join('/'),
+      };
+    } catch(_) { return null; }
+  }
+  function isReservedFilename(name){
+  const n = (name || '').toLowerCase();
+  // variantes courantes : espace, encodé, underscore, tiret
+  return n.startsWith('impression ') || n.startsWith('impression%20')
+      || n.startsWith('impression_') || n.startsWith('impression-');
+}
+
+  // on ajoute un badge d'ordre sur chaque tuile
+  function ensureOrderBadges(container){
+  let k = 0;
+  [...container.children].forEach((el) => {
+    let b = el.querySelector('.order-badge');
+    if (!b) {
+      b = document.createElement('span');
+      b.className = 'order-badge';
+      el.appendChild(b);
+    }
+    if (el.dataset.locked === '1') {
+      b.textContent = '';          // pas de numéro sur les verrouillées
+    } else {
+      k += 1;
+      b.textContent = String(k);   // numérote seulement les réordonnables
+    }
+  });
+}
+
+  // --- Pointer-reorder (mobile OK) ---
+  function enableGridPointerReorder(container){
+    let dragging=null, placeholder=null, offsetX=0, offsetY=0;
+    let moveH=null, upH=null;
+
+    function getClosest(x, y, excludeA, excludeB){
+      const items = [...container.children].filter(el => el !== excludeA && el !== excludeB);
+      let best=null, dist=Infinity;
+      for(const el of items){
+        const b = el.getBoundingClientRect();
+        const cx = b.left + b.width/2, cy = b.top + b.height/2;
+        const d = (x-cx)*(x-cx)+(y-cy)*(y-cy);
+        if (d < dist) { dist = d; best = el; }
+      }
+      return best;
+    }
+
+    function onPointerDown(e){
+      const item = e.target.closest('.g-thumb');
+      if (!item) return;
+	  if (item.dataset.locked === '1') { e.preventDefault(); return; }
+      // évite d’ouvrir la lightbox
+      e.preventDefault();
+
+      const r = item.getBoundingClientRect();
+      offsetX = e.clientX - r.left; offsetY = e.clientY - r.top;
+
+      placeholder = document.createElement('div');
+      placeholder.className = 'g-thumb';
+      placeholder.style.width = r.width+'px';
+      placeholder.style.height= r.height+'px';
+      container.insertBefore(placeholder, item.nextSibling);
+
+      dragging = item;
+      dragging.classList.add('dragging');
+      dragging.style.position = 'fixed';
+      dragging.style.width = r.width+'px';
+      dragging.style.height= r.height+'px';
+      dragging.style.left   = (e.clientX - offsetX)+'px';
+      dragging.style.top    = (e.clientY - offsetY)+'px';
+      dragging.style.pointerEvents = 'none';
+      dragging.style.willChange = 'transform,left,top';
+
+      moveH = (ev) => {
+        if (!dragging) return;
+        dragging.style.left = (ev.clientX - offsetX)+'px';
+        dragging.style.top  = (ev.clientY - offsetY)+'px';
+        const near = getClosest(ev.clientX, ev.clientY, dragging, placeholder);
+        if (!near) container.appendChild(placeholder);
+        else container.insertBefore(placeholder, near);
+      };
+      upH = () => {
+        if (!dragging) return;
+        placeholder.replaceWith(dragging);
+        dragging.removeAttribute('style');
+        dragging.classList.remove('dragging');
+        dragging = null; placeholder = null;
+        ensureOrderBadges(container);
+        window.removeEventListener('pointermove', moveH, {passive:true});
+        window.removeEventListener('pointerup',   upH,   {passive:true});
+      };
+
+      window.addEventListener('pointermove', moveH, {passive:true});
+      window.addEventListener('pointerup',   upH,   {passive:true});
+    }
+
+    container.addEventListener('pointerdown', onPointerDown, {passive:false});
+    return () => container.removeEventListener('pointerdown', onPointerDown, {passive:false});
+  }
+
+  // --- Intégration UI ---
+  const grid = document.getElementById('grid');
+  if (!grid) return;
+
+  // enrichit les tuiles existantes (dataset + badge)
+  [...grid.children].forEach(card => {
+  const url = card.getAttribute('data-url') || '';
+  const meta = parseUploadPath(url);
+  if (meta) {
+    card.dataset.entity   = meta.entity;
+    card.dataset.entityId = String(meta.id);
+    card.dataset.filename = meta.filename;
+
+    // 🔒 verrouille “Impression …”
+    if (isReservedFilename(meta.filename)) {
+      card.dataset.locked = '1';
+      card.classList.add('locked');
+      const lock = document.createElement('span');
+      lock.className = 'lock-badge';
+      lock.textContent = '🔒';
+      card.appendChild(lock);
+    }
+  }
+  // badge ordre (affiché seulement en mode réordonnancement)
+  let badge = card.querySelector('.order-badge');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.className = 'order-badge';
+    card.appendChild(badge);
+  }
+});
+
+  const btnReorder      = document.getElementById('btnReorder');
+  const rActions        = document.getElementById('reorderActions');
+  const btnReorderSave  = document.getElementById('btnReorderSave');
+  const btnReorderCancel= document.getElementById('btnReorderCancel');
+
+  let cleanup = null;
+  let reorderOn = false;
+
+  function allSameEntityInfo(){
+    // déduit entity/id à partir de la 1ère tuile
+    const first = grid.firstElementChild;
+    if (!first) return null;
+    const ent = first.dataset.entity, id = Number(first.dataset.entityId);
+    if (!ent || !Number.isFinite(id)) return null;
+    // vérifie cohérence
+    for (const el of grid.children) {
+      if (el.dataset.entity !== ent || Number(el.dataset.entityId) !== id) return null;
+    }
+    return { entity: ent, id };
+  }
+
+  function enterReorder(){
+    const info = allSameEntityInfo();
+    if (!info) {
+      Swal?.fire?.("Action impossible", "Cette galerie ne pointe pas vers une seule entité / id.", "warning");
+      return;
+    }
+    reorderOn = true;
+    grid.classList.add('reorder-on');
+    ensureOrderBadges(grid);
+    if (cleanup) cleanup();
+    cleanup = enableGridPointerReorder(grid);
+    if (btnReorder) btnReorder.classList.add('d-none');
+    if (rActions)   rActions.classList.remove('d-none');
+  }
+
+  function leaveReorder(){
+    reorderOn = false;
+    grid.classList.remove('reorder-on');
+    if (cleanup) { cleanup(); cleanup = null; }
+    if (btnReorder) btnReorder.classList.remove('d-none');
+    if (rActions)   rActions.classList.add('d-none');
+  }
+
+  async function saveReorder(){
+    const info = allSameEntityInfo();
+    if (!info) { leaveReorder(); return; }
+    const filenames = [...grid.children]
+  .filter(el => el.dataset.locked !== '1')
+  .map(el => el.dataset.filename)
+  .filter(Boolean);
+    if (!filenames.length) { leaveReorder(); return; }
+
+    try{
+      const r = await fetch(`/api/${encodeURIComponent(info.entity)}/${encodeURIComponent(info.id)}/images/order`, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ order: filenames })
+      });
+      if (!r.ok) throw new Error(String(r.status));
+      const d = await r.json();
+
+      // MAJ locale : remplace la grille selon la réponse
+      const files = (d && d.files) || [];
+      grid.innerHTML = '';
+      files.forEach((f, i) => {
+        const card = document.createElement('div');
+        card.className = 'g-thumb';
+        card.setAttribute('data-url', f.url);
+        card.dataset.entity   = info.entity;
+        card.dataset.entityId = String(info.id);
+        card.dataset.filename = f.filename;
+		if (isReservedFilename(f.filename)) {
+  card.dataset.locked = '1';
+  card.classList.add('locked');
+  const lock = document.createElement('span');
+  lock.className = 'lock-badge';
+  lock.textContent = '🔒';
+  card.appendChild(lock);
+}
+
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'btn btn-sm btn-outline-light del js-del-photo';
+        del.title = 'Supprimer';
+        del.setAttribute('data-url', f.url);
+        del.setAttribute('data-requires-write','');
+        del.innerHTML = '<i class="bi bi-x-lg"></i>';
+
+        const img = document.createElement('img');
+        img.src = f.url; img.alt = f.filename;
+
+        const name = document.createElement('div');
+        name.className = 'name'; name.textContent = f.filename;
+
+        const badge = document.createElement('span');
+        badge.className = 'order-badge'; badge.textContent = String(i+1);
+
+        card.append(del, img, name, badge);
+        // en mode normal, clique ouvre la lightbox
+        card.addEventListener('click', function(e){
+          if (reorderOn) return; // pas de lightbox en réordonnancement
+          if (e.target.closest('.js-del-photo')) return;
+          // localise l'index
+          const idx = [...grid.children].indexOf(card);
+          if (idx >= 0) openLightbox(idx);
+        });
+
+        grid.appendChild(card);
+      });
+
+      // MAJ compte (si présent)
+      const countEl = document.getElementById('jsCount');
+      if (countEl) countEl.textContent = String(files.length);
+
+      Swal?.fire?.("OK", "Ordre appliqué.", "success");
+    }catch(e){
+      console.error(e);
+      Swal?.fire?.("Erreur", "Impossible d'appliquer l'ordre.", "error");
+    }finally{
+      leaveReorder();
+    }
+  }
+
+  if (btnReorder)      btnReorder.addEventListener('click', enterReorder);
+  if (btnReorderSave)  btnReorderSave.addEventListener('click', saveReorder);
+  if (btnReorderCancel)btnReorderCancel.addEventListener('click', leaveReorder);
+
+  // Empêche l’ouverture de la lightbox quand on est en mode réordonnancement
+  document.addEventListener('click', function(e){
+    if (!reorderOn) return;
+    if (e.target.closest('.g-thumb')) e.preventDefault();
+  }, { capture:true });
 
 })();
 </script>

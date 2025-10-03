@@ -654,6 +654,141 @@ def release_fragment():
 
     return Response(html, mimetype="text/html")
 
+# ---- Helpers réordonnancement ----
+_ALLOWED_IMG_EXTS = {".webp", ".png", ".jpg", ".jpeg", ".gif"}
+
+def _uploads_dir_for(entity: str, entity_id: int) -> Path:
+    return Path(app.static_folder) / "uploads" / entity / str(entity_id)
+
+def _natural_key(name: str):
+    return [int(s) if s.isdigit() else s.lower() for s in re.split(r"(\d+)", name)]
+
+def _list_entity_images(entity: str, entity_id: int):
+    d = _uploads_dir_for(entity, entity_id)
+    if not d.exists():
+        return []
+    files = [p for p in d.iterdir() if p.is_file() and p.suffix.lower() in _ALLOWED_IMG_EXTS and p.name.lower() != ".reorder.lock"]
+    files.sort(key=lambda p: _natural_key(p.name))
+    out = []
+    for p in files:
+        out.append({
+            "filename": p.name,
+            "url": url_for("static", filename=f"uploads/{entity}/{entity_id}/{p.name}"),
+            "size": p.stat().st_size,
+            "mtime": int(p.stat().st_mtime),
+        })
+    return out
+
+def _acquire_lock(dirpath: Path) -> Path:
+    lock = dirpath / ".reorder.lock"
+    try:
+        fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.close(fd)
+        return lock
+    except FileExistsError:
+        abort(423, description="Réorganisation déjà en cours, réessaye dans quelques secondes.")
+
+def _release_lock(lockpath: Path):
+    try:
+        lockpath.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+def _pad_width(n: int) -> int:
+    return max(2, len(str(n)))
+
+ À mettre avec les helpers de réordonnancement
+def _is_reserved_name(name: str, entity: str) -> bool:
+    """
+    True si ce fichier ne doit PAS être renommé/réordonné.
+    Exigence : pour les prints, tout ce qui commence par 'Impression ' (ou variantes).
+    """
+    n = (name or "").lower()
+    if entity == "prints":
+        # gère "Impression " + encodages simples/variantes
+        return n.startswith("impression ") or n.startswith("impression%20") \
+               or n.startswith("impression_") or n.startswith("impression-")
+    return False
+
+def _apply_reorder(entity: str, entity_id: int, ordered_names: list[str]) -> list[dict]:
+    base = _uploads_dir_for(entity, entity_id)
+    base.mkdir(parents=True, exist_ok=True)
+
+    current = _list_entity_images(entity, entity_id)
+    cur_names = [x["filename"] for x in current]
+
+    # Partition : réordonnables vs réservés
+    reorderables = [n for n in cur_names if not _is_reserved_name(n, entity)]
+    reserved     = [n for n in cur_names if _is_reserved_name(n, entity)]  # info, pas utilisé dans rename
+
+    req = [str(n) for n in (ordered_names or []) if n]
+    req_set = set(req)
+
+    # La requête ne doit contenir QUE des fichiers réordonnables existants
+    if not req or not req_set.issubset(set(reorderables)):
+        abort(400, description="Liste 'order' invalide (doit cibler uniquement des fichiers réordonnables existants).")
+
+    # Compléter avec les réordonnables non cités (fin de liste) pour couvrir 100% des réordonnables
+    if len(req) != len(reorderables):
+        for n in reorderables:
+            if n not in req_set:
+                req.append(n)
+
+    lock = _acquire_lock(base)
+    try:
+        # 1) Renommer TEMPORAIREMENT uniquement les réordonnables (évite collisions)
+        tmp_map = {}
+        stamp = uuid.uuid4().hex[:8]
+        for i, name in enumerate(reorderables, 1):
+            src = base / name
+            tmp = base / f".tmp-reorder-{stamp}-{i}{src.suffix.lower()}"
+            os.replace(src, tmp)
+            tmp_map[name] = tmp
+
+        # 2) Renommer vers Photo-XX.<ext> selon l'ordre demandé
+        width = _pad_width(len(reorderables))
+        for idx, name in enumerate(req, 1):
+            tmp = tmp_map[name]
+            ext = tmp.suffix.lower()
+            final = base / f"Photo-{idx:0{width}d}{ext}"
+            os.replace(tmp, final)
+
+        # 3) Retour : la liste complète (réservés inchangés + réordonnés renommés)
+        return _list_entity_images(entity, entity_id)
+
+    finally:
+        _release_lock(lock)
+
+def _ensure_entity(entity: str):
+    entity = (entity or "").strip().lower()
+    if entity not in {"prints", "groups", "objects", "filaments"}:
+        abort(404)
+    return entity
+
+# ---- API: lister images (tous types d’entités) ----
+@app.get("/api/<entity>/<int:entity_id>/images")
+@login_required
+def api_entity_images(entity: str, entity_id: int):
+    entity = _ensure_entity(entity)
+    return jsonify({"ok": True, "files": _list_entity_images(entity, entity_id)})
+
+# ---- API: réordonner images (tous types d’entités) ----
+@app.post("/api/<entity>/<int:entity_id>/images/order")
+@login_required
+def api_entity_images_order(entity: str, entity_id: int):
+    if getattr(current_user, "is_guest", False):
+        abort(403)
+    entity = _ensure_entity(entity)
+    try:
+        data = request.get_json(force=True, silent=False) or {}
+    except Exception:
+        abort(400, description="JSON invalide.")
+    order = data.get("order") or data.get("files") or data.get("filenames")
+    if not isinstance(order, list) or not order:
+        abort(400, description="Champ 'order' requis (liste de noms de fichiers).")
+    final_list = _apply_reorder(entity, entity_id, [str(x) for x in order])
+    return jsonify({"ok": True, "files": final_list})
+
 @app.route("/api/version")
 def api_version():
     return jsonify({
