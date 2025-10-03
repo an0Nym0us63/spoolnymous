@@ -523,13 +523,34 @@ DISABLE_UPDATE_CHECK = os.getenv("DISABLE_UPDATE_CHECK", "0") == "1"
 
 APP_BUILD_BRANCH = os.getenv("BUILD_BRANCH", "release")
 
-# Lecture des fichiers posés par l'entrypoint (optionnel)
-def _read_file(path: str) -> str | None:
+# --- helpers commit/build ---
+def _read_file(p):
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            return (f.read() or "").strip() or None
+        with open(p, "r", encoding="utf-8") as f:
+            return f.read().strip()
     except Exception:
         return None
+
+def _env_val_or_file(keys, default_file):
+    import os
+    if isinstance(keys, str):
+        keys = [keys]
+    for k in keys:
+        v = os.getenv(k)
+        if v:
+            v = v.strip()
+            # si ça ressemble à un chemin, on essaie de lire le fichier
+            if v.startswith("/") or v.startswith("./") or os.path.sep in v:
+                c = _read_file(v)
+                if c:
+                    return c
+            # sinon on considère que c'est déjà la valeur
+            return v
+    # fallback: fichier par défaut
+    c = _read_file(default_file)
+    return c or "unknown"
+
+
 
 def _from_env_path_or_value(env_var: str, default_file: str) -> str:
     """
@@ -544,8 +565,14 @@ def _from_env_path_or_value(env_var: str, default_file: str) -> str:
         return _read_file(v) or "unknown"
     return _read_file(default_file) or "unknown"
 
-APP_COMMIT_SHA = _from_env_path_or_value("IMAGE_COMMIT_FILE", "/etc/image_commit_sha")
-APP_BUILD_DATE = _from_env_path_or_value("IMAGE_BUILD_DATE_FILE", "/etc/image_build_date")
+APP_COMMIT_SHA = _env_val_or_file(
+    ["IMAGE_COMMIT_FILE", "IMAGE_COMMIT_SHA", "COMMIT_SHA"],
+    "/etc/image_commit_sha"
+)
+APP_BUILD_DATE = _env_val_or_file(
+    ["IMAGE_BUILD_DATE_FILE", "IMAGE_BUILD_DATE", "BUILD_DATE"],
+    "/etc/image_build_date"
+)
 
 # Repo en dur
 _GH_OWNER = "an0Nym0us63"
