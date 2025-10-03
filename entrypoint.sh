@@ -64,16 +64,15 @@ else
   date -u +'%Y-%m-%dT%H:%M:%SZ' > "$DATE_FILE" 2>/dev/null || true
 fi
 
+# --- Récup synchrone du SHA si non fourni ---
 if [ "$DISABLE_UPDATE_CHECK" != "1" ] && [ -z "${COMMIT_SHA:-}" ]; then
-  (
-    API_URL="https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/commits/${BUILD_BRANCH}"
-    if JSON="$(http_get "$API_URL" || true)"; then
-      FULL_SHA="$(printf "%s" "$JSON" | extract_sha || true)"
-      if [ -n "${FULL_SHA:-}" ]; then
-        printf "%s" "${FULL_SHA}" | cut -c1-7 > "$COMMIT_FILE" 2>/dev/null || true
-      fi
+  API_URL="https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/commits/${BUILD_BRANCH}"
+  if JSON="$(http_get "$API_URL" || true)"; then
+    FULL_SHA="$(printf "%s" "$JSON" | extract_sha || true)"
+    if [ -n "${FULL_SHA:-}" ]; then
+      printf "%s" "${FULL_SHA}" | cut -c1-7 > "$COMMIT_FILE" 2>/dev/null || true
     fi
-  ) >/dev/null 2>&1 &
+  fi
 fi
 
 # --- Logs env ---
