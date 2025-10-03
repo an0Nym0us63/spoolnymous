@@ -56,10 +56,20 @@ for name in ("urllib3", "urllib3.connectionpool", "requests.packages.urllib3"):
     lg.setLevel(logging.WARNING)
     
 
-ALLOWED_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}
+ALLOWED_EXTS = {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.mp4'} 
 PHOTO_RE = re.compile(r"^Photo-(\d{2,})$", re.IGNORECASE)
 
-FILAMENT_ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}
+FILAMENT_ALLOWED_IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.heic', '.heif', '.mp4'}
+
+def _scale_filter(max_w: int, max_h: int) -> str:
+    """
+    Contrainte 'cover' dans un cadre (max_w x max_h) en gardant le ratio.
+    -2 = arrondi pair exigé par certains codecs.
+    """
+    return f"scale='if(gt(a,{max_w}/{max_h}),{max_w},-2)':'if(gt(a,{max_w}/{max_h}),-2,{max_h})'"
+
+def _is_video_like(path: Path) -> bool:
+    return path.suffix.lower() in {'.mp4', '.mov', '.m4v', '.gif'}  # gif = séquence (animée)
 
 def _filament_paths(fid):
     """Retourne (base_dir, main_path, gallery_dir) pour un filament."""
@@ -134,59 +144,92 @@ def __probe_rotation_degrees(src: Path) -> int:
     except Exception:
         return 0
 
+def __is_animated_sequence(in_path: Path) -> bool:
+    """
+    Retourne True si le média a >1 frame (GIF animé, MP4, etc.).
+    Fallback sur l'extension si ffprobe n'est pas dispo.
+    """
+    try:
+        # Compte le nombre de frames vidéo
+        out = subprocess.check_output(
+            [
+                "ffprobe", "-v", "error",
+                "-select_streams", "v:0",
+                "-count_frames",
+                "-show_entries", "stream=nb_read_frames",
+                "-of", "default=nokey=1:noprint_wrappers=1",
+                str(in_path),
+            ],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        # Parfois 'N/A' -> considère non animé
+        n = int(out) if out.isdigit() else 1
+        return n > 1
+    except Exception:
+        # Heuristique extension si ffprobe indispo
+        return in_path.suffix.lower() in {".mp4", ".m4v", ".mov", ".webm", ".gif"}
 
 def _ffmpeg_compress(in_path: Path, out_path: Path, to_webp: bool = True,
                      max_w: int = 1600, max_h: int = 1600, quality: int = 80) -> None:
     """
-    Compresse l'image via ffmpeg sans dépendances Python.
-    - Applique l’orientation EXIF détectée (via ffprobe) avec transpose/flips.
+    Compresse/convertit via ffmpeg (sans deps Python).
+    - Applique l’orientation EXIF (via __probe_rotation_degrees) avec transpose.
     - Redimensionne à max_w×max_h (ratio conservé) + SAR neutre.
-    - Force 1 frame (évite webp animés).
+    - Images fixes  -> 1 frame  (WEBP statique si to_webp=True, sinon JPEG).
+    - Séquences     -> WEBP animé (gif/mp4) si to_webp=True, sinon MP4.
     - Supprime les métadonnées.
-    - to_webp=True : encode libwebp (alpha OK), sinon JPEG.
+    Dépendances : ffmpeg (libwebp), + libheif si HEIC.
     """
-    # 1) Détecter l’orientation
-    rot = __probe_rotation_degrees(in_path)
+    in_path  = Path(in_path)
+    out_path = Path(out_path)
+    out_dir  = out_path.parent
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    # 2) Construire le filtre de rotation explicite
-    #    IMPORTANT: on applique la rotation AVANT le scale pour garder la bonne limite max_w/max_h.
+    # 1) Rotation EXIF (on garde ta logique)
+    rot = __probe_rotation_degrees(in_path)
     rot_filter = ""
     if rot == 90:
         rot_filter = "transpose=1"   # 90° clockwise
     elif rot == 180:
-        # 180° = 2 transposes ou flips; on fait 2 transposes (plus simple)
         rot_filter = "transpose=1,transpose=1"
     elif rot == 270:
         rot_filter = "transpose=2"   # 90° anti-clockwise
 
+    # 2) Scale (après rotation) + SAR neutre
     scale = f"scale='min(iw,{max_w})':'min(ih,{max_h})':force_original_aspect_ratio=decrease"
-    vf_parts = []
-    if rot_filter:
-        vf_parts.append(rot_filter)
-    vf_parts.append(scale)
-    vf_parts.append("setsar=1")
+    vf_parts = [p for p in (rot_filter, scale, "setsar=1") if p]
     vf = ",".join(vf_parts)
 
+    # 3) Détection animation/séquence
+    is_seq = __is_animated_sequence(in_path)
+
+    # 4) Commande
     common = [
         "ffmpeg",
         "-y", "-hide_banner", "-loglevel", "error",
         "-nostdin",
-
-        # ⚠️ On ne dépend PAS de -autorotate ici, pour éviter les doubles rotations
+        # pas de -autorotate (on gère explicitement la rotation)
         "-i", str(in_path),
-
         "-vf", vf,
-        "-frames:v", "1",
         "-map_metadata", "-1",
         "-an",
     ]
 
-    if to_webp:
-        cmd = common + ["-c:v", "libwebp", "-q:v", str(quality), "-compression_level", "4", str(out_path)]
-    else:
-        cmd = common + ["-c:v", "mjpeg", "-q:v", "3", "-pix_fmt", "yuvj420p", str(out_path)]
+    if is_seq:
+        if to_webp:
+            # → WEBP ANIMÉ (boucle infinie)
+            # fps “raisonnable” pour poids/qualité ; ajuste si besoin.
+            cmd = common + [
+                "-vsync", "0",
+                "-r", "12",
+                "-c:v", "libwebp",
+                "-q:v", str(quality),
+                "-compression_level", "6",
+                "-lossless", "0",
+                "-loop", "0",                # 0 = infini
+                "-pres
 
-    subprocess.run(cmd, check=True)
 
 COLOR_FAMILIES = {
     # Neutres
