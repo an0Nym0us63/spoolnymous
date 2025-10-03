@@ -117,6 +117,13 @@
 #reorderList, .thumbbase-wrap { touch-action: none; -webkit-user-select: none; user-select: none; }
 .thumbbase-wrap.placeholder { outline: 2px dashed rgba(255,255,255,.2); border-radius:.5rem; }
 .thumbbase-wrap.dragging { opacity:.85; transform: scale(.98); z-index:1056; }
+/* Icône overlay pour distinguer vidéo / fallback */
+.thumbbase-icon{
+  position:absolute; right:.25rem; bottom:.2rem;
+  background:rgba(0,0,0,.55);
+  padding:.05rem .35rem; border-radius:.35rem;
+  font-size:.9rem; line-height:1;
+}
 </style>
 
 
@@ -686,7 +693,119 @@ function hideUploadIndicator() {
 document.addEventListener('DOMContentLoaded', () => {
   hideUploadIndicator(); // garantit caché au premier paint
 });
+function isVideoFile(f){
+  const n = (f?.name || '').toLowerCase();
+  return (f?.type?.startsWith('video/')) || /\.(mp4|webm|ogg|mov|m4v)$/i.test(n);
+}
+function isKnownImageFile(f){
+  const n = (f?.name || '').toLowerCase();
+  // HEIC/HEIF souvent non supporté en <img> → on traitera en fallback
+  const isHeif = /(\.heic|\.heif)$/i.test(n) || /heic|heif/i.test(f?.type||'');
+  if (isHeif) return false;
+  return (f?.type?.startsWith('image/')) || /\.(png|jpe?g|gif|webp|bmp)$/i.test(n);
+}
 
+// fabrique la vignette : image directe, 1er frame vidéo, ou fallback pictogramme
+function createThumbForFile(file, index){
+  const wrap = document.createElement('div');
+  wrap.className = 'thumbbase-wrap draggable';
+  wrap.setAttribute('role', 'listitem');
+  wrap.draggable = false;
+  wrap.dataset.index = String(index);
+
+  const img = document.createElement('img');
+  img.className = 'thumbbase';
+  img.alt = `Fichier ${index+1}`;
+  img.draggable = false;
+
+  const badge = document.createElement('span');
+  badge.className = 'thumbbase-badge';
+  badge.textContent = String(index+1);
+
+  const icon = document.createElement('span');
+  icon.className = 'thumbbase-icon';
+  icon.textContent = ''; // rempli selon le type
+
+  wrap.appendChild(img);
+  wrap.appendChild(badge);
+  wrap.appendChild(icon);
+
+  if (isKnownImageFile(file)) {
+    // image classique
+    const url = URL.createObjectURL(file);
+    img.src = url;
+    img.onerror = () => { // si vraiment pas affichable
+      img.removeAttribute('src');
+      img.style.background = 'linear-gradient(135deg,#333,#111)';
+      icon.textContent = '📷';
+    };
+    img.onload = () => { try { URL.revokeObjectURL(url); } catch(_){} };
+  } else if (isVideoFile(file)) {
+    // vidéo → extrait 1er frame
+    icon.textContent = '🎬';
+    img.style.background = 'linear-gradient(135deg,#333,#111)';
+    extractVideoFrame(file).then(dataUrl => {
+      if (dataUrl) img.src = dataUrl;
+      else icon.textContent = '🎬'; // fallback emoji
+    }).catch(() => {
+      icon.textContent = '🎬'; // fallback emoji
+    });
+  } else {
+    // inconnu (HEIC/HEIF ou autre) → fallback
+    img.style.background = 'linear-gradient(135deg,#333,#111)';
+    icon.textContent = '📷';
+  }
+
+  return wrap;
+}
+
+// capture un frame de la vidéo → DataURL (JPEG)
+function extractVideoFrame(file){
+  return new Promise((resolve) => {
+    try{
+      const url = URL.createObjectURL(file);
+      const v = document.createElement('video');
+      v.muted = true;
+      v.playsInline = true;
+      v.preload = 'metadata';
+      v.src = url;
+
+      const clean = () => { try { URL.revokeObjectURL(url); } catch(_){} };
+
+      let timeout = setTimeout(() => { clean(); resolve(null); }, 2000);
+
+      v.addEventListener('loadeddata', () => {
+        try {
+          // avancer un chouïa pour avoir un frame sûr
+          v.currentTime = Math.min(0.1, (v.duration || 1) - 0.05);
+        } catch(_) { /* ignore */ }
+      }, { once:true });
+
+      v.addEventListener('seeked', () => {
+        try{
+          clearTimeout(timeout);
+          const w = v.videoWidth || 160;
+          const h = v.videoHeight || 90;
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(v, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          clean();
+          resolve(dataUrl || null);
+        }catch(_e){
+          clean();
+          resolve(null);
+        }
+      }, { once:true });
+
+      // sécurité: si la vidéo ne charge pas
+      v.onerror = () => { clearTimeout(timeout); clean(); resolve(null); };
+    } catch(_){
+      resolve(null);
+    }
+  });
+}
 function openReorderModal(fileList, target) {
   const files = Array.from(fileList || []);
   const modalEl     = document.getElementById('reorderModal');
@@ -706,19 +825,10 @@ function openReorderModal(fileList, target) {
   containerEl.replaceWith(container);
 
   // 🧱 Vignettes (pas de DnD HTML5 ; on utilise Pointer Events)
-  files.forEach((f, i) => {
-    const url = URL.createObjectURL(f);
-    const el = document.createElement('div');
-    el.className = 'thumbbase-wrap draggable';
-    el.setAttribute('role', 'listitem');
-    el.draggable = false;
-    el.dataset.index = String(i);
-    el.innerHTML = `
-      <img class="thumbbase" src="${url}" alt="Photo ${i+1}" draggable="false">
-      <span class="thumbbase-badge">${i+1}</span>
-    `;
-    container.appendChild(el);
-  });
+  // 🧱 Vignettes (image/vidéo avec frame de prévisualisation)
+files.forEach((f, i) => {
+  container.appendChild(createThumbForFile(f, i));
+});
 
   // 🖐️ Init reorder pointer (mobile + desktop)
   setupPointerReorder(container, modalEl);
