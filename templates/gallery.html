@@ -6,21 +6,27 @@
     html, body { height: 100%; }
     body { margin: 0; overflow-y: auto; background: var(--bs-body-bg); }
     .gallery-header {
-      position: sticky; top: 0; z-index: 1030;
-      backdrop-filter: blur(6px);
-      background: color-mix(in oklab, var(--bs-body-bg) 85%, transparent);
-      border-bottom: 1px solid rgba(255,255,255,.08);
-    }
+  position: sticky;
+  /* colle sous la navbar mesurée dans base.html
+  top: var(--nav-h, 0);
+  z-index: 1010;              
+  backdrop-filter: blur(6px);
+  background: color-mix(in oklab, var(--bs-body-bg) 85%, transparent);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
     .gallery-title {
       font-size: 1rem; margin: 0; line-height: 1;
     }
      /* au lieu de .grid / .thumb */
 .g-grid {
+  /* taille mini d’une vignette – overridable en @media */
   --g-thumb-size: 180px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--g-thumb-size), 1fr));
+  /* auto-fit + minmax => n colonnes tant que ça tient */
+  grid-template-columns: repeat(auto-fit, minmax(var(--g-thumb-size), 1fr));
   gap: .75rem;
 }
+
 
 .g-thumb {
   position: relative;
@@ -30,8 +36,10 @@
   border: 1px solid rgba(255,255,255,.06);
   aspect-ratio: 1 / 1;
   cursor: zoom-in;
-  min-width: var(--g-thumb-size);
-  min-height: var(--g-thumb-size);
+
+  /* ⚠️ important: ne pas bloquer la largeur des tuiles */
+  min-width: 0;
+  min-height: 0;
 }
 
 .g-thumb img {
@@ -90,6 +98,13 @@
 .g-thumb .lock-badge {
   position: absolute; bottom: .4rem; right: .4rem;
   background: rgba(0,0,0,.6); color:#fff; padding:.1rem .35rem; border-radius:.35rem; font-size:.75rem;
+}
+/* Mobile : réduis la taille minimale pour obtenir 2–3 colonnes selon la largeur */
+@media (max-width: 576px) {
+  /* On override la variable réellement utilisée par la grille */
+  .g-grid { --g-thumb-size: clamp(100px, 33vw, 140px); }
+  /* si tu préfères 2 colonnes assurées: 
+     .g-grid { --g-thumb-size: clamp(120px, 45vw, 160px); } */
 }
   </style>
 {% endblock %}
