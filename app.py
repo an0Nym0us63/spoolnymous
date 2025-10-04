@@ -170,19 +170,6 @@ def __is_animated_sequence(in_path: Path) -> bool:
         # Heuristique extension si ffprobe indispo
         return in_path.suffix.lower() in {".mp4", ".m4v", ".mov", ".webm", ".gif"}
 
-def __is_animated_sequence(in_path: Path) -> bool:
-    try:
-        out = subprocess.check_output(
-            ["ffprobe","-v","error","-select_streams","v:0","-count_frames",
-             "-show_entries","stream=nb_read_frames",
-             "-of","default=nokey=1:noprint_wrappers=1", str(in_path)],
-            stderr=subprocess.DEVNULL, text=True
-        ).strip()
-        n = int(out) if out.isdigit() else 1
-        return n > 1
-    except Exception:
-        return in_path.suffix.lower() in {".mp4",".m4v",".mov",".webm",".gif"}
-
 def _ffmpeg_compress(in_path: Path, out_path: Path, to_webp: bool = True,
                      max_w: int = 800, max_h: int = 800, quality: int = 80) -> None:
     in_path  = Path(in_path)
