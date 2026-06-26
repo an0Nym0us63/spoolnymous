@@ -1,6 +1,24 @@
 services:
-  openspoolman:
-    build: .
-    env_file: "config.env"
+  spoolnymous:
+    image: ghcr.io/an0nym0us63/spoolnymous:v2
+    container_name: spoolnymous-v2
+    restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "7914:8000"
+    volumes:
+      - spoolnymous_v2_data:/data
+    environment:
+      - DATA_DIR=/data
+      - DATABASE_URL=sqlite+aiosqlite:////data/spoolnymous.db
+      - UPLOADS_DIR=/data/uploads
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  spoolnymous_v2_data:
