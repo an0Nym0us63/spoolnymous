@@ -1,8 +1,8 @@
 # Stage 1 : Build frontend
-FROM node:20-alpine AS frontend-builder
+FROM node:24-alpine AS frontend-builder
 WORKDIR /frontend
-COPY frontend/package*.json ./
-RUN npm ci --silent
+COPY frontend/package.json ./
+RUN npm install --silent
 COPY frontend/ .
 RUN npm run build
 
