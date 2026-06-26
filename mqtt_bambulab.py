@@ -89,14 +89,20 @@ def getPrinterModel():
     model_code = PRINTER_ID[:3]
 
     model_map = {
+        "31B": "H2C",
         "094": "H2D",
+        "239": "H2D Pro",
+        "093": "H2S",
+        "20P": "X2D",
         "00W": "X1",
         "00M": "X1 Carbon",
         "03W": "X1E",
+        "22E": "P2S",
         "01S": "P1P",
         "01P": "P1S",
         "039": "A1",
-        "030": "A1 Mini"
+        "030": "A1 Mini",
+        "26A": "A2L",
     }
     model_name = model_map.get(model_code, f"Unknown model ({model_code})")
 
@@ -109,6 +115,12 @@ def getPrinterModel():
         "model": model_name,
         "devicename": device_name
     }
+
+# Printers with Vortek hotend rack system (no AMS tray mapping, uses hotend slots 1-6)
+VORTEK_MODELS = {"H2C"}
+
+def is_vortek_printer():
+    return getPrinterModel()["model"] in VORTEK_MODELS
 
 def num2letter(num):
   return chr(ord("A") + int(num))
