@@ -3999,3 +3999,86 @@ def api_set_filament_wishlist(filament_id: int):
     return jsonify({"ok": ok, "filament_id": filament_id, "to_order": val}), status
 
 app.register_blueprint(auth_bp)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# EXPORT BAMBUNYMOUS — Route publique pour migration vers BambuNymous
+# ──────────────────────────────────────────────────────────────────────────────
+@app.route("/api/export/bambunymous")
+def export_bambunymous():
+    """
+    Exporte tout ce dont BambuNymous a besoin pour l'import :
+    - La base SQLite complète
+    - Les vignettes de prints (thumbnails uniquement, pas les 3MF)
+    - Les dossiers uploads (filaments, prints, groupes, accessoires)
+    Retourne un ZIP streamé.
+    """
+    import zipfile, io, os
+    from pathlib import Path
+
+    BASE = Path(os.getcwd())
+    DB_PATH = Path(db_config["db_path"])
+    PRINTS_DIR = BASE / "static" / "prints"
+    UPLOADS_DIR = BASE / "static" / "uploads"
+
+    # Extensions images acceptées
+    IMG_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+    # Extensions exclues pour prints (pas de 3MF, pas de gcode)
+    EXCLUDE_EXT = {".3mf", ".gcode", ".bgcode", ".ams", ".studio"}
+
+    def stream_zip():
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, mode="w", compression=zipfile.ZIP_DEFLATED,
+                             allowZip64=True) as zf:
+            # 1. Base de données
+            if DB_PATH.exists():
+                zf.write(DB_PATH, "db/spoolnymous.db")
+
+            # 2. Vignettes prints (tout sauf 3MF/gcode)
+            if PRINTS_DIR.exists():
+                for f in PRINTS_DIR.rglob("*"):
+                    if f.is_file() and f.suffix.lower() not in EXCLUDE_EXT:
+                        rel = f.relative_to(BASE / "static")
+                        zf.write(f, f"static/{rel}")
+
+            # 3. Uploads (filaments, prints, groupes, accessoires)
+            if UPLOADS_DIR.exists():
+                for f in UPLOADS_DIR.rglob("*"):
+                    if f.is_file() and f.suffix.lower() in IMG_EXT | {".json", ".txt"}:
+                        rel = f.relative_to(BASE / "static")
+                        zf.write(f, f"static/{rel}")
+
+        buf.seek(0)
+        yield buf.read()
+
+    return Response(
+        stream_with_context(stream_zip()),
+        mimetype="application/zip",
+        headers={
+            "Content-Disposition": "attachment; filename=spoolnymous-export.zip",
+            "Access-Control-Allow-Origin": "*",
+        }
+    )
+
+
+@app.route("/api/export/status")
+def export_status():
+    """Infos de base sur ce qu'on peut exporter (ping)."""
+    import os
+    from pathlib import Path
+    BASE = Path(os.getcwd())
+    DB_PATH = Path(db_config["db_path"])
+    PRINTS_DIR = BASE / "static" / "prints"
+    UPLOADS_DIR = BASE / "static" / "uploads"
+
+    nb_prints = sum(1 for _ in PRINTS_DIR.rglob("*") if _.is_file()) if PRINTS_DIR.exists() else 0
+    nb_uploads = sum(1 for _ in UPLOADS_DIR.rglob("*") if _.is_file()) if UPLOADS_DIR.exists() else 0
+    db_size = DB_PATH.stat().st_size if DB_PATH.exists() else 0
+
+    from flask import jsonify as _jsonify
+    return _jsonify({
+        "ok": True,
+        "db_exists": DB_PATH.exists(),
+        "db_size_mb": round(db_size / 1024 / 1024, 1),
+        "prints_files": nb_prints,
+        "uploads_files": nb_uploads,
+    })
