@@ -4029,6 +4029,7 @@ def export_bambunymous():
     ] if p.exists()), Path("/home/app/data/3d_printer_logs.db"))
     PRINTS_DIR = BASE / "static" / "prints"
     UPLOADS_DIR = BASE / "static" / "uploads"
+    ACCESSOIRES_DIR = BASE / "static" / "uploads" / "accessoires"
 
     # Extensions images acceptées
     IMG_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
