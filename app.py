@@ -4022,12 +4022,11 @@ def export_bambunymous():
         if (_candidate / "static").exists():
             BASE = _candidate
             break
-    DB_PATH = Path(db_config["db_path"])
-    if not DB_PATH.exists():
-        # Fallback paths
-        for _p in [BASE / "data" / "3d_printer_logs.db",
-                   Path("/home/app/data/3d_printer_logs.db")]:
-            if _p.exists(): DB_PATH = _p; break
+    DB_PATH = next((p for p in [
+        Path("/home/app/data/3d_printer_logs.db"),
+        BASE / "data" / "3d_printer_logs.db",
+        Path("/app/data/3d_printer_logs.db"),
+    ] if p.exists()), Path("/home/app/data/3d_printer_logs.db"))
     PRINTS_DIR = BASE / "static" / "prints"
     UPLOADS_DIR = BASE / "static" / "uploads"
 
@@ -4082,12 +4081,10 @@ def export_status():
         if (_candidate / "static").exists():
             BASE = _candidate
             break
-    DB_PATH = Path(db_config["db_path"])
-    if not DB_PATH.exists():
-        # Fallback paths
-        for _p in [BASE / "data" / "3d_printer_logs.db",
-                   Path("/home/app/data/3d_printer_logs.db")]:
-            if _p.exists(): DB_PATH = _p; break
+    DB_PATH = next((p for p in [
+        Path("/home/app/data/3d_printer_logs.db"),
+        BASE / "data" / "3d_printer_logs.db",
+    ] if p.exists()), Path("/home/app/data/3d_printer_logs.db"))
     PRINTS_DIR = BASE / "static" / "prints"
     UPLOADS_DIR = BASE / "static" / "uploads"
 
