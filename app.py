@@ -4075,10 +4075,12 @@ def export_status():
     db_size = DB_PATH.stat().st_size if DB_PATH.exists() else 0
 
     from flask import jsonify as _jsonify
-    return _jsonify({
+    resp = _jsonify({
         "ok": True,
         "db_exists": DB_PATH.exists(),
         "db_size_mb": round(db_size / 1024 / 1024, 1),
         "prints_files": nb_prints,
         "uploads_files": nb_uploads,
     })
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    return resp
