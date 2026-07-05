@@ -994,6 +994,7 @@ EXEMPT_ENDPOINTS = {
 EXEMPT_PATH_PREFIXES = (
     "/api/public/",
     "/camera/snapshot",
+    "/api/export/",
 )
 
 TOKEN_AUTH_ENDPOINTS = {
@@ -4016,7 +4017,17 @@ def export_bambunymous():
     from pathlib import Path
 
     BASE = Path(os.getcwd())
+    # Support containers: /home/app ou /app
+    for _candidate in [Path("/home/app"), Path("/app"), BASE]:
+        if (_candidate / "static").exists():
+            BASE = _candidate
+            break
     DB_PATH = Path(db_config["db_path"])
+    if not DB_PATH.exists():
+        # Fallback paths
+        for _p in [BASE / "data" / "3d_printer_logs.db",
+                   Path("/home/app/data/3d_printer_logs.db")]:
+            if _p.exists(): DB_PATH = _p; break
     PRINTS_DIR = BASE / "static" / "prints"
     UPLOADS_DIR = BASE / "static" / "uploads"
 
@@ -4066,7 +4077,17 @@ def export_status():
     import os
     from pathlib import Path
     BASE = Path(os.getcwd())
+    # Support containers: /home/app ou /app
+    for _candidate in [Path("/home/app"), Path("/app"), BASE]:
+        if (_candidate / "static").exists():
+            BASE = _candidate
+            break
     DB_PATH = Path(db_config["db_path"])
+    if not DB_PATH.exists():
+        # Fallback paths
+        for _p in [BASE / "data" / "3d_printer_logs.db",
+                   Path("/home/app/data/3d_printer_logs.db")]:
+            if _p.exists(): DB_PATH = _p; break
     PRINTS_DIR = BASE / "static" / "prints"
     UPLOADS_DIR = BASE / "static" / "uploads"
 
