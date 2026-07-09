@@ -4097,13 +4097,13 @@ def export_status():
     # Récupérer les settings utiles pour BambuNymous
     from config import get_app_setting, get_electric_tariffs, get_all_app_settings
     _s = get_all_app_settings()
-    _tariffs = get_electric_tariffs()
+    #_tariffs = get_electric_tariffs()
     _last_kwh = None
-    if _tariffs:
-        _last = sorted(_tariffs, key=lambda t: t.get("start") or "", reverse=True)[0]
-        # Spoolnymous stocke en €/h, BambuNymous utilise €/kWh
-        # Conversion approx: 1000W imprimante → prix/h = prix_kwh
-        _last_kwh = _last.get("price_per_hour")  # same as €/kWh for 1kW load
+    #if _tariffs:
+    #    _last = sorted(_tariffs, key=lambda t: t.get("start") or "", reverse=True)[0]
+    #    # Spoolnymous stocke en €/h, BambuNymous utilise €/kWh
+    #    # Conversion approx: 1000W imprimante → prix/h = prix_kwh
+    #    _last_kwh = _last.get("price_per_hour")  # same as €/kWh for 1kW load
 
     resp = _jsonify({
         "ok": True,
@@ -4111,7 +4111,11 @@ def export_status():
         "db_size_mb": round(db_size / 1024 / 1024, 1),
         "prints_files": nb_prints,
         "uploads_files": nb_uploads,
-        "settings": _sn_settings,
+        "settings": {
+            "printer_ip":          get_app_setting("PRINTER_IP", ""),
+            "printer_code":        get_app_setting("PRINTER_ACCESS_CODE", ""),
+            "printer_name":        get_app_setting("PRINTER_NAME", ""),
+        },
     })
     resp.headers["Access-Control-Allow-Origin"] = "*"
     return resp
