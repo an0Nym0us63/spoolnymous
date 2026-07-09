@@ -4111,12 +4111,7 @@ def export_status():
         "db_size_mb": round(db_size / 1024 / 1024, 1),
         "prints_files": nb_prints,
         "uploads_files": nb_uploads,
-        "settings": {
-            "printer_ip":          get_app_setting("PRINTER_IP", ""),
-            "printer_code":        get_app_setting("PRINTER_ACCESS_CODE", ""),
-            "printer_name":        get_app_setting("PRINTER_NAME", ""),
-            "electricity_kwh":     _last_kwh,
-        },
+        "settings": _sn_settings,
     })
     resp.headers["Access-Control-Allow-Origin"] = "*"
     return resp
